@@ -88,13 +88,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
     
     const [isLoading, setIsLoading] = useState(true);
-    // Chế độ Dùng Thử: bật mặc định cho mọi người — ai mở app cũng vào xem được, không cần đăng nhập.
-    // (2026-11-02, chủ dự án yêu cầu tắt đăng nhập.)
+    // Chế độ Dùng Thử: chỉ cho máy chủ phát triển/test (utils/demoMode.ts). Bản build cho người dùng luôn tắt và xoá cờ cũ.
     const choPhepDemo = demoModeChoPhep();
     const [isDemoMode, setDemoModeRaw] = useState(() => {
         if (!choPhepDemo) return false;
-        // Mặc định BẬT demo mode — chỉ tắt khi user đã đăng nhập tài khoản thật
-        return true;
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true';
+        }
+        return false;
     });
 
     const setDemoMode = (val: boolean) => {

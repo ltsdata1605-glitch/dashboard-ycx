@@ -269,8 +269,11 @@ export default function Sidebar() {
         return ketQua;
     }, [menuItems, isFeatureEnabled]);
 
+    // Ẩn sidebar khi không còn mục nào hiển thị (tất cả tính năng bị tắt)
+    const hasVisibleItems = visibleMenuItems.length > 0 || secondaryItems.length > 0;
+
     // Vào/ra bằng CSS (GĐ4): bỏ thư viện motion khỏi đường mở app — dock vẫn mờ dần + trượt nhẹ như trước (180 ms).
-    const { mounted, shown } = usePresence(isDesktopMenuOpen, 180);
+    const { mounted, shown } = usePresence(isDesktopMenuOpen && hasVisibleItems, 180);
     if (!mounted) return null;
 
     return (

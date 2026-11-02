@@ -17,7 +17,7 @@ import { startUserscriptUpdateWatcher } from '../services/userscriptProbeService
 import { BiAutoSyncModal } from '../components/BiAutoSyncModal';
 import { LuyKeMonthPickerModal } from '../components/LuyKeMonthPickerModal';
 import { useReportBiAuth } from './useReportBiAuth';
-import { uploadSummaryLuyKeIfManager, uploadCompetitionLuyKeIfManager } from '../services/biDataService';
+import { uploadSummaryLuyKeIfManager, uploadCompetitionLuyKeIfManager, uploadSummaryRealtimeIfManager, uploadCompetitionRealtimeIfManager } from '../services/biDataService';
 import { fetchSupermarketMap } from '../services/biSupermarketMapService';
 
 export function useBiAutoSync(activeSupermarket?: string | null) {
@@ -127,15 +127,26 @@ export function useBiAutoSync(activeSupermarket?: string | null) {
             const res = await applyBiSyncResults(payload.mode, payload.results, activeSupermarket || null);
 
             // Tự động đồng bộ lên biData/{maKho} nếu là quản lý/admin có quyền (đảm bảo đồng nghiệp & tải lại trang có ngay số mới nhất)
-            if (payload.mode === 'luyke' && canManageSharedBiData && user && allowedKhos.length > 0) {
+            if (canManageSharedBiData && user && allowedKhos.length > 0) {
                 fetchSupermarketMap(user.uid).then(nameToKho => {
-                    if (payload.results.summary) {
-                        uploadSummaryLuyKeIfManager(user, allowedKhos, payload.results.summary, nameToKho, employeeName)
-                            .catch(e => console.error('[useBiAutoSync] Lỗi upload summary luy ke:', e));
-                    }
-                    if (payload.results.competition) {
-                        uploadCompetitionLuyKeIfManager(user, allowedKhos, payload.results.competition, nameToKho, employeeName)
-                            .catch(e => console.error('[useBiAutoSync] Lỗi upload competition luy ke:', e));
+                    if (payload.mode === 'luyke') {
+                        if (payload.results.summary) {
+                            uploadSummaryLuyKeIfManager(user, allowedKhos, payload.results.summary, nameToKho, employeeName)
+                                .catch(e => console.error('[useBiAutoSync] Lỗi upload summary luy ke:', e));
+                        }
+                        if (payload.results.competition) {
+                            uploadCompetitionLuyKeIfManager(user, allowedKhos, payload.results.competition, nameToKho, employeeName)
+                                .catch(e => console.error('[useBiAutoSync] Lỗi upload competition luy ke:', e));
+                        }
+                    } else if (payload.mode === 'realtime') {
+                        if (payload.results.summary) {
+                            uploadSummaryRealtimeIfManager(user, allowedKhos, payload.results.summary, nameToKho, employeeName)
+                                .catch(e => console.error('[useBiAutoSync] Lỗi upload summary realtime:', e));
+                        }
+                        if (payload.results.competition) {
+                            uploadCompetitionRealtimeIfManager(user, allowedKhos, payload.results.competition, nameToKho, employeeName)
+                                .catch(e => console.error('[useBiAutoSync] Lỗi upload competition realtime:', e));
+                        }
                     }
                 }).catch(e => console.error('[useBiAutoSync] Lỗi fetch supermarket map:', e));
             }

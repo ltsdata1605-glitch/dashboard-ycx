@@ -18,7 +18,7 @@ import {
 } from '../utils/dashboardHelpers';
 import { useWorker } from './useWorker';
 import { useReportBiAuth } from './useReportBiAuth';
-import { subscribeAllowedBiLuyKe } from '../services/biDataService';
+import { subscribeAllowedBiLuyKe, subscribeAllowedBiRealtime } from '../services/biDataService';
 import { fetchSupermarketMap } from '../services/biSupermarketMapService';
 import { parseBaseTargetQuyDoi } from '../services/employeeParser';
 import { getMonthProgress, extractDateFromData } from '../services/metricService';
@@ -33,48 +33,64 @@ export const useDashboardLogic = (isActive?: boolean) => {
     const [activeSubTab, setActiveSubTab] = useIndexedDBState<SubTab>('dashboard-sub-tab', 'revenue');
     const [activeSupermarket, setActiveSupermarket] = useIndexedDBState<string>('dashboard-active-supermarket', 'Tổng');
 
-    const [summaryRealtime] = useIndexedDBState('summary-realtime', '');
+    const [localSummaryRealtime] = useIndexedDBState('summary-realtime', '');
     const [localSummaryLuyKe] = useIndexedDBState('summary-luy-ke', '');
-    const [competitionRealtime] = useIndexedDBState('competition-realtime', '');
+    const [localCompetitionRealtime] = useIndexedDBState('competition-realtime', '');
     const [localCompetitionLuyKe] = useIndexedDBState('competition-luy-ke', '');
 
-    // Đợt 4 (implementation_plan.md) — phân quyền theo siêu thị: dữ liệu Luỹ kế DÙNG CHUNG
+    // Đợt 4 (implementation_plan.md) — phân quyền theo siêu thị: dữ liệu Luỹ kế + Realtime DÙNG CHUNG
     // trong biData/{maKho}, đọc theo đúng Mã Kho user được cấp quyền (departmentId/myKhos()).
-    // Nhân viên không có quyền dán (canManageSharedBiData=false) sẽ có localSummaryLuyKe/
-    // localCompetitionLuyKe rỗng — 2 biến "shared*" dưới đây lấp đầy chỗ trống đó. Quản lý vẫn
-    // ưu tiên dữ liệu vừa dán tại chỗ (không đợi round-trip Firestore), shared chỉ bổ sung
-    // phần họ CHƯA dán trên thiết bị này.
+    // Nhân viên không có quyền dán (canManageSharedBiData=false) sẽ có local* rỗng — biến "shared*"
+    // dưới đây lấp đầy chỗ trống đó. Quản lý vẫn ưu tiên dữ liệu vừa dán tại chỗ (không đợi
+    // round-trip Firestore), shared chỉ bổ sung phần họ CHƯA dán trên thiết bị này.
     const { allowedKhos, user } = useReportBiAuth();
     const [sharedSummaryLuyKeText, setSharedSummaryLuyKeText] = useState('');
     const [sharedCompetitionLuyKeBySupermarket, setSharedCompetitionLuyKeBySupermarket] = useState<Record<string, SupermarketCompetitionData>>({});
+    const [sharedSummaryRealtimeText, setSharedSummaryRealtimeText] = useState('');
+    const [sharedCompetitionRealtimeBySupermarket, setSharedCompetitionRealtimeBySupermarket] = useState<Record<string, SupermarketCompetitionData>>({});
     useEffect(() => {
         if (isActive === false || allowedKhos.length === 0) return;
-        // Realtime (2026-10-14): quản lý dán số mới ở máy khác → máy đang xem cập nhật ngay, không phải mở lại tab.
         let isMounted = true;
         let khoToName: Record<string, string> = {};
-        let latest: { text: string; comp: Record<string, SupermarketCompetitionData> } | null = null;
-        const apDung = () => {
-            if (!isMounted || !latest) return;
-            setSharedSummaryLuyKeText(latest.text);
+        let latestLK: { text: string; comp: Record<string, SupermarketCompetitionData> } | null = null;
+        let latestRT: { text: string; comp: Record<string, SupermarketCompetitionData> } | null = null;
+        const mapKhoToName = (comp: Record<string, SupermarketCompetitionData>) => {
             const bySupermarketName: Record<string, SupermarketCompetitionData> = {};
-            Object.entries(latest.comp).forEach(([maKho, data]) => {
+            Object.entries(comp).forEach(([maKho, data]) => {
                 bySupermarketName[khoToName[maKho] || maKho] = data;
             });
-            setSharedCompetitionLuyKeBySupermarket(bySupermarketName);
+            return bySupermarketName;
+        };
+        const apDung = () => {
+            if (!isMounted) return;
+            if (latestLK) {
+                setSharedSummaryLuyKeText(latestLK.text);
+                setSharedCompetitionLuyKeBySupermarket(mapKhoToName(latestLK.comp));
+            }
+            if (latestRT) {
+                setSharedSummaryRealtimeText(latestRT.text);
+                setSharedCompetitionRealtimeBySupermarket(mapKhoToName(latestRT.comp));
+            }
         };
         fetchSupermarketMap(user?.uid).then(nameToKho => {
             const m: Record<string, string> = {};
             Object.entries(nameToKho).forEach(([name, maKho]) => { m[maKho] = name; });
             khoToName = m;
             apDung();
-        }).catch(() => { /* không có bảng map: hiện theo Mã Kho */ });
-        const unsub = subscribeAllowedBiLuyKe(allowedKhos, (text, comp) => {
-            latest = { text, comp };
+        }).catch(() => {});
+        const unsubLK = subscribeAllowedBiLuyKe(allowedKhos, (text, comp) => {
+            latestLK = { text, comp };
             apDung();
-        }, err => console.warn('[useDashboardLogic] Không thể nghe dữ liệu BI dùng chung (offline/hạn chế quyền):', (err as { message?: string })?.message || err));
-        return () => { isMounted = false; unsub(); };
+        }, err => console.warn('[useDashboardLogic] Lỗi nghe BI Luỹ kế dùng chung:', (err as { message?: string })?.message || err));
+        const unsubRT = subscribeAllowedBiRealtime(allowedKhos, (text, comp) => {
+            latestRT = { text, comp };
+            apDung();
+        }, err => console.warn('[useDashboardLogic] Lỗi nghe BI Realtime dùng chung:', (err as { message?: string })?.message || err));
+        return () => { isMounted = false; unsubLK(); unsubRT(); };
     }, [allowedKhos.join(','), isActive, user?.uid]);
 
+    const summaryRealtime = localSummaryRealtime || sharedSummaryRealtimeText;
+    const competitionRealtime = localCompetitionRealtime;
     const summaryLuyKe = localSummaryLuyKe || sharedSummaryLuyKeText;
     const [customSupermarkets] = useIndexedDBState<string[]>('updater-custom-supermarkets', []);
     const [supermarketMap, setSupermarketMap] = useState<Record<string, string>>({});
@@ -138,13 +154,13 @@ export const useDashboardLogic = (isActive?: boolean) => {
         return () => { isMounted = false; };
     }, [summaryLuyKe, isActive]);
 
-    const [competitionRealtimeBySupermarket, setCompetitionRealtimeBySupermarket] = useState<Record<string, SupermarketCompetitionData>>({});
+    const [localCompetitionRealtimeBySupermarket, setLocalCompetitionRealtimeBySupermarket] = useState<Record<string, SupermarketCompetitionData>>({});
     useEffect(() => {
         if (isActive === false) return;
-        if (!competitionRealtime) { setCompetitionRealtimeBySupermarket({}); return; }
+        if (!competitionRealtime) { setLocalCompetitionRealtimeBySupermarket({}); return; }
         let isMounted = true;
         runWorkerTask('PARSE_COMPETITION_BY_SUPERMARKET', competitionRealtime).then(res => {
-            if (isMounted && res) setCompetitionRealtimeBySupermarket(res);
+            if (isMounted && res) setLocalCompetitionRealtimeBySupermarket(res);
         }).catch(err => console.error('[useDashboardLogic] Lỗi parse thi đua realtime:', err));
         return () => { isMounted = false; };
     }, [competitionRealtime, isActive]);
@@ -196,6 +212,35 @@ export const useDashboardLogic = (isActive?: boolean) => {
 
         return merged;
     }, [sharedCompetitionLuyKeBySupermarket, localCompetitionLuyKeBySupermarket, supermarketMap, supermarkets]);
+
+    const competitionRealtimeBySupermarket = useMemo(() => {
+        const merged: Record<string, SupermarketCompetitionData> = { ...sharedCompetitionRealtimeBySupermarket };
+
+        Object.entries(localCompetitionRealtimeBySupermarket).forEach(([localKey, localData]) => {
+            const matchingSharedKeys = Object.keys(merged).filter(sharedKey => {
+                if (sharedKey === 'Tổng' && localKey === 'Tổng') return true;
+                if (sharedKey === 'Tổng' || localKey === 'Tổng') return false;
+                return (
+                    sharedKey === localKey ||
+                    isSupermarketMatch(localKey, sharedKey, supermarketMap) ||
+                    shortenSupermarketName(localKey) === shortenSupermarketName(sharedKey)
+                );
+            });
+
+            const matchingSupermarket = supermarkets.find(s =>
+                s !== 'Tổng' && (
+                    isSupermarketMatch(localKey, s, supermarketMap) ||
+                    shortenSupermarketName(localKey) === shortenSupermarketName(s)
+                )
+            );
+
+            const canonicalKey = matchingSharedKeys[0] || matchingSupermarket || localKey;
+            matchingSharedKeys.forEach(k => delete merged[k]);
+            merged[canonicalKey] = localData;
+        });
+
+        return merged;
+    }, [sharedCompetitionRealtimeBySupermarket, localCompetitionRealtimeBySupermarket, supermarketMap, supermarkets]);
 
     const [industryRealtimeParsed, setIndustryRealtimeParsed] = useState<ReturnType<typeof parseIndustryRealtimeData> | null>(null);
     const [industryLuyKeParsed, setIndustryLuyKeParsed] = useState<ReturnType<typeof parseIndustryLuyKeData> | null>(null);

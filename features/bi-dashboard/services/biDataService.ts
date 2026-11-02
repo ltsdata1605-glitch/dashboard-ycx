@@ -43,6 +43,8 @@ interface CompetitionLuyKeDoc extends SupermarketCompetitionData {
 
 const summaryDocRef = (maKho: string) => doc(db, 'biData', maKho, 'reports', 'summaryLuyKe');
 const competitionDocRef = (maKho: string) => doc(db, 'biData', maKho, 'reports', 'competitionLuyKe');
+const summaryRealtimeDocRef = (maKho: string) => doc(db, 'biData', maKho, 'reports', 'summaryRealtime');
+const competitionRealtimeDocRef = (maKho: string) => doc(db, 'biData', maKho, 'reports', 'competitionRealtime');
 
 /** Tách 1 lần dán "Tên miền" (Summary Luỹ kế) thành fragment riêng cho từng Mã Kho, dựa vào
  * bảng map tên siêu thị → Mã Kho do admin khai báo (biSupermarketMapService.ts). Tên không có
@@ -233,6 +235,99 @@ export async function fetchAllowedCompetitionLuyKeData(allowedKhos: string[]): P
     return result;
 }
 
+// ── Realtime (doanh thu hằng ngày) DÙNG CHUNG theo Kho ──────────────────────
+// Mirror pattern Luỹ kế ở trên: manager dán → ghi biData/{maKho}/reports/summaryRealtime|competitionRealtime
+// → nhân viên/quản lý cùng Kho kéo về khi mở Report BI.
+
+export async function uploadSummaryRealtimeIfManager(
+    user: User,
+    allowedKhos: string[],
+    rawText: string,
+    nameToKho: Record<string, string>,
+    uploadedByName?: string
+): Promise<{ skippedNames: string[]; uploadedKhos: string[] }> {
+    const { byKho, headerLine, skippedNames } = splitSummaryLuyKeByKho(rawText, nameToKho);
+    if (!headerLine) return { skippedNames, uploadedKhos: [] };
+    const allowedSet = new Set(allowedKhos);
+    const entries = Object.entries(byKho).filter(([maKho]) => allowedSet.has(maKho));
+    if (entries.length === 0) return { skippedNames, uploadedKhos: [] };
+    const batch = writeBatch(db);
+    entries.forEach(([maKho, dataLine]) => {
+        batch.set(summaryRealtimeDocRef(maKho), {
+            headerLine, dataLine,
+            uploadedByUid: user.uid,
+            uploadedByName: uploadedByName || user.email || user.uid,
+            updatedAt: serverTimestamp(),
+        });
+    });
+    await batch.commit();
+    return { skippedNames, uploadedKhos: entries.map(([k]) => k) };
+}
+
+export async function uploadCompetitionRealtimeIfManager(
+    user: User,
+    allowedKhos: string[],
+    rawText: string,
+    nameToKho: Record<string, string>,
+    uploadedByName?: string
+): Promise<{ skippedNames: string[]; uploadedKhos: string[] }> {
+    const bySupermarket = parseCompetitionDataBySupermarket(rawText);
+    const allowedSet = new Set(allowedKhos);
+    const skippedNames: string[] = [];
+    const uploadedKhos: string[] = [];
+    const batch = writeBatch(db);
+    let hasWrites = false;
+    for (const [name, data] of Object.entries(bySupermarket)) {
+        if (name.toUpperCase() === 'TỔNG') continue;
+        if (!data.programs || data.programs.length === 0) continue;
+        let maKho = getKhoFromSupermarketName(name, nameToKho);
+        if (!maKho) {
+            const matchedKey = findMatchingSupermarketKey(name, Object.keys(nameToKho));
+            if (matchedKey) maKho = nameToKho[matchedKey];
+        }
+        if (!maKho) { skippedNames.push(name); continue; }
+        if (!allowedSet.has(maKho)) continue;
+        batch.set(competitionRealtimeDocRef(maKho), {
+            headers: data.headers, programs: data.programs,
+            uploadedByUid: user.uid,
+            uploadedByName: uploadedByName || user.email || user.uid,
+            updatedAt: serverTimestamp(),
+        });
+        uploadedKhos.push(maKho);
+        hasWrites = true;
+    }
+    if (hasWrites) await batch.commit();
+    return { skippedNames, uploadedKhos };
+}
+
+export async function fetchAllowedSummaryRealtimeText(allowedKhos: string[]): Promise<string> {
+    if (allowedKhos.length === 0) return '';
+    const snaps = await Promise.all(allowedKhos.map(maKho => getDoc(summaryRealtimeDocRef(maKho))));
+    let headerLine: string | null = null;
+    const dataLines: string[] = [];
+    snaps.forEach(snap => {
+        if (!snap.exists()) return;
+        const data = snap.data() as SummaryLuyKeDoc;
+        if (!headerLine) headerLine = data.headerLine;
+        dataLines.push(data.dataLine);
+    });
+    if (!headerLine || dataLines.length === 0) return '';
+    const totalLine = buildSyntheticTotalLine(headerLine, dataLines);
+    return [headerLine, ...dataLines, totalLine].join('\n');
+}
+
+export async function fetchAllowedCompetitionRealtimeData(allowedKhos: string[]): Promise<Record<string, SupermarketCompetitionData>> {
+    if (allowedKhos.length === 0) return {};
+    const result: Record<string, SupermarketCompetitionData> = {};
+    await Promise.all(allowedKhos.map(async (maKho) => {
+        const snap = await getDoc(competitionRealtimeDocRef(maKho));
+        if (!snap.exists()) return;
+        const data = snap.data() as CompetitionLuyKeDoc;
+        result[maKho] = { headers: data.headers, programs: data.programs };
+    }));
+    return result;
+}
+
 /**
  * Nghe REALTIME Luỹ kế dùng chung (Summary + Thi đua) của mọi Mã Kho được cấp quyền (2026-10-14).
  * Trước đây chỉ đọc 1 lần lúc mở tab Report BI: quản lý dán số mới trên máy khác thì máy đang xem phải đóng/mở lại
@@ -269,6 +364,44 @@ export function subscribeAllowedBiLuyKe(
     const unsubs = allowedKhos.flatMap(maKho => [
         onSnapshot(summaryDocRef(maKho), snap => { summary[maKho] = snap.exists() ? snap.data() as SummaryLuyKeDoc : null; phat(); }, err => onError?.(err)),
         onSnapshot(competitionDocRef(maKho), snap => { competition[maKho] = snap.exists() ? snap.data() as CompetitionLuyKeDoc : null; phat(); }, err => onError?.(err)),
+    ]);
+    return () => unsubs.forEach(u => u());
+}
+
+/**
+ * Nghe REALTIME Realtime dùng chung (Summary + Thi đua) của mọi Mã Kho được cấp quyền.
+ * Cùng pattern với subscribeAllowedBiLuyKe nhưng đọc từ biData/{maKho}/reports/summaryRealtime|competitionRealtime.
+ */
+export function subscribeAllowedBiRealtime(
+    allowedKhos: string[],
+    onChange: (summaryText: string, competitionByKho: Record<string, SupermarketCompetitionData>) => void,
+    onError?: (err: unknown) => void,
+): () => void {
+    if (allowedKhos.length === 0) { onChange('', {}); return () => {}; }
+    const summary: Record<string, SummaryLuyKeDoc | null | undefined> = {};
+    const competition: Record<string, CompetitionLuyKeDoc | null | undefined> = {};
+    const du = () => allowedKhos.every(k => summary[k] !== undefined && competition[k] !== undefined);
+    const phat = () => {
+        if (!du()) return;
+        let headerLine: string | null = null;
+        const dataLines: string[] = [];
+        for (const k of allowedKhos) {
+            const d = summary[k];
+            if (!d) continue;
+            if (!headerLine) headerLine = d.headerLine;
+            dataLines.push(d.dataLine);
+        }
+        const text = headerLine && dataLines.length ? [headerLine, ...dataLines, buildSyntheticTotalLine(headerLine, dataLines)].join('\n') : '';
+        const comp: Record<string, SupermarketCompetitionData> = {};
+        for (const k of allowedKhos) {
+            const d = competition[k];
+            if (d) comp[k] = { headers: d.headers, programs: d.programs };
+        }
+        onChange(text, comp);
+    };
+    const unsubs = allowedKhos.flatMap(maKho => [
+        onSnapshot(summaryRealtimeDocRef(maKho), snap => { summary[maKho] = snap.exists() ? snap.data() as SummaryLuyKeDoc : null; phat(); }, err => onError?.(err)),
+        onSnapshot(competitionRealtimeDocRef(maKho), snap => { competition[maKho] = snap.exists() ? snap.data() as CompetitionLuyKeDoc : null; phat(); }, err => onError?.(err)),
     ]);
     return () => unsubs.forEach(u => u());
 }

@@ -14,7 +14,7 @@ import { collection, getDocs, query, orderBy, type DocumentReference } from 'fir
 import { db } from '../../../services/firebase';
 import { configStore } from '../store/configStore';
 import { getDb } from './dbService';
-import { fetchAllowedSummaryLuyKeText, fetchAllowedCompetitionLuyKeData } from './biDataService';
+import { fetchAllowedSummaryLuyKeText, fetchAllowedCompetitionLuyKeData, fetchAllowedSummaryRealtimeText, fetchAllowedCompetitionRealtimeData } from './biDataService';
 import { fetchSupermarketMap } from './biSupermarketMapService';
 
 const SETTINGS_STORE = 'settings';
@@ -234,12 +234,14 @@ export async function pullBiDataFromCloud(
         console.warn('[BI Cloud Sync] Lỗi làm mới bảng map siêu thị:', e);
     }
 
-    // Làm mới dữ liệu Luỹ kế chia sẻ theo Kho nếu có quyền
+    // Làm mới dữ liệu Luỹ kế + Realtime chia sẻ theo Kho nếu có quyền
     if (allowedKhos.length > 0) {
         try {
             await Promise.all([
                 fetchAllowedSummaryLuyKeText(allowedKhos),
-                fetchAllowedCompetitionLuyKeData(allowedKhos)
+                fetchAllowedCompetitionLuyKeData(allowedKhos),
+                fetchAllowedSummaryRealtimeText(allowedKhos),
+                fetchAllowedCompetitionRealtimeData(allowedKhos)
             ]);
         } catch (e) {
             console.warn('[BI Cloud Sync] Lỗi tải dữ liệu kho chia sẻ:', e);

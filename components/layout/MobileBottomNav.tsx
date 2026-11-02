@@ -84,6 +84,9 @@ const MobileBottomNav: React.FC = React.memo(() => {
 
     const isMoreActive = [...toolTabs, ...systemTabs].some(t => activeTab === t.id) || activeTab.startsWith('tools-');
 
+    // Ẩn thanh tab khi không còn mục nào hiển thị (tất cả tính năng bị tắt)
+    if (thanhChinh.length === 0 && congCuTrongSheet.length === 0) return null;
+
     // Mục tab trong viên kính (ảnh mẫu Apple Liquid Glass 1): icon + nhãn; mục đang chọn có viên xám `ycx-glass-item[aria-current]`
     // và đổi màu thương hiệu. Cao 50px (vùng chạm ≥ 44 không cần ::after).
     const oTab = (opts: { key: string; label: string; icon: IconName; active: boolean; onClick: () => void }) => (
