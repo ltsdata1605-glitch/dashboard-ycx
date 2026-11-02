@@ -14,7 +14,7 @@ const FEATURES = ['bi-dashboard', 'phan-ca', 'sticker-event', 'khai-thac', 'line
 const vungCam = (feature, ngoaiLe = {}) => {
   const others = FEATURES.filter((f) => f !== feature);
   const servicesExcept = [
-    ...(feature === 'bi-dashboard' || feature === 'line-bot' ? ['./firebase.ts', './firebase'] : []),
+    ...(feature === 'bi-dashboard' || feature === 'line-bot' || feature === 'phan-ca' ? ['./firebase.ts', './firebase'] : []),
     ...(ngoaiLe.services || []),
   ];
   return [

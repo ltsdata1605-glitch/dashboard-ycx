@@ -7,6 +7,7 @@ import { recalculateStatsForStaff, calculateTotalHours, calculateSpecialHours, f
 import { parseStaffFromExcelBuffer } from './utils/excelImport';
 import { splitCalendarWeeks } from './utils/weekUtils';
 import * as idb from './db/idb';
+import { uploadStaffListIfManager } from './services/staffShareService';
 import Controls from './components/Controls';
 import Legend from './components/Legend';
 import ScheduleTable from './components/ScheduleTable';
@@ -85,6 +86,7 @@ const App: React.FC = () => {
     handleSupermarketChange,
     confirmDeleteStaffList,
     logHistory,
+    user, userRole, departmentId,
   } = usePhanCaData();
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   // Điện thoại: 'bang' = bảng cả nhóm (như cũ) · 'nhanVien' = xem từng nhân viên theo ngày (2026-10-30). Trên máy tính luôn là bảng.
@@ -553,7 +555,12 @@ const App: React.FC = () => {
         }
         hydratedScopeRef.current = `${supermarketName}|${monthYear}`; // dữ liệu nhập là bản đúng của phạm vi này
         setIsDataLoadedForSupermarket(true);
-        setImportModalOpen(false); 
+        setImportModalOpen(false);
+        // Chia sẻ danh sách NV lên biData/{maKho} để tài khoản cùng Kho dùng được
+        if (user) {
+            uploadStaffListIfManager(user, departmentId, userRole, newNams, newNus, supermarketName)
+                .catch(e => console.warn('[Phân Ca] Lỗi upload danh sách NV dùng chung:', e));
+        }
         setTimeout(() => {
             generateNewSchedule({ 
                 forDepartment: depts.length > 0 ? depts[0] : '',

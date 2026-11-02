@@ -109,6 +109,11 @@ service cloud.firestore {
     // thiết bị riêng của họ — mirror chính xác khoData/{maKho} phía trên, chỉ khác tên collection
     // và loại dữ liệu bên trong (báo cáo BI đã parse theo siêu thị, không phải DataRow[] doanh số).
     match /biData/{maKho} {
+      // Danh sách nhân viên Phân Ca dùng chung theo Kho (staffShareService.ts)
+      match /phanCa/{doc} {
+        allow read:  if isSignedIn() && maKho in myKhos() && coQuyenChucNang('tools-phanca');
+        allow write: if isSignedIn() && isManager() && maKho in myKhos() && coQuyenChucNang('tools-phanca');
+      }
       match /{document=**} {
         allow read:  if isSignedIn() && maKho in myKhos() && coQuyenChucNang('employees');
         allow write: if isSignedIn() && isManager() && maKho in myKhos() && coQuyenChucNang('employees');

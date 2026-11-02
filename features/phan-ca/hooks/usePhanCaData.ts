@@ -3,6 +3,7 @@ import { toast } from '../../../components/shared/ui/toast';
 import * as idb from '../db/idb';
 import { useAuth } from '../../../contexts/AuthContext';
 import { syncScheduleToCloud, fetchScheduleFromCloud, subscribeScheduleDoc, quyetDinhNhanTuCloud } from '../services/firestoreSync';
+import { fetchSharedStaffList, uploadStaffListIfManager } from '../services/staffShareService';
 import {
   StaffMember,
   SchedulingRules,
@@ -25,7 +26,7 @@ import { DEFAULT_SHIFT_DEFINITIONS, getDefaultMonthYear, DEFAULT_RULES, ZERO_REQ
 // trước đó cố ý chưa tách vì rủi ro cao). Chỉ di chuyển nguyên trạng, không đổi
 // logic: cùng state, cùng effect body/deps, cùng thứ tự gọi idb/firestoreSync.
 export function usePhanCaData() {
-  const { user, db } = useAuth();
+  const { user, db, userRole, departmentId } = useAuth();
   const lastSyncedRef = useRef<{ [key: string]: string }>({});
   const staffListRef = useRef<StaffMember[]>([]);
   const isImportingRef = useRef<boolean>(false);
@@ -139,6 +140,19 @@ export function usePhanCaData() {
         setSupermarkets(savedSupermarkets);
         const lastSupermarket = savedUiState?.lastSupermarket;
         setCurrentSupermarket(lastSupermarket && savedSupermarkets.includes(lastSupermarket) ? lastSupermarket : savedSupermarkets[0]);
+      } else if (departmentId) {
+        // Chưa có danh sách siêu thị local → thử kéo danh sách NV dùng chung từ Kho
+        fetchSharedStaffList(departmentId).then(async (shared) => {
+          if (!shared) { setSupermarkets([]); setCurrentSupermarket(''); return; }
+          const keyPrefix = `${shared.supermarketName}::`;
+          await idb.saveData(keyPrefix + 'nams', shared.nams);
+          await idb.saveData(keyPrefix + 'nus', shared.nus);
+          const updated = [shared.supermarketName];
+          setSupermarkets(updated);
+          await idb.saveData('meta_supermarkets', updated);
+          setCurrentSupermarket(shared.supermarketName);
+          toast.success(`Đã tải danh sách nhân viên dùng chung (${shared.nams.length + shared.nus.length} người)`, { duration: 3000 });
+        }).catch(() => { setSupermarkets([]); setCurrentSupermarket(''); });
       } else {
         setSupermarkets([]);
         setCurrentSupermarket('');
@@ -212,9 +226,28 @@ export function usePhanCaData() {
       hydratedScopeRef.current = scope;
       setHydratedScope(scope);
       setIsDataLoadedForSupermarket(true);
+
+      // Tài khoản cùng Kho chưa có danh sách NV local → kéo từ biData/{maKho}/phanCa/staffList
+      if (savedNams.length === 0 && savedNus.length === 0 && departmentId) {
+        fetchSharedStaffList(departmentId).then(async (shared) => {
+          if (!shared || requestedScopeRef.current !== scope) return;
+          const keyPrefix = `${shared.supermarketName}::`;
+          await idb.saveData(keyPrefix + 'nams', shared.nams);
+          await idb.saveData(keyPrefix + 'nus', shared.nus);
+          if (!supermarkets.includes(shared.supermarketName)) {
+            const updated = [...supermarkets, shared.supermarketName].sort();
+            setSupermarkets(updated);
+            await idb.saveData('meta_supermarkets', updated);
+          }
+          setNams(shared.nams);
+          setNus(shared.nus);
+          setCurrentSupermarket(shared.supermarketName);
+          toast.success(`Đã tải danh sách nhân viên dùng chung (${shared.nams.length + shared.nus.length} người)`, { duration: 3000 });
+        }).catch(e => console.warn('[Phân Ca] Không tải được danh sách NV dùng chung:', e));
+      }
     };
     loadSupermarketData();
-  }, [isDbLoaded, currentSupermarket, getKey, monthYear, supermarkets.length, user, syncAndLoadKey]);
+  }, [isDbLoaded, currentSupermarket, getKey, monthYear, supermarkets.length, user, syncAndLoadKey, departmentId]);
 
   useEffect(() => {
      if (isDataLoadedForSupermarket && (nams.length > 0 || nus.length > 0)) {
@@ -443,5 +476,6 @@ export function usePhanCaData() {
     handleSupermarketChange,
     confirmDeleteStaffList,
     logHistory,
+    user, userRole, departmentId,
   };
 }
