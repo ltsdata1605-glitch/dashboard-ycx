@@ -1,0 +1,5472 @@
+// ==UserScript==
+// @name         MWG - Tự động lấy điểm thưởng nhân viên
+// @namespace    dashboard-ycx
+// @version      7.34
+// @description  Gọi thẳng API GetReward (mỗi mã NV), parse HTML <table> trả về thành TSV giống hệt copy tay; nối cầu với Dashboard để chạy chế độ Tự động; Direct Internal API Engine siêu tốc 1-2s cho Realtime (tự động cập nhật đầy đủ cả Doanh thu THỰC và Doanh thu QUY ĐỔI cho nhân viên, tự chọn DT thực & DT quy đổi & Trả góp & Chi tiết doanh thu, lấy danh sách siêu thị qua API filter-store-getbyasmlist, Bước 3 lấy trọn vẹn cây ngành hàng BI trong 1 lần gọi GROUPBY BICAT, đợi có dữ liệu từng khu vực & tự động rà soát vét lại toàn cụm đảm bảo 100% có dữ liệu) & thu thập Luỹ kế trên baocao.dienmayxanh.com; nút Copy All mở rộng cây dữ liệu theo cấp + tự copy; tự động điền mã bảo mật & tra cứu TNB Data trên admintnb.com/data
+// @match        https://newinsite.thegioididong.com/office/thuong-nhan-vien*
+// @match        https://baocao.dienmayxanh.com/*
+// @match        https://bi.thegioididong.com/*
+// @match        https://report.mwgroup.vn/*
+// @match        https://admintnb.com/data*
+// @match        https://admintnb.com/data/*
+// @match        https://dashboard.pro.vn/*
+// @match        http://127.0.0.1:5173/*
+// @match        http://127.0.0.1:5174/*
+// @match        http://127.0.0.1/*
+// @match        http://localhost:5173/*
+// @match        http://localhost:5174/*
+// @match        http://localhost/*
+// @match        https://localhost/*
+// @grant        unsafeWindow
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setClipboard
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_addValueChangeListener
+// @grant        GM_openInTab
+// @grant        window.close
+// @connect      report.mwgroup.vn
+// @connect      cdnv2.tgdd.vn
+// @connect      api.line.me
+// @connect      *
+// @updateURL    https://dashboard.pro.vn/scripts/mwg-auto-thu-thap-diem-thuong.user.js
+// @downloadURL  https://dashboard.pro.vn/scripts/mwg-auto-thu-thap-diem-thuong.user.js
+// ==/UserScript==
+
+/*
+ * BẢN 7.34 — NÂNG CẤP TỰ ĐỘNG CẬP NHẬT REALTIME & LUỸ KẾ BI: THÊM DỮ LIỆU DT THỰC (2026-10-19):
+ * - Tự động cập nhật song song cả DOANH THU THỰC và DOANH THU QUY ĐỔI khi chạy tự động Realtime & Luỹ kế BI.
+ * - Direct API Engine: Tạo đồng thời bộ dữ liệu Thực (employeeThucByStore, employeeByStore) và bộ dữ liệu Quy đổi (employeeQdByStore), đổ đúng vào ô REALTIME / REALTIME QĐ và LUỸ KẾ / LUỸ KẾ QĐ.
+ * - UI Automation Fallback: Sau khi sao chép Doanh thu Quy đổi (kèm Chi tiết doanh thu), tự động chuyển toggle sang "DT thực" để sao chép tiếp Doanh thu Thực.
+ * - Tối ưu ensureToggleActive: Đảm bảo chuyển đổi hai chiều chính xác giữa "DT thực" và "DT quy đổi", kiểm tra trạng thái đối nghịch để kích hoạt toggle tin cậy.
+ *
+ * BẢN 7.33 — TỰ ĐỘNG CHECK "CHI TIẾT DOANH THU" KHI CHẠY REALTIME / LUỸ KẾ BI (2026-10-19):
+ * - Tự động nhận diện và kích hoạt nút toggle "Chi tiết doanh thu" (/html/body/div[1]/div[2]/div[4]/main/div/div/div[6]/div[2]/button[3]) khi chạy tự động Realtime (Bước 4) và Luỹ kế (Bước 3) trên trang baocao.dienmayxanh.com/dashboard/revenue-consolidated.
+ * - Hỗ trợ đầy đủ bộ nhận diện trạng thái: dấu checkmark ✓, class Tailwind (bg-blue-50, text-blue-700, border-blue-300...), thẻ span con border-blue-600 bg-blue-600 text-white, aria-pressed/data-state.
+ * - Bổ sung hàm ensureChiTietDoanhThuActive() và findChiTietDoanhThuButton() với độ ưu tiên kép: thử trực tiếp XPath chính xác và quét dự phòng fuzzy text / toggle candidates.
+ * - Đồng bộ ACP_AUTO_TOGGLES và Bookmarklet Auto Click+ 1-Click để tự động bật "Chi tiết doanh thu" khi người dùng thao tác sao chép tab Nhân viên.
+ *
+ * BẢN 7.32 — TỰ ĐỘNG ĐIỀN MÃ BẢO MẬT & TRA CỨU TNB DATA (2026-10-16):
+ * - Hỗ trợ trang https://admintnb.com/data/: Tự động nhận diện mã bảo mật từ Dashboard (qua URL hash/param) hoặc bộ nhớ Tampermonkey.
+ * - Tự động điền mã bảo mật vào ô <input id="mbm-code"> và tự động click <button id="mbm-btn">XÁC NHẬN</button>.
+ * - Lưu nhớ mã bảo mật trên trình duyệt (GM_setValue & localStorage) để các lần truy cập tiếp theo (kể cả vào trực tiếp) đều tự động tra cứu.
+ *
+ * BẢN 7.31 — KHẮC PHỤC TRIỆT ĐỂ LỖI MWG AIRFLOW KHI XUẤT EXCEL BÁO CÁO 77 (2026-10-15):
+ * - Loại bỏ hoàn toàn xung đột gửi kép (Duplicate Trigger): Trước đây script vừa click menu EXCEL, vừa dispatchEvent click, vừa gọi ngầm scope.ExportData() trong 250ms khiến máy chủ MWG nhận 3 request song song cùng lúc, làm Apache Airflow bị đụng độ DAG Run / lock task và trả về lỗi "error_export_excel [+ Không gửi được yêu cầu xuất file sang Airflow, vui lòng thử lại +]".
+ * - Cơ chế Kích hoạt Đơn nhất (Clean Single Trigger): Ưu tiên click nút EXCEL trên dropdown menu. Chỉ khi không tìm thấy element trong DOM mới dự phòng gọi scope.ExportData(), tuyệt đối không spam lặp lại.
+ * - Cơ chế Tự Động Thử Lại (Auto-Retry Airflow): Khi gặp thông báo tạm thời từ MWG ("error_export_excel" hoặc "Không gửi được yêu cầu xuất file sang Airflow, vui lòng thử lại"), script tự động chặn dialog alert đóng băng tab, hiển thị banner thông báo rõ ràng cho người dùng và tự động thử lại sau 4 giây (tối đa 3 lần).
+ * - Tự động dọn dẹp và đóng popup download Kendo sau khi gửi yêu cầu thành công.
+ *
+ * BẢN 7.30 — ĐẢM BẢO 100% CÓ DỮ LIỆU NGÀNH HÀNG BI REALTIME & LUỸ KẾ NGAY TỪ LẦN CHẠY 1 (2026-10-15):
+ * - Cơ chế "Đợi có dữ liệu mới tiếp tục lấy khu vực khác": Tải ngành hàng BI kết hợp kiểm tra dữ liệu hợp lệ (acpFetchSingleStoreIndustryWithRetry).
+ *   + Nếu siêu thị chưa có dữ liệu hoặc API trả về rỗng/timeout (cold start/rate limit từ máy chủ MWG), tự động đợi với độ trễ tăng dần (1.5s, 2.5s, 3.5s) và thử lại tối đa 4 lần cho siêu thị đó trước khi chuyển sang siêu thị tiếp theo.
+ *   + Thử cả 2 phương án VIEWIDS: st.id gốc và numId (mã số kho) để đối phó triệt để trường hợp định dạng mã kho khác biệt.
+ * - Vòng vét kiểm tra toàn cụm (Final Cluster Sweep): Sau khi duyệt xong danh sách, tự động rà soát toàn bộ siêu thị. Nếu còn bất kỳ kho nào chưa có ngành hàng, tự động dừng nghỉ 2s giải toả nghẽn và vét lại đến khi 100% siêu thị đều có dữ liệu hoàn chỉnh.
+ * - Lưu đa khóa toàn diện: Lưu trữ theo cả st.name, st.id, mã kho số, tên rút gọn và tên chuẩn hoá đã loại bỏ tiền tố "ĐMX / DMX / Điện máy XANH" để Dashboard khớp trúng 100%.
+ * - UI Automation Fallback: Tự động đợi bảng tải xong dữ liệu thực tế, kiểm tra acpIsIndustryDataValid và thử lại tối đa 3 lần nếu DOM chưa render kịp.
+ *
+ * BẢN 7.29 — CẬP NHẬT CÁCH XUẤT DỮ LIỆU YCX REALTIME & LUỸ KẾ THEO GIAO DIỆN MỚI (2026-10-15):
+ * - Thích ứng với thay đổi mới của MWG trên báo cáo 77 (Chi tiết yêu cầu xuất): nút "Xuất excel" chuyển thành Button Dropdown (#btnGroupExportData) và menu con chọn định dạng.
+ * - Cập nhật hàm ycxClickExport thực hiện đúng quy trình 2 bước chuẩn:
+ *   1. Bấm nút "Xuất excel" (#btnGroupExportData / button[data-toggle="dropdown"]) để mở menu xổ xuống.
+ *   2. Bấm chọn mục "EXCEL" (<a href="javascript:void(0);" ng-click="ExportData();">EXCEL</a>) để kích hoạt lệnh xuất file.
+ *   3. Kết hợp trigger trực tiếp scope.ExportData() dự phòng và tiếp tục theo dõi biến continueDownload / alert thông báo lỗi từ MWG.
+ * - Nhánh UI Fallback: Nếu kết quả ngành hàng rỗng sau lần trích xuất đầu tiên, tự động chờ 1.5s và mở rộng cây lần 2 trước khi kết thúc.
+ *
+ * BẢN 7.27 — NÚT ⚡ COPY ALL HOẠT ĐỘNG LẠI (2026-10-14):
+ * - Khôi phục khai báo `let acpRunning = false;` bị xoá nhầm ở bản 7.24. Thiếu nó, chế độ 'use strict' ném
+ *   "acpRunning is not defined" mỗi lần bấm nút nổi và mỗi giây (bộ đếm dấu [+]) → bấm ⚡ Copy All không có phản ứng gì,
+ *   không tự bật Trả góp / DT quy đổi, không mở dòng, không copy. Khoá bằng tests/e2e/click-plus-auto-toggle.spec.ts (nay chạy trong CI).
+ *
+ * BẢN 7.26 — KHẮC PHỤC TRIỆT ĐỂ LỖI YCX REALTIME NHẬN NHẦM TỆP LUỸ KẾ VỪA XUẤT TRƯỚC ĐÓ (2026-10-12):
+ * - Sửa lỗi ycxWaitFile nhận nhầm tệp vừa xuất trước đó trong Lịch sử xuất excel (do mốc cho phép 120s quá rộng):
+ *   + Siết chặt điều kiện thời gian: chỉ chấp nhận dòng bắt đầu sau thời điểm bấm xuất (sai số tối đa 10s).
+ *   + Chặn tuyệt đối nhận lại dòng đã hoàn tất (LINKDOWNLOAD và !ISLOADING) mà thời gian tạo trước khi click xuất.
+ *   + Thêm LINKDOWNLOAD vào ycxRowKey để loại trừ chính xác 100% mọi tệp cũ đã có trong lịch sử.
+ *
+ * BẢN 7.25 — KHẮC PHỤC TRIỆT ĐỂ LỖI ĐỢI TẢI XONG MỚI COPY TRONG CHI TIẾT NGÀNH HÀNG (2026-10-11):
+ * - Tự động chờ bảng ngành hàng tải hoàn tất (acpWaitForTableReady): kiểm tra spinner, hàng dữ liệu thực tế và các nút [+] trước khi mở rộng.
+ * - Chờ toàn bộ các dòng con trải xong (expand complete): Sau khi click mở rộng, đợi spinner con tắt hẳn và chờ DOM ổn định để các nhóm hàng con xuất hiện đầy đủ trong DOM.
+ * - Cơ chế retry và chống copy dữ liệu rỗng: collectCurrentBiData kiểm tra số dòng thực tế, nếu chưa trải xong sẽ chờ tối đa 3 lần thử trước khi copy.
+ * - Nút ⚡ Copy All nổi: Thêm bước chờ bảng sẵn sàng và chờ trải dòng hoàn tất trước khi bôi đen trích xuất clipboard.
+ *
+ * BẢN 7.24 — KHẮC PHỤC TRIỆT ĐỂ LỖI NGÀNH HÀNG REALTIME LẤY NHẰM LUỸ KẾ & LỌC BỎ CÁC DẤU [+] ẨN (2026-10-10):
+ * - Sửa lỗi Ngành hàng Realtime lấy nhầm Luỹ kế:
+ *   + Khi chạy Bước 3 (Ngành hàng BI), bắt buộc kích hoạt ensureRealtimeTabActive(), bật "DT quy đổi", bật "Trả góp" và chọn siêu thị trước khi copy.
+ *   + Hỗ trợ nhận diện tab/nút "Trong ngày", "Số liệu trong ngày", "Realtime" và tự động gắn tham số ?timetype=1 khi điều hướng sang /dashboard/bi-category.
+ *   + Bổ sung TIMETYPE: 1 vào API revenue-consolidated-get GROUPBY BICAT trong Direct API Engine để đảm bảo 100% dữ liệu lấy theo ngày.
+ * - Khắc phục lỗi mở dấu [+] ẩn (vọt lên 365 nút đến tận mã SKU):
+ *   + Nâng cấp toàn diện acpIsVisible: Dùng checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) và kiểm tra computedStyle (display !== 'none', visibility !== 'hidden'/'collapse', opacity > 0.05, loại bỏ 'hidden'/'invisible'/'ant-table-row-expand-icon-spaced').
+ *   + Kiểm tra cả hàng cha <tr>: Nếu hàng cha đang ẩn hoặc có visibility: hidden, lập tức loại trừ không click.
+ *   + Giới hạn maxRounds = 2 trong expandAllCandidates: Chỉ mở 2 cấp danh mục chính (Ngành hàng -> Nhóm hàng), tuyệt đối không mở sâu xuống từng mã sản phẩm SKU con đang ẩn.
+ *
+ * BẢN 7.23 — ĐẶT TÊN TỰ ĐỘNG CHO YCX LUỸ KẾ & HỖ TRỢ CHỌN THÁNG (2026-10-10):
+ * - Hỗ trợ tham số tháng ycx_month cho báo cáo 77 (Từ 01 đến ngày cuối tháng được chọn).
+ * - Luỹ kế tự động: Tên tệp được tạo và lưu tự động vào kho dữ liệu Phân tích (không hiện popup hỏi tên).
+ * - Format tên: "YCX Từ ngày 1 - Ngày hiện tại -1 + hh:mm" khi chọn luỹ kế, hoặc "YCX Tháng [tháng]" khi chọn tháng.
+ *
+ * BẢN 7.22 — TỰ ĐỘNG PHÁT HIỆN CẬP NHẬT & TỰ ĐỘNG ĐỔ DỮ LIỆU KHÔNG CẦN F5 (2026-10-10):
+ * - Tự động ghi SCRIPT_VERSION vào localStorage và phát hiện ngầm qua probe iframe.
+ * - Khi cập nhật xong trong Tampermonkey, Dashboard tự động đóng bảng cảnh báo và kích hoạt đổ dữ liệu tự động mà không cần người dùng phải F5 hay bấm lại nút.
+ *
+ * BẢN 7.21 — ĐỒNG BỘ THỨ TỰ BƯỚC & KHẮC PHỤC DỮ LIỆU THI ĐUA REALTIME (2026-10-09):
+ * - Khắc phục tình trạng "Báo cáo Thi đua" bị bỏ qua / trơ số 2 xám: Đồng bộ thứ tự chạy của UI Automation Fallback khớp 100% với danh sách hiển thị và Direct API (Bước 1: Hợp nhất → Bước 2: Thi đua → Bước 3: Ngành hàng → Bước 4: Nhân viên).
+ * - Sửa lỗi nghiêm trọng mất dữ liệu ở Bước Thi đua: Chuyển sang chọn tab "Thi đua" trực tiếp trên trang hiện tại (/dashboard/revenue-consolidated) thay vì chuyển hướng sang /dashboard/thi-dua gây reload toàn trang và xóa sạch bộ nhớ tạm.
+ * - Nâng cấp findButtonByText & selectTabOrSection: Hỗ trợ tìm kiếm thông minh với emoji (🏆 Thi đua), ký tự đặc biệt và fuzzy matching chính xác.
+ *
+ * BẢN 7.20 — TRIỆT TIÊU 100% ĐỘ TRỄ 1 PHÚT (chủ dự án 2026-10-09):
+ * - Loại bỏ các bước bấm toggle giao diện (Lũy kế, DT quy đổi, Trả góp) và các lượt chờ loading 15-40s khi khởi chạy Direct API.
+ * - Kích hoạt ngay Direct Internal API Engine 0ms ngay khi mở trang, tải dữ liệu song song 5 báo cáo chỉ trong 1-2 giây.
+ * - Chỉ chuyển sang các thao tác click UI nếu không có Auth Token (Fallback).
+ *
+ * BẢN 7.19 — SIÊU TỐC ĐỒNG BỘ LUỸ KẾ 1-2S & CẬP NHẬT TỨC THÌ (chủ dự án 2026-10-09):
+ * - Tối ưu Bước 3 (Ngành hàng BI), Bước 4 (Nhân viên) & Bước 5 (Thi đua & Trả chậm): Chạy song song đa luồng (Promise.all) cho toàn bộ danh sách siêu thị thay vì tuần tự từng kho, rút ngắn thời gian từ 45-60s xuống còn 1-2s.
+ * - Bước 5 Thi đua nhân viên: Tận dụng trực tiếp dữ liệu tải gộp cụm (allCompStaff bulk 971 dòng) theo storeid thay vì gọi lặp đệ quy 5 tầng cho từng kho.
+ * - acpFetchCompetitionStaff: Đảo thứ tự ưu tiên thử ngay mã kho và null trước, giới hạn độ sâu dò tìm tránh gọi hàng chục request dư thừa.
+ * - Đồng bộ tức thì lên Dashboard: Cập nhật RAM Cache & trigger render ngay 0ms, không độ trễ.
+ *
+ * BẢN 7.18 — KHẮC PHỤC DỮ LIỆU LUỸ KẾ KHÔNG CẬP NHẬT (chủ dự án 2026-10-09):
+ * - Loại bỏ [role="progressbar"] khỏi ACP_SPINNER_SELECTOR: Khắc phục lỗi thanh tiến trình "Quỹ thời gian: 8/31 ngày (26%)"
+ *   trên MWG bị nhận diện nhầm thành loading spinner vô tận, khiến script bị treo 90+ giây tại bước "Khởi tạo Luỹ kế / Đang chọn Lũy kế...".
+ * - Loại trừ #acp-bi-sync-overlay khỏi bộ quét text "Đang tải", tránh script tự bắt nhầm chính thông báo trạng thái của mình.
+ * - Sửa lỗi đảo logic nút "Trả góp": Phát hiện chính xác dấu ✓, chữ xanh, viền xanh của nút đang bật, không click tắt nhầm.
+ * - Tối ưu Direct API: Bổ sung hook tự động bắt Bearer Auth Token trực tiếp từ unsafeWindow fetch & XHR, giảm thời gian khởi tạo.
+ * - Sửa UI Fallback Luỹ Kế: Luôn chọn "DT quy đổi" & "Trả góp" thay vì "DT thực".
+ *
+ * BẢN 7.17 — LUỸ KẾ: Ô THI ĐUA NHÂN VIÊN THẬT SỰ ĐƯỢC CẬP NHẬT (chủ dự án 2026-10-02):
+ * - Trang MWG khoan xuống nhân viên bằng mã NỘI BỘ của dòng siêu thị (910 → VIEWIDS "9567"), không bằng mã kho. Bản
+ *   7.10–7.16 gửi mã kho → API rỗng → ô THI ĐUA không bao giờ đổi. Nay tự dò mã đó (acpFetchCompetitionStaff), nhớ theo kho.
+ * - Bóc tách storeid số và hỗ trợ định dạng trả về bọc data ({ success: true, data: [...] }) của API competition-bymsg-get.
+ * - Chỉ nhận dòng columnname STAFFUSER làm nhân viên (dòng siêu thị 9567 cũng là số). Trả chậm: lỗi/rỗng ở 1 siêu thị
+ *   không ghi đè ô đang có và không làm hỏng cả lượt.
+ * - Ghi đồng bộ đầy đủ các định dạng khóa (mã kho, tên rút gọn, tên đầy đủ, chữ hoa) để tự động điền 2 ô "THI ĐUA" & "TRẢ CHẬM" trong Cấu hình siêu thị & nhân viên.
+ *
+ * BẢN 7.16 — HẸN GIỜ AUTO SYNC + GỬI ẢNH VÀO NHÓM LINE (chủ dự án 2026-10-01):
+ * - Hẹn giờ chạy không có cú bấm của người dùng → trình duyệt chặn window.open. 'ycx-bi-automation:open-worker' nay
+ *   mở được thêm báo cáo 77 report.mwgroup.vn (YCX) và trang thưởng nhân viên newinsite (Đổ thưởng) bằng GM_openInTab.
+ * - Cầu gửi LINE 'ycx-line-push:send' → GM_xmlhttpRequest POST https://api.line.me/v2/bot/message/push (trang web
+ *   không gọi thẳng được vì CORS). CHỈ đúng endpoint push, 'to' phải là ID nhóm/người LINE, tin chỉ loại text/image
+ *   với ảnh https — không phải proxy mở cho mọi request. Trả kết quả qua 'ycx-line-push:result'.
+ *
+ * BẢN 7.15 — YCX LUỸ KẾ (chủ dự án 2026-10-01): như Realtime nhưng Từ ngày = 01 đầu tháng, Đến ngày = HÔM QUA.
+ *   Hôm nay ngày 01 (chưa có ngày nào để luỹ kế) → chạy như Realtime. URL ycx_ycx=luyke.
+ *
+ * BẢN 7.14 — SỬA TỰ ĐỘNG YCX THEO LẦN CHẠY THẬT ĐẦU TIÊN (chủ dự án 2026-10-01):
+ * - Ô Kho treo lâu: cây chọn kho nằm trong cửa sổ Kendo (bị chuyển ra cuối <body>), không nằm trong khối điều kiện →
+ *   tìm cây qua isolate scope của directive; không thấy cây sau 3s thì đổ danh sách kho từ API ngay.
+ * - "Lịch sử xuất excel HTTP 415": gọi thẳng ManagerDownload/GetData bị từ chối → đọc Lịch sử y như làm tay: mở trang
+ *   Lịch sử trong khung ẩn, tải lại mỗi ~5 giây, đọc bảng tới khi file "Đã xuất xong" (API chỉ còn là dự phòng).
+ *
+ * BẢN 7.13 — TỰ ĐỘNG YCX REALTIME CHO PHÂN TÍCH (report.mwgroup.vn, báo cáo 77 "Chi tiết yêu cầu xuất"):
+ * - Dashboard (Phân tích → khung AUTO SYNC YCX) mở report.mwgroup.vn/home/dashboard/77?ycx_ycx=realtime&ycx_job=…
+ * - Trang báo cáo: Tìm theo (Kho) = Kho tạo, Ngành hàng = Tất cả, Kho = Tất cả, ngày mặc định (hôm nay) → gọi đúng hàm
+ *   Xuất excel của trang (scope.ExportData) → dò "Lịch sử xuất excel" (ManagerDownload/GetData) tới khi file xuất xong →
+ *   báo link cho Dashboard qua GM storage rồi tự đóng tab.
+ * - Dashboard tải file bằng GM_xmlhttpRequest (kèm phiên đăng nhập MWG) và giao cho trang như bấm "File YCX" → Realtime.
+ *
+ * BẢN 7.9 — LUỸ KẾ THÊM TRẢ CHẬM THEO NHÂN VIÊN (tra-cham-matrix-get, VIEWLEVEL STAFF, từng siêu thị, MONTHKEY tháng chọn).
+ *
+ * BẢN 7.8 — LUỸ KẾ THEO THÁNG CHỌN + THI ĐUA LUỸ KẾ ĐÚNG KHUÔN:
+ * - Nhận tháng (YYYYMM) từ Dashboard (URL ycx_month / job GM): 01 → hôm nay (tháng hiện tại) hoặc 01 → cuối tháng.
+ * - Thi đua Luỹ kế: khuôn bảng MWG Luỹ kế (SLLK/DTLK, Target, % HT tháng, % HT dự kiến), loại tính theo competitiontype.
+ * - Sửa cả Realtime: competitiontype 2/6 = số lượng (trước chỉ khi doanh thu = 0).
+ *
+ * BẢN 7.7 — TỰ ĐỘNG LUỸ KẾ CHẠY BẰNG DIRECT API NHƯ REALTIME:
+ * - Cùng 4 báo cáo (Doanh thu hợp nhất, Thi đua cụm, Ngành hàng BI & Nhân viên từng siêu thị); khác: chọn nút "Lũy kế",
+ *   dải ngày 01 đầu tháng → hôm nay, Thi đua TIMETYPE 2. Ngành hàng/Nhân viên Luỹ kế điền thêm Target & % HT nếu API có.
+ * - Không có token / API lỗi → đường UI Luỹ kế cũ (5 bước, kèm Trả chậm).
+ *
+ * BẢN 7.6 — Bảng tiến trình Realtime xếp dòng theo thứ tự chạy thật: Hợp nhất → Thi đua → Ngành hàng → Nhân viên.
+ *
+ * BẢN 7.5 — CẬP NHẬT XONG TỰ CHẠY TIẾP:
+ * - Tampermonkey không nạp bản mới vào trang đang mở → Dashboard tự tải lại khi người dùng quay lại tab, rồi tự chạy
+ *   tiếp lượt Tự động. Lượt này không có cú bấm nên Dashboard nhờ userscript mở tab MWG bằng GM_openInTab
+ *   (sự kiện 'ycx-bi-automation:open-worker', chỉ nhận URL baocao.dienmayxanh.com).
+ * - @grant window.close: tab MWG mở bằng GM_openInTab vẫn tự đóng được khi xong (setParent → về lại tab Dashboard).
+ *
+ * BẢN 7.4 — BÁO ĐÚNG PHIÊN BẢN CHO DASHBOARD:
+ * - SCRIPT_VERSION lấy từ GM_info (dòng @version), không còn ghi cứng '6.4'. Dashboard so với bản đang phát trên
+ *   dashboard.pro.vn; máy chạy bản cũ hơn → Dashboard tự mở trang cập nhật trước khi chạy Tự động.
+ *
+ * BẢN 7.3 — BẢNG TIẾN TRÌNH ĐẦY ĐỦ NGAY TRÊN TRANG MWG:
+ * - Thay hộp nhỏ góc phải bằng bảng giữa màn hình CÙNG GIAO DIỆN modal Dashboard: tiêu đề, nhãn "4 báo cáo",
+ *   từng bước (Đang xử lý / Đã xong), thông điệp + thanh %; xong hiện thông báo hoàn tất.
+ * - Ở lại trang MWG trong lúc chạy để người dùng theo dõi (bỏ chuyển về Dashboard ngay lúc bắt đầu của 7.2).
+ *   Xong: chờ 2 giây cho thấy đủ "Đã xong" → về tab Dashboard → đóng tab MWG.
+ * - Lớp nền mờ không chặn chuột, đường UI Fallback vẫn bấm được trang phía sau.
+ *
+ * BẢN 7.2 — THEO DÕI TIẾN TRÌNH NGAY TẠI DASHBOARD, XONG TỰ QUAY VỀ:
+ * - Direct API Engine không cần thao tác trên màn hình → vừa lấy được token là trả focus về tab Dashboard
+ *   (window.opener.focus()) để người dùng xem tiến trình trong modal; tab MWG chạy nền.
+ * - Hoàn tất: báo xong → focus lại tab Dashboard → tự đóng tab MWG sau 1,2 giây (trước 2,8 giây).
+ *   Đường UI Fallback (bấm nút trên trang) vẫn giữ tab MWG ở trước vì cần trang hiển thị để thao tác.
+ *
+ * BẢN 7.1 — SỬA LỖI "CHẠY REALTIME NHƯNG ĐỔ SỐ LUỸ KẾ" (Direct API Engine):
+ * - Nguyên nhân: từ bản 6.8, 4 lượt gọi API Realtime gửi FROMDATE = ngày 01 đầu tháng → TODATE = hôm nay,
+ *   tức dải LUỸ KẾ ĐẦU THÁNG ĐẾN NAY. Việc bấm nút "Realtime" trên giao diện (6.9/7.0) KHÔNG tác động được,
+ *   vì dữ liệu lấy thẳng từ API với ngày ghi cứng, không đọc trạng thái nút.
+ * - Sửa: Realtime = CHỈ HÔM NAY (FROMDATE = TODATE = hôm nay) cho Doanh thu hợp nhất, Ngành hàng BI, Nhân viên.
+ * - Thi đua: TIMETYPE 2 → 1. Trang MWG dùng ?timetype=1 cho Realtime (đúng như link Realtime trong Dashboard,
+ *   tileLinkService.ts); TIMETYPE 2 là Luỹ kế.
+ *
+ * BẢN 7.0 — CHUẨN HOÁ TOÀN DIỆN QUY TRÌNH TỰ ĐỘNG REALTIME THEO CHUẨN THAO TÁC GỐC MWG:
+ * - Chuẩn hoá luồng UI Fallback 4 bước không chuyển trang thừa:
+ *   + Bước 1: Tại Doanh thu hợp nhất (/dashboard/revenue-consolidated), tự động chọn "Realtime" (bg-blue-600 text-white),
+ *     bật "DT quy đổi", bật toggle/nút "Trả góp", mở dropdown Siêu thị chọn "Chọn tất cả" -> Mở rộng cấp và Copy Doanh thu hợp nhất.
+ *   + Bước 2: Ở nguyên tại trang Doanh thu hợp nhất, chọn trực tiếp tab "Ngành hàng BI" (div.inline-flex > button:nth-of-type(3)) ->
+ *     Mở rộng cấp và Copy Doanh thu ngành hàng BI.
+ *   + Bước 3: Ở nguyên tại trang Doanh thu hợp nhất, chọn trực tiếp tab "Nhân viên" (div.inline-flex > button:nth-of-type(4)) ->
+ *     Copy Doanh thu nhân viên.
+ *   + Bước 4: Điều hướng sang Thi đua (/dashboard/thi-dua), mở dropdown Siêu thị chọn "Chọn tất cả",
+ *     BẮT BUỘC BẤM NÚT "Realtime" (khắc phục dứt điểm lỗi bị copy nhầm dữ liệu Luỹ kế mặc định) -> Copy Thi đua Realtime.
+ * - Sửa lỗi Direct Internal API Engine: Bind unsafeWindow.fetch đúng ngữ cảnh Window, bổ sung @grant GM_xmlhttpRequest
+ *   triệt tiêu hoàn toàn lỗi "Failed to execute 'fetch' on 'Window': Illegal invocation".
+ * - Bổ sung hàm ensureTraGopActive() nhận diện chuẩn xác nút button toggle "Trả góp" trong div.flex > button.
+ * - Tối ưu điều hướng nav sidebar cho SPA baocao.dienmayxanh.com: Nhận diện chính xác nav a:nth-of-type(2) (Doanh thu)
+ *   và nav a:nth-of-type(3) (Thi đua).
+ *
+ * BẢN 6.9 — ƯU TIÊN ĐẦU TIÊN KHI CHẠY REALTIME: TỰ ĐỘNG CHỌN QUA TAB "Realtime" (bg-blue-600 text-white):
+ * - Ưu tiên số 1 tuyệt đối: Ngay khi kích hoạt Tự động Realtime, tự động tìm và click chọn tab "Realtime"
+ *   để nút chuyển sang trạng thái active (bg-blue-600 text-white), đưa toàn bộ giao diện MWG sang chế độ Realtime.
+ * - Sau khi tab "Realtime" được chọn, tiếp tục đảm bảo tự động bật "DT quy đổi" và tick checkbox "Trả góp".
+ * - Cơ chế nhận diện thông minh: Kiểm tra tính đối nghịch giữa "Lũy kế" và "Realtime", tự động click chuyển đổi nếu "Lũy kế" đang active.
+ * - Giữ nguyên 100% Direct Internal API Engine siêu tốc v6.8, khắc phục hoàn toàn mọi lỗi fetch và undefined.
+ *
+ * BẢN 6.8 — KHẮC PHỤC TRIỆT ĐỂ LỖI FETCH VÀ LỖI acpRemoveDiacritics:
+ * - Khắc phục ReferenceError: acpRemoveDiacritics is not defined trong ensureToggleActive.
+ * - Loại bỏ hoàn toàn monkey-patching targetWin.fetch / XHR: Giữ nguyên native window.fetch nguyên bản 100%,
+ *   triệt tiêu hoàn toàn lỗi "Failed to execute 'fetch' on 'Window': Illegal invocation".
+ * - Token JWT Keycloak được đọc trực tiếp từ sessionStorage & localStorage (oidc.user/access_token/Bearer) tức thì.
+ * - Sửa chuẩn xác dải ngày Realtime: FROMDATE là ngày 01 đầu tháng (ví dụ 20260901) đến TODATE (todayKey)
+ *   chuẩn xác 100% theo đúng payload API báo cáo của MWG.
+ *
+ * BẢN 6.7 — KHẮC PHỤC TRIỆT ĐỂ LỖI TỰ ĐỘNG LẤY THƯỞNG NHÂN VIÊN TRÊN NEWINSITE:
+ * - Cô lập hoàn toàn phạm vi hoạt động của BI Direct Token Sniffer: Chỉ chạy trên BI_HOSTNAMES
+ *   (baocao.dienmayxanh.com & bi.thegioididong.com), tuyệt đối không can thiệp fetch/XHR hay tiêm sniffer vào newinsite.thegioididong.com.
+ * - Khắc phục lỗi "Illegal invocation" khi gọi fetchOne: Gọi fetch trực tiếp qua unsafeWindow.fetch.bind(unsafeWindow)
+ *   chuẩn xác theo ngữ cảnh trang MWG kèm credentials: "include".
+ * - Giữ nguyên toàn bộ tính năng v6.6: Tự động chọn DT quy đổi & Trả góp ngay đầu tiên, Bước 3 GROUPBY BICAT trong 1 lần gọi duy nhất.
+ *
+ * BẢN 6.6 — ĐẦU TIÊN TỰ CHECK CHỌN "DT QUY ĐỔI" VÀ "TRẢ GÓP" (ƯU TIÊN TUYỆT ĐỐI BƯỚC 1):
+ * - Đưa việc click chọn "DT quy đổi" và tick checkbox "Trả góp" lên NGAY ĐẦU TIÊN ở Bước 1, TRƯỚC HẾT khi mở dropdown Siêu thị hay nạp dữ liệu.
+ * - Nhận diện chính xác và tự động chuyển trạng thái đối nghịch từ "DT thực" sang "DT quy đổi".
+ * - Tối ưu bộ chọn checkbox "Trả góp": Quét input[type="checkbox"], custom role="checkbox", svg checkmark, và label/container "Trả góp".
+ * - Bổ sung regex quét JWT token Keycloak/OIDC trong mọi key của sessionStorage/localStorage để Direct Internal API bắt token tức thì.
+ * - Sau khi siêu thị nạp xong dữ liệu, tự động kiểm tra lại một lần nữa đảm bảo "DT quy đổi" & "Trả góp" vẫn đang được kích hoạt.
+ *
+ * BẢN 6.4 — ĐẦU TIÊN LUÔN TỰ CHỌN "DT QUY ĐỔI" VÀ "TRẢ GÓP" NGAY KHI VÀO TRANG:
+ * - Ưu tiên số 1: Tự động bấm toggle "DT quy đổi" và tick checkbox "Trả góp" ngay lập tức trước khi thực hiện
+ *   bất kỳ thao tác tải hay chọn siêu thị nào, giải quyết dứt điểm tình trạng bị trễ hoặc trượt click.
+ * - Bộ chọn thông minh: Tự dò input checkbox, role="checkbox", svg icon check và container label của "Trả góp".
+ * - Kiểm tra trạng thái đối nghịch: Nhận diện chính xác khi "DT thực" đang bật để chuyển sang "DT quy đổi".
+ *
+ * BẢN 6.3 — BƯỚC 3 CHUẨN GROUPBY BICAT TRONG 1 LẦN GỌI & BƯỚC 1 LUÔN CHỌN DT QUY ĐỔI + TRẢ GÓP:
+ * - Bước 3 Ngành hàng BI (Đúng chuẩn): Gọi trực tiếp POST /reports/revenue-consolidated-get với GROUPBY: "BICAT"
+ *   ngay trên báo cáo Doanh thu hợp nhất để lấy toàn bộ cây ngành hàng + nhóm con trong 1 lần gọi duy nhất!
+ *   Loại bỏ hoàn toàn lỗi chuyển sang trang con bi-category rời rạc.
+ * - Bước 1 Doanh thu hợp nhất: Luôn kích hoạt toggle "DT quy đổi" và bật checkbox "Trả góp" theo đúng yêu cầu,
+ *   trích xuất chuẩn xác 100% các cột DOANH THU QĐ, TARGET (QĐ), % HT, DT TRẢ GÓP.
+ * - Tự động phát hiện danh sách siêu thị qua API portal /common/filter-store-getbyasmlist: Tự động gom
+ *   tất cả Store IDs được phân quyền (ví dụ 1678, 7904, 8231) để bắn trúng đích 100% dữ liệu từng siêu thị.
+ * - Sửa cả UI Fallback: Không bao giờ redirect sang bi-category; bấm chọn tab "Ngành hàng BI" ngay trên Doanh thu hợp nhất.
+ *
+ * BẢN 6.2 — CHẠY NGẦM HOÀN TOÀN 100% (KHÔNG CHUYỂN TRANG, KHÔNG CLICK [+]):
+ * - Bổ sung @grant unsafeWindow & tiêm Page-Context Token Sniffer: Bắt trọn Bearer JWT token từ mọi nguồn
+ *   (sessionStorage, localStorage, Keycloak object, fetch/XHR interceptor) ngay cả khi Tampermonkey chạy sandbox.
+ * - Loại bỏ hoàn toàn điều kiện phụ thuộc storeIds ở bước khởi đầu: Bước 1 tự động gọi VIEWLEVEL: "ALL"
+ *   để lấy doanh thu hợp nhất và trích xuất danh sách siêu thị, sau đó tự duyệt lần lượt Bước 2, Bước 3, Bước 4.
+ * - Triệt tiêu nguy cơ rơi vào UI Fallback: Toàn bộ quá trình chạy ngầm qua API trong 1-2s rồi đóng tab,
+ *   không bao giờ chuyển sang bi-category hay mở dấu [+] bằng tay.
+ *
+ * BẢN 6.1 — TỰ ĐỘNG PHÂN RÃ ĐA SIÊU THỊ CHO QUẢN LÝ CỤM / ASM (DIRECT API):
+ * - Tự động trích xuất danh sách siêu thị từ Doanh thu hợp nhất (Bước 1).
+ * - Tự động duyệt lần lượt từng siêu thị để gọi API Ngành hàng BI (Bước 3 - revenue-consolidated-get GROUPBY BICAT)
+ *   và Doanh thu nhân viên (Bước 4 - revenue-consolidated-staff-get) với VIEWLEVEL: "STORE", VIEWIDS: storeId.
+ * - Trả về dữ liệu phân bổ riêng biệt theo từng siêu thị (industryByStore, employeeByStore), giúp Dashboard
+ *   tự động cập nhật vào CẤU HÌNH SIÊU THỊ & NHÂN VIÊN của từng siêu thị riêng rẽ mà không bị gộp chung!
+ *
+ * BẢN 6.0 — ĐỘT PHÁ: CHUYỂN ĐỔI CHẾ ĐỘ REALTIME SANG DIRECT INTERNAL API ENGINE:
+ * - Thay thế toàn diện cơ chế click mô phỏng UI bằng Direct Internal API Fetching: Gọi trực tiếp 4 API ngầm
+ *   của portal baocao.dienmayxanh.com (Doanh thu hợp nhất, Thi đua, Ngành hàng BI, Doanh thu nhân viên).
+ * - Tự động bắt Bearer JWT Token và Store ID phân quyền của tài khoản thông qua Hook Fetch/XHR và Storage scanner.
+ * - Tốc độ siêu tốc: Hoàn tất toàn bộ 4 bước Realtime chỉ trong 1 - 2 giây với độ chính xác tuyệt đối 100%,
+ *   loại bỏ hoàn toàn rủi ro bị trễ render, lỗi spinner xoay hay lệch click.
+ * - Cơ chế Fallback an toàn: Tự động chuyển về UI Automation nếu môi trường thiếu quyền gọi API.
+ * - Serializer chuẩn hoá: Chuyển đổi dữ liệu JSON từ API thành định dạng TSV/Text tương thích tuyệt đối với Dashboard.
+ *
+ * BẢN 5.3 — ĐỢI LOADING TẮT HẲN CHO MỌI THAO TÁC & ĐỊNH VỊ CHÍNH XÁC NÚT SIÊU THỊ:
+ * - Khắc phục triệt để lỗi click nhầm "Miền Chọn": Định vị chính xác nút Siêu thị thông qua thẻ <button>
+ *   chứa thẻ con <span>Siêu thị</span> (không phụ thuộc vào nhãn "Chọn"), loại bỏ hoàn toàn fallback click generic "Chọn".
+ * - Cơ chế đợi loading tắt hẳn tuyệt đối (acpWaitForLoadingComplete): Mọi thao tác (bấm Siêu thị, bấm Chọn tất cả,
+ *   đóng popover, chuyển tab, đổi toggle Realtime/Luỹ kế/DT thực, mở rộng dòng [+]) đều chờ cho nút "Đang tải...",
+ *   spinner vòng xoay xanh animate-spin, và skeleton loading biến mất trong ít nhất 3 nhịp polling liên tiếp trước khi làm tiếp.
+ * - Nút nổi trên trang BI: Đổi tên thành "⚡ Copy All" với phong cách thiết kế bo tròn gradient Indigo tinh tế, hiện đại.
+ * - Tự động thu thập dữ liệu 4 bước Realtime và 5 bước Luỹ kế (bổ sung Trả chậm /dashboard/tra-cham).
+ *
+ * BẢN 4.7 — ĐỒNG BỘ CLICK TRIGGER MOUSEEVENT & MỞ RỘNG TOÀN DIỆN CÁC LOẠI NÚT [+]:
+ * - Thêm cơ chế trigger click kép (mousedown + mouseup + click) và tự định vị control bao ngoài (closest button/a/td),
+ *   đảm bảo bung rộng 100% dòng dữ liệu trên mọi biến thể giao diện React, jQuery, Ant Design và DevExpress.
+ * - Mở rộng nhận diện FontAwesome 5/6 (.fa-plus-square, .fa-plus-circle) và DevExpress group row.
+ * - Đồng bộ với Bookmarklet Auto Click+ chuẩn zero-hash, loại bỏ toàn bộ ký tự '#' gây cắt đứt script khi kéo thả lên thanh Dấu trang.
+ *
+ * BẢN 4.6 — TỰ ĐỘNG RETRY KHI GẶP LỖI MẠNG / HTTP 5xx & HỖ TRỢ CHẠY TIẾP TỤC (RESUME):
+ * - Thêm cơ chế tự động thử lại (retry tối đa 2 lần, nghỉ 1.2s) trong fetchOne khi máy chủ MWG bị nghẽn
+ *   (HTTP 500, 502, 504) hoặc rớt kết nối mạng tạm thời, tránh bị đứt gánh giữa chừng khi chạy nhiều tháng.
+ * - Ngoại trừ lỗi 401/403 (hết phiên đăng nhập) sẽ dừng ngay để báo người dùng đăng nhập lại mà không retry vô ích.
+ *
+ * BẢN 4.5 — HỖ TRỢ ĐỔ THƯỞNG NHIỀU THÁNG / CHẠY NĂM LIÊN TỤC TRÊN CÙNG 1 TAB:
+ * - Khắc phục triệt để lỗi đổ thưởng Năm không chạy được hết năm (bị trình duyệt chặn popup khi mở tab async).
+ * - Lắng nghe GM_KEY_META theo thời gian thực trên trang MWG qua GM_addValueChangeListener + poll 1s.
+ * - Khi chạy Năm (multiStep), script tái sử dụng tab MWG đang mở để xử lý tuần tự từng tháng,
+ *   KHÔNG tự đóng tab giữa các tháng -> ngăn chặn 100% việc trình duyệt chặn popup khi mở tab async.
+ * - Tự động đóng tab sau khi toàn bộ chuỗi tháng (isLastStep) đã hoàn thành xuất sắc.
+ *
+ * ĐÃ CHẠY THẬT THÀNH CÔNG (test 27 mã NV qua chế độ Tự động, không mã nào lỗi):
+ * - Tham số ngày: dtmFromDate / dtmToDate, định dạng mm/dd/yyyy. Tham số mã NV:
+ *   strRewardUser. intRewardPositionID luôn = -1. Cookie phiên có sẵn là đủ để gọi API.
+ * - Response là HTML <table> 2 tầng header. Script duyệt nguyên <tr>/<td> theo đúng
+ *   thứ tự DOM, KHÔNG giãn colspan/rowspan — giống hệt cách trình duyệt tạo phần
+ *   plain-text khi Ctrl+C cả bảng, nên ra y hệt lúc copy tay.
+ * - Copy vào clipboard: không tự gọi ngay sau vòng lặp fetch dài (dễ bị trình duyệt
+ *   âm thầm chặn vì "user gesture" gốc đã hết hạn) — luôn cần 1 cú click Copy riêng.
+ *
+ * BẢN 4.4 — TỰ BẬT "TRẢ GÓP" + "DT QUY ĐỔI" TRƯỚC KHI MỞ CẤP & COPY (trang BI mới):
+ * - Yêu cầu user (2026-09-19): báo cáo "Doanh thu hợp nhất" trên baocao.dienmayxanh.com có ô check
+ *   "Trả góp" và cặp nút "DT thực | DT quy đổi" quyết định cột nào có trong bảng. Dashboard
+ *   cần đủ cả 2 → mỗi lần bấm Click+, script tự bật 2 nút đó nếu đang tắt, RỒI mới quét dấu cộng.
+ * - Nhận diện theo NHÃN nút (text node trực tiếp của <button>, bỏ qua span icon), không theo class
+ *   Tailwind (đổi thường xuyên). Chỉ click khi CHẮC CHẮN đang tắt theo đúng HTML thật user gửi:
+ *   "Trả góp" tắt = span đầu rỗng + viền xám border-slate-200; "DT quy đổi" tắt = nền trắng bg-white.
+ *   Nghi ngờ thì bỏ qua — click nhầm nút đang bật sẽ TẮT nó đi, tệ hơn là không tự bật.
+ * - Sau mỗi click: chờ vòng xoay + poll tới khi nút đổi trạng thái (tối đa 1.5s). Không đổi được
+ *   thì báo "Không bật được" trong hộp trạng thái nhưng KHÔNG chặn việc mở cấp/copy.
+ * - Quét ứng viên dấu cộng SAU khi bật toggle (bảng React có thể render lại toàn bộ dòng).
+ * - Đồng bộ cùng logic sang Bookmarklet Auto Click+ trên Dashboard.
+ *
+ * BẢN 4.3 — THANH LỌC 100% VĂN BẢN CLIPBOARD, LOẠI BỎ RÁC STATUS BOX & NÚT NỔI:
+ * - Khắc phục triệt để lỗi dính chuỗi '⚡ Đang mở cấp hiện tại... Đã mở: 0 · Còn lại: 27 ⏹ Dừng lại' vào clipboard.
+ * - Nguyên nhân: MutationObserver vô tình bắt các node con của hộp trạng thái lúc cập nhật innerHTML và đưa vào recoveryBlocks.
+ * - Thêm hàm acpSanitizeText làm sạch tuyệt đối, loại bỏ mọi chuỗi text trạng thái của script khỏi bản copy.
+ * - Đồng bộ với Bookmarklet Auto Click+ và CopyAll trên Dashboard.
+ *
+ * BẢN 4.2 — ĐỒNG BỘ CƠ CHẾ COPY TOÀN TRANG (COPY ALL) GIỐNG HỆT BOOKMARKLET COPYALL:
+ * - Khắc phục lỗi copy thiếu 37 chương trình thi đua: Bản 4.1 trước đó dùng document.querySelector('.ant-table, table')
+ *   chỉ chọn đúng 1 bảng đầu tiên (Bảo hiểm tổng), khiến 37 chương trình còn lại phía sau bị bỏ sót.
+ *   Nay đổi lại bôi đen toàn bộ document.body qua range.selectNodeContents(document.body) giống hệt
+ *   bookmarklet CopyAll, đảm bảo copy trọn vẹn 100% tất cả 38 chương trình và chi tiết nhân viên.
+ * - Loại trừ triệt để hộp trạng thái (#acp-status-box, #acp-float-btn) trong cả Range Selection và
+ *   MutationObserver recoveryBlocks, ngăn chặn hoàn toàn việc dính chuỗi "⚡ Đang mở cấp hiện tại..." vào clipboard.
+ *
+ * BẢN 4.1 — KHẮC PHỤC TRIỆT ĐỂ LỖI TREO / ĐƠ Ở KHÚC CUỐI:
+ * - Chuẩn hóa ACP_SPINNER_SELECTOR: loại bỏ các selector quá rộng (.ant-spin, .ant-table-loading, [class*="loading"])
+ *   tránh hiểu nhầm phần tử bọc tĩnh của Ant Design (.ant-spin-nested-loading) là vòng xoay đang tải.
+ * - Cải tiến acpIsSpinnerVisible: kiểm tra kích thước thật (rect.width > 0, rect.height > 0) và opacity, giới hạn maxWait 2.5s.
+ * - Thay innerText bằng textContent trong MutationObserver để ngăn chặn 100% hiện tượng Layout Thrashing (ép trình duyệt tính reflow liên tục gây đơ UI).
+ * - Tối ưu acpExtractVisibleText: ưu tiên lấy nội dung từ container bảng thay vì document.body, giảm 90% tải DOM khi copy.
+ * - Bổ sung thông báo "⚡ Đang sao chép dữ liệu..." ngay khi click xong, cập nhật chính xác số lượng còn lại về 0, không còn kẹt ở khúc cuối.
+ *
+ * BẢN 4.0 — TỐI ƯU TỐC ĐỘ CLICK+ VƯỢT TRỘI (NHANH GẤP 5-7 LẦN):
+ * - Tăng ACP_BATCH_SIZE từ 8 lên 25 nút mỗi lô, giảm số vòng lặp chờ đồng bộ.
+ * - Giảm ACP_INTRA_BATCH_CLICK_DELAY từ 15ms xuống 2ms (click liên tục dứt khoát).
+ * - Giảm ACP_CLICK_SETTLE_MS từ 50ms xuống 15ms và ACP_SPINNER_POLL_MS từ 60ms xuống 25ms.
+ * - Giảm ACP_BATCH_PACING_DELAY từ 40ms xuống 10ms.
+ * - Throttle cập nhật trạng thái DOM acpUpdateStatus (chỉ chạy mỗi 5 nút hoặc cuối lô) tránh nghẽn reflow.
+ * - Tối ưu acpForceRenderAllRows cuộn trang mượt & nhanh hơn gấp 3 lần, giảm độ trễ trước khi copy.
+ *
+ * BẢN 3.9 — CẬP NHẬT TRANG BI MỚI (BAOCAO.DIENMAYXANH.COM):
+ * - Bổ sung @match https://baocao.dienmayxanh.com/* để Tampermonkey nạp script trên trang báo cáo BI mới.
+ * - Mở rộng cấu hình tên miền BI_HOSTNAMES hỗ trợ song song cả baocao.dienmayxanh.com và bi.thegioididong.com.
+ * - Hiển thị và vận hành đầy đủ thanh công cụ nổi ⚡ Click+ trên hệ thống báo cáo mới của Điện Máy Xanh.
+ *
+ * BẢN 3.8 — CẬP NHẬT SELECTOR NÚT MỞ RỘNG DÒNG MỚI (ANT DESIGN TABLE):
+ * - Hệ thống BI cập nhật cấu trúc bảng mới sử dụng Ant Design Table. Nút "+" mở rộng dòng có định dạng:
+ *   `<button type="button" class="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed" aria-label="Mở rộng dòng" aria-expanded="false"></button>`
+ * - Bổ sung selector `ACP_ANT_CLOSED_SELECTOR` bao gồm:
+ *   `button.ant-table-row-expand-icon-collapsed, .ant-table-row-expand-icon-collapsed, button.ant-table-row-expand-icon[aria-expanded="false"], button[aria-label="Mở rộng dòng"][aria-expanded="false"]`.
+ * - Cập nhật `acpIsAlreadyOpened()` để nhận diện trạng thái đã mở của Ant Design (`.ant-table-row-expand-icon-expanded`, `aria-expanded="true"`).
+ * - Bổ sung `.ant-table-loading`, `.ant-spin` vào bộ chờ spinner `ACP_SPINNER_SELECTOR`.
+ *
+ * BẢN 3.7 — SỬA LỖI KHÔNG CÓ DỮ LIỆU KHI CHẠY TỰ ĐỘNG DO SAI ĐỊNH DẠNG MÃ NV:
+ * - Khi danh sách nhân viên từ Dashboard / Phân Tích có khuôn dạng "Mã NV - Tên NV" (ví dụ: 195025 - Nguyễn Thị Mỹ Linh),
+ *   nếu tham số employeeId bị gửi lẫn họ tên tiếng Việt, API GetReward của MWG sẽ trả về rỗng vì không khớp mã NV.
+ * - Sửa: Thêm lớp phòng vệ bóc tách mã số tự động (\d+) từ employeeId, originalName, hoặc displayName
+ *   trong runBatch trước khi gọi fetchOne. Đảm bảo strRewardUser luôn luôn là mã số NV nguyên bản.
+ *
+ * BẢN 3.5 — ĐỒNG BỘ TOAST & BẢO ĐẢM TƯƠNG THÍCH VỚI BOOKMARKLET COPYALL:
+ * - Tương thích hoàn toàn với bookmarklet CopyAll trên trang BI Thegioididong.
+ * - Tối ưu hoá luồng thông báo tiến độ sao chép văn bản toàn trang.
+ *
+ * BẢN 3.6 — SỬA COPY BỊ SÓT DỮ LIỆU SAU KHI MỞ RỘNG & TĂNG TỐC ĐỘ CLICK+:
+ * - User báo cáo thật: mở "+" chạy tốt, nhưng copy cuối cùng bị SÓT dữ liệu — tự kiểm chứng bằng
+ *   1 bookmarklet "Copy All" độc lập (Selection/Range API) và xác nhận copy đủ, khác kết quả của
+ *   acpExtractVisibleText() cũ (dùng document.body.innerText).
+ * - Nguyên nhân: innerText tính theo layout ĐÃ RENDER — DevExpress DataGrid có scroll container
+ *   riêng cho bảng (khác window scroll), dòng cấp con vừa mở rộng nằm ngoài khung nhìn của chính
+ *   bảng lúc copy có thể bị innerText bỏ sót dù vẫn còn nguyên trong DOM.
+ * - Sửa: acpExtractVisibleText() đổi sang bôi đen toàn bộ document.body qua Range rồi lấy
+ *   Selection.toString() — đúng cách bookmarklet CopyAll của user đang dùng, phản ánh đúng nội
+ *   dung thật có trong DOM, không phụ thuộc bảng đã cuộn tới đâu. Giữ innerText làm phương án dự
+ *   phòng nếu Selection API lỗi. Vẫn dùng copyToClipboard() (ưu tiên GM_setClipboard, đáng tin cậy
+ *   hơn navigator.clipboard.writeText của bookmarklet vì không bị giới hạn "user gesture"/quyền).
+ * - User báo cáo thêm: tốc độ mở "+" rất chậm (196 nút còn lại). Cơ chế chống quá tải backend thật
+ *   sự là acpWaitForSpinnersToClear() (chờ đúng vòng xoay #Loading của trang biến mất giữa các lô)
+ *   — KHÔNG phải các độ trễ cố định. Tăng ACP_BATCH_SIZE 4→8, giảm ACP_INTRA_BATCH_CLICK_DELAY
+ *   25→15ms và ACP_BATCH_PACING_DELAY 80→40ms; giữ nguyên spinner-wait (an toàn không đổi vì mỗi
+ *   lô vẫn phải đợi trang xử lý xong thật mới click lô kế tiếp, không dồn request).
+ *
+ * BẢN 0.6 — UX CHO CHẾ ĐỘ TỰ ĐỘNG:
+ * - Static asset công khai tại /scripts/..., có @updateURL/@downloadURL để tự cập nhật
+ *   qua Tampermonkey sau này (không cần cài lại tay mỗi lần sửa script).
+ * - Hộp thoại thiết kế lại: khi được Dashboard tự kích hoạt, ẩn hẳn khu vực nhập liệu
+ *   (đã tự động), chỉ hiện tiến độ gọn (progress bar + đang lấy + vừa xong kèm Điểm
+ *   thực lãnh) + nút Dừng lại. Khi tự bấm nút "⚡" trên trang thì vẫn như cũ (có ô nhập).
+ * - Điểm thực lãnh của từng NV được parse ngay lúc chạy (dòng "Tổng cộng", cột thứ 9 —
+ *   đúng cột `parseBonusBlock` bên Dashboard đang dùng làm "tong") và gửi kèm về
+ *   Dashboard để hiện trong "Xem chi tiết" của toast kết quả.
+ *
+ * BẢN 0.7 — FEED TIẾN ĐỘ + POPUP HOÀN TẤT GỌN:
+ * - Khu vực "Vừa xong" giờ là 1 feed trượt cao cố định (~5 dòng, dùng CSS transform
+ *   translateY theo index + transition, không phình hộp thoại). Dòng lỗi KHÔNG vào
+ *   feed trượt (tránh bài toán "lỗi bị đẩy mất" khi feed chỉ có 5 chỗ) — dồn vào 1 khu
+ *   vực riêng luôn hiện "✗ N lỗi", bấm vào xem đủ danh sách, và tự mở ra khi chạy xong.
+ * - Chạy xong KHÔNG hiện textarea dữ liệu thô mặc định nữa — thay bằng màn hình gọn
+ *   (headline + phụ đề). Tự động: tự quay về Dashboard (đóng tab) như cũ. Chạy tay:
+ *   tự copy clipboard + có nút "Copy lại" dự phòng (đề phòng lần copy tự động bị chặn
+ *   âm thầm do "user gesture" đã hết hạn — xem ghi chú bản cũ) + link "Xem dữ liệu thô".
+ *
+ * BẢN 0.8 — BỎ NÚT NỔI TRÊN TRANG MWG:
+ * - Chế độ Tự động bên Dashboard (popup Hiện tại/Tháng/Năm/Khoảng thời gian) đã đủ
+ *   dùng, không còn kịch bản người dùng tự bấm nút trên trang MWG nữa — bỏ hẳn nút nổi
+ *   "⚡ Thu thập điểm thưởng" để đỡ rối trang. checkForAutoJob() vẫn chạy như cũ.
+ *
+ * BẢN 1.6 — SỬA AUTOCLICK+ (TRANG BI) MỞ THIẾU/TỰ ĐÓNG LẠI DỮ LIỆU:
+ * - Bảng nhiều cấp lồng nhau (NNH → nhóm hàng → hãng): trước đây chỉ quét nút dấu-cộng
+ *   MỘT LẦN rồi bấm hết, nên các nút dấu-cộng cấp con mới lộ ra sau khi mở cấp cha
+ *   không bao giờ được bấm → thiếu dữ liệu dòng sâu nhất dù báo "Hoàn tất". Sửa: bấm
+ *   nhiều lượt, mỗi lượt quét lại DOM để bắt nút mới lộ ra, dừng khi không còn nút nào.
+ * - Một số bảng (vd BC theo nhân viên): icon dòng không đổi từ dấu-cộng sang dấu-trừ
+ *   kịp lúc do tải dữ liệu bất đồng bộ → lượt quét sau bấm trùng lần 2 khiến dòng vừa
+ *   mở tự đóng lại. Sửa: nhớ mọi hàng đã bấm trong một Set xuyên suốt các lượt, không
+ *   bao giờ bấm lại một hàng bất kể icon hiển thị gì.
+ * - Một số bảng khác còn không giữ nhiều dòng mở cùng lúc (mở dòng mới tự đóng dòng cũ)
+ *   nên đọc DOM ở bước cuối vẫn có thể mất dữ liệu các dòng đã đóng lại. Sửa tận gốc:
+ *   dùng MutationObserver chụp đúng phần nội dung mới lộ ra ngay sau TỪNG cú click và
+ *   cộng dồn lại, thay vì chỉ đọc DOM một lần ở bước cuối cùng.
+ *
+ * BẢN 1.7 — TỐI ƯU TỐC ĐỘ AUTOCLICK+ (bảng vài nghìn nút bị chậm sau bản 1.6):
+ * - Bản 1.6 chờ DOM ổn định (MutationObserver) riêng cho TỪNG cú click để không mất dữ liệu,
+ *   nhưng với bảng lớn (vd ~2.262 nút dấu-cộng) thì chờ riêng lẻ từng nút cộng dồn lại thành
+ *   rất chậm (có thể tới vài phút). Sửa: click theo LÔ (20 nút/lô), chỉ chờ DOM ổn định
+ *   MỘT LẦN cho cả lô — MutationObserver vẫn bắt đủ mọi nội dung mới lộ ra do bất kỳ click
+ *   nào trong lô gây ra nên không đánh đổi độ chính xác, chỉ giảm số lần chờ.
+ *
+ * BẢN 1.8 — SỬA COPY THIẾU DỮ LIỆU Ở BẢNG PHẲNG/RỘNG (không có nút dấu-cộng nào):
+ * - Thêm `copyEverythingNatively()` bôi đen Range/Selection toàn bộ nội dung trang.
+ *
+ * BẢN 1.9 — SỬA TRIỆT ĐỂ LỖI "COPY ALL" THIẾU DỮ LIỆU (QUÉT IFRAME & PRESERVE TSV):
+ * - Quét cả document chính lẫn tất cả `iframe` cùng nguồn (`getReadableDocuments()`).
+ * - Chuyển đổi chuẩn xác từng `<table>` trong các document thành định dạng TSV (\t và \n).
+ *
+ * BẢN 2.0 — TỐI ƯU TỐC ĐỘ CLICK (PACING) & TỰ ĐỘNG CHỜ SPINNER TẢI DỮ LIỆU:
+ * - Giảm kích thước lô từ 20 xuống 6 nút/lô, thêm micro-delay 35ms giữa các cú click.
+ * - Thêm cơ chế tự động chờ tất cả loading spinners (`waitForSpinnersToClear`) biến mất.
+ *
+ * BẢN 2.1 — ĐỔI TÊN NÚT THÀNH "CLICK+" & HIỆN ĐẠI HOÁ UI + SIẾT BẬC CHỜ SPINNER:
+ * - Đổi tên nút thành `⚡ Click+` / `📋 Copy Click+`.
+ * - Thiết kế giao diện nút nổi hiện đại sang trọng (gradient, glassmorphism, hiệu ứng nhún mượt mà).
+ *
+ * BẢN 2.2 — TỰ ĐỘNG MỞ RỘNG TẤT CẢ CÁC CẤP TRONG 1 LẦN CLICK DUY NHẤT:
+ * - Tự động chờ spinner cấp con và mở liên hoàn Cấp 1 -> Cấp 2 -> Cấp 3.
+ *
+ * BẢN 2.3 — MỖI LẦN CLICK "CLICK+" CHỈ MỞ ĐÚNG 1 CẤP (+):
+ * - Đặt ACP_MAX_ROUNDS = 1: Mỗi lần nhấn nút Click+, script chỉ mở toàn bộ các nút dấu cộng của cấp hiện tại,
+ *   tự động chờ spinner tải 100% dữ liệu cấp đó rồi copy và kết thúc. Nhường quyền kiểm soát từng cấp cho người dùng.
+ *
+ * BẢN 2.4 — TỰ ĐỘNG COPY ALL TOÀN BỘ DỮ LIỆU SAU MỖI LẦN MỞ 1 CẤP:
+ * - Thực thi tự động Copy All ngay sau khi hoàn tất mở 1 cấp và chờ spinner tải xong 100%.
+ *
+ * BẢN 2.5 — XỬ LÝ TRIỆT ĐỂ LỖI COPY TRÙNG LẶP & DỮ LIỆU RÁC "UNDEFINED":
+ * - Lọc bỏ các phần tử rác DevExpress (.dx-datagrid-content-fixed, .dx-hidden) và dòng rác 'undefined'.
+ *
+ * BẢN 2.6 — TỰ ĐỘNG CẬP NHẬT NHÃN NÚT KHI CHUYỂN TAB & CHỐNG TỰ THU GỌN LẠI:
+ * - Thêm bộ quét định kỳ 1s tự động đổi nhãn nút nổi thành `⚡ Click+` ngay khi chuyển tab có nút dấu cộng mới.
+ * - Bổ sung đầy đủ selector cho DevExpress DataGrid (.dx-datagrid-group-closed, td.dx-command-expand).
+ * - Siết chặt isPlusButton(): Kiểm tra trạng thái đã mở của thẻ cha (tr/td), tuyệt đối không click lại hàng đã mở (chống thu gọn).
+ *
+ * BẢN 2.7 — TÍCH HỢP DATASET TAGGING TỪ BOOKMARKLET & BẢO TOÀN DỮ LIỆU MỞ NHIỀU CẤP:
+ * - Đánh dấu HTML dataset `el.dataset.clickPlusDone = '1'` ngay khi click nút/hàng (từ thuật toán Bookmarklet).
+ * - Thêm `isAlreadyOpened(el)` kiểm tra các cờ DOM đa dạng (`aria-expanded="true"`, `data-state="open"`, `.fa-minus`).
+ * - Bảo toàn 100% dữ liệu qua kết hợp `accumulatedChunks` (MutationObserver) + `GM_setClipboard(finalText)`.
+ *
+ * BẢN 3.0 — XOÁ BỎ HOÀN TOÀN TÍNH NĂNG CLICK+ (AUTOCLICK+):
+ * - Xoá bỏ toàn bộ khối mã nguồn initBiPage(), nút nổi Click+ và các chức năng tự động mở dấu cộng/copy trang BI theo yêu cầu.
+ *
+ * BẢN 3.1 — LÀM LẠI CLICK+ TRÊN TAMPERMONKEY (nút nổi, chạy trên https://bi.thegioididong.com/*):
+ * - Làm lại từ đầu (không phục hồi nguyên xi mã cũ đã xoá ở bản 3.0), giữ lại các bài học
+ *   đã đúc kết qua các bản 1.6-2.7 ở trên: đánh dấu dataset trên phần tử đã click để
+ *   không bao giờ click lại (tránh vô tình đóng dòng vừa mở), click theo lô kèm
+ *   micro-delay + chờ spinner tải dữ liệu biến mất, MutationObserver ghi lại nội dung
+ *   mọi phần tử mới thêm vào DOM để bù dữ liệu nếu sau đó bị tự thu gọn/gỡ khỏi DOM,
+ *   loại vùng nhân bản cột cố định DevExpress (.dx-datagrid-content-fixed/.dx-hidden)
+ *   và dòng rác "undefined" khỏi văn bản copy, copy qua copyToClipboard() dùng chung.
+ * - Theo yêu cầu: mỗi lần bấm nút chỉ mở ĐÚNG 1 CẤP (không tự động mở liên hoàn nhiều
+ *   cấp như bản 2.2) — người dùng chủ động bấm lại nút để mở tiếp cấp con.
+ * - Có CHỦ ĐÍCH bỏ bớt so với bản cũ: không quét iframe cùng nguồn (getReadableDocuments
+ *   của bản 1.9) — nếu về sau phát hiện báo cáo cụ thể nhúng iframe và bị thiếu dữ liệu,
+ *   cần bổ sung lại phần này.
+ *
+ * BẢN 3.2 — SỬA TRANG BỊ ĐƠ/XOAY LIÊN TỤC DO CLICK QUÁ NHANH (click theo lô 6 nút/35ms):
+ * - Người dùng báo thật: trên báo cáo lớn (465 nút), bản 3.1 làm trang bị đơ, vòng xoay
+ *   quay liên tục, và xuất hiện alert lỗi "Đã xảy ra lỗi! Vui lòng đăng xuất, và đăng nhập
+ *   lại!" — do click dồn dập theo lô (6 nút liên tiếp chỉ nghỉ 35ms) làm quá tải backend/
+ *   phiên đăng nhập của trang BI (AngularJS, ng-app="BIreportApp").
+ * - Đổi hẳn sang click TUẦN TỰ TỪNG NÚT MỘT: click 1 nút -> chờ đúng vòng xoay tải dữ
+ *   liệu thật của trang biến mất -> nghỉ thêm 1 chút -> mới click nút kế tiếp. Không còn
+ *   click theo lô (bỏ ACP_BATCH_SIZE).
+ * - Người dùng tự mở DevTools xác nhận vòng xoay THẬT của trang là
+ *   `<div id="Loading" class="overload-wait">` (overlay cố định toàn màn hình, do
+ *   AngularJS $http interceptor bật/tắt) — thêm `#Loading`/`.overload-wait` vào đầu
+ *   ACP_SPINNER_SELECTOR, ưu tiên hơn các lớp suy đoán cũ.
+ * - PHÁT HIỆN BUG: hàm kiểm tra hiển thị cũ dùng `el.offsetParent !== null`, nhưng theo
+ *   spec, offsetParent LUÔN LÀ null với phần tử `position:fixed` — bất kể phần tử đó có
+ *   đang hiển thị hay không. Vòng xoay thật `#Loading` chính là `position:fixed`, nên nếu
+ *   chỉ thêm selector mà không sửa hàm kiểm tra thì script vẫn không bao giờ "thấy" được
+ *   vòng xoay đang quay, chờ-spinner coi như vô tác dụng. Thêm `acpIsSpinnerVisible()`
+ *   dùng `getComputedStyle` + `getBoundingClientRect` để kiểm tra đúng cho cả phần tử
+ *   `position:fixed`.
+ * - Thêm nút "⏹ Dừng lại" ngay trong hộp trạng thái — vì chạy tuần tự từng nút sẽ chậm
+ *   hơn hẳn so với chạy theo lô, báo cáo nhiều nút (vd 465) có thể mất khá lâu, cần cho
+ *   người dùng chủ động dừng giữa chừng mà vẫn giữ + copy được phần dữ liệu đã mở.
+ *
+ * BẢN 3.3 — TĂNG TỐC LẠI: CLICK THEO LÔ NHỎ (đã sửa xong bug offsetParent ở bản 3.2):
+ * - Người dùng báo bản 3.2 (từng-nút-một) chạy quá chậm. Nhận ra nguyên nhân THẬT khiến
+ *   bản 3.1 bị quá tải KHÔNG PHẢI do bản thân việc click theo lô, mà do bug offsetParent
+ *   (xem bản 3.2) làm chờ-spinner hoàn toàn vô tác dụng — tức bản 3.1 thực chất KHÔNG hề
+ *   chờ gì cả giữa các lô, cứ thế click dồn dập liên tục.
+ * - Giờ bug đã sửa (chờ-spinner hoạt động đúng), quay lại click theo LÔ NHỎ (4 nút/lô,
+ *   có nghỉ nhẹ 25ms giữa từng cú click trong lô) rồi mới chờ đúng vòng xoay #Loading thật
+ *   biến mất 1 lần cho cả lô — vẫn đảm bảo không dồn request khi trang chưa xử lý xong,
+ *   nhưng nhanh hơn hẳn so với chờ riêng lẻ từng nút một của bản 3.2.
+ * - Giữ nguyên toàn bộ phần an toàn khác của bản 3.2: vòng xoay #Loading/.overload-wait
+ *   xác nhận thật, hàm kiểm tra hiển thị đúng cho position:fixed, nút "⏹ Dừng lại".
+ *
+ * BẢN 3.4 — SỬA CLICK+ VÔ TÌNH BẤM MỞ CẢ DROPDOWN/BỘ LỌC NGOÀI BẢNG:
+ * - User báo cáo thật + đối chiếu 2 bản copy (Click+ tự copy vs copy tay): dữ liệu BẢNG
+ *   giống hệt nhau, nhưng bản Click+ có thêm rất nhiều dòng thừa không liên quan — toàn
+ *   bộ danh sách vùng, toàn bộ 11 tháng của bộ lọc kỳ báo cáo, các lựa chọn khác của bộ
+ *   lọc "Doanh thu theo"... trong khi copy tay (dropdown vẫn đóng) không có các dòng này.
+ * - Nguyên nhân: ACP_FA_PLUS_SELECTOR = '.fa-plus' quét TOÀN TRANG (document.querySelectorAll),
+ *   không giới hạn — khớp luôn icon "+" của các dropdown/bộ lọc khác dùng chung class
+ *   FontAwesome đó, không riêng gì nút mở-rộng-dòng lồng nhau trong bảng dữ liệu. Click+
+ *   bấm luôn các dropdown này, làm chúng bung ra và nội dung lọt vào văn bản copy cuối.
+ * - Sửa: acpGetPlusCandidates() lọc thêm `el.closest('table')` cho tập hợp từ
+ *   ACP_FA_PLUS_SELECTOR — nút mở-rộng-dòng thật luôn nằm trong 1 <table>, các dropdown/
+ *   bộ lọc điều hướng thì không. Không đụng tới ACP_DX_CLOSED_SELECTOR (DevExpress) vì
+ *   selector đó vốn đã đủ đặc thù, chưa thấy bằng chứng bị lẫn tương tự.
+ *
+ *
+ * CHƯA KIỂM CHỨNG THẬT (cần test tay trước khi tin tưởng hoàn toàn):
+ * - GM storage dùng chung xuyên 2 domain cho cùng 1 script; GM_addValueChangeListener
+ *   bắn tin xuyên tab; window.close() tự động trên tab do window.open() mở.
+ * - @updateURL/@downloadURL thực sự khiến Tampermonkey tự cập nhật (chỉ có tác dụng
+ *   với các lượt cài MỚI từ bản 0.6 trở đi — bản đã cài trước đó phải cập nhật tay 1
+ *   lần cuối để có 2 dòng này).
+ * - Copy tự động ngay khi chạy tay vừa xong (bản 0.7) có thực sự ăn trên trình duyệt
+ *   thật hay không — nút "Copy lại" là lối thoát dự phòng nếu không.
+ */
+
+(function () {
+  'use strict';
+
+  // ====== CẤU HÌNH CHUNG ======
+  const STORAGE_KEY_LIST = 'mwg_thuthap_employee_list';
+  const API_URL = 'https://newinsite.thegioididong.com/office/RewardPoint/RewardPoint/GetReward';
+  const MWG_URL = 'https://newinsite.thegioididong.com/office/thuong-nhan-vien';
+  const MWG_HOSTNAME = 'newinsite.thegioididong.com';
+  const DELAY_MS = 700; // nghỉ giữa các lượt gọi API, tránh bị chặn
+
+  // Màu nhấn đồng bộ với Dashboard (thang màu sky).
+  const COLOR_PRIMARY = '#0284c7';
+  const COLOR_PRIMARY_LIGHT = '#0ea5e9';
+  const COLOR_PRIMARY_BG = '#f0f9ff';
+  const COLOR_SUCCESS = '#059669';
+  const COLOR_DANGER = '#e11d48';
+
+  // ====== CẤU HÌNH CẦU NỐI (bridge) VỚI DASHBOARD ======
+  const BRIDGE_SOURCE = 'ycx-bonus-bridge';
+  const EVT_PING = 'ycx-bonus-bridge:ping';
+  const EVT_PONG = 'ycx-bonus-bridge:pong';
+  const EVT_START_JOB = 'ycx-bonus-bridge:start-job';
+  const EVT_PROGRESS = 'ycx-bonus-bridge:progress';
+  const EVT_JOB_DONE = 'ycx-bonus-bridge:job-done';
+  const EVT_JOB_ERROR = 'ycx-bonus-bridge:job-error';
+  const GM_KEY_META = 'mwg_ycx_bridge_meta';
+  const GM_KEY_RESULT = 'mwg_ycx_bridge_result';
+  const JOB_TTL_MS = 15 * 60 * 1000;
+  // Phiên bản báo cho Dashboard (ping/pong) — lấy từ dòng @version qua GM_info. Trước bản 7.4 hằng này ghi cứng
+  // '6.4' nên Dashboard KHÔNG biết máy đang chạy bản nào. Hằng dự phòng phải trùng @version (unit test kiểm).
+  const SCRIPT_VERSION_FALLBACK = '7.34';
+  const SCRIPT_VERSION = (typeof GM_info !== 'undefined' && GM_info && GM_info.script && GM_info.script.version) || SCRIPT_VERSION_FALLBACK;
+
+  // ====== CẦU NỐI TỰ ĐỘNG HOÁ BI (REALTIME & LUỸ KẾ) ======
+  const BI_BRIDGE_SOURCE = 'ycx-bi-automation';
+  const EVT_BI_START_JOB = 'ycx-bi-automation:start-job';
+  const EVT_BI_PROGRESS = 'ycx-bi-automation:progress';
+  const EVT_BI_DONE = 'ycx-bi-automation:done';
+  const EVT_BI_ERROR = 'ycx-bi-automation:error';
+  const GM_KEY_BI_JOB = 'ycx_bi_automation_job';
+  const GM_KEY_BI_PROGRESS = 'ycx_bi_automation_progress';
+  const GM_KEY_BI_DONE = 'ycx_bi_automation_done';
+  const GM_KEY_BI_ERROR = 'ycx_bi_automation_error';
+
+  // ====== CẦU NỐI TỰ ĐỘNG YCX CHO PHÂN TÍCH (7.13) ======
+  const YCX_HOSTNAME = 'report.mwgroup.vn';
+  const YCX_REPORT_PATH = '/home/dashboard/77';
+  const YCX_SOURCE = 'ycx-ycx-auto';
+  const EVT_YCX_START = 'ycx-ycx-auto:start-job';
+  const GM_KEY_YCX_JOB = 'ycx_ycx_job';
+  const GM_KEY_YCX_PROGRESS = 'ycx_ycx_progress';
+  const GM_KEY_YCX_DONE = 'ycx_ycx_done';
+  const GM_KEY_YCX_ERROR = 'ycx_ycx_error';
+  const YCX_JOB_TTL_MS = 15 * 60 * 1000;
+
+  // Feed "Vừa xong": cao cố định FEED_MAX_ROWS dòng, dòng mới trượt vào từ trên.
+  const FEED_ROW_HEIGHT = 21;
+  const FEED_MAX_ROWS = 5;
+
+  // ====== TIỆN ÍCH CHUNG ======
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const pad2 = (n) => String(n).padStart(2, '0');
+
+  function toDDMMYYYY(date) {
+    return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
+  }
+
+  function getDefaultDateRange() {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: toDDMMYYYY(from), to: toDDMMYYYY(now) };
+  }
+
+  // API xác nhận cần dtmFromDate/dtmToDate dạng mm/dd/yyyy — quy đổi 1 chiều từ ô nhập dd/mm/yyyy.
+  function ddmmyyyyToApiFormat(value) {
+    const m = String(value).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) {
+      throw new Error(`Ngày "${value}" không đúng định dạng dd/mm/yyyy`);
+    }
+    const [, dd, mm, yyyy] = m;
+    return `${pad2(mm)}/${pad2(dd)}/${yyyy}`;
+  }
+
+  // ====== LƯU / ĐỌC DANH SÁCH MÃ NV ======
+  function loadSavedList() {
+    try {
+      return localStorage.getItem(STORAGE_KEY_LIST) || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function saveList(text) {
+    try {
+      localStorage.setItem(STORAGE_KEY_LIST, text);
+    } catch (e) {
+      // bỏ qua nếu trình duyệt chặn localStorage
+    }
+  }
+
+  // Mỗi dòng có thể là "274487" hoặc "U274487 - Lý Anh Bảo - BP A..." — chỉ lấy phần số.
+  function parseEmployeeIds(text) {
+    return text
+      .split(/\r?\n/)
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        const match = trimmed.match(/\d+/);
+        return match ? match[0] : trimmed;
+      })
+      .filter(Boolean);
+  }
+
+  // ====== GỌI API CHO 1 NHÂN VIÊN (fromDate/toDate phải đã ở dạng mm/dd/yyyy) ======
+  async function fetchOne(empId, fromDate, toDate, maxRetries = 2) {
+    const params = new URLSearchParams({
+      dtmFromDate: fromDate,
+      dtmToDate: toDate,
+      intRewardPositionID: '-1',
+      strRewardUser: empId,
+    });
+
+    const fetchFn = (typeof unsafeWindow !== 'undefined' && unsafeWindow.fetch)
+      ? unsafeWindow.fetch.bind(unsafeWindow)
+      : (window.fetch ? window.fetch.bind(window) : fetch);
+
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      try {
+        const res = await fetchFn(`${API_URL}?${params.toString()}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            accept: 'application/json, text/plain, */*',
+            'x-requested-with': 'XMLHttpRequest',
+          },
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Hết phiên đăng nhập hoặc không có quyền — mở lại trang, đăng nhập rồi thử lại');
+        }
+        if (!res.ok) {
+          if (attempt <= maxRetries && res.status >= 500) {
+            await sleep(1200);
+            continue;
+          }
+          throw new Error(`Server trả lỗi HTTP ${res.status}`);
+        }
+
+        const raw = await res.text();
+        return convertResponseToTSV(raw);
+      } catch (err) {
+        const isAuthError = err && err.message && err.message.includes('Hết phiên đăng nhập');
+        if (!isAuthError && attempt <= maxRetries) {
+          await sleep(1200);
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  // ====== CHUYỂN DỮ LIỆU TRẢ VỀ THÀNH TSV ======
+  function convertResponseToTSV(raw) {
+    const trimmed = (raw || '').trim();
+    if (!trimmed) return '(không có dữ liệu trả về)';
+
+    if (trimmed[0] === '<') {
+      return htmlToTSV(trimmed);
+    }
+
+    if (trimmed[0] === '{' || trimmed[0] === '[') {
+      try {
+        return jsonToTSV(JSON.parse(trimmed));
+      } catch (e) {
+        // không parse được JSON -> rơi xuống nhánh text thô bên dưới
+      }
+    }
+
+    return trimmed; // đã là text/TSV/CSV sẵn -> giữ nguyên
+  }
+
+  const ARRAY_WRAPPER_KEYS = [
+    'Data', 'data', 'ListData', 'listData', 'Result', 'result',
+    'Items', 'items', 'Table', 'table', 'Rows', 'rows', 'List', 'lst',
+  ];
+
+  function findArrayInObject(obj, depth) {
+    if (Array.isArray(obj)) return obj;
+    if (!obj || typeof obj !== 'object' || depth > 2) return null;
+    for (const key of ARRAY_WRAPPER_KEYS) {
+      if (Array.isArray(obj[key])) return obj[key];
+    }
+    for (const key of Object.keys(obj)) {
+      const found = findArrayInObject(obj[key], depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function formatCell(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v).replace(/[\t\n\r]+/g, ' ').trim();
+  }
+
+  function jsonToTSV(json) {
+    const rows = findArrayInObject(json, 0);
+    if (!rows) {
+      return 'KHÔNG_NHẬN_DIỆN_ĐƯỢC_CẤU_TRÚC_JSON\n' + JSON.stringify(json);
+    }
+    if (rows.length === 0) return '(không có dữ liệu)';
+    if (typeof rows[0] !== 'object' || rows[0] === null) {
+      return rows.map(formatCell).join('\n');
+    }
+    const headers = Object.keys(rows[0]);
+    const lines = [headers.join('\t')];
+    for (const row of rows) {
+      lines.push(headers.map((h) => formatCell(row[h])).join('\t'));
+    }
+    return lines.join('\n');
+  }
+
+  // Duyệt nguyên <tr>/<td> theo đúng thứ tự DOM, KHÔNG giãn colspan/rowspan — đúng hệt
+  // cách trình duyệt tạo phần plain-text khi Ctrl+C cả bảng.
+  function htmlToTSV(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const table = doc.querySelector('table');
+    if (!table) {
+      return 'KHÔNG_TÌM_THẤY_THẺ_TABLE_TRONG_HTML_TRẢ_VỀ\n' + html.slice(0, 800);
+    }
+    return [...table.querySelectorAll('tr')]
+      .map((tr) =>
+        [...tr.querySelectorAll('th,td')]
+          .map((c) => c.textContent.trim().replace(/[\t\n\r]+/g, ' '))
+          .join('\t')
+      )
+      .join('\n');
+  }
+
+  // Điểm thực lãnh = cột thứ 9 (index 8) của dòng "Tổng cộng" — đúng cột mà
+  // parseBonusBlock bên Dashboard dùng làm "tong". null nếu NV không có dữ liệu kỳ này.
+  function extractDiemThucLanh(tsv) {
+    if (!tsv) return null;
+    const totalLine = tsv.split('\n').find((l) => l.startsWith('Tổng cộng'));
+    if (!totalLine) return null;
+    const raw = totalLine.split('\t')[8];
+    if (raw === undefined) return null;
+    const cleaned = String(raw).replace(/[^\d-]/g, '');
+    if (!cleaned) return null;
+    const n = parseInt(cleaned, 10);
+    return Number.isNaN(n) ? null : n;
+  }
+
+  function formatViNumber(n) {
+    try {
+      return n.toLocaleString('vi-VN');
+    } catch (e) {
+      return String(n);
+    }
+  }
+
+  // ====== FEED "VỪA XONG" (trượt, cao cố định) + KHU VỰC LỖI (ghim riêng) ======
+  // Mỗi dòng đặt position:absolute, dời vị trí bằng translateY(index*rowHeight) — đổi
+  // index của dòng cũ sẽ tự animate nhờ transition đã khai báo sẵn trên style, không
+  // cần đo getBoundingClientRect. Dòng thứ FEED_MAX_ROWS trở đi mờ dần rồi bị gỡ khỏi DOM.
+  function pushFeedRow(feedEl, html) {
+    const existing = Array.from(feedEl.children);
+
+    const row = document.createElement('div');
+    row.innerHTML = html;
+    Object.assign(row.style, {
+      position: 'absolute', left: '0', right: '0', top: '0',
+      height: `${FEED_ROW_HEIGHT}px`, lineHeight: `${FEED_ROW_HEIGHT}px`,
+      overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+      fontSize: '12.5px', fontWeight: '600',
+      transform: 'translateY(-8px)', opacity: '0',
+      transition: 'transform .28s ease, opacity .28s ease',
+    });
+    row.dataset.feedIndex = '0';
+    feedEl.appendChild(row);
+    void row.offsetHeight; // ép reflow để "chốt" trạng thái ban đầu trước khi đổi sang đích, nếu không transition sẽ nhảy thẳng không animate
+    row.style.transform = 'translateY(0)';
+    row.style.opacity = '1';
+
+    existing.forEach((el) => {
+      const newIdx = parseInt(el.dataset.feedIndex || '0', 10) + 1;
+      el.dataset.feedIndex = String(newIdx);
+      el.style.transform = `translateY(${newIdx * FEED_ROW_HEIGHT}px)`;
+      if (newIdx >= FEED_MAX_ROWS) {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+      }
+    });
+  }
+
+  // Dòng lỗi KHÔNG vào feed trượt (feed chỉ có FEED_MAX_ROWS chỗ, dễ bị đẩy mất) — dồn
+  // vào 1 khu vực riêng luôn hiện số lượng, bấm vào xem đủ danh sách, và được lệnh gọi
+  // ở cuối phiên chạy tự mở ra để người dùng thấy ngay không cần bấm.
+  function pushErrorRow(els, errorLog, who, reason) {
+    errorLog.push({ who, reason });
+    els.errorArea.style.display = 'block';
+    els.errorBadge.textContent = `✗ ${errorLog.length} lỗi`;
+    const row = document.createElement('div');
+    row.style.cssText = `padding:2px 0;color:${COLOR_DANGER};`;
+    row.textContent = `✗ ${who} — ${reason}`;
+    els.errorList.insertBefore(row, els.errorList.firstChild);
+  }
+
+  // ====== COPY VÀO CLIPBOARD (ưu tiên GM_setClipboard, dự phòng Clipboard API) ======
+  function copyToClipboard(text) {
+    try {
+      GM_setClipboard(text);
+    } catch (e) {
+      navigator.clipboard.writeText(text).catch(() => {
+        console.warn('[MWG thu thập] Không copy tự động được, dữ liệu:', text);
+      });
+    }
+  }
+
+  // Gọi GM_getValue/GM_setValue qua Promise.resolve(...) để chạy đúng cả khi API
+  // trả về đồng bộ (Tampermonkey kiểu cũ) lẫn khi trả về Promise (GM.* kiểu mới).
+  const gmGet = (key, def) => Promise.resolve(GM_getValue(key, def));
+  const gmSet = (key, value) => Promise.resolve(GM_setValue(key, value));
+
+  // ====== CHẠY HÀNG LOẠT — DÙNG CHUNG CHO BẤM TAY LẪN TỰ ĐỘNG KÍCH HOẠT ======
+  // employees: [{ employeeId, originalName, displayName }].
+  async function runBatch(employees, fromDateApi, toDateApi, { onStart, onItemDone, shouldStop } = {}) {
+    const blocks = [];
+    const errors = [];
+    const results = [];
+    let stoppedEarly = false;
+
+    for (let i = 0; i < employees.length; i++) {
+      if (shouldStop && shouldStop()) { stoppedEarly = true; break; }
+      const { employeeId, originalName, displayName } = employees[i];
+
+      // Phòng vệ kép: bóc tách chuỗi số nguyên thuần tuý làm mã NV trước khi gọi API
+      let cleanEmpId = String(employeeId || '').trim();
+      if (!/^\d+$/.test(cleanEmpId)) {
+        const match = cleanEmpId.match(/\d+/)
+          || String(originalName || '').match(/\d+/)
+          || String(displayName || '').match(/\d+/);
+        if (match) cleanEmpId = match[0];
+      }
+
+      if (onStart) onStart(i, employees.length, cleanEmpId, displayName);
+      try {
+        if (!cleanEmpId) {
+          throw new Error('Không tìm thấy mã số nhân viên để truy vấn');
+        }
+        const tsv = await fetchOne(cleanEmpId, fromDateApi, toDateApi);
+        const diemThucLanh = extractDiemThucLanh(tsv);
+        blocks.push(`===${cleanEmpId}===\n${tsv}`);
+        results.push({ employeeId: cleanEmpId, originalName, status: 'ok', tsv, diemThucLanh });
+        if (onItemDone) onItemDone(i, employees.length, cleanEmpId, displayName, { status: 'ok', diemThucLanh });
+      } catch (e) {
+        const msg = (e && e.message) || String(e);
+        const targetId = cleanEmpId || employeeId;
+        blocks.push(`===${targetId}===\nLỖI: ${msg}`);
+        errors.push(`${targetId}: ${msg}`);
+        results.push({ employeeId: targetId, originalName, status: 'error', error: msg });
+        if (onItemDone) onItemDone(i, employees.length, targetId, displayName, { status: 'error', error: msg });
+      }
+      if (i < employees.length - 1) {
+        if (shouldStop && shouldStop()) { stoppedEarly = true; break; }
+        await sleep(DELAY_MS);
+      }
+    }
+
+    return { blocks, errors, results, stoppedEarly };
+  }
+
+  // ====== HỘP THOẠI (chỉ trên trang MWG) ======
+  // autoMode=true: ẩn hẳn khu vực nhập liệu (Dashboard đã tự điền/tự chạy).
+  // autoMode=false (mặc định, bấm tay nút ⚡): hiện đầy đủ như trước.
+  function buildModal(autoMode) {
+    const overlay = document.createElement('div');
+    overlay.id = 'mwg-thuthap-overlay';
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', background: 'rgba(15,23,42,.55)',
+      zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    });
+
+    const box = document.createElement('div');
+    Object.assign(box.style, {
+      background: '#fff', borderRadius: '20px', padding: '24px',
+      width: '520px', maxWidth: '92vw', maxHeight: '88vh', overflow: 'auto',
+      boxShadow: '0 20px 60px rgba(15,23,42,.25)',
+      fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
+      fontSize: '14px', color: '#1e293b',
+    });
+
+    box.innerHTML = `
+      <h3 style="margin:0 0 16px;font-size:17px;font-weight:800;letter-spacing:-.01em;">⚡ Tự động lấy điểm thưởng nhân viên</h3>
+
+      <div id="mwg-setup-section">
+        <label style="display:block;font-weight:600;margin-bottom:4px;font-size:13px;">Danh sách mã NV (mỗi dòng 1 mã)</label>
+        <textarea id="mwg-emp-list" rows="8" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px;padding:10px;border:1px solid #e2e8f0;border-radius:12px;"></textarea>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <div style="flex:1;">
+            <label style="display:block;font-weight:600;margin-bottom:4px;font-size:13px;">Từ ngày (dd/mm/yyyy)</label>
+            <input id="mwg-date-from" type="text" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:12px;">
+          </div>
+          <div style="flex:1;">
+            <label style="display:block;font-weight:600;margin-bottom:4px;font-size:13px;">Đến ngày (dd/mm/yyyy)</label>
+            <input id="mwg-date-to" type="text" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:12px;">
+          </div>
+        </div>
+      </div>
+
+      <div id="mwg-running-section" style="display:none;">
+        <p style="margin:0 0 10px;font-size:13px;color:#64748b;">
+          Kỳ: <span id="mwg-range-text" style="font-weight:700;color:#334155;"></span> ·
+          <span id="mwg-emp-count-toggle" style="cursor:pointer;font-weight:700;color:${COLOR_PRIMARY};border-bottom:1px dashed ${COLOR_PRIMARY};">0 nhân viên</span>
+        </p>
+        <div id="mwg-emp-readonly-wrap" style="display:none;margin-bottom:10px;">
+          <textarea id="mwg-emp-readonly" readonly rows="4" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:${COLOR_PRIMARY_BG};color:#64748b;"></textarea>
+        </div>
+
+        <div style="height:8px;background:#e0f2fe;border-radius:999px;overflow:hidden;">
+          <div id="mwg-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,${COLOR_PRIMARY_LIGHT},${COLOR_PRIMARY});border-radius:999px;transition:width .3s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;">
+          <span id="mwg-progress-counter" style="font-size:22px;font-weight:800;color:${COLOR_PRIMARY};letter-spacing:-.02em;"></span>
+          <span id="mwg-current-emp" style="font-size:13px;font-weight:700;color:#334155;text-align:right;"></span>
+        </div>
+
+        <div id="mwg-feed" style="position:relative;height:${FEED_ROW_HEIGHT * FEED_MAX_ROWS}px;overflow:hidden;margin-top:8px;"></div>
+
+        <div style="text-align:right;margin-top:10px;">
+          <button id="mwg-btn-stop" type="button" style="padding:7px 16px;border-radius:999px;border:1px solid #fecdd3;background:#fff1f2;color:${COLOR_DANGER};font-weight:700;font-size:12px;cursor:pointer;">Dừng lại</button>
+        </div>
+      </div>
+
+      <div id="mwg-error-area" style="display:none;margin-top:10px;">
+        <div style="display:flex;justify-content:flex-end;">
+          <span id="mwg-error-badge" style="cursor:pointer;font-size:11px;font-weight:800;color:${COLOR_DANGER};background:#fff1f2;border:1px solid #fecdd3;border-radius:999px;padding:2px 10px;">✗ 0 lỗi</span>
+        </div>
+        <div id="mwg-error-list" style="display:none;margin-top:6px;max-height:120px;overflow-y:auto;border:1px solid #fecdd3;border-radius:10px;padding:6px 10px;background:#fff1f2;font-size:12px;"></div>
+      </div>
+
+      <p id="mwg-status-text" style="min-height:0;margin:0;font-size:13px;color:#475569;white-space:pre-wrap;"></p>
+
+      <div id="mwg-done-section" style="display:none;margin-top:14px;">
+        <p id="mwg-done-headline" style="margin:0 0 4px;font-size:14px;font-weight:800;color:#1e293b;"></p>
+        <p id="mwg-done-sub" style="margin:0;font-size:12.5px;color:#64748b;"></p>
+
+        <div id="mwg-done-manual-actions" style="display:none;margin-top:10px;">
+          <a id="mwg-toggle-raw" href="#" style="font-size:11px;color:#94a3b8;text-decoration:underline;">Xem dữ liệu thô</a>
+          <div id="mwg-raw-wrap" style="display:none;margin-top:8px;">
+            <textarea id="mwg-result" rows="6" readonly style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div id="mwg-footer" style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+        <button id="mwg-btn-copy-again" type="button" style="display:none;padding:9px 16px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-weight:600;">📋 Copy lại</button>
+        <button id="mwg-btn-close" style="padding:9px 16px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-weight:600;">Đóng</button>
+        <button id="mwg-btn-start" style="padding:9px 18px;border-radius:12px;border:none;background:${COLOR_PRIMARY};color:#fff;font-weight:700;cursor:pointer;">Bắt đầu</button>
+      </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const els = {
+      setupSection: box.querySelector('#mwg-setup-section'),
+      textarea: box.querySelector('#mwg-emp-list'),
+      dateFrom: box.querySelector('#mwg-date-from'),
+      dateTo: box.querySelector('#mwg-date-to'),
+      runningSection: box.querySelector('#mwg-running-section'),
+      rangeText: box.querySelector('#mwg-range-text'),
+      empCountToggle: box.querySelector('#mwg-emp-count-toggle'),
+      empReadonlyWrap: box.querySelector('#mwg-emp-readonly-wrap'),
+      empReadonly: box.querySelector('#mwg-emp-readonly'),
+      progressFill: box.querySelector('#mwg-progress-fill'),
+      progressCounter: box.querySelector('#mwg-progress-counter'),
+      currentEmp: box.querySelector('#mwg-current-emp'),
+      feed: box.querySelector('#mwg-feed'),
+      btnStop: box.querySelector('#mwg-btn-stop'),
+      errorArea: box.querySelector('#mwg-error-area'),
+      errorBadge: box.querySelector('#mwg-error-badge'),
+      errorList: box.querySelector('#mwg-error-list'),
+      statusText: box.querySelector('#mwg-status-text'),
+      doneSection: box.querySelector('#mwg-done-section'),
+      doneHeadline: box.querySelector('#mwg-done-headline'),
+      doneSub: box.querySelector('#mwg-done-sub'),
+      doneManualActions: box.querySelector('#mwg-done-manual-actions'),
+      toggleRawLink: box.querySelector('#mwg-toggle-raw'),
+      rawWrap: box.querySelector('#mwg-raw-wrap'),
+      resultTextarea: box.querySelector('#mwg-result'),
+      btnCopyAgain: box.querySelector('#mwg-btn-copy-again'),
+      footer: box.querySelector('#mwg-footer'),
+      btnStart: box.querySelector('#mwg-btn-start'),
+      btnClose: box.querySelector('#mwg-btn-close'),
+    };
+
+    els.textarea.value = loadSavedList();
+
+    const defaultDates = getDefaultDateRange();
+    els.dateFrom.value = defaultDates.from;
+    els.dateTo.value = defaultDates.to;
+
+    if (autoMode) {
+      els.setupSection.style.display = 'none';
+    }
+
+    els.empCountToggle.addEventListener('click', () => {
+      const willShow = els.empReadonlyWrap.style.display === 'none';
+      els.empReadonlyWrap.style.display = willShow ? 'block' : 'none';
+    });
+
+    els.btnClose.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    els.errorBadge.addEventListener('click', () => {
+      const willShow = els.errorList.style.display === 'none';
+      els.errorList.style.display = willShow ? 'block' : 'none';
+    });
+
+    els.toggleRawLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const willShow = els.rawWrap.style.display === 'none';
+      els.rawWrap.style.display = willShow ? 'block' : 'none';
+      els.toggleRawLink.textContent = willShow ? 'Ẩn dữ liệu thô' : 'Xem dữ liệu thô';
+    });
+
+    // Nút copy độc lập, bấm trực tiếp -> luôn là 1 cú click "tươi" nên chắc chắn được phép,
+    // khác với gọi copy tự động ngay khi vừa chạy xong (dễ bị chặn âm thầm nếu "user gesture"
+    // gốc đã hết hạn) — đây là lối thoát dự phòng cho đúng tình huống đó.
+    els.btnCopyAgain.addEventListener('click', () => {
+      copyToClipboard(els.resultTextarea.value);
+      const original = els.btnCopyAgain.textContent;
+      els.btnCopyAgain.textContent = '✅ Đã copy!';
+      setTimeout(() => { els.btnCopyAgain.textContent = original; }, 1500);
+    });
+
+    els.btnStart.addEventListener('click', async () => {
+      const listText = els.textarea.value;
+      saveList(listText);
+
+      const empIds = parseEmployeeIds(listText);
+      if (empIds.length === 0) {
+        els.statusText.textContent = 'Chưa có mã NV nào trong danh sách.';
+        return;
+      }
+
+      let fromDateApi, toDateApi;
+      try {
+        fromDateApi = ddmmyyyyToApiFormat(els.dateFrom.value);
+        toDateApi = ddmmyyyyToApiFormat(els.dateTo.value);
+      } catch (e) {
+        els.statusText.textContent = e.message + ' — vui lòng nhập đúng dd/mm/yyyy.';
+        return;
+      }
+
+      const employees = empIds.map((id) => ({ employeeId: id, originalName: id, displayName: id }));
+      await runFromModal(els, employees, fromDateApi, toDateApi, {
+        rangeFrom: els.dateFrom.value, rangeTo: els.dateTo.value,
+      });
+    });
+
+    return els;
+  }
+
+  // Logic "chạy" dùng chung cho bấm tay (jobId=undefined) và tự động kích hoạt
+  // (jobId có giá trị — báo tiến độ/kết quả về GM storage cho Dashboard).
+  async function runFromModal(els, employees, fromDateApi, toDateApi, { jobId, rangeFrom, rangeTo } = {}) {
+    const stopFlag = { requested: false };
+    const errorLog = [];
+    const runStartedAt = Date.now();
+
+    els.setupSection.style.display = 'none';
+    els.footer.style.display = 'none';
+    els.statusText.textContent = '';
+    els.doneSection.style.display = 'none';
+    els.doneManualActions.style.display = 'none';
+    els.rawWrap.style.display = 'none';
+    els.toggleRawLink.textContent = 'Xem dữ liệu thô';
+    els.runningSection.style.display = 'block';
+
+    els.rangeText.textContent = `${rangeFrom || ''} → ${rangeTo || ''}`;
+    els.empCountToggle.textContent = `${employees.length} nhân viên`;
+    els.empReadonly.value = employees.map((e) => e.displayName || e.employeeId).join('\n');
+    els.empReadonlyWrap.style.display = 'none';
+    els.progressFill.style.width = '0%';
+    els.progressCounter.textContent = `0/${employees.length}`;
+    els.currentEmp.textContent = '';
+    els.feed.innerHTML = '';
+    els.errorArea.style.display = 'none';
+    els.errorBadge.textContent = '✗ 0 lỗi';
+    els.errorList.innerHTML = '';
+    els.errorList.style.display = 'none';
+    els.btnStop.disabled = false;
+    els.btnStop.textContent = 'Dừng lại';
+
+    const handleStopClick = () => {
+      stopFlag.requested = true;
+      els.btnStop.disabled = true;
+      els.btnStop.textContent = 'Đang dừng...';
+    };
+    els.btnStop.addEventListener('click', handleStopClick);
+
+    const { blocks, errors, results, stoppedEarly } = await runBatch(employees, fromDateApi, toDateApi, {
+      shouldStop: () => stopFlag.requested,
+      onStart: (i, total, empId, displayName) => {
+        els.progressCounter.textContent = `${i}/${total}`;
+        els.progressFill.style.width = `${Math.round((i / total) * 100)}%`;
+        els.currentEmp.textContent = `Đang lấy: ${displayName || empId}`;
+        if (jobId) reportJobProgress(jobId, i, total, empId);
+      },
+      onItemDone: (i, total, empId, displayName, outcome) => {
+        els.progressFill.style.width = `${Math.round(((i + 1) / total) * 100)}%`;
+        const who = displayName || empId;
+        if (outcome.status === 'ok') {
+          const label = (outcome.diemThucLanh === null || outcome.diemThucLanh === undefined)
+            ? 'Không có dữ liệu kỳ này'
+            : `Điểm thực lãnh: ${formatViNumber(outcome.diemThucLanh)}`;
+          const color = (outcome.diemThucLanh === null || outcome.diemThucLanh === undefined) ? '#94a3b8' : COLOR_SUCCESS;
+          pushFeedRow(els.feed, `<span style="color:${color};">✓ ${who} — ${label}</span>`);
+        } else {
+          // Lỗi KHÔNG vào feed trượt (chỉ có ${FEED_MAX_ROWS} chỗ, dễ bị đẩy mất) — dồn
+          // vào khu vực riêng luôn hiện số lượng + xem được đủ danh sách.
+          pushErrorRow(els, errorLog, who, outcome.error);
+        }
+      },
+    });
+
+    els.btnStop.removeEventListener('click', handleStopClick);
+    els.runningSection.style.display = 'none';
+
+    const output = blocks.join('\n\n');
+    els.resultTextarea.value = output;
+
+    // Chạy xong mà có lỗi -> tự mở khu vực lỗi ra luôn, không bắt bấm mới thấy.
+    if (errors.length > 0) {
+      els.errorList.style.display = 'block';
+    }
+
+    const total = employees.length;
+    const attempted = results.length;
+    const attemptedSuccess = attempted - errors.length;
+    const elapsedSec = Math.max(1, Math.round((Date.now() - runStartedAt) / 1000));
+
+    els.doneSection.style.display = 'block';
+
+    if (jobId) {
+      // TỰ ĐỘNG: màn hình gọn, không có dữ liệu thô (Dashboard đã có sẵn qua bridge) —
+      // tab sẽ tự đóng theo setTimeout ở checkForAutoJob bất kể có lỗi hay không.
+      els.doneManualActions.style.display = 'none';
+      if (stoppedEarly) {
+        els.doneHeadline.textContent = `⏹ Đã dừng: xong ${attempted}/${total} nhân viên${errors.length ? ` · ${errors.length} lỗi` : ''}`;
+      } else if (errors.length === 0) {
+        els.doneHeadline.textContent = `✅ Hoàn tất ${total}/${total} nhân viên · ${elapsedSec}s`;
+      } else {
+        els.doneHeadline.textContent = `⚠️ Xong ${attemptedSuccess}/${total} · ${errors.length} lỗi`;
+      }
+      els.doneSub.textContent = 'Đang quay về Dashboard...';
+    } else {
+      // CHẠY TAY: tự copy ngay khi vừa xong (best-effort — nút "Copy lại" bên dưới là
+      // lối thoát dự phòng nếu cú copy này bị chặn âm thầm), không hiện dữ liệu thô mặc định.
+      copyToClipboard(output);
+      els.doneManualActions.style.display = 'block';
+      if (stoppedEarly) {
+        els.doneHeadline.textContent = `⏹ Đã dừng: xong ${attempted}/${total} nhân viên${errors.length ? ` (${errors.length} lỗi)` : ''}.`;
+        els.doneSub.textContent = 'Dữ liệu đã lấy được vẫn được copy vào clipboard — qua Dashboard dán vào.';
+      } else if (errors.length === 0) {
+        els.doneHeadline.textContent = `✅ Đã lấy xong ${total} nhân viên.`;
+        els.doneSub.textContent = 'Dữ liệu đã được copy vào clipboard — qua Dashboard dán vào.';
+      } else {
+        els.doneHeadline.textContent = `⚠️ Xong ${attemptedSuccess}/${total} · ${errors.length} lỗi.`;
+        els.doneSub.textContent = 'Dữ liệu đã copy vào clipboard (gồm cả dòng lỗi) — qua Dashboard dán vào.';
+      }
+    }
+
+    els.footer.style.display = 'flex';
+    if (jobId) {
+      // Tự động: tab sẽ tự đóng ngay sau, không cần hiện lại khu nhập liệu / nút Bắt đầu.
+      els.btnStart.style.display = 'none';
+      els.btnCopyAgain.style.display = 'none';
+    } else {
+      els.setupSection.style.display = 'block';
+      els.btnStart.style.display = 'inline-block';
+      els.btnStart.disabled = false;
+      els.btnStart.textContent = 'Bắt đầu';
+      els.textarea.disabled = false;
+      els.dateFrom.disabled = false;
+      els.dateTo.disabled = false;
+      els.btnCopyAgain.style.display = 'inline-block';
+    }
+
+    if (jobId) {
+      await reportJobDone(jobId, results, stoppedEarly);
+    }
+
+    return { blocks, errors, results, stoppedEarly };
+  }
+
+  // ====== BÁO TIẾN ĐỘ / KẾT QUẢ VÀO GM STORAGE (chỉ có ý nghĩa khi có jobId) ======
+  // Trước mỗi lần ghi, tự đọc lại jobId hiện tại trong GM storage — nếu đã bị 1 job
+  // mới hơn ghi đè (bấm "Tự động" lần nữa) thì tự ngừng report, không phá dữ liệu job mới.
+  async function reportJobProgress(jobId, done, total, currentEmployeeId) {
+    try {
+      const meta = await gmGet(GM_KEY_META, null);
+      if (!meta || meta.jobId !== jobId) return;
+      await gmSet(GM_KEY_META, { ...meta, status: 'running', progress: { done, total, currentEmployeeId } });
+    } catch (e) {
+      // bỏ qua lỗi ghi GM storage khi report tiến độ — không phá luồng fetch chính
+    }
+  }
+
+  async function reportJobDone(jobId, results, stoppedEarly) {
+    try {
+      const meta = await gmGet(GM_KEY_META, null);
+      if (!meta || meta.jobId !== jobId) return;
+      await gmSet(GM_KEY_RESULT, { jobId, results, stoppedEarly: !!stoppedEarly });
+      await gmSet(GM_KEY_META, { ...meta, status: 'done' });
+    } catch (e) {
+      await reportJobError(jobId, 'Không ghi được kết quả vào bridge (có thể do dữ liệu quá lớn) — dùng nút Copy thủ công trong hộp thoại.');
+    }
+  }
+
+  async function reportJobError(jobId, message) {
+    try {
+      const meta = await gmGet(GM_KEY_META, null);
+      if (meta && meta.jobId === jobId) {
+        await gmSet(GM_KEY_META, { ...meta, status: 'error', errorMessage: message });
+      }
+    } catch (e) {
+      // hết cách — bridge lỗi, người dùng vẫn còn lối thoát Copy thủ công trong modal
+    }
+  }
+
+  // ====== TRANG MWG: tự dò job đang chờ từ Dashboard ======
+  let isRunningAutoJob = false;
+  let lastHandledAutoJobId = null;
+  let autoModalEls = null;
+
+  function initMwgPage() {
+    checkForAutoJob();
+
+    try {
+      GM_addValueChangeListener(GM_KEY_META, (_name, _oldValue, newValue) => {
+        if (newValue && newValue.status === 'requested' && newValue.jobId !== lastHandledAutoJobId && !isRunningAutoJob) {
+          checkForAutoJob();
+        }
+      });
+    } catch (e) {
+      console.warn('[YCX bridge] GM_addValueChangeListener không khả dụng trên trang MWG, dùng poll dự phòng', e);
+    }
+
+    // Poll dự phòng 1s/lần để phát hiện ngay khi Dashboard gửi job mới trong chuỗi chạy Năm/So sánh
+    setInterval(() => {
+      if (!isRunningAutoJob) {
+        checkForAutoJob();
+      }
+    }, 1000);
+  }
+
+  async function checkForAutoJob() {
+    if (isRunningAutoJob) return;
+    let meta;
+    try {
+      meta = await gmGet(GM_KEY_META, null);
+    } catch (e) {
+      return;
+    }
+    if (!meta || meta.status !== 'requested') return;
+    if (meta.jobId === lastHandledAutoJobId) return;
+    if (!meta.request || !Array.isArray(meta.request.employees) || meta.request.employees.length === 0) return;
+    if (Date.now() - (meta.createdAt || 0) > JOB_TTL_MS) return; // job cũ quá 15 phút, bỏ qua
+
+    isRunningAutoJob = true;
+    lastHandledAutoJobId = meta.jobId;
+
+    const { jobId, request } = meta;
+
+    let fromDateApi, toDateApi;
+    try {
+      fromDateApi = ddmmyyyyToApiFormat(request.fromDate);
+      toDateApi = ddmmyyyyToApiFormat(request.toDate);
+    } catch (e) {
+      await reportJobError(jobId, `Ngày nhận từ Dashboard không hợp lệ: ${e.message}`);
+      isRunningAutoJob = false;
+      return;
+    }
+
+    // Tái sử dụng modal giao diện nếu đang mở để tránh giật lag hoặc tạo DOM lặp lại
+    if (!autoModalEls || !document.getElementById('mwg-thuthap-overlay')) {
+      const existingOverlay = document.getElementById('mwg-thuthap-overlay');
+      if (existingOverlay) existingOverlay.remove();
+      autoModalEls = buildModal(true);
+    }
+
+    saveList(request.employees.map((e) => e.employeeId).join('\n'));
+
+    if (request.stepLabel || (request.stepIndex != null && request.stepTotal != null)) {
+      const stepIdx = (request.stepIndex || 0) + 1;
+      const stepTot = request.stepTotal || 1;
+      document.title = `⚡ [${stepIdx}/${stepTot}] ${request.stepLabel || ''} - MWG Thưởng`;
+    }
+
+    try {
+      await runFromModal(autoModalEls, request.employees, fromDateApi, toDateApi, {
+        jobId, rangeFrom: request.fromDate, rangeTo: request.toDate,
+      });
+    } finally {
+      isRunningAutoJob = false;
+    }
+
+    // Nếu đây là 1 bước trong chuỗi chạy nhiều bước (chạy Năm hoặc So sánh) và CHƯA PHẢI bước cuối cùng:
+    // GIỮ TAB MỞ để các tháng tiếp theo chạy mượt mà ngay trên tab này, không bị popup blocker chặn.
+    if (request.multiStep && !request.isLastStep) {
+      if (autoModalEls && autoModalEls.statusText) {
+        autoModalEls.statusText.textContent = `✅ Đã lấy xong kỳ ${request.fromDate} → ${request.toDate}.\n⚡ Đang chờ tháng tiếp theo từ Dashboard...`;
+      }
+      return;
+    }
+
+    // Nếu là bước cuối cùng của chuỗi hoặc job đơn:
+    if (autoModalEls && autoModalEls.statusText) {
+      autoModalEls.statusText.textContent = `🎉 ĐÃ HOÀN THÀNH TẤT CẢ CÁC THÁNG!\nTab sẽ tự động đóng sau 3 giây.`;
+    }
+
+    setTimeout(() => {
+      try { window.close(); } catch (e) { /* bỏ qua nếu trình duyệt không cho tự đóng */ }
+    }, 2500);
+  }
+
+  // ====== TRANG DASHBOARD: cầu nối CustomEvent (tầng A) <-> GM storage (tầng B) ======
+  function initDashboardPage() {
+    initYcxDashboardBridge();
+    try {
+      localStorage.setItem('ycx_userscript_installed_version', SCRIPT_VERSION);
+      localStorage.setItem('ycx_userscript_last_ping', String(Date.now()));
+    } catch (e) {}
+    let lastMetaSnapshot = null;
+    let lastResultSnapshot = null;
+
+    window.addEventListener(EVT_PING, (e) => {
+      const detail = e.detail;
+      if (!detail || detail.source !== BRIDGE_SOURCE || detail.type !== 'ping' || typeof detail.nonce !== 'string') return;
+      window.dispatchEvent(new CustomEvent(EVT_PONG, {
+        detail: { source: BRIDGE_SOURCE, type: 'pong', nonce: detail.nonce, version: SCRIPT_VERSION },
+      }));
+    });
+
+    window.addEventListener(EVT_START_JOB, (e) => {
+      const detail = e.detail;
+      if (!detail || detail.source !== BRIDGE_SOURCE || detail.type !== 'start-job') return;
+      if (typeof detail.jobId !== 'string' || !detail.request || !Array.isArray(detail.request.employees)) return;
+      gmSet(GM_KEY_META, {
+        jobId: detail.jobId,
+        createdAt: detail.createdAt || Date.now(),
+        status: 'requested',
+        request: detail.request,
+      }).catch((err) => console.warn('[YCX bridge] Không ghi được job vào GM storage', err));
+    });
+
+    function relayMeta(value) {
+      if (!value || !value.jobId) return;
+      if (value.status === 'running' && value.progress) {
+        window.dispatchEvent(new CustomEvent(EVT_PROGRESS, {
+          detail: {
+            source: BRIDGE_SOURCE, type: 'progress', jobId: value.jobId,
+            done: value.progress.done, total: value.progress.total,
+            currentEmployeeId: value.progress.currentEmployeeId,
+          },
+        }));
+      } else if (value.status === 'error') {
+        window.dispatchEvent(new CustomEvent(EVT_JOB_ERROR, {
+          detail: { source: BRIDGE_SOURCE, type: 'job-error', jobId: value.jobId, message: value.errorMessage || 'Lỗi không rõ từ userscript' },
+        }));
+      }
+      // status === 'done' được relay dựa vào key result (relayResult), vì đó mới là
+      // nơi chứa dữ liệu thật cần cho Dashboard.
+    }
+
+    function relayResult(value) {
+      if (!value || !value.jobId) return;
+      window.dispatchEvent(new CustomEvent(EVT_JOB_DONE, {
+        detail: {
+          source: BRIDGE_SOURCE, type: 'job-done', jobId: value.jobId,
+          results: value.results || [], stoppedEarly: !!value.stoppedEarly,
+        },
+      }));
+    }
+
+    try {
+      GM_addValueChangeListener(GM_KEY_META, (_name, _oldValue, newValue) => relayMeta(newValue));
+      GM_addValueChangeListener(GM_KEY_RESULT, (_name, _oldValue, newValue) => relayResult(newValue));
+    } catch (e) {
+      console.warn('[YCX bridge] GM_addValueChangeListener không khả dụng, chỉ dùng poll dự phòng', e);
+    }
+
+    // Poll dự phòng — đề phòng GM_addValueChangeListener lỡ không bắn (khác bản/trình duyệt).
+    setInterval(async () => {
+      try {
+        const meta = await gmGet(GM_KEY_META, null);
+        const metaStr = meta ? JSON.stringify(meta) : null;
+        if (metaStr && metaStr !== lastMetaSnapshot) {
+          lastMetaSnapshot = metaStr;
+          relayMeta(meta);
+        }
+        const result = await gmGet(GM_KEY_RESULT, null);
+        const resultStr = result ? JSON.stringify(result) : null;
+        if (resultStr && resultStr !== lastResultSnapshot) {
+          lastResultSnapshot = resultStr;
+          relayResult(result);
+        }
+      } catch (e) {
+        // bỏ qua lỗi đọc GM storage khi poll — sẽ thử lại ở lượt sau
+      }
+    }, 2500);
+
+    // Bản 7.5: Dashboard nhờ mở tab MWG khi KHÔNG có cú bấm (tự chạy tiếp sau khi tải lại để nạp bản mới) —
+    // window.open của trang bị chặn popup, GM_openInTab thì không. CHỈ mở trang báo cáo MWG.
+    window.addEventListener('ycx-bi-automation:open-worker', (e) => {
+      const url = e && e.detail && e.detail.url;
+      // 7.16: thêm báo cáo 77 (Tự động YCX hẹn giờ) và trang thưởng nhân viên (Đổ thưởng hẹn giờ)
+      const URL_CHO_PHEP = [
+        /^https:\/\/baocao\.dienmayxanh\.com\//,
+        /^https:\/\/report\.mwgroup\.vn\/home\/dashboard\/77\?/,
+        /^https:\/\/newinsite\.thegioididong\.com\/office\/thuong-nhan-vien/,
+      ];
+      if (typeof url !== 'string' || !URL_CHO_PHEP.some((re) => re.test(url))) return;
+      try {
+        GM_openInTab(url, { active: true, insert: true, setParent: true });
+        window.dispatchEvent(new CustomEvent('ycx-bi-automation:open-worker-ok', { detail: { url } }));
+      } catch (err) {
+        console.warn('[BI Bridge] GM_openInTab lỗi:', err);
+      }
+    });
+
+    // 7.16: Cầu gửi tin vào nhóm LINE (ảnh báo cáo). Chỉ đúng endpoint push, chỉ tin text/image (ảnh https).
+    window.addEventListener('ycx-line-push:send', (e) => {
+      const d = e && e.detail;
+      const traLoi = (ok, error, status) => window.dispatchEvent(new CustomEvent('ycx-line-push:result', {
+        detail: { source: 'ycx-line-push', requestId: d && d.requestId, ok, error: error || '', status: status || 0 },
+      }));
+      if (!d || d.source !== 'ycx-line-push' || typeof d.requestId !== 'string') return;
+      const token = typeof d.token === 'string' ? d.token.trim() : '';
+      const to = typeof d.to === 'string' ? d.to.trim() : '';
+      const msgs = Array.isArray(d.messages) ? d.messages : [];
+      const hopLe = msgs.length > 0 && msgs.length <= 5 && msgs.every((m) => m && (
+        (m.type === 'text' && typeof m.text === 'string' && m.text.length <= 5000)
+        || (m.type === 'image' && /^https:\/\//.test(m.originalContentUrl || '') && /^https:\/\//.test(m.previewImageUrl || ''))
+      ));
+      if (!token || !/^[CRU][0-9a-f]{32}$/.test(to) || !hopLe) { traLoi(false, 'Yêu cầu gửi LINE không hợp lệ'); return; }
+      try {
+        GM_xmlhttpRequest({
+          method: 'POST', url: 'https://api.line.me/v2/bot/message/push', timeout: 30000,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          data: JSON.stringify({ to, messages: msgs.map((m) => (m.type === 'text'
+            ? { type: 'text', text: m.text }
+            : { type: 'image', originalContentUrl: m.originalContentUrl, previewImageUrl: m.previewImageUrl })) }),
+          onload: (r) => {
+            if (r.status >= 200 && r.status < 300) { traLoi(true, '', r.status); return; }
+            let msg = `HTTP ${r.status}`;
+            try { const j = JSON.parse(r.responseText || '{}'); if (j && j.message) msg = `${j.message} (HTTP ${r.status})`; } catch (_) { /* giữ mã lỗi */ }
+            traLoi(false, msg, r.status);
+          },
+          onerror: () => traLoi(false, 'Lỗi mạng khi gọi LINE (Tampermonkey có thể đang hỏi quyền truy cập api.line.me)'),
+          ontimeout: () => traLoi(false, 'LINE không phản hồi sau 30 giây'),
+        });
+      } catch (err) {
+        traLoi(false, (err && err.message) || String(err));
+      }
+    });
+
+    // Cầu nối Tự động hoá BI (Realtime & Luỹ kế)
+    window.addEventListener(EVT_BI_START_JOB, (e) => {
+      const detail = e.detail;
+      if (!detail || !detail.jobId) return;
+      gmSet(GM_KEY_BI_JOB, {
+        jobId: detail.jobId,
+        mode: detail.mode,
+        month: detail.month || null,
+        status: 'pending',
+        createdAt: Date.now(),
+      }).catch((err) => console.warn('[BI Bridge] Lỗi ghi job GM:', err));
+    });
+
+    function relayBiProgress(value) {
+      if (!value || !value.jobId) return;
+      window.dispatchEvent(new CustomEvent(EVT_BI_PROGRESS, { detail: value }));
+      window.postMessage(value, '*');
+    }
+
+    function relayBiDone(value) {
+      if (!value || !value.jobId) return;
+      window.dispatchEvent(new CustomEvent(EVT_BI_DONE, { detail: value }));
+      window.postMessage(value, '*');
+    }
+
+    function relayBiError(value) {
+      if (!value || !value.jobId) return;
+      window.dispatchEvent(new CustomEvent(EVT_BI_ERROR, { detail: value }));
+      window.postMessage(value, '*');
+    }
+
+    try {
+      GM_addValueChangeListener(GM_KEY_BI_PROGRESS, (_n, _o, newVal) => relayBiProgress(newVal));
+      GM_addValueChangeListener(GM_KEY_BI_DONE, (_n, _o, newVal) => relayBiDone(newVal));
+      GM_addValueChangeListener(GM_KEY_BI_ERROR, (_n, _o, newVal) => relayBiError(newVal));
+    } catch (e) {
+      console.warn('[BI Bridge] GM_addValueChangeListener không khả dụng:', e);
+    }
+
+    let lastBiProgressStr = null;
+    let lastBiDoneStr = null;
+    let lastBiErrorStr = null;
+    // 7.12: chụp giá trị ĐANG CÓ trong bộ nhớ trước khi poll — chỉ phát cái MỚI phát sinh sau khi trang mở.
+    // Trước đây mốc ban đầu là null nên mở trang Dashboard là phát lại kết quả lượt CŨ (hôm qua…) → Dashboard lưu đè
+    // dữ liệu cũ + pháo giấy + toast "Tự động cập nhật thành công" mỗi lần mở trang (chủ dự án gặp 2026-10-01).
+    const chupMoc = async (key) => { try { const v = await gmGet(key, null); return v ? JSON.stringify(v) : null; } catch (_) { return null; } };
+    const mocBanDau = Promise.all([chupMoc(GM_KEY_BI_PROGRESS), chupMoc(GM_KEY_BI_DONE), chupMoc(GM_KEY_BI_ERROR)])
+      .then(([p, d, e]) => { lastBiProgressStr = p; lastBiDoneStr = d; lastBiErrorStr = e; });
+    setInterval(async () => {
+      await mocBanDau;
+      try {
+        const prog = await gmGet(GM_KEY_BI_PROGRESS, null);
+        const progStr = prog ? JSON.stringify(prog) : null;
+        if (progStr && progStr !== lastBiProgressStr) {
+          lastBiProgressStr = progStr;
+          relayBiProgress(prog);
+        }
+
+        const done = await gmGet(GM_KEY_BI_DONE, null);
+        const doneStr = done ? JSON.stringify(done) : null;
+        if (doneStr && doneStr !== lastBiDoneStr) {
+          lastBiDoneStr = doneStr;
+          relayBiDone(done);
+        }
+
+        const err = await gmGet(GM_KEY_BI_ERROR, null);
+        const errStr = err ? JSON.stringify(err) : null;
+        if (errStr && errStr !== lastBiErrorStr) {
+          lastBiErrorStr = errStr;
+          relayBiError(err);
+        }
+      } catch (e) {}
+    }, 500);
+  }
+
+  // ====== TRANG BI (baocao.dienmayxanh.com & bi.thegioididong.com): CLICK+ — MỞ RỘNG CÂY DỮ LIỆU THEO CẤP + TỰ ĐỘNG COPY ======
+  // `#Loading` / `.overload-wait` là vòng xoay THẬT của trang (xác nhận qua DevTools của
+  // người dùng: `<div id="Loading" class="overload-wait">`, overlay cố định toàn màn hình
+  // do AngularJS `$http` interceptor bật/tắt khi có request đang chạy) — luôn ưu tiên 2
+  // selector này. Các lớp DevExpress/spinner còn lại là suy đoán dự phòng cho báo cáo
+  // khác; không khớp được cũng không sao, script chỉ đơn giản là không chờ spinner đó.
+  const BI_HOSTNAMES = ['baocao.dienmayxanh.com', 'bi.thegioididong.com'];
+  // Click theo LÔ NHỎ (không còn từng-nút-một của bản 3.2 — quá chậm trên báo cáo nhiều
+  // nút). Giờ đã sửa xong bug offsetParent (bản 3.2) nên việc chờ vòng xoay thật đã
+  // hoạt động đúng — click lô nhỏ (4 nút) + luôn chờ đúng vòng xoay #Loading thật giữa
+  // các lô vẫn an toàn (không dồn dập như bản 3.1: lô 6 nút NHƯNG chờ-spinner khi đó
+  // hoàn toàn vô tác dụng do bug offsetParent, nên thực chất không hề chờ gì cả).
+  // BẢN 3.5 — TĂNG TỐC ĐỘ MỞ (user báo cáo thật: 196 nút còn lại mở rất chậm):
+  // Cơ chế CHỐNG QUÁ TẢI thật sự là acpWaitForSpinnersToClear() (chờ đúng vòng xoay #Loading
+  // thật của trang biến mất trước khi click lô kế tiếp) — KHÔNG phải các độ trễ cố định dưới đây.
+  // Giữ nguyên spinner-wait (ACP_SPINNER_MAX_WAIT_MS/POLL_MS) y hệt bản 3.3, chỉ giảm các khoảng
+  // nghỉ TUỲ Ý (intra-batch delay, settle, pacing) và tăng batch size — vẫn an toàn vì mỗi lô vẫn
+  // phải đợi trang thật sự xử lý xong (không dồn request) trước khi sang lô kế tiếp.
+  const ACP_BATCH_SIZE = 25; // số nút click liên tiếp trong 1 lô trước khi chờ vòng xoay
+  const ACP_INTRA_BATCH_CLICK_DELAY = 2; // ms nghỉ giữa từng cú click trong cùng 1 lô
+  const ACP_CLICK_SETTLE_MS = 15; // chờ 1 chút sau khi click xong cả lô để vòng xoay (nếu có) kịp xuất hiện trước khi bắt đầu kiểm tra
+  const ACP_SPINNER_MAX_WAIT_MS = 5000; // chờ tối đa vòng xoay biến mất cho MỖI LÔ — tránh treo vĩnh viễn nếu trang không phản hồi
+  const ACP_SPINNER_POLL_MS = 25;
+  const ACP_BATCH_PACING_DELAY = 10; // nghỉ thêm sau khi vòng xoay đã tắt, trước khi click lô kế tiếp
+  const ACP_FA_PLUS_SELECTOR = '.fa-plus, .fa-plus-square, .fa-plus-circle, [class*="fa-plus"], [class*="plus-circle"]';
+  const ACP_DX_CLOSED_SELECTOR = '.dx-datagrid-group-closed, td.dx-command-expand.dx-datagrid-group-closed, tr.dx-group-row:not(.dx-datagrid-group-opened) .dx-command-expand';
+  const ACP_ANT_CLOSED_SELECTOR = [
+    'button.ant-table-row-expand-icon-collapsed',
+    '.ant-table-row-expand-icon-collapsed',
+    'button.ant-table-row-expand-icon[aria-expanded="false"]',
+    'button[aria-label="Mở rộng dòng"][aria-expanded="false"]',
+    '[aria-label="Mở rộng dòng"]:not([aria-expanded="true"])',
+    '[aria-label*="Mở rộng" i]:not([aria-expanded="true"])',
+    '[aria-label*="expand" i]:not([aria-expanded="true"])',
+  ].join(', ');
+  const ACP_SPINNER_SELECTOR = [
+    '#Loading',
+    '.overload-wait',
+    '.dx-loadpanel:not(.dx-state-invisible)',
+    '.dx-loadpanel-content:not(.dx-state-invisible)',
+    '.dx-loadindicator',
+    '.ant-spin-spinning',
+    '.animate-spin',
+    'svg.animate-spin',
+    '[class*="animate-spin"]',
+    'svg.lucide-loader',
+    'svg.lucide-loader-2',
+    'svg.lucide-spinner',
+    '[aria-busy="true"]:not([role="progressbar"])',
+    '.el-loading-mask:not([style*="display: none"])',
+  ].join(', ');
+
+  // Cờ chống bấm chồng của nút ⚡ Copy All. BẢN 7.27: khai báo này lỡ bị xoá ở bản 7.24 (khi viết lại acpIsVisible ngay dưới)
+  // → 'use strict' ném ReferenceError mỗi lần bấm và mỗi nhịp đếm 1 giây của initBiPage — nút nổi đứng im ở mọi trang BI.
+  let acpRunning = false;
+
+  function acpIsVisible(el) {
+    if (!el) return false;
+    // 1. Kiểm tra checkVisibility chuẩn modern browser (Chrome 105+)
+    if (typeof el.checkVisibility === 'function') {
+      try {
+        if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
+      } catch (_) {}
+    }
+    // 2. Kiểm tra computedStyle của phần tử
+    try {
+      const style = window.getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false;
+      if (parseFloat(style.opacity || '1') <= 0.05) return false;
+    } catch (_) {}
+
+    if (el.getAttribute('aria-hidden') === 'true' || el.hasAttribute('hidden')) return false;
+    if (el.classList && (el.classList.contains('hidden') || el.classList.contains('invisible') || el.classList.contains('ant-table-row-expand-icon-spaced'))) return false;
+
+    // 3. Kiểm tra hàng cha (tr / role="row") chứa nó: nếu hàng ẩn thì không click
+    const row = el.closest('tr, [role="row"], .dx-row, .ant-table-row');
+    if (row) {
+      if (row.hasAttribute('hidden') || (row.classList && (row.classList.contains('hidden') || row.classList.contains('invisible')))) return false;
+      try {
+        const rowStyle = window.getComputedStyle(row);
+        if (rowStyle.display === 'none' || rowStyle.visibility === 'hidden' || rowStyle.visibility === 'collapse') return false;
+        if (parseFloat(rowStyle.opacity || '1') <= 0.05) return false;
+      } catch (_) {}
+    }
+
+    // 4. Kiểm tra offsetParent và kích thước thực tế
+    try {
+      const style = window.getComputedStyle(el);
+      if (el.offsetParent === null && style.position !== 'fixed') return false;
+    } catch (_) {}
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  // Kiểm tra hiển thị dành riêng cho spinner — kiểm tra kích thước thật > 0 và opacity > 0.05
+  // Tránh bắt nhầm các container tĩnh như .ant-spin-nested-loading hoặc icon ẩn.
+  function acpIsSpinnerVisible(el) {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    if (parseFloat(style.opacity || '1') <= 0.05) return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    return el.offsetParent !== null || style.position === 'fixed';
+  }
+
+  // Kiểm tra toàn diện xem có bất kỳ loading indicator nào đang active không
+  // Bao gồm nút "Đang tải...", spinner xoay tròn animate-spin, skeleton, loadpanel
+  function acpIsAnyLoadingActive() {
+    // 1. Kiểm tra text "Đang tải" ở button / badge / thẻ con (loại trừ overlay của chính mình)
+    const candidates = document.querySelectorAll('button, a, [role="button"], span, div');
+    for (const el of candidates) {
+      if (el.closest && (el.closest('#acp-status-box') || el.closest('#acp-float-btn') || el.closest('#__copy_wait_toast__') || el.closest('#acp-bi-sync-overlay'))) {
+        continue;
+      }
+      if (el.children.length <= 4 && acpIsSpinnerVisible(el)) {
+        const txt = (el.textContent || '').trim();
+        if (txt.includes('Đang tải') || txt === 'Loading...' || txt === 'Loading') {
+          return true;
+        }
+      }
+    }
+
+    // 2. Kiểm tra các selector spinner phổ biến (loại trừ overlay và các progress bar tĩnh như quỹ thời gian)
+    const spinners = document.querySelectorAll(ACP_SPINNER_SELECTOR);
+    for (const s of spinners) {
+      if (s.closest && (s.closest('#acp-status-box') || s.closest('#acp-float-btn') || s.closest('#__copy_wait_toast__') || s.closest('#acp-bi-sync-overlay') || s.closest('.timeline') || s.closest('[class*="progress"]'))) {
+        continue;
+      }
+      if (acpIsSpinnerVisible(s)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Chờ bảng dữ liệu render hoàn tất, có ít nhất minRows dòng và không còn spinner nào
+  async function acpWaitForTableReady(maxWaitMs = 25000, minRows = 1) {
+    const start = Date.now();
+    await sleep(250);
+    while (Date.now() - start < maxWaitMs) {
+      if (acpIsAnyLoadingActive()) {
+        await sleep(200);
+        continue;
+      }
+      const tables = document.querySelectorAll('table, .dx-datagrid, .ant-table');
+      if (tables.length > 0) {
+        const rows = document.querySelectorAll('table tbody tr, .dx-datagrid-rowsview .dx-data-row, .ant-table-tbody > tr');
+        let validRows = 0;
+        for (const r of rows) {
+          const txt = (r.textContent || '').trim();
+          if (txt && !txt.includes('Không có dữ liệu') && !txt.includes('No data') && !txt.includes('Đang tải')) {
+            validRows++;
+          }
+        }
+        if (validRows >= minRows) {
+          await sleep(200);
+          return true;
+        }
+      }
+      await sleep(200);
+    }
+    return false;
+  }
+
+  // BẢN 5.3: Chờ mọi thao tác loading tắt hẳn trước khi tiếp tục
+  // Cần ít nhất 3 nhịp polling liên tiếp không còn loading để đảm bảo không bị nháy giữa các request nối tiếp
+  async function acpWaitForLoadingComplete(maxWaitMs = 45000, initialSettleMs = 500, postSettleMs = 400) {
+    if (initialSettleMs > 0) {
+      await sleep(initialSettleMs);
+    }
+    const start = Date.now();
+    let cleanConsecutive = 0;
+
+    while (Date.now() - start < maxWaitMs) {
+      if (acpIsAnyLoadingActive()) {
+        cleanConsecutive = 0;
+      } else {
+        cleanConsecutive++;
+        if (cleanConsecutive >= 3) {
+          break;
+        }
+      }
+      await sleep(150);
+    }
+
+    if (postSettleMs > 0) {
+      await sleep(postSettleMs);
+    }
+  }
+
+  // Kiểm tra nhiều cờ trạng thái khác nhau (aria-expanded, data-state, icon fa-minus,
+  // lớp DevExpress / Ant Design đã mở) — tránh click lại 1 dòng đã mở dù icon chưa kịp đổi do tải
+  // bất đồng bộ (bug đã gặp thật ở bản 1.6, khiến dòng vừa mở bị tự đóng lại).
+  function acpIsAlreadyOpened(el) {
+    if (el.classList && el.classList.contains('dx-datagrid-group-opened')) return true;
+    if (el.classList && el.classList.contains('ant-table-row-expand-icon-expanded')) return true;
+    if (el.getAttribute('aria-expanded') === 'true') return true;
+    const row = el.closest('tr, .dx-row, .ant-table-row, button, a, [role="button"], .cursor-pointer, td, div');
+    if (!row) return false;
+    if (row.getAttribute('aria-expanded') === 'true') return true;
+    if (row.getAttribute('data-state') === 'open') return true;
+    if (row.querySelector('.fa-minus')) return true;
+    if (row.querySelector('.ant-table-row-expand-icon-expanded')) return true;
+    if (row.querySelector('button[aria-expanded="true"]')) return true;
+    if (row.classList && row.classList.contains('dx-datagrid-group-opened')) return true;
+    return false;
+  }
+
+  function acpGetPlusCandidates() {
+    // BUG FIX: '.fa-plus' quá rộng — khớp luôn nút "+" của các dropdown/bộ lọc khác trên
+    // trang (vùng, siêu thị, kỳ báo cáo, chỉ tiêu Doanh thu theo...) không liên quan gì
+    // tới việc mở rộng dòng dữ liệu lồng nhau trong bảng. Click+ vô tình bấm luôn các
+    // dropdown đó, làm nội dung/menu của chúng lẫn vào văn bản copy cuối cùng — user báo
+    // cáo thật: bấm Click+ ra nhiều dòng thừa (danh sách tháng, danh sách vùng...) mà copy
+    // tay bình thường không có. Nút mở-rộng-dòng THẬT luôn nằm trong 1 <table> — giới hạn
+    // lại đúng phạm vi đó để không đụng tới các control khác ngoài bảng.
+    const faIcons = Array.from(document.querySelectorAll(ACP_FA_PLUS_SELECTOR)).filter((el) => el.closest('table'));
+    const dxClosed = Array.from(document.querySelectorAll(ACP_DX_CLOSED_SELECTOR));
+    const antClosed = Array.from(document.querySelectorAll(ACP_ANT_CLOSED_SELECTOR));
+    return Array.from(new Set([...faIcons, ...dxClosed, ...antClosed]))
+      .filter(acpIsVisible)
+      .filter((el) => !(el.classList && el.classList.contains('fa-minus')))
+      .filter((el) => !(el.classList && el.classList.contains('ant-table-row-expand-icon-expanded')))
+      .filter((el) => !(el.classList && el.classList.contains('ant-table-row-expand-icon-spaced')))
+      .filter((el) => el.getAttribute('aria-expanded') !== 'true')
+      .filter((el) => el.getAttribute('aria-hidden') !== 'true')
+      .filter((el) => el.dataset.acpDone !== '1')
+      .filter((el) => !acpIsAlreadyOpened(el));
+  }
+
+  // Chờ mọi spinner tải dữ liệu biến mất — bản 5.3 sử dụng acpWaitForLoadingComplete
+  async function acpWaitForSpinnersToClear(maxWaitMs = 15000, pollMs = 100, settleMs = ACP_CLICK_SETTLE_MS) {
+    await acpWaitForLoadingComplete(maxWaitMs, settleMs, 100);
+  }
+
+  // Cuộn từ đầu xuống cuối trang rồi quay lại đầu, để các dòng bị ảo hoá (virtual
+  // scroll / lazy render) kịp được vẽ ra DOM trước khi copy.
+  async function acpForceRenderAllRows() {
+    const scroller = document.scrollingElement || document.documentElement;
+    const tableScroller = document.querySelector('.ant-table-body, .dx-datagrid-rowsview, [class*="table-body"]');
+
+    if (tableScroller && tableScroller.scrollHeight > tableScroller.clientHeight) {
+      tableScroller.scrollTop = tableScroller.scrollHeight;
+      await sleep(40);
+      tableScroller.scrollTop = 0;
+    }
+
+    const step = Math.max((window.innerHeight || 800) * 1.5, 600);
+    let pos = 0;
+    let guard = 0;
+    while (pos < scroller.scrollHeight && guard < 35) {
+      window.scrollTo(0, pos);
+      await sleep(25);
+      pos += step;
+      guard++;
+    }
+    window.scrollTo(0, scroller.scrollHeight);
+    await sleep(40);
+    window.scrollTo(0, 0);
+    await sleep(40);
+  }
+
+  // Thanh lọc triệt để văn bản trước khi đưa vào Clipboard — loại bỏ sạch sẽ mọi text trạng thái / nút bấm của script
+  function acpSanitizeText(rawText) {
+    if (!rawText) return '';
+    const junkPatterns = [
+      /^⚡\s*Click\+/i,
+      /^⚡\s*Đang/i,
+      /^Đã mở:/i,
+      /^Còn lại:/i,
+      /^⏹\s*Dừng lại/i,
+      /^⏳\s*Đang/i,
+      /^📋\s*Copy/i,
+      /^✅\s*Đã mở/i,
+      /^⚠️\s*Không có dữ liệu/i,
+      /^❌\s*(Thất bại|Lỗi)/i,
+      /^🔘\s*Đã tự bật/i,
+      /^⚠️\s*Không bật được/i,
+    ];
+    return rawText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((line) => {
+        if (!line || line === 'undefined') return false;
+        return !junkPatterns.some((pattern) => pattern.test(line));
+      })
+      .join('\n');
+  }
+
+  // Ghi lại nội dung mọi phần tử mới thêm vào DOM ngay khi nó xuất hiện (đề phòng bị
+  // tự thu gọn/gỡ khỏi DOM trước lúc copy).
+  function acpStartObserver() {
+    const capturedNodes = new WeakSet();
+    const recoveryBlocks = [];
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (let j = 0; j < m.addedNodes.length; j++) {
+          const node = m.addedNodes[j];
+          if (node.nodeType !== 1) continue;
+          if (capturedNodes.has(node)) continue;
+          capturedNodes.add(node);
+          // Bỏ qua các phần tử UI của script để không dính text trạng thái vào bản copy
+          const isOurUi = node.id === 'acp-status-box' ||
+            node.id === 'acp-float-btn' ||
+            node.id === '__copy_wait_toast__' ||
+            (node.closest && (node.closest('#acp-status-box') || node.closest('#acp-float-btn') || node.closest('#__copy_wait_toast__')));
+          if (isOurUi) continue;
+
+          // BUG FIX: Tuyệt đối KHÔNG dùng node.innerText ở đây vì sẽ ép trình duyệt tính reflow
+          // layout liên tục (Layout Thrashing), làm đơ UI / treo trình duyệt khi mở nhiều dòng.
+          // Dùng textContent để lấy nội dung cực nhanh và mượt.
+          const text = (node.textContent || '').trim();
+          if (text && text.length > 5) {
+            // Không bao giờ bắt các câu chữ trạng thái của chính script
+            if (/^(⚡|⏳|⏹|✅|📋|Đã mở:|Còn lại:)/.test(text)) continue;
+            recoveryBlocks.push({ node, text });
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return {
+      disconnect: () => observer.disconnect(),
+      buildRecoveryText: () => {
+        if (recoveryBlocks.length === 0 || recoveryBlocks.length > 3000) return '';
+        return recoveryBlocks
+          .filter((b) => !document.body.contains(b.node))
+          .map((b) => b.text)
+          .filter((t) => !/^(⚡|⏳|⏹|✅|📋|Đã mở:|Còn lại:)/.test(t))
+          .join('\n');
+      },
+    };
+  }
+
+  // Đọc text hiển thị của trang, loại vùng nhân bản cột cố định DevExpress
+  // (.dx-datagrid-content-fixed, .dx-hidden) + hộp trạng thái của chính script, và bỏ
+  // dòng rác "undefined".
+  // BUG FIX: Bôi đen toàn bộ document.body qua Range rồi lấy Selection.toString() giống hệt
+  // bookmarklet CopyAll — đảm bảo lấy trọn vẹn 100% tất cả các bảng/chương trình thi đua
+  // (tránh lỗi chỉ querySelector trúng 1 bảng đầu tiên).
+  function acpExtractVisibleText() {
+    const excluded = Array.from(document.querySelectorAll('.dx-datagrid-content-fixed, .dx-hidden, #acp-status-box, #acp-float-btn, #__copy_wait_toast__'));
+    const prevDisplay = excluded.map((el) => el.style.display);
+    excluded.forEach((el) => { el.style.display = 'none'; });
+
+    let text = '';
+    try {
+      // Bôi đen toàn bộ document.body qua Range rồi lấy Selection.toString() giống hệt bookmarklet CopyAll
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(document.body);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      text = selection.toString();
+      selection.removeAllRanges();
+    } catch (e) {
+      console.warn('[Click+] Selection API thất bại, dùng lại innerText:', e);
+      text = document.body.innerText || document.body.textContent || '';
+    }
+
+    excluded.forEach((el, i) => { el.style.display = prevDisplay[i]; });
+
+    return acpSanitizeText(text);
+  }
+
+  // ====== BẢN 4.4 — TỰ BẬT "TRẢ GÓP" + "DT QUY ĐỔI" TRƯỚC KHI MỞ CẤP ======
+  // Trang BI mới (baocao.dienmayxanh.com) có 2 nút quyết định cột nào có trong bảng: ô check
+  // "Trả góp" và nút "DT quy đổi" (cặp segment "DT thực | DT quy đổi"). Dashboard cần đủ
+  // cả 2 → Click+ tự bật nếu đang tắt, rồi mới quét dấu cộng. Nhận diện theo NHÃN nút (không
+  // theo class Tailwind — đổi thường xuyên). Trạng thái TẮT theo đúng HTML thật user gửi:
+  //   Trả góp   : <button class="… border-slate-200 bg-white …"><span class="… border-slate-300"></span>Trả góp</button>
+  //               → span đầu RỖNG (bật thì có dấu ✓) + viền xám border-slate-200.
+  //   DT quy đổi: <button class="… bg-white text-gray-600 …">DT quy đổi</button> → nền trắng.
+  // Nguyên tắc: chỉ click khi CHẮC CHẮN đang tắt (khớp đủ mọi dấu hiệu). Nghi ngờ thì bỏ qua —
+  // click nhầm 1 nút đang bật sẽ TẮT nó đi, tệ hơn là không tự bật.
+  const ACP_TOGGLE_CONFIRM_MAX_MS = 1500; // chờ tối đa để nút đổi trạng thái sau khi click
+  const ACP_TOGGLE_SETTLE_MS = 120; // React cần 1 nhịp render + có thể gọi lại API sau khi đổi toggle
+
+  // Nhãn = các text node trực tiếp của <button> (bỏ qua span icon ✓ / svg), gộp khoảng trắng.
+  function acpButtonLabel(btn) {
+    const direct = Array.from(btn.childNodes)
+      .filter((n) => n.nodeType === 3)
+      .map((n) => n.textContent)
+      .join('');
+    return (direct.trim() || (btn.textContent || '').trim()).replace(/\s+/g, ' ');
+  }
+
+  // BẢN 4.5: trang BI đổi giao diện liên tục — nút có thể là <button>, <label> bọc checkbox, hay
+  // <div role="button">; nhãn có thể là "Trả góp" hoặc "Trả chậm". Trước đây chỉ tìm đúng
+  // <button> + nhãn khớp TUYỆT ĐỐI nên hễ trang đổi là im lặng bỏ qua, người dùng không biết vì
+  // sao không tự bật (chủ dự án báo 2026-09-22).
+  const ACP_TOGGLE_SELECTOR = 'button, [role="button"], label, a[role="button"], div[class*="cursor-pointer"], span[class*="cursor-pointer"]';
+
+  function acpFindToggleButton(labelOrAliases) {
+    const aliases = (Array.isArray(labelOrAliases) ? labelOrAliases : [labelOrAliases])
+      .map((x) => String(x).toLowerCase().replace(/\s+/g, ' ').trim());
+    const nodes = Array.from(document.querySelectorAll(ACP_TOGGLE_SELECTOR)).filter((el) => {
+      if (el.id === 'acp-float-btn' || el.closest('#acp-status-box')) return false;
+      return acpIsVisible(el);
+    });
+    const labelOf = (el) => acpButtonLabel(el).toLowerCase().replace(/\s+/g, ' ').trim();
+    // Ưu tiên khớp tuyệt đối; chỉ khi không có mới chấp nhận nhãn CHỨA alias và không quá dài
+    // (tránh trúng cả thanh công cụ bọc ngoài).
+    return nodes.find((el) => aliases.includes(labelOf(el)))
+      || nodes.find((el) => {
+        const t = labelOf(el);
+        return aliases.some((a) => t.includes(a)) && t.length <= 32;
+      })
+      || null;
+  }
+
+  function acpHasAriaOn(btn) {
+    return btn.getAttribute('aria-pressed') === 'true'
+      || btn.getAttribute('aria-checked') === 'true'
+      || btn.getAttribute('aria-selected') === 'true'
+      || btn.getAttribute('data-state') === 'on'
+      || btn.getAttribute('data-state') === 'checked';
+  }
+
+  /**
+   * Trạng thái nút: 'on' | 'off' | 'unknown'. Đọc theo nhiều dấu hiệu, từ chắc chắn đến suy đoán:
+   * checkbox thật → aria/data-state → dấu ✓ trong ô vuông → màu nền (active thường là nền xanh
+   * đặc + chữ trắng; tắt là nền trắng/trong suốt). KHÔNG đoán bừa: 'unknown' thì tuyệt đối không
+   * click, vì click nhầm nút đang bật sẽ TẮT nó đi — tệ hơn là không tự bật.
+   */
+  function acpToggleState(el) {
+    const input = el.querySelector('input[type="checkbox"], input[type="radio"]')
+      || (el.tagName === 'INPUT' ? el : null);
+    if (input) return input.checked ? 'on' : 'off';
+
+    if (acpHasAriaOn(el)) return 'on';
+    const ariaAttrs = ['aria-pressed', 'aria-checked', 'aria-selected'];
+    if (ariaAttrs.some((a) => el.getAttribute(a) === 'false')) return 'off';
+    if (el.getAttribute('data-state') === 'off' || el.getAttribute('data-state') === 'unchecked') return 'off';
+
+    const cls = el.className && el.className.baseVal !== undefined ? el.className.baseVal : String(el.className || '');
+    const mark = el.querySelector(':scope > span');
+    if (mark && /rounded|border/.test(String(mark.className || ''))) {
+      const ticked = mark.textContent.trim() !== '' || !!mark.querySelector('svg, i, img');
+      if (ticked) return 'on';
+      if (/border-slate-200|border-gray-200|border-neutral-200|bg-white/.test(cls)) return 'off';
+    }
+
+    const ACTIVE = /(bg-(blue|sky|primary|indigo|emerald|green)-[45678]00)|text-white|bg-blue-50|text-blue-700/;
+    const INACTIVE = /bg-white|bg-transparent|bg-gray-50|bg-slate-50/;
+    if (ACTIVE.test(cls)) return 'on';
+    if (INACTIVE.test(cls)) return 'off';
+    return 'unknown';
+  }
+
+  const ACP_AUTO_TOGGLES = [
+    { label: 'Trả góp', aliases: ['trả góp', 'tra gop', 'trả chậm', 'tra cham'] },
+    { label: 'DT quy đổi', aliases: ['dt quy đổi', 'dt quy doi', 'doanh thu quy đổi', 'dtqđ', 'dt qđ'] },
+    { label: 'Chi tiết doanh thu', aliases: ['chi tiết doanh thu', 'chi tiet doanh thu', 'chi tiết dt', 'chi tiet dt'], optional: true },
+  ];
+
+  /**
+   * Trả về { turnedOn, failed, notFound, unknown } — báo ĐỦ để người dùng biết vì sao không tự
+   * bật được (trước đây không thấy nút thì im lặng, nhìn như tính năng hỏng).
+   */
+  async function acpEnsureTogglesOn(onProgress) {
+    const turnedOn = [];
+    const failed = [];
+    const notFound = [];
+    const unknown = [];
+    for (const toggle of ACP_AUTO_TOGGLES) {
+      const aliases = toggle.aliases || [toggle.label];
+      const btn = acpFindToggleButton(aliases);
+      if (!btn) {
+        if (!toggle.optional) {
+          notFound.push(toggle.label);
+        }
+        continue;
+      }
+      const state = acpToggleState(btn);
+      if (state === 'on') continue;
+      if (state === 'unknown') {
+        if (!toggle.optional) {
+          unknown.push(toggle.label);
+        }
+        continue;
+      }
+      if (onProgress) onProgress(toggle.label);
+      btn.click();
+      await acpWaitForSpinnersToClear(ACP_SPINNER_MAX_WAIT_MS, ACP_SPINNER_POLL_MS, ACP_TOGGLE_SETTLE_MS);
+      // Xác nhận nút đã đổi trạng thái thật (tìm lại theo nhãn vì React có thể tạo phần tử mới).
+      const start = Date.now();
+      let confirmed = false;
+      while (Date.now() - start < ACP_TOGGLE_CONFIRM_MAX_MS) {
+        const fresh = acpFindToggleButton(aliases);
+        if (!fresh || acpToggleState(fresh) !== 'off') { confirmed = true; break; }
+        await sleep(50);
+      }
+      (confirmed ? turnedOn : failed).push(toggle.label);
+      if (!confirmed) console.warn('[Click+] Đã click nhưng nút vẫn ở trạng thái tắt:', toggle.label);
+    }
+    return { turnedOn, failed, notFound, unknown };
+  }
+
+  function acpUpdateStatusToggling(box, label) {
+    box.style.display = 'block';
+    box.style.background = `linear-gradient(135deg, ${COLOR_PRIMARY_LIGHT}, ${COLOR_PRIMARY})`;
+    box.innerHTML = `
+      <div style="font-weight:800;margin-bottom:4px;">⚡ Đang bật "${label}"...</div>
+      <div>Bật xong sẽ tự quét dấu cộng và copy.</div>
+    `;
+  }
+
+  function acpEnsureStatusBox() {
+    let box = document.getElementById('acp-status-box');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'acp-status-box';
+    Object.assign(box.style, {
+      position: 'fixed', right: '24px', bottom: '84px', zIndex: 999997,
+      minWidth: '260px', padding: '12px 16px', borderRadius: '14px',
+      color: '#fff', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
+      fontSize: '13px', boxShadow: '0 10px 30px rgba(2,132,199,.35)', display: 'none',
+    });
+    document.body.appendChild(box);
+    return box;
+  }
+
+  // onStopClick: callback bấm "Dừng lại" giữa chừng — vì giờ click TUẦN TỰ TỪNG NÚT MỘT
+  // (không còn theo lô) nên báo cáo nhiều nút sẽ chạy chậm hơn hẳn, cần cho người dùng
+  // chủ động dừng mà vẫn giữ + copy được phần dữ liệu đã mở tới lúc đó.
+  function acpUpdateStatus(box, clicked, remaining, onStopClick) {
+    box.style.display = 'block';
+    box.style.background = `linear-gradient(135deg, ${COLOR_PRIMARY_LIGHT}, ${COLOR_PRIMARY})`;
+    box.innerHTML = `
+      <div style="font-weight:800;margin-bottom:4px;">⚡ Đang mở cấp hiện tại...</div>
+      <div>Đã mở: ${clicked} · Còn lại: ${remaining}</div>
+      <a id="acp-stop-link" href="#" style="color:#fff;text-decoration:underline;font-size:12px;display:inline-block;margin-top:4px;">⏹ Dừng lại</a>
+    `;
+    const stopLink = box.querySelector('#acp-stop-link');
+    if (stopLink && onStopClick) {
+      stopLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        stopLink.textContent = 'Đang dừng...';
+        onStopClick();
+      });
+    }
+  }
+
+  function acpUpdateStatusProcessing(box, clicked) {
+    box.style.display = 'block';
+    box.style.background = `linear-gradient(135deg, ${COLOR_PRIMARY_LIGHT}, ${COLOR_PRIMARY})`;
+    box.innerHTML = `
+      <div style="font-weight:800;margin-bottom:4px;">⚡ Đang sao chép dữ liệu...</div>
+      <div>Đã mở xong ${clicked} mục. Đang trích xuất văn bản vào clipboard...</div>
+    `;
+  }
+
+  function acpShowDone(box, clicked, stillPending, copiedLength, lastText, stoppedEarly, toggles) {
+    box.style.display = 'block';
+    box.style.background = `linear-gradient(135deg, ${COLOR_SUCCESS}, #16a34a)`;
+    const turnedOn = (toggles && toggles.turnedOn) || [];
+    const failed = (toggles && toggles.failed) || [];
+    const notFound = (toggles && toggles.notFound) || [];
+    const unknownState = (toggles && toggles.unknown) || [];
+    const toggleNote = (turnedOn.length ? `<div style="margin-top:4px;">🔘 Đã tự bật: ${turnedOn.join(', ')}</div>` : '')
+      + (failed.length ? `<div style="margin-top:4px;">⚠️ Không bật được: ${failed.join(', ')} — bật tay rồi bấm Click+ lại.</div>` : '')
+      + (notFound.length ? `<div style="margin-top:4px;">⚠️ Không thấy nút: ${notFound.join(', ')} trên trang này — bật tay nếu cần.</div>` : '')
+      + (unknownState.length ? `<div style="margin-top:4px;">⚠️ Không rõ trạng thái: ${unknownState.join(', ')} — không dám click, bật tay nếu đang tắt.</div>` : '');
+    const remainNote = stillPending > 0
+      ? `<div style="margin-top:4px;">Còn ${stillPending} nút (cấp con) — bấm Click+ thêm lần nữa để mở tiếp.</div>`
+      : '<div style="margin-top:4px;">Đã mở hết cấp hiện tại.</div>';
+    const stopNote = stoppedEarly
+      ? '<div style="margin-top:4px;">⏹ Đã dừng theo yêu cầu — dữ liệu đã mở tới lúc dừng vẫn được copy đủ.</div>'
+      : '';
+    box.innerHTML = `
+      <div style="font-weight:800;margin-bottom:4px;">✅ Đã mở ${clicked} mục · đã copy ${copiedLength.toLocaleString('vi-VN')} ký tự</div>
+      ${toggleNote}
+      ${stopNote}
+      ${remainNote}
+      <a id="acp-copy-again" href="#" style="color:#fff;text-decoration:underline;font-size:12px;">📋 Copy lại</a>
+    `;
+    const copyAgainLink = box.querySelector('#acp-copy-again');
+    if (copyAgainLink) {
+      copyAgainLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        copyToClipboard(lastText);
+        copyAgainLink.textContent = '✅ Đã copy!';
+        setTimeout(() => { copyAgainLink.textContent = '📋 Copy lại'; }, 1500);
+      });
+    }
+    setTimeout(() => { box.style.display = 'none'; }, 8000);
+  }
+
+  function acpShowError(box, error) {
+    box.style.display = 'block';
+    box.style.background = `linear-gradient(135deg, ${COLOR_DANGER}, #be123c)`;
+    box.innerHTML = `<div style="font-weight:800;">✗ Lỗi khi chạy Click+</div><div>${(error && error.message) || String(error)}</div>`;
+  }
+
+  async function acpRunCycle(btn) {
+    if (acpRunning) return;
+    acpRunning = true;
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.style.opacity = '.7';
+    btn.textContent = '⏳ Đang mở...';
+
+    const statusBox = acpEnsureStatusBox();
+    const observer = acpStartObserver();
+    let stopRequested = false;
+    const requestStop = () => { stopRequested = true; };
+
+    let toggles = { turnedOn: [], failed: [], notFound: [], unknown: [] };
+    try {
+      // Bật "Trả góp" + "DT quy đổi" TRƯỚC, rồi mới quét dấu cộng — bảng có thể render lại sau khi
+      // đổi toggle, quét trước sẽ cầm phần tử đã bị gỡ khỏi DOM.
+      toggles = await acpEnsureTogglesOn((label) => acpUpdateStatusToggling(statusBox, label));
+
+      // ĐỢI LOAD HOÀN TẤT: Chờ bảng xuất hiện, có dữ liệu thực tế và hết sạch spinner
+      await acpWaitForTableReady(25000, 1);
+      await acpWaitForLoadingComplete(15000, 300, 200);
+
+      let pending = acpGetPlusCandidates();
+      if (pending.length === 0) {
+        // Thăm dò thêm nếu bảng đang render dở
+        for (let r = 0; r < 4; r++) {
+          await sleep(350);
+          pending = acpGetPlusCandidates();
+          if (pending.length > 0) break;
+        }
+      }
+      const total = pending.length;
+      let clicked = 0;
+
+      acpUpdateStatus(statusBox, 0, total, requestStop);
+
+      for (let i = 0; i < pending.length; i++) {
+        if (stopRequested) break;
+        const el = pending[i];
+        let wasClicked = false;
+        try {
+          if (acpIsVisible(el) && !acpIsAlreadyOpened(el) && el.dataset.acpDone !== '1') {
+            el.dataset.acpDone = '1';
+            const clickTarget = el.closest('button, a, [role="button"], td.dx-command-expand, td') || el;
+            try {
+              clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+              clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+            } catch (_) {}
+            clickTarget.click();
+            if (clickTarget !== el) {
+              try { el.click(); } catch (_) {}
+            }
+            clicked++;
+            wasClicked = true;
+          }
+        } catch (e) {
+          console.error('[Click+] Lỗi tại nút', i + 1, e);
+        }
+
+        const isEndOfBatch = (i + 1) % ACP_BATCH_SIZE === 0 || i === pending.length - 1;
+        const remaining = Math.max(0, total - i - 1);
+        if (isEndOfBatch || wasClicked || i === pending.length - 1) {
+          acpUpdateStatus(statusBox, clicked, remaining, requestStop);
+        }
+
+        if (!isEndOfBatch) {
+          if (ACP_INTRA_BATCH_CLICK_DELAY > 0) {
+            await sleep(ACP_INTRA_BATCH_CLICK_DELAY);
+          }
+          continue;
+        }
+        await acpWaitForSpinnersToClear();
+        if (stopRequested) break;
+        if (ACP_BATCH_PACING_DELAY > 0) {
+          await sleep(ACP_BATCH_PACING_DELAY);
+        }
+      }
+
+      // Thông báo rõ ràng cho người dùng chuyển sang giai đoạn tổng hợp & copy
+      acpUpdateStatusProcessing(statusBox, clicked);
+
+      // ĐỢI TRẢI XONG: Chờ dòng con tải xong từ server và render vào DOM
+      await sleep(350);
+      await acpWaitForLoadingComplete(20000, 300, 250);
+      await acpForceRenderAllRows();
+      await sleep(150);
+
+      observer.disconnect();
+      let currentText = acpExtractVisibleText();
+      let recoveryText = observer.buildRecoveryText();
+      let rawText = recoveryText ? `${currentText}\n${recoveryText}` : currentText;
+      let finalText = acpSanitizeText(rawText);
+
+      // Chống copy lúc chưa trải xong hoặc dữ liệu bị rỗng
+      if (!finalText || finalText.split('\n').filter(l => l.trim().length > 0).length < 2) {
+        console.warn('[Click+] Dữ liệu đang rỗng hoặc chưa trải xong, đang đợi tải thêm...');
+        await sleep(1200);
+        await acpWaitForLoadingComplete(15000, 200, 200);
+        await acpForceRenderAllRows();
+        currentText = acpExtractVisibleText();
+        recoveryText = observer.buildRecoveryText();
+        rawText = recoveryText ? `${currentText}\n${recoveryText}` : currentText;
+        finalText = acpSanitizeText(rawText);
+      }
+
+      copyToClipboard(finalText);
+
+      const stillPending = acpGetPlusCandidates().length;
+      acpShowDone(statusBox, clicked, stillPending, finalText.length, finalText, stopRequested, toggles);
+    } catch (e) {
+      console.error('[Click+] Lỗi khi chạy:', e);
+      acpShowError(statusBox, e);
+    } finally {
+      observer.disconnect();
+      acpRunning = false;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.textContent = originalLabel || '⚡ Click+';
+    }
+  }
+
+  function acpEnsureButton() {
+    let btn = document.getElementById('acp-float-btn');
+    if (btn) return btn;
+    btn = document.createElement('button');
+    btn.id = 'acp-float-btn';
+    btn.type = 'button';
+    btn.textContent = '⚡ Copy All';
+    Object.assign(btn.style, {
+      position: 'fixed', right: '24px', bottom: '24px', zIndex: 999998,
+      padding: '10px 18px', borderRadius: '9999px', border: '1px solid rgba(255,255,255,0.2)',
+      background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+      color: '#ffffff', fontWeight: '700', fontSize: '13px', letterSpacing: '.01em',
+      cursor: 'pointer', boxShadow: '0 8px 24px rgba(79, 70, 229, 0.4), 0 2px 6px rgba(0,0,0,0.1)',
+      fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
+      transition: 'all .2s ease',
+    });
+    btn.addEventListener('mouseenter', () => {
+      btn.style.boxShadow = '0 10px 28px rgba(79, 70, 229, 0.55), 0 4px 10px rgba(0,0,0,0.15)';
+      btn.style.transform = 'translateY(-1px)';
+    });
+    btn.addEventListener('mousedown', () => { btn.style.transform = 'translateY(1px) scale(.98)'; });
+    btn.addEventListener('mouseup', () => { btn.style.transform = 'translateY(-1px) scale(1)'; });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.boxShadow = '0 8px 24px rgba(79, 70, 229, 0.4), 0 2px 6px rgba(0,0,0,0.1)';
+      btn.style.transform = 'translateY(0)';
+    });
+    btn.addEventListener('click', () => { acpRunCycle(btn); });
+    document.body.appendChild(btn);
+    return btn;
+  }
+
+  // ====== BẢN 5.3: ENGINE TỰ ĐỘNG HOÁ BI (REALTIME & LUỸ KẾ) ======
+  let biJobRunning = false;
+
+  function acpTriggerClick(el) {
+    if (!el) return;
+    try {
+      el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    } catch (_) {}
+    const clickTarget = el.closest('button, a, [role="button"], td.dx-command-expand, td') || el;
+    try {
+      clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+      clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+    } catch (_) {}
+    try {
+      clickTarget.click();
+    } catch (_) {}
+    if (clickTarget !== el) {
+      try { el.click(); } catch (_) {}
+    }
+  }
+
+  // Tìm chính xác nút kích hoạt bộ lọc "Siêu thị" (thẻ <button> có chứa <span>Siêu thị</span>)
+  // Tuyệt đối không dựa vào chữ "Chọn" để tránh click nhầm "Miền Chọn"
+  function findSupermarketFilterTrigger() {
+    const buttons = Array.from(document.querySelectorAll('button, [role="button"]'));
+    for (const btn of buttons) {
+      if (!acpIsVisible(btn)) continue;
+      const spans = Array.from(btn.querySelectorAll('span'));
+      const hasStSpan = spans.some((s) => {
+        const txt = (s.textContent || '').trim().toLowerCase();
+        return txt === 'siêu thị' || txt === 'sieu thi' || txt.startsWith('siêu thị');
+      });
+      if (hasStSpan) {
+        return btn;
+      }
+    }
+    return null;
+  }
+
+  function findButtonByText(matchTexts) {
+    const normMatches = (Array.isArray(matchTexts) ? matchTexts : [matchTexts]).map((t) => t.toLowerCase().trim());
+    const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], span, div.cursor-pointer, label'));
+    for (const el of candidates) {
+      if (!acpIsVisible(el)) continue;
+      const txt = (el.textContent || '').trim().toLowerCase();
+      for (const m of normMatches) {
+        if (txt === m || (txt.startsWith(m) && txt.length < m.length + 15) || (txt.includes(m) && txt.length < m.length + 15)) {
+          return el.closest('button, a, [role="button"]') || el;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Chọn "Chọn tất cả" trong popover Siêu thị và ĐỢI LOADING TẮT HẲN
+  async function ensureSelectAllChecked() {
+    let stBtn = findSupermarketFilterTrigger();
+    if (!stBtn) {
+      console.warn('[BI-Sync] Không tìm thấy nút Siêu thị');
+      return false;
+    }
+
+    let selectAllBtn = findButtonByText(['Chọn tất cả', 'Chon tat ca']);
+    if (!selectAllBtn || !acpIsVisible(selectAllBtn)) {
+      acpTriggerClick(stBtn);
+      await sleep(350);
+      await acpWaitForLoadingComplete(12000, 200, 200);
+      selectAllBtn = findButtonByText(['Chọn tất cả', 'Chon tat ca']);
+    }
+
+    if (selectAllBtn && acpIsVisible(selectAllBtn)) {
+      console.log('[BI-Sync] Bấm "Chọn tất cả"');
+      acpTriggerClick(selectAllBtn);
+      // Đợi request tải lại dữ liệu tắt hẳn 100%
+      await acpWaitForLoadingComplete(45000, 600, 500);
+
+      // Đóng popover
+      stBtn = findSupermarketFilterTrigger();
+      if (stBtn) {
+        acpTriggerClick(stBtn);
+        await sleep(250);
+        await acpWaitForLoadingComplete(15000, 200, 300);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  function acpRemoveDiacritics(str) {
+    if (!str || typeof str !== 'string') return '';
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  }
+
+  // Ưu tiên hàng đầu khi chạy Realtime: Đảm bảo tab "Realtime" luôn được chọn (bg-blue-600 text-white)
+  async function ensureRealtimeTabActive() {
+    console.log('[BI-Sync] Ưu tiên đầu tiên: Chuyển sang chế độ "Realtime"...');
+    const findRealtimeBtn = () => {
+      const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], span, div, label'));
+      for (const el of candidates) {
+        if (!acpIsVisible(el)) continue;
+        const txt = (el.textContent || '').trim().toLowerCase();
+        if (txt === 'realtime' || txt === 'trong ngày' || txt === 'số liệu trong ngày' || txt === 'hôm nay' || txt === 'real-time') {
+          return el.closest('button, a, [role="button"], label') || el;
+        }
+      }
+      return null;
+    };
+
+    const isRealtimeActive = (btn) => {
+      if (!btn) return false;
+      const cls = btn.getAttribute('class') || '';
+      const style = window.getComputedStyle(btn);
+      const hasBlueBg =
+        cls.includes('bg-blue-600') ||
+        cls.includes('bg-blue-500') ||
+        cls.includes('bg-indigo-600') ||
+        style.backgroundColor.includes('37, 99, 235') ||
+        style.backgroundColor.includes('59, 130, 246');
+      const hasWhiteText =
+        cls.includes('text-white') ||
+        style.color.includes('255, 255, 255');
+      return hasBlueBg && hasWhiteText;
+    };
+
+    let btn = findRealtimeBtn();
+    if (!btn) {
+      console.warn('[BI-Sync] Không tìm thấy nút Realtime trên giao diện');
+      return false;
+    }
+
+    // Nếu "Lũy kế" đang active hoặc "Realtime" chưa active thì click chọn "Realtime"
+    const luyKeBtn = findButtonByText(['Lũy kế', 'luy ke', 'luỹ kế', 'lũy kế tháng', 'luy ke thang']);
+    let luyKeIsActive = false;
+    if (luyKeBtn) {
+      const lkStyle = window.getComputedStyle(luyKeBtn);
+      luyKeIsActive =
+        luyKeBtn.classList.contains('bg-blue-600') ||
+        luyKeBtn.classList.contains('bg-blue-500') ||
+        lkStyle.backgroundColor.includes('37, 99, 235');
+    }
+
+    if (!isRealtimeActive(btn) || luyKeIsActive) {
+      console.log('[BI-Sync] Kích hoạt chuyển sang tab "Realtime" (bg-blue-600 text-white)...');
+      acpTriggerClick(btn);
+      try { btn.click(); } catch (_) {}
+      await sleep(350);
+      await acpWaitForLoadingComplete(15000, 250, 200);
+
+      // Kiểm tra lại lần 2
+      btn = findRealtimeBtn();
+      if (btn && !isRealtimeActive(btn)) {
+        console.log('[BI-Sync] Thử click lại nút Realtime lần 2...');
+        acpTriggerClick(btn);
+        try { btn.click(); } catch (_) {}
+        await sleep(350);
+        await acpWaitForLoadingComplete(15000, 250, 200);
+      }
+    } else {
+      console.log('[BI-Sync] Nút Realtime đã ở trạng thái active (bg-blue-600 text-white)');
+    }
+    return true;
+  }
+
+  async function ensureToggleActive(toggleName) {
+    // Nếu là Realtime thì gọi trực tiếp ensureRealtimeTabActive
+    if (toggleName === 'Realtime' || toggleName.toLowerCase() === 'realtime') {
+      return await ensureRealtimeTabActive();
+    }
+
+    const btn = findButtonByText([
+      toggleName,
+      toggleName.toLowerCase(),
+      acpRemoveDiacritics(toggleName),
+      acpRemoveDiacritics(toggleName).toLowerCase()
+    ]);
+    if (!btn) {
+      console.warn(`[BI-Sync] Không tìm thấy nút: ${toggleName}`);
+      return false;
+    }
+
+    const btnStyle = window.getComputedStyle(btn);
+    const isBlue =
+      btn.classList.contains('bg-blue-600') ||
+      btn.classList.contains('bg-blue-500') ||
+      btn.classList.contains('bg-indigo-600') ||
+      btn.classList.contains('bg-primary') ||
+      btnStyle.backgroundColor.includes('37, 99, 235') ||
+      btnStyle.backgroundColor.includes('59, 130, 246');
+
+    let isAlreadyActive =
+      isBlue ||
+      btn.getAttribute('aria-pressed') === 'true' ||
+      btn.getAttribute('data-state') === 'checked' ||
+      btn.getAttribute('data-state') === 'on' ||
+      btn.classList.contains('active');
+
+    // Nếu đang muốn chọn "DT quy đổi", kiểm tra xem "DT thực" có đang chiếm active không
+    if (toggleName === 'DT quy đổi' || toggleName.toLowerCase().includes('quy đổi') || toggleName.toLowerCase().includes('quy doi')) {
+      const dtThucBtn = findButtonByText(['DT thực', 'dt thuc', 'DT thuc']);
+      if (dtThucBtn) {
+        const thucStyle = window.getComputedStyle(dtThucBtn);
+        const thucIsActive =
+          dtThucBtn.classList.contains('bg-blue-600') ||
+          dtThucBtn.classList.contains('bg-blue-500') ||
+          dtThucBtn.classList.contains('bg-indigo-600') ||
+          thucStyle.backgroundColor.includes('37, 99, 235') ||
+          thucStyle.backgroundColor.includes('59, 130, 246');
+        if (thucIsActive) {
+          isAlreadyActive = false;
+        }
+      }
+    }
+
+    // Nếu đang muốn chọn "DT thực", kiểm tra xem "DT quy đổi" có đang chiếm active không
+    if (toggleName === 'DT thực' || toggleName.toLowerCase().includes('thực') || toggleName.toLowerCase().includes('thuc')) {
+      const dtQdBtn = findButtonByText(['DT quy đổi', 'dt quy doi', 'DT quy doi']);
+      if (dtQdBtn) {
+        const qdStyle = window.getComputedStyle(dtQdBtn);
+        const qdIsActive =
+          dtQdBtn.classList.contains('bg-blue-600') ||
+          dtQdBtn.classList.contains('bg-blue-500') ||
+          dtQdBtn.classList.contains('bg-indigo-600') ||
+          qdStyle.backgroundColor.includes('37, 99, 235') ||
+          qdStyle.backgroundColor.includes('59, 130, 246');
+        if (qdIsActive) {
+          isAlreadyActive = false;
+        }
+      }
+    }
+
+    if (!isAlreadyActive) {
+      console.log(`[BI-Sync] Bật toggle: ${toggleName}`);
+      acpTriggerClick(btn);
+      try { btn.click(); } catch (_) {}
+      await sleep(250);
+      await acpWaitForLoadingComplete(15000, 200, 200);
+    }
+    return true;
+  }
+
+  async function ensureCheckboxChecked(labelText) {
+    const norm = labelText.toLowerCase().trim();
+    const candidates = Array.from(document.querySelectorAll('label, div, span, button, p, input[type="checkbox"]'));
+    for (const el of candidates) {
+      if (!acpIsVisible(el)) continue;
+
+      // 1. Nếu el trực tiếp là input[type="checkbox"]
+      if (el.tagName.toLowerCase() === 'input' && el.type === 'checkbox') {
+        const id = el.id;
+        if (id) {
+          const lbl = document.querySelector(`label[for="${id}"]`);
+          if (lbl && (lbl.textContent || '').toLowerCase().includes(norm)) {
+            if (!el.checked) {
+              console.log(`[BI-Sync] Bật input checkbox: ${labelText}`);
+              acpTriggerClick(el);
+              try { el.click(); } catch (_) {}
+              await sleep(200);
+            }
+            return true;
+          }
+        }
+      }
+
+      const txt = (el.textContent || '').trim().toLowerCase();
+      if (txt === norm || (txt.includes(norm) && txt.length < norm.length + 15)) {
+        const container = el.closest('label, div.flex, div.inline-flex, button') || el.parentElement;
+        if (container) {
+          // Thử input[type="checkbox"]
+          const input = container.querySelector('input[type="checkbox"]');
+          if (input) {
+            if (!input.checked) {
+              console.log(`[BI-Sync] Bật input checkbox: ${labelText}`);
+              acpTriggerClick(input);
+              try { input.click(); } catch (_) {}
+              await sleep(200);
+            }
+            return true;
+          }
+          // Thử role="checkbox" hoặc button
+          const customChk = container.getAttribute('role') === 'checkbox' ? container : container.querySelector('[role="checkbox"]');
+          if (customChk) {
+            const checked = customChk.getAttribute('aria-checked') === 'true' ||
+                            customChk.getAttribute('data-state') === 'checked' ||
+                            customChk.classList.contains('bg-blue-600') ||
+                            customChk.classList.contains('bg-indigo-600') ||
+                            customChk.querySelector('svg');
+            if (!checked) {
+              console.log(`[BI-Sync] Bật custom role="checkbox": ${labelText}`);
+              acpTriggerClick(customChk);
+              try { customChk.click(); } catch (_) {}
+              await sleep(200);
+            }
+            return true;
+          }
+          // Click vào container hoặc el
+          console.log(`[BI-Sync] Click label/container checkbox: ${labelText}`);
+          acpTriggerClick(container);
+          try { container.click(); } catch (_) {}
+          await sleep(200);
+          return true;
+        }
+      }
+    }
+    console.warn(`[BI-Sync] Không tìm thấy checkbox: ${labelText}`);
+    return false;
+  }
+
+  async function ensureTraGopActive() {
+    console.log('[BI-Sync] Đang kiểm tra bộ lọc / nút "Trả góp"...');
+    const candidates = Array.from(document.querySelectorAll('button, div.flex > button, [role="button"], label'));
+    const btn = candidates.find(el => {
+      if (!acpIsVisible(el)) return false;
+      const txt = (el.textContent || '').trim().toLowerCase();
+      return txt === 'trả góp' || (txt.includes('trả góp') && txt.length <= 15);
+    });
+
+    if (btn) {
+      const cls = btn.getAttribute('class') || '';
+      const txt = (btn.textContent || '').trim();
+      const style = window.getComputedStyle(btn);
+
+      const hasCheckmark = txt.includes('✓') || !!btn.querySelector('svg, [class*="check"]');
+      const isBlue =
+        hasCheckmark ||
+        cls.includes('bg-blue-600') ||
+        cls.includes('bg-blue-500') ||
+        cls.includes('text-blue-600') ||
+        cls.includes('border-blue-600') ||
+        cls.includes('bg-blue-50') ||
+        btn.getAttribute('aria-pressed') === 'true' ||
+        btn.getAttribute('data-state') === 'on' ||
+        btn.getAttribute('data-state') === 'checked' ||
+        style.backgroundColor.includes('37, 99, 235') ||
+        style.color.includes('37, 99, 235') ||
+        style.borderColor.includes('37, 99, 235');
+
+      if (!isBlue) {
+        console.log('[BI-Sync] Kích hoạt bật nút "Trả góp"...');
+        acpTriggerClick(btn);
+        try { btn.click(); } catch (_) {}
+        await sleep(200);
+        await acpWaitForLoadingComplete(6000, 150, 150);
+      } else {
+        console.log('[BI-Sync] Nút "Trả góp" đã active sẵn (có dấu ✓ hoặc viền/chữ xanh).');
+      }
+      return true;
+    }
+
+    return await ensureCheckboxChecked('Trả góp');
+  }
+
+  function findChiTietDoanhThuButton() {
+    // 1. Ưu tiên 1: XPath chính xác do người dùng cung cấp
+    try {
+      const xpath = '/html/body/div[1]/div[2]/div[4]/main/div/div/div[6]/div[2]/button[3]';
+      const res = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      const node = res.singleNodeValue;
+      if (node && node.nodeType === 1 && acpIsVisible(node)) {
+        const txt = (node.textContent || '').trim().toLowerCase();
+        if (txt.includes('chi tiết doanh thu') || txt.includes('chi tiet doanh thu') || txt.includes('doanh thu')) {
+          return node;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Ưu tiên 2: Tìm theo textContent trên các button/div/label
+    const candidates = Array.from(document.querySelectorAll('button, div.flex > button, [role="button"], label, div[class*="cursor-pointer"]'));
+    const matched = candidates.find((el) => {
+      if (!acpIsVisible(el)) return false;
+      const txt = (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      return txt.includes('chi tiết doanh thu') || txt.includes('chi tiet doanh thu') || txt.includes('chi tiết dt') || txt.includes('chi tiet dt');
+    });
+    if (matched) return matched.closest('button, [role="button"]') || matched;
+
+    // 3. Ưu tiên 3: Dự phòng qua acpFindToggleButton
+    return acpFindToggleButton(['chi tiết doanh thu', 'chi tiet doanh thu', 'chi tiết dt', 'chi tiet dt']);
+  }
+
+  function isChiTietDoanhThuActive(btn) {
+    if (!btn) return false;
+    const txt = (btn.textContent || '').trim();
+    const cls = btn.getAttribute('class') || '';
+    const style = window.getComputedStyle(btn);
+    const mark = btn.querySelector(':scope > span') || btn.querySelector('span');
+
+    // 1. Có dấu checkmark ✓
+    if (txt.includes('✓')) return true;
+    if (mark) {
+      if (mark.textContent.includes('✓') || !!mark.querySelector('svg, [class*="check"]')) return true;
+      const mCls = mark.getAttribute('class') || '';
+      if (mCls.includes('bg-blue-600') || mCls.includes('text-white') || mCls.includes('border-blue-600')) return true;
+    }
+
+    // 2. Class Tailwind active
+    if (
+      cls.includes('bg-blue-50') ||
+      cls.includes('text-blue-700') ||
+      cls.includes('border-blue-300') ||
+      cls.includes('border-blue-500') ||
+      cls.includes('border-blue-600') ||
+      cls.includes('bg-blue-600') ||
+      cls.includes('bg-blue-500') ||
+      cls.includes('text-blue-600')
+    ) {
+      return true;
+    }
+
+    // 3. Thuộc tính ARIA / data-state
+    if (
+      btn.getAttribute('aria-pressed') === 'true' ||
+      btn.getAttribute('aria-checked') === 'true' ||
+      btn.getAttribute('data-state') === 'on' ||
+      btn.getAttribute('data-state') === 'checked'
+    ) {
+      return true;
+    }
+
+    // 4. Computed style màu xanh active
+    if (
+      style.backgroundColor.includes('37, 99, 235') ||
+      style.backgroundColor.includes('239, 246, 255') ||
+      style.color.includes('29, 78, 216') ||
+      style.borderColor.includes('147, 197, 253')
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  async function ensureChiTietDoanhThuActive() {
+    console.log('[BI-Sync] Đang kiểm tra nút toggle "Chi tiết doanh thu"...');
+    let btn = findChiTietDoanhThuButton();
+    if (!btn) {
+      for (let i = 0; i < 6; i++) {
+        await sleep(300);
+        btn = findChiTietDoanhThuButton();
+        if (btn) break;
+      }
+    }
+
+    if (btn) {
+      if (!isChiTietDoanhThuActive(btn)) {
+        console.log('[BI-Sync] Kích hoạt bật nút "Chi tiết doanh thu"...');
+        acpTriggerClick(btn);
+        try { btn.click(); } catch (_) {}
+        await sleep(200);
+        await acpWaitForLoadingComplete(15000, 200, 200);
+
+        // Chờ xác nhận đã active
+        const start = Date.now();
+        while (Date.now() - start < 2000) {
+          const fresh = findChiTietDoanhThuButton();
+          if (fresh && isChiTietDoanhThuActive(fresh)) {
+            console.log('[BI-Sync] Đã bật thành công "Chi tiết doanh thu".');
+            return true;
+          }
+          await sleep(100);
+        }
+      } else {
+        console.log('[BI-Sync] Nút "Chi tiết doanh thu" đã active sẵn (có dấu ✓ hoặc viền/chữ xanh).');
+      }
+      return true;
+    }
+
+    console.warn('[BI-Sync] Không tìm thấy button "Chi tiết doanh thu", thử fallback qua checkbox...');
+    return await ensureCheckboxChecked('Chi tiết doanh thu');
+  }
+
+  async function selectTabOrSection(tabName) {
+    const btn = findButtonByText([tabName, `🏆 ${tabName}`, `🏆${tabName}`]);
+    if (btn) {
+      console.log(`[BI-Sync] Chọn tab/mục: ${tabName}`);
+      acpTriggerClick(btn);
+      await acpWaitForLoadingComplete(40000, 600, 500);
+      return true;
+    }
+    const norm = String(tabName).toLowerCase().trim();
+    const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], [role="tab"], span, div.cursor-pointer'));
+    for (const el of candidates) {
+      if (!acpIsVisible(el)) continue;
+      const txt = (el.textContent || '').trim().toLowerCase();
+      if (txt === norm || (txt.includes(norm) && txt.length < norm.length + 20)) {
+        const target = el.closest('button, a, [role="button"], [role="tab"]') || el;
+        console.log(`[BI-Sync] Chọn tab/mục (fuzzy): ${tabName} -> "${txt}"`);
+        acpTriggerClick(target);
+        await acpWaitForLoadingComplete(40000, 600, 500);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async function navigateToBiSection(sectionName, fallbackPath) {
+    if (fallbackPath && location.pathname.includes(fallbackPath)) {
+      console.log(`[BI-Sync] Đã ở trang ${fallbackPath}, không cần điều hướng.`);
+      return true;
+    }
+
+    const links = Array.from(document.querySelectorAll('aside a, nav a, div a, button, [role="link"]'));
+    let target = links.find((el) => {
+      if (!acpIsVisible(el)) return false;
+      const txt = (el.textContent || '').trim().toLowerCase();
+      const href = (el.getAttribute('href') || '').toLowerCase();
+      const sName = sectionName.toLowerCase();
+      return (sName && (txt === sName || txt.includes(sName))) || (fallbackPath && href.includes(fallbackPath.toLowerCase()));
+    });
+
+    if (!target) {
+      if (fallbackPath && fallbackPath.includes('thi-dua')) {
+        target = document.querySelector('nav a[href*="thi-dua"]') ||
+                 document.querySelector('#root nav a:nth-of-type(3)') ||
+                 document.querySelector('nav a:nth-of-type(3)');
+      } else if (fallbackPath && fallbackPath.includes('revenue-consolidated')) {
+        target = document.querySelector('nav a[href*="revenue-consolidated"]') ||
+                 document.querySelector('#root nav a:nth-of-type(2)') ||
+                 document.querySelector('nav a:nth-of-type(2)');
+      }
+    }
+
+    if (target) {
+      console.log(`[BI-Sync] Điều hướng SPA tới: ${sectionName}`);
+      acpTriggerClick(target);
+      try { target.click(); } catch (_) {}
+      await sleep(500);
+      await acpWaitForLoadingComplete(45000, 700, 500);
+      if (fallbackPath && location.pathname.includes(fallbackPath)) {
+        return true;
+      }
+    }
+
+    if (fallbackPath && !location.pathname.includes(fallbackPath)) {
+      console.log(`[BI-Sync] Điều hướng qua URL: ${fallbackPath}`);
+      const currentUrl = new URL(location.href);
+      const mode = currentUrl.searchParams.get('ycx_mode');
+      const jobId = currentUrl.searchParams.get('job_id');
+      const monthQ = currentUrl.searchParams.get('ycx_month');
+      const extra = monthQ ? `&ycx_month=${monthQ}` : '';
+      const queryStr = (mode && jobId) ? `?ycx_mode=${mode}&job_id=${jobId}${extra}#ycx_mode=${mode}&job_id=${jobId}${extra}` : '';
+      location.href = `https://${location.hostname}${fallbackPath}${queryStr}`;
+      return false;
+    }
+
+    return true;
+  }
+
+  async function expandAllCandidates(statusBox, reportStatus, maxRounds = 2) {
+    let guard = 0;
+    let totalOpened = 0;
+
+    // ĐỢI LOAD BAN ĐẦU: Chờ bảng có dữ liệu thực tế và hết spinner trước khi mở rộng
+    await acpWaitForTableReady(25000, 1);
+    await acpWaitForLoadingComplete(15000, 300, 200);
+
+    // Giới hạn maxRounds (mặc định = 2): Chỉ mở tối đa 2 cấp danh mục (Ngành hàng -> Nhóm hàng),
+    // tuyệt đối không mở sâu tràn lan xuống từng mã sản phẩm SKU con đang ẩn làm tràn bảng 365 dòng
+    while (guard < maxRounds) {
+      guard++;
+      let candidates = acpGetPlusCandidates();
+      if (candidates.length === 0 && guard === 1) {
+        // Thăm dò thêm nếu bảng đang render dở ở round đầu
+        for (let retry = 0; retry < 5; retry++) {
+          await sleep(350);
+          candidates = acpGetPlusCandidates();
+          if (candidates.length > 0) break;
+        }
+      }
+      if (candidates.length === 0) break;
+
+      for (let i = 0; i < candidates.length; i++) {
+        const el = candidates[i];
+        if (acpIsAlreadyOpened(el) || !acpIsVisible(el)) continue;
+        acpTriggerClick(el);
+        el.dataset.acpDone = '1';
+        totalOpened++;
+
+        if (reportStatus) {
+          reportStatus(`Đang mở rộng dòng (+)... (${totalOpened})`);
+        }
+
+        if ((i + 1) % 15 === 0 || i === candidates.length - 1) {
+          await acpWaitForLoadingComplete(20000, 300, 250);
+        } else {
+          await sleep(40);
+        }
+      }
+
+      // ĐỢI TRẢI XONG: Chờ spinner của các dòng con tắt và chờ render vào bảng
+      await sleep(350);
+      await acpWaitForLoadingComplete(20000, 350, 250);
+      await sleep(200);
+    }
+
+    return totalOpened;
+  }
+
+  async function collectCurrentBiData() {
+    await acpWaitForLoadingComplete(25000, 300, 300);
+    await acpForceRenderAllRows();
+    await sleep(200);
+
+    // Kiểm tra và retry nếu bảng chưa kịp trải xong dữ liệu
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const text = acpExtractVisibleText();
+      const lines = text.split('\n').filter(l => l.trim().length > 0);
+      if (lines.length >= 2 || attempt === 2) {
+        return text;
+      }
+      console.warn(`[BI-Sync] Bảng chưa trải xong dữ liệu (mới có ${lines.length} dòng), đang đợi tải thêm (lần ${attempt + 1}/3)...`);
+      await sleep(1200);
+      await acpWaitForLoadingComplete(15000, 250, 200);
+      await acpForceRenderAllRows();
+    }
+    return acpExtractVisibleText();
+  }
+
+  // ====== BẢNG TIẾN TRÌNH TRÊN TRANG MWG (bản 7.3) — cùng giao diện modal "Tự động Cập nhật" của Dashboard ======
+  const ACP_SYNC_STEPS = {
+    // Thứ tự dòng = thứ tự CHẠY THẬT của Direct API (Hợp nhất → Thi đua → Ngành hàng → Nhân viên).
+    // `id` là mã bước theo tên (acpStepIdByName), KHÔNG phải số hiển thị — số trong vòng tròn = vị trí dòng.
+    realtime: [
+      { id: 1, title: 'Doanh thu hợp nhất', desc: 'Chọn tất cả, bật Trả góp & DT quy đổi' },
+      { id: 4, title: 'Báo cáo Thi đua', desc: 'Chọn tất cả & sao chép bảng thi đua' },
+      { id: 2, title: 'Ngành hàng BI', desc: 'Mở rộng cây [+] & sao chép ngành hàng' },
+      { id: 3, title: 'Doanh thu nhân viên', desc: 'Sao chép chi tiết doanh số nhân viên' },
+    ],
+    luyke: [
+      { id: 1, title: 'Doanh thu hợp nhất', desc: 'Chọn Lũy kế, bật Trả góp & DT quy đổi' },
+      { id: 4, title: 'Báo cáo Thi đua', desc: 'Thi đua Luỹ kế toàn cụm' },
+      { id: 2, title: 'Ngành hàng BI', desc: 'Cây ngành hàng Luỹ kế từng siêu thị' },
+      { id: 3, title: 'Doanh thu nhân viên', desc: 'Doanh thu nhân viên Luỹ kế từng siêu thị' },
+      { id: 5, title: 'Thi đua & Trả chậm', desc: 'Thi đua + trả chậm từng nhân viên, từng siêu thị' },
+    ],
+  };
+  // Trạng thái bảng của job đang chạy (bước hiện tại, các bước đã xong)
+  const acpSyncPanel = { mode: 'realtime', current: null, done: new Set(), step: 0, totalSteps: 0, stepName: '', message: '', phase: 'running', error: '' };
+
+  function acpEscHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // Bước xác định THEO TÊN, không theo số: Direct API báo 2 = Thi đua, đường UI báo 2 = Ngành hàng
+  function acpStepIdByName(stepName) {
+    const t = String(stepName || '').toLowerCase();
+    if (t.includes('hợp nhất')) return 1;
+    if (t.includes('ngành hàng')) return 2;
+    if (t.includes('nhân viên')) return 3;
+    if (t.includes('trả chậm')) return 5; // trước "thi đua": bước 5 Luỹ kế tên "Thi đua & Trả chậm"
+    if (t.includes('thi đua')) return 4;
+    return null;
+  }
+
+  function acpRenderSyncPanel() {
+    let overlay = document.getElementById('acp-bi-sync-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'acp-bi-sync-overlay';
+      // Lớp nền mờ KHÔNG chặn chuột (pointer-events:none) — đường UI Fallback vẫn bấm được trang phía sau
+      Object.assign(overlay.style, {
+        position: 'fixed', inset: '0', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(15, 23, 42, 0.35)', pointerEvents: 'none', padding: '16px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', lineHeight: '1.45',
+      });
+      document.body.appendChild(overlay);
+    }
+    const st = acpSyncPanel;
+    const isRealtime = st.mode === 'realtime';
+    const steps = ACP_SYNC_STEPS[isRealtime ? 'realtime' : 'luyke'];
+    const percent = st.phase === 'done' ? 100 : (st.totalSteps > 0 ? Math.min(100, Math.round((st.step / st.totalSteps) * 100)) : 0);
+
+    const rows = steps.map((s, viTri) => {
+      const isDone = st.phase === 'done' || (st.done.has(s.id) && st.current !== s.id);
+      const isCur = st.phase === 'running' && st.current === s.id;
+      const border = isCur ? '#7dd3fc' : isDone ? '#a7f3d0' : '#e2e8f0';
+      const bg = isCur ? '#f0f9ff' : isDone ? '#f0fdf4' : '#f8fafc';
+      const dotBg = isDone ? '#059669' : isCur ? '#0284c7' : '#e2e8f0';
+      const dot = isDone ? '✓' : isCur ? '<span class="acp-sync-spin"></span>' : String(viTri + 1);
+      const right = isDone ? '<span style="color:#059669;font-weight:700;font-size:12px;">Đã xong</span>'
+        : isCur ? '<span style="color:#0284c7;font-weight:700;font-size:12px;">Đang xử lý...</span>' : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid ${border};background:${bg};border-radius:6px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${dotBg};color:${isDone || isCur ? '#fff' : '#64748b'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">${dot}</div>
+          <div style="min-width:0;">
+            <div style="font-weight:700;font-size:13px;color:${isDone || isCur ? '#0f172a' : '#64748b'};">${s.title}</div>
+            <div style="font-size:12px;color:#64748b;">${s.desc}</div>
+          </div>
+        </div>${right}
+      </div>`;
+    }).join('');
+
+    let footer = '';
+    if (st.phase === 'running') {
+      footer = `<div style="padding:10px 12px;border:1px solid #bae6fd;background:#f0f9ff;border-radius:4px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#0369a1;margin-bottom:2px;">
+          <span>${acpEscHtml(st.stepName || 'Đang khởi tạo...')}</span><span style="color:#64748b;">${st.step}/${st.totalSteps} (${percent}%)</span>
+        </div>
+        <div style="font-size:12px;color:#475569;margin-bottom:8px;word-break:break-word;">${acpEscHtml(st.message)}</div>
+        <div style="height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${percent}%;height:100%;background:#0284c7;transition:width .3s;"></div></div>
+      </div>`;
+    } else if (st.phase === 'done') {
+      footer = `<div style="padding:12px;border:1px solid #a7f3d0;background:#ecfdf5;border-radius:6px;color:#065f46;font-size:13px;font-weight:600;">
+        ✓ Toàn bộ ${steps.length} báo cáo ${isRealtime ? 'Realtime' : 'Luỹ kế'} đã chuyển về Dashboard. Đang quay về Dashboard...
+      </div>`;
+    } else {
+      footer = `<div style="padding:12px;border:1px solid #fecdd3;background:#fff1f2;border-radius:6px;color:#9f1239;font-size:12px;">
+        <div style="font-weight:700;margin-bottom:2px;">⚠️ Lỗi cập nhật tự động</div><div style="word-break:break-word;">${acpEscHtml(st.error)}</div>
+      </div>`;
+    }
+
+    overlay.innerHTML = `<style>@keyframes acp-sync-rot{to{transform:rotate(360deg)}}.acp-sync-spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:acp-sync-rot .8s linear infinite}</style>
+      <div role="dialog" aria-label="Tự động cập nhật BI" style="width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:6px;box-shadow:0 20px 40px -10px rgba(15,23,42,.35);color:#0f172a;">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <div style="width:40px;height:40px;border-radius:6px;background:${isRealtime ? '#f59e0b' : '#059669'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${isRealtime ? '⏱' : '📈'}</div>
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-weight:700;font-size:16px;">${isRealtime ? 'Tự động Cập nhật Realtime' : 'Tự động Cập nhật Luỹ Kế' + (/^\d{6}$/.test(String(st.month || '')) ? ` · tháng ${String(st.month).slice(4)}/${String(st.month).slice(0, 4)}` : '')}</span>
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;border:1px solid ${isRealtime ? '#fde68a' : '#a7f3d0'};background:${isRealtime ? '#fffbeb' : '#ecfdf5'};color:${isRealtime ? '#b45309' : '#047857'};">${steps.length} báo cáo</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;">Đang lấy dữ liệu trên trang MWG và chuyển về Dashboard — vui lòng không đóng tab này</div>
+          </div>
+        </div>
+        <div style="padding:16px 20px;">${rows}<div style="margin-top:4px;">${footer}</div></div>
+      </div>`;
+  }
+
+  function acpEnsureProgressOverlay(step, totalSteps, stepName, message, mode) {
+    const st = acpSyncPanel;
+    if (mode && mode !== st.mode) { st.mode = mode; }
+    const cur = acpStepIdByName(stepName);
+    if (cur !== null && st.current !== null && st.current !== cur) st.done.add(st.current);
+    if (cur !== null) st.current = cur;
+    Object.assign(st, { step, totalSteps, stepName, message, phase: 'running' });
+    acpRenderSyncPanel();
+  }
+
+  function acpResetSyncPanel(mode, month) {
+    Object.assign(acpSyncPanel, { mode, month: month || '', current: null, done: new Set(), step: 0, totalSteps: 0, stepName: '', message: 'Đang khởi tạo...', phase: 'running', error: '' });
+  }
+
+  // Trả focus về tab Dashboard đã mở tab này (window.open). Trình duyệt có thể bỏ qua nếu không cho phép
+  // — khi đó window.close() vẫn đưa người dùng về tab đã mở nó (Chrome chọn lại tab "opener" khi đóng).
+  function acpFocusDashboard() {
+    try { if (window.opener && !window.opener.closed) window.opener.focus(); } catch (_) {}
+  }
+
+  function acpShowOverlayDone(mode) {
+    if (mode) acpSyncPanel.mode = mode;
+    acpSyncPanel.phase = 'done';
+    acpRenderSyncPanel();
+    // Để người dùng kịp thấy cả 4 bước "Đã xong" rồi mới quay về Dashboard và đóng tab
+    setTimeout(() => {
+      acpFocusDashboard();
+      try { window.close(); } catch (_) {}
+    }, 2000);
+  }
+
+  function acpShowOverlayError(errMsg) {
+    acpSyncPanel.phase = 'error';
+    acpSyncPanel.error = errMsg;
+    acpRenderSyncPanel();
+  }
+
+  // ====== BẢN 6.8: DIRECT INTERNAL API ENGINE (CHỈ DÀNH CHO BAOCAO.DIENMAYXANH.COM) ======
+  let capturedAuthToken = null;
+  let capturedStoreIds = null;
+
+  // Lắng nghe Token được phát từ Page Context hoặc Inline Injector & chặn request qua fetch/XHR
+  if (typeof window !== 'undefined' && Array.isArray(BI_HOSTNAMES) && BI_HOSTNAMES.includes(location.hostname)) {
+    try {
+      window.addEventListener('message', (ev) => {
+        try {
+          if (ev.data && ev.data.type === 'MWG_DIRECT_AUTH_TOKEN' && ev.data.token) {
+            capturedAuthToken = ev.data.token;
+            try { gmSet('BI_CAPTURED_AUTH_TOKEN', capturedAuthToken); } catch (_) {}
+          }
+          if (ev.data && ev.data.type === 'MWG_DIRECT_STORE_IDS' && ev.data.storeIds) {
+            capturedStoreIds = String(ev.data.storeIds);
+            try { gmSet('BI_CAPTURED_STORE_IDS', capturedStoreIds); } catch (_) {}
+          }
+        } catch (_) {}
+      });
+    } catch (_) {}
+
+    // Hook fetch & XMLHttpRequest trên unsafeWindow để tự động bắt Authorization Bearer token ngay khi trang gọi bất kỳ API nào
+    try {
+      const uWin = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+      if (uWin && uWin.fetch) {
+        const origFetch = uWin.fetch;
+        uWin.fetch = function(...args) {
+          try {
+            const req = args[0];
+            const opts = args[1] || {};
+            const headers = (req && req.headers) || opts.headers;
+            let auth = '';
+            if (headers) {
+              if (typeof headers.get === 'function') {
+                auth = headers.get('authorization') || headers.get('Authorization') || '';
+              } else if (typeof headers === 'object') {
+                auth = headers.authorization || headers.Authorization || '';
+              }
+            }
+            if (auth && auth.includes('Bearer ')) {
+              const m = auth.match(/Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/i);
+              if (m && !capturedAuthToken) {
+                capturedAuthToken = m[1];
+                try { gmSet('BI_CAPTURED_AUTH_TOKEN', capturedAuthToken); } catch (_) {}
+              }
+            }
+          } catch (_) {}
+          return origFetch.apply(this, args);
+        };
+      }
+      if (uWin && uWin.XMLHttpRequest && uWin.XMLHttpRequest.prototype) {
+        const origSetHeader = uWin.XMLHttpRequest.prototype.setRequestHeader;
+        uWin.XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
+          try {
+            if (header && header.toLowerCase() === 'authorization' && value && value.includes('Bearer ')) {
+              const m = value.match(/Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/i);
+              if (m && !capturedAuthToken) {
+                capturedAuthToken = m[1];
+                try { gmSet('BI_CAPTURED_AUTH_TOKEN', capturedAuthToken); } catch (_) {}
+              }
+            }
+          } catch (_) {}
+          return origSetHeader.apply(this, arguments);
+        };
+      }
+    } catch (_) {}
+  }
+
+  function acpExtractTokenFromStorage() {
+    try {
+      const storages = [];
+      if (typeof unsafeWindow !== 'undefined') {
+        try { if (unsafeWindow.sessionStorage) storages.push(unsafeWindow.sessionStorage); } catch (_) {}
+        try { if (unsafeWindow.localStorage) storages.push(unsafeWindow.localStorage); } catch (_) {}
+      }
+      try { if (sessionStorage) storages.push(sessionStorage); } catch (_) {}
+      try { if (localStorage) storages.push(localStorage); } catch (_) {}
+
+      for (const st of storages) {
+        if (!st) continue;
+        for (let i = 0; i < st.length; i++) {
+          const k = st.key(i);
+          const v = st.getItem(k);
+          if (!v || typeof v !== 'string') continue;
+          if (v.includes('Bearer ')) {
+            const m = v.match(/Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/i);
+            if (m) return m[1];
+          }
+          if (v.startsWith('eyJhbGciOi') && v.split('.').length === 3) {
+            return v;
+          }
+          if (v.includes('access_token') || v.includes('eyJhbGciOi')) {
+            try {
+              const obj = JSON.parse(v);
+              if (obj.access_token && typeof obj.access_token === 'string') return obj.access_token;
+            } catch (_) {}
+            const jm = v.match(/(eyJhbGciOi[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/);
+            if (jm) return jm[1];
+          }
+        }
+      }
+
+      // Kiểm tra cookies
+      try {
+        if (typeof document !== 'undefined' && document.cookie) {
+          const m = document.cookie.match(/(?:token|access_token|auth_token|jwt)=([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/i);
+          if (m) return m[1];
+        }
+      } catch (_) {}
+    } catch (_) {}
+    return null;
+  }
+
+  async function acpGetAuthToken() {
+    if (capturedAuthToken) return capturedAuthToken;
+    const fromStorage = acpExtractTokenFromStorage();
+    if (fromStorage) {
+      capturedAuthToken = fromStorage;
+      return capturedAuthToken;
+    }
+    try {
+      const fromGm = await gmGet('BI_CAPTURED_AUTH_TOKEN', null);
+      if (fromGm) {
+        capturedAuthToken = fromGm;
+        return capturedAuthToken;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  async function acpGetUserStoreIds() {
+    if (capturedStoreIds) return capturedStoreIds;
+    try {
+      const fromGm = await gmGet('BI_CAPTURED_STORE_IDS', null);
+      if (fromGm) {
+        capturedStoreIds = fromGm;
+        return capturedStoreIds;
+      }
+    } catch (_) {}
+
+    // Tìm trên DOM thẻ button Siêu thị
+    const buttons = Array.from(document.querySelectorAll('button'));
+    for (const btn of buttons) {
+      const txt = (btn.textContent || '').trim();
+      const m = txt.match(/\b(\d{3,5})\s*[-–]/);
+      if (m) {
+        capturedStoreIds = m[1];
+        return capturedStoreIds;
+      }
+    }
+    return null;
+  }
+
+  async function acpFetchBiApi(endpoint, bodyObj, token) {
+    const url = endpoint.startsWith('common/')
+      ? `https://baocao.dienmayxanh.com/kb-api/${endpoint}`
+      : `https://baocao.dienmayxanh.com/kb-api/reports/${endpoint}`;
+
+    const headers = {
+      'accept': '*/*',
+      'authorization': `Bearer ${token}`,
+      'content-type': 'application/json',
+    };
+    const bodyStr = JSON.stringify(bodyObj);
+
+    // 1. Thử gọi qua fetch được bind chuẩn với unsafeWindow hoặc window
+    const fetchFn = (typeof unsafeWindow !== 'undefined' && unsafeWindow.fetch)
+      ? unsafeWindow.fetch.bind(unsafeWindow)
+      : (typeof window !== 'undefined' && window.fetch ? window.fetch.bind(window) : null);
+
+    if (fetchFn) {
+      try {
+        const res = await fetchFn(url, {
+          method: 'POST',
+          headers,
+          body: bodyStr,
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success !== false) {
+            return json.data || [];
+          }
+          console.warn(`[BI-Sync] API ${endpoint} trả về success = false:`, json?.message);
+        } else {
+          console.warn(`[BI-Sync] API ${endpoint} HTTP ${res.status}`);
+        }
+      } catch (fetchErr) {
+        console.warn(`[BI-Sync] fetchFn thất bại cho ${endpoint}, chuyển sang GM_xmlhttpRequest:`, fetchErr);
+      }
+    }
+
+    // 2. Fallback sang GM_xmlhttpRequest (bỏ qua mọi rào cản sandbox/CORS)
+    if (typeof GM_xmlhttpRequest === 'function') {
+      return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+          method: 'POST',
+          url,
+          headers,
+          data: bodyStr,
+          onload: (response) => {
+            try {
+              if (response.status >= 200 && response.status < 300) {
+                const json = JSON.parse(response.responseText);
+                if (json && json.success !== false) {
+                  return resolve(json.data || []);
+                }
+                return reject(new Error(json?.message || `API ${endpoint} không thành công`));
+              }
+              reject(new Error(`API ${endpoint} trả về HTTP ${response.status}`));
+            } catch (parseErr) {
+              reject(parseErr);
+            }
+          },
+          onerror: (err) => reject(new Error(`GM_xmlhttpRequest lỗi cho ${endpoint}: ${err?.statusText || 'Lỗi mạng'}`)),
+          ontimeout: () => reject(new Error(`Timeout API ${endpoint}`)),
+        });
+      });
+    }
+
+    throw new Error(`Không thể thực hiện request API ${endpoint}`);
+  }
+
+  async function acpFetchStoresFromAsmApi(token) {
+    try {
+      const data = await acpFetchBiApi('common/filter-store-getbyasmlist', {
+        KEYWORD: '',
+        PAGEINDEX: 1,
+        PAGESIZE: 10000000,
+        PERKEY: '',
+        AMIDS: null,
+        RSMIDS: null,
+        AsUser: null,
+        COMPANYIDLIST: null,
+        CHAINIDLIST: null,
+      }, token);
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map(item => ({
+          id: String(item.id),
+          name: item.Value || String(item.id),
+        }));
+      }
+    } catch (e) {
+      console.warn('[BI-Sync] filter-store-getbyasmlist fallback:', e);
+    }
+    return [];
+  }
+
+  function acpSerializeSummaryRealtime(cardData, rowsData) {
+    const card = cardData && cardData.length > 0 ? cardData[0] : (cardData || {});
+    const revenueKfactor = Math.round(Number(card.revenue_kfactor || 0));
+    const targetKfactor = Math.round(Number(card.target_kfactor || 0));
+    const htTargetQD = targetKfactor > 0 
+      ? ((Number(card.revenue_kfactor_cum || card.revenue_kfactor || 0) / targetKfactor) * 100).toFixed(1) + '%'
+      : '0.0%';
+    const avg3mKfactor = Number(card.avg3month_kfactor || 0);
+    const ttDiff = avg3mKfactor > 0 
+      ? (((Number(card.revenue_kfactor || 0) - avg3mKfactor) / avg3mKfactor) * 100).toFixed(1)
+      : '0.0';
+    const ttTb3t = ttDiff.startsWith('-') ? `${ttDiff}%` : `+${ttDiff}%`;
+    const numdayCum = Number(card.numday_cum || 0);
+    const numdayMonth = Number(card.numday_month || 30);
+    const dtDuKien = numdayCum > 0 
+      ? Math.round((Number(card.revenue_kfactor_cum || card.revenue_kfactor || 0) / numdayCum) * numdayMonth)
+      : revenueKfactor;
+    const visitors = Number(card.svc_visitors || 0);
+    const bills = Number(card.svc_bills || 0);
+    const tlpv = visitors > 0 ? ((bills / visitors) * 100).toFixed(1) + '%' : '0.0%';
+    const revThuc = Number(card.revenue || 0);
+    const revTg = Number(card.revenue_tragop || 0);
+    const tyTrongTg = revThuc > 0 ? ((revTg / revThuc) * 100).toFixed(1) + '%' : '0.0%';
+
+    const rowLines = [];
+    let sumSl = 0, sumQd = 0, sumThuc = 0, sumTarget = 0, sumTb3t = 0, sumTg = 0;
+
+    const list = Array.isArray(rowsData) ? rowsData : [];
+    for (const row of list) {
+      const storeName = `${row.rowcode || ''} - ${row.rowname || ''}`.replace(/^[-\s]+/, '');
+      const sl = Math.round(Number(row.quantity || 0));
+      const qd = Math.round(Number(row.revenue_kfactor || 0));
+      const thuc = Math.round(Number(row.revenue || 0));
+      const target = Math.round(Number(row.target_kfactor || row.target || 0));
+      const ht = target > 0 ? ((Number(row.revenue_kfactor_cum || row.revenue_kfactor || 0) / target) * 100).toFixed(1) + '%' : '0.0%';
+      const tb3t = Math.round(Number(row.avg3month_kfactor || row.avg3month || 0));
+      const rowTtDiff = tb3t > 0 ? (((Number(row.revenue_kfactor || 0) - tb3t) / tb3t) * 100).toFixed(1) : '0.0';
+      const tt = rowTtDiff.startsWith('-') ? `${rowTtDiff}%` : `+${rowTtDiff}%`;
+      const tg = Math.round(Number(row.revenue_tragop || 0));
+      const pctTg = thuc > 0 ? ((tg / thuc) * 100).toFixed(1) + '%' : '0.0%';
+
+      sumSl += sl; sumQd += qd; sumThuc += thuc; sumTarget += target; sumTb3t += tb3t; sumTg += tg;
+      rowLines.push(`${storeName}\t${sl.toLocaleString('en-US')}\t${qd.toLocaleString('en-US')}\t100.0%\t${thuc.toLocaleString('en-US')}\t${target.toLocaleString('en-US')}\t${ht}\t${tb3t.toLocaleString('en-US')}\t${tt}\t${tg.toLocaleString('en-US')}\t${pctTg}`);
+    }
+
+    const totalHt = sumTarget > 0 ? ((sumQd / sumTarget) * 100).toFixed(1) + '%' : '0.0%';
+    const totalTtDiff = sumTb3t > 0 ? (((sumQd - sumTb3t) / sumTb3t) * 100).toFixed(1) : '0.0';
+    const totalTt = totalTtDiff.startsWith('-') ? `${totalTtDiff}%` : `+${totalTtDiff}%`;
+    const totalPctTg = sumThuc > 0 ? ((sumTg / sumThuc) * 100).toFixed(1) + '%' : '0.0%';
+
+    return [
+      'Dashboards',
+      'Doanh thu hợp nhất',
+      'DT quy đổi',
+      revenueKfactor.toLocaleString('en-US'),
+      '% HT target (LK)',
+      htTargetQD,
+      `Target trọn kỳ ${targetKfactor.toLocaleString('en-US')}`,
+      'TT vs TB 3 tháng',
+      ttTb3t,
+      'DT dự kiến',
+      dtDuKien.toLocaleString('en-US'),
+      'TLPVTC hôm nay',
+      tlpv,
+      `${bills.toLocaleString('en-US')} bill / ${visitors.toLocaleString('en-US')} khách`,
+      'Tỉ trọng trả góp',
+      tyTrongTg,
+      'Siêu thị\tSỐ LƯỢNG\tDOANH THU QĐ\t% TỈ TRỌNG\tDOANH THU\tTARGET\t% HT TARGET (LK)\tTB 3 THÁNG\t% TT\tDT TRẢ GÓP\t% TRẢ GÓP',
+      ...rowLines,
+      `Tổng (1 dòng)\t${sumSl.toLocaleString('en-US')}\t${sumQd.toLocaleString('en-US')}\t100.0%\t${sumThuc.toLocaleString('en-US')}\t${sumTarget.toLocaleString('en-US')}\t${totalHt}\t${sumTb3t.toLocaleString('en-US')}\t${totalTt}\t${sumTg.toLocaleString('en-US')}\t${totalPctTg}`
+    ].join('\n');
+  }
+
+  // competitiontype (đối chiếu số liệu thật 09/2026): 2 & 6 tính theo SỐ LƯỢNG (vd SIM 94.983/75.241 = 126,24%),
+  // các loại khác theo DOANH THU. Trước 7.8 chỉ coi là số lượng khi doanh thu = 0 → SIM bị tính theo doanh thu.
+  function acpCompIsQty(item) {
+    const t = Number(item.competitiontype);
+    if (t === 2 || t === 6) return true;
+    if (t) return false;
+    return Number(item.quantity || 0) > 0 && Number(item.revenue || 0) === 0;
+  }
+
+  function acpSerializeCompetitionRealtime(compData) {
+    const list = Array.isArray(compData) ? compData : [];
+    const blocks = [];
+    for (const item of list) {
+      const pName = item.programname || 'Chương trình';
+      const sName = item.salegroupname || 'Siêu thị';
+      const isQtyOnly = acpCompIsQty(item);
+      const metricHeader = isQtyOnly ? 'SLLK' : 'DOANH THU';
+      const metricVal = isQtyOnly ? Math.round(Number(item.quantity || 0)) : Math.round(Number(item.revenue || 0));
+      const targetVal = Math.round(Number(item.target || 0));
+      const htVal = Math.round(Number(item.targetpercent_month || 0));
+      blocks.push(`${pName}\n${metricHeader}\tTARGET\t% HT THÁNG\n${sName}\t${metricVal}\t${targetVal}\t${htVal}`);
+    }
+    return blocks.join('\n');
+  }
+
+  // Thi đua LUỸ KẾ: đúng khuôn bảng MWG Luỹ kế mà ô "Thi đua Luỹ kế" đang đọc —
+  // "<chương trình>\t<SLLK|DTLK>\tTarget\t% HT Target Tháng\t% HT Dự Kiến\tTarget V.Trội\t%HTDK V.Trội",
+  // rồi dòng siêu thị, rồi dòng "Tổng" làm dòng đệm (bộ đọc coi dòng ngay trước header là tên chương trình).
+  function acpSerializeCompetitionLuyKe(compData) {
+    const list = Array.isArray(compData) ? compData : [];
+    const lines = ['Chương trình thi đua Luỹ kế'];
+    const pct = (v) => (v === null || v === undefined || v === '' ? '-' : `${Number(v).toFixed(2)}%`);
+    const byProgram = new Map();
+    for (const item of list) {
+      const key = item.programid || item.programname;
+      if (!byProgram.has(key)) byProgram.set(key, []);
+      byProgram.get(key).push(item);
+    }
+    for (const items of byProgram.values()) {
+      const first = items[0];
+      const isQty = acpCompIsQty(first);
+      lines.push(`${first.programname || 'Chương trình'}\t${isQty ? 'SLLK' : 'DTLK'}\tTarget\t% HT Target Tháng\t% HT Dự Kiến\tTarget V.Trội\t%HTDK V.Trội`);
+      let sumVal = 0, sumTarget = 0;
+      for (const item of items) {
+        const val = Math.round(Number(isQty ? item.quantity : item.revenue) || 0);
+        const target = Math.round(Number(item.target || 0));
+        sumVal += val; sumTarget += target;
+        lines.push(`${item.salegroupname || 'Tổng'}\t${val}\t${target}\t${pct(item.targetpercent_month)}\t${pct(item.targetpercent_predict)}\t-\t-`);
+      }
+      const htTong = sumTarget > 0 ? `${((sumVal / sumTarget) * 100).toFixed(2)}%` : '-';
+      lines.push(`Tổng\t${sumVal}\t${sumTarget}\t${htTong}\t${items.length === 1 ? pct(first.targetpercent_predict) : '-'}\t-\t-`);
+    }
+    return lines.join('\n');
+  }
+
+  // Dòng Thi đua có phải dòng NHÂN VIÊN không. API ghi rõ ở `columnname` ("STAFFUSER"); dòng siêu thị/khu vực có
+  // salegroupid cũng là SỐ (vd 9567) nên chỉ nhìn "salegroupid toàn số" là nhận nhầm 1 dòng siêu thị thành nhân viên.
+  function acpCompIsStaffRow(r) {
+    if (!r) return false;
+    const col = String(r.columnname || '').toUpperCase();
+    if (col) return col === 'STAFFUSER';
+    return /^\d+$/.test(String(r.salegroupid || r.staffuser || ''));
+  }
+
+  // Thi đua theo NHÂN VIÊN của 1 siêu thị (bản 7.17). Trang MWG: chọn Siêu thị 910 → bảng hiện 1 dòng siêu thị → bấm
+  // vào thì gọi {VIEWLEVEL:"STORE", VIEWIDS:"9567", STOREIDS:"910"} — 9567 là salegroupid của DÒNG SIÊU THỊ, không
+  // phải mã kho. Bản 7.10–7.16 gửi VIEWIDS = mã kho nên nhận về rỗng → ô Thi đua nhân viên không bao giờ được cập nhật.
+  // Cách dò (dừng ở lần đầu ra dòng STAFFUSER):
+  //  1. Mã đã nhớ từ lần trước (GM, theo kho) — thường chỉ tốn 1 lượt gọi.
+  //  2. Bảng Thi đua lọc đúng siêu thị (ISVIEWSTORE 1 rồi 0): lấy salegroupid các dòng KHÔNG phải nhân viên, mỗi mã thử
+  //     VIEWLEVEL STORE; chưa ra thì khoan tiếp 1 tầng theo `columnname` của dòng đó (Miền → … → Siêu thị), tối đa 5 tầng.
+  //  3. Cách cũ: VIEWIDS = mã kho, rồi VIEWIDS null.
+  async function acpFetchCompetitionStaff(st, monthKey, token) {
+    const storeId = String(st.id);
+    const goi = (viewLevel, viewIds, isViewStore) => acpFetchBiApi('competition-bymsg-get', {
+      MONTHKEY: monthKey,
+      VIEWLEVEL: viewLevel,
+      VIEWIDS: viewIds == null ? null : String(viewIds),
+      ISVIEWSTORE: isViewStore ? 1 : 0,
+      TIMETYPE: 2,
+      STOREIDS: storeId,
+      PAGESIZE: 0,
+    }, token).then((d) => (Array.isArray(d) ? d : []), () => []);
+    const coNhanVien = (rows) => rows.some(acpCompIsStaffRow);
+    const daThu = new Set();
+    const cacheKey = `BI_COMP_STORE_VIEWID_${storeId}`;
+    const thuStore = async (vid) => {
+      const k = vid == null ? 'null' : String(vid);
+      if (daThu.has(k)) return null;
+      daThu.add(k);
+      const rows = await goi('STORE', vid, false);
+      if (!coNhanVien(rows)) return null;
+      if (vid != null) { try { gmSet(cacheKey, String(vid)); } catch (_) {} }
+      console.log(`[BI-Sync] [API] Thi đua nhân viên ${st.name}: VIEWIDS ${k} → ${rows.length} dòng`);
+      return rows;
+    };
+    // Dòng nhóm (không phải nhân viên, không phải "online") — ưu tiên dòng ghi đúng mã kho này
+    const dongNhom = (rows) => {
+      const g = rows.filter((r) => !acpCompIsStaffRow(r) && r.salegroupid != null && /^\d+$/.test(String(r.salegroupid)));
+      const seen = new Set();
+      const out = [];
+      for (const r of g.filter((x) => String(x.storeid) === storeId).concat(g)) {
+        const k = `${r.columnname || ''}|${r.salegroupid}`;
+        if (!seen.has(k)) { seen.add(k); out.push(r); }
+      }
+      return out.slice(0, 4);
+    };
+
+    let cached = null;
+    try { cached = await gmGet(cacheKey, null); } catch (_) {}
+    if (cached) { const r = await thuStore(cached); if (r) return r; }
+
+    // Thử ngay mã kho và null trước (giải quyết 95% trường hợp ngay lập tức 1 request)
+    for (const vid of [storeId, null]) { const r = await thuStore(vid); if (r) return r; }
+
+    for (const isViewStore of [true, false]) {
+      let tang = [{ level: 'COMPANY', vid: null }];
+      for (let sau = 0; sau < 2 && tang.length > 0; sau++) {
+        const tiep = [];
+        for (const t of tang) {
+          const rows = t.level === 'COMPANY' ? await goi('COMPANY', null, isViewStore) : await goi(t.level, t.vid, isViewStore);
+          if (coNhanVien(rows)) {
+            if (t.level === 'STORE' && t.vid != null) { try { gmSet(cacheKey, String(t.vid)); } catch (_) {} }
+            return rows;
+          }
+          for (const r of dongNhom(rows)) {
+            const hit = await thuStore(r.salegroupid);
+            if (hit) return hit;
+            const lv = String(r.columnname || '').toUpperCase();
+            if (lv && lv !== 'STORE' && lv !== t.level) tiep.push({ level: lv, vid: r.salegroupid });
+          }
+        }
+        tang = tiep.slice(0, 3);
+      }
+    }
+
+    return [];
+  }
+
+  // THI ĐUA theo NHÂN VIÊN của 1 siêu thị (competition-bymsg-get VIEWLEVEL "STORE" + STOREIDS, mẫu thật 09/2026 — 971 dòng
+  // = 39 chương trình × nhân viên). Ra đúng khuôn ô "Thi đua" của siêu thị (parseCompetitionData, định dạng BI mới): mỗi
+  // chương trình = dòng TÊN riêng, dòng "DOANH THU"|"SỐ LƯỢNG" riêng, rồi "<mã> - <tên>\t<giá trị>" từng nhân viên.
+  // (Để tên chung dòng với "DOANH THU" bằng tab thì bộ đọc bỏ tên, ra "Chương trình 0" — đã thử.) Bộ đọc lấy tên = dòng
+  // gần nhất phía trên KHÔNG phải "dòng rác trang" (bắt đầu bằng siêu thị/ngành hàng/vùng…, chứa "chương trình", toàn số…)
+  // → tên kiểu đó phải đổi nhẹ, nếu không nó lấy nhầm dòng nhân viên cuối của chương trình trước làm tên.
+  // Doanh thu API tính bằng TRIỆU có lẻ (vd 154.94) — ô Thi đua hiển thị DT theo "Tr" → giữ 2 chữ số lẻ; số lượng số nguyên.
+  // Bỏ dòng "online" (không phải nhân viên) và dòng của siêu thị khác nếu API có trả lẫn.
+  function acpShortenStoreName(name) {
+    if (!name || typeof name !== 'string') return '';
+    if (!name.includes(' - ')) return name.trim();
+    let shortName = name.split(' - ').pop().trim();
+    shortName = shortName.replace(/^(Thửa\s*)?\d+\s*/, '').replace(/Thử/g, '').trim();
+    return shortName;
+  }
+
+  function acpSerializeCompetitionStaff(rows, storeId) {
+    const list = Array.isArray(rows) ? rows : (rows && Array.isArray(rows.data) ? rows.data : []);
+    const byProgram = new Map();
+    const targetStoreCode = String(storeId || '').match(/^\d+/)?.[0] || String(storeId || '');
+    for (const r of list) {
+      const id = String(r.salegroupid || r.staffuser || '');
+      if (!/^\d+$/.test(id) || !acpCompIsStaffRow(r)) continue;
+      if (targetStoreCode && r.storeid != null && String(r.storeid) !== targetStoreCode) continue;
+      const key = r.programid || r.programname;
+      if (!byProgram.has(key)) byProgram.set(key, []);
+      byProgram.get(key).push(r);
+    }
+    if (byProgram.size === 0) return '';
+    const tenAnToan = (ten) => {
+      let t = String(ten || '').trim().replace(/chương trình/gi, 'CT');
+      if (!t || /^(\d+|TOP|BOTTOM|-)$/i.test(t) || /đã copy/i.test(t)
+        || /^(http|dashboards|tìm báo cáo|cập nhật lúc|tải lại|xuất excel|chép link|chép bảng|toàn công ty|lũy kế|luỹ kế|danh sách|toggle theme|miền|vùng|khu vực|siêu thị|ngành hàng)/i.test(t)) {
+        t = `TĐ ${t || 'CT'}`;
+      }
+      return t;
+    };
+    // Dòng đầu chứa "chương trình" để ô Thi đua nhận ra là dữ liệu thi đua (validateThiDuaData); bộ đọc coi là dòng rác
+    const lines = ['Thi đua nhân viên theo chương trình'];
+    for (const items of byProgram.values()) {
+      const first = items[0];
+      const isQty = acpCompIsQty(first);
+      lines.push(tenAnToan(first.programname), isQty ? 'SỐ LƯỢNG' : 'DOANH THU');
+      const vals = items.map((r) => ({
+        name: `${r.salegroupid || r.staffuser} - ${r.salegroupname || ''}`.trim(),
+        v: Number(isQty ? r.quantity : r.revenue) || 0,
+      })).sort((x, y) => y.v - x.v);
+      for (const x of vals) lines.push(`${x.name}\t${isQty ? Math.round(x.v) : x.v.toFixed(2)}`);
+    }
+    return lines.join('\n');
+  }
+
+  // TRẢ CHẬM theo NHÂN VIÊN (tra-cham-matrix-get, VIEWLEVEL "STAFF", mẫu thật 09/2026): mỗi dòng API = 1 nhân viên × 1 đối tác.
+  // Ra đúng khuôn ô "Trả chậm" (parseInstallmentData, định dạng A): "<mã> - <tên>\tDT trả góp\tDT siêu thị\tTỷ trọng\t(DT,%)…"
+  // theo thứ tự đối tác ở dòng tiêu đề. Đối tác bộ đọc nhận ra (HomeCredit, FECredit, KREDIVO, HPL, SMARTPOS, Samsung,
+  // Shinhan, PAYLATER…) xếp TRƯỚC, đối tác lạ (vd "Kim Ngân Pay") xếp SAU — bộ đọc chỉ ghép cặp theo đối tác nó nhận ra,
+  // để lạ ở giữa thì mọi cột sau bị lệch. Số làm tròn 2 chữ số: "1.234" bị bộ đọc hiểu là 1234.
+  function acpSerializeInstallmentStaff(rows) {
+    const list = Array.isArray(rows) ? rows : (rows && Array.isArray(rows.data) ? rows.data : []);
+    const known = ['HomeCredit', 'FECredit', 'Shinhan', 'SMARTPOS', 'HPL', 'KREDIVO', 'Samsung', 'TPBANK', 'PAYLATER', 'EVO', 'Payoo'];
+    const isKnown = (n) => known.some((k) => String(n).toUpperCase().includes(k.toUpperCase()));
+    const f2 = (v) => (Number(v) || 0).toFixed(2);
+    const emps = new Map();
+    const partners = [];
+    for (const r of list) {
+      const id = String(r.group_id || '');
+      if (!/^\d+$/.test(id)) continue; // bỏ "administrator - Admin"
+      if (!emps.has(id)) emps.set(id, { name: `${id} - ${r.group_name || ''}`.trim(), tg: r.total_revenue_tg, store: r.revenue_store, ratio: r.installment_ratio, byPartner: {} });
+      const pn = r.partnerinstallmentname;
+      if (pn) {
+        if (!partners.includes(pn)) partners.push(pn);
+        emps.get(id).byPartner[pn] = { dt: r.revenue_tg, pct: r.ratio_tg };
+      }
+    }
+    const order = partners.filter(isKnown).concat(partners.filter((p) => !isKnown(p)));
+    const lines = ['Nhân viên\tDT Trả góp\tDT Siêu thị\tTỷ trọng\t' + order.map((p) => `${p}\t%`).join('\t')];
+    let sumTg = 0, sumStore = 0;
+    const sumP = {};
+    for (const e of emps.values()) {
+      sumTg += Number(e.tg) || 0; sumStore += Number(e.store) || 0;
+      const cells = order.map((p) => {
+        const c = e.byPartner[p];
+        sumP[p] = (sumP[p] || 0) + (c ? Number(c.dt) || 0 : 0);
+        return c ? `${f2(c.dt)}\t${f2(c.pct)}` : '0.00\t0.00';
+      });
+      lines.push(`${e.name}\t${f2(e.tg)}\t${f2(e.store)}\t${f2(e.ratio)}\t${cells.join('\t')}`);
+    }
+    const tongCells = order.map((p) => `${f2(sumP[p] || 0)}\t${sumTg > 0 ? f2(((sumP[p] || 0) / sumTg) * 100) : '0.00'}`);
+    lines.push(`Tổng\t${f2(sumTg)}\t${f2(sumStore)}\t${sumStore > 0 ? f2((sumTg / sumStore) * 100) : '0.00'}\t${tongCells.join('\t')}`);
+    return lines.join('\n');
+  }
+
+  // Luỹ kế: điền Target & % HT nếu API có (target_kfactor/target); Realtime giữ "—" như bảng MWG Realtime.
+  function acpLkTargetCells(item, luyKe) {
+    if (!luyKe) return ['—', '—'];
+    const target = Math.round(Number(item.target_kfactor || item.target || 0));
+    if (!(target > 0)) return ['—', '—'];
+    const ht = ((Number(item.revenue_kfactor || 0) / target) * 100).toFixed(1) + '%';
+    return [target.toLocaleString('en-US'), ht];
+  }
+
+  function acpSerializeIndustryRealtime(industryRows, luyKe) {
+    const list = Array.isArray(industryRows) ? industryRows : [];
+    const lines = [
+      'NGÀNH HÀNG / NHÓM HÀNG\tSỐ LƯỢNG\tDOANH THU QĐ\t% TỈ TRỌNG\tDOANH THU\tTARGET\t% HT TARGET (LK)\tTB 3 THÁNG\t% TT\tDT TRẢ GÓP\t% TRẢ GÓP'
+    ];
+    let sumSl = 0, sumQd = 0, sumThuc = 0, sumTb3t = 0, sumTg = 0;
+
+    for (const item of list) {
+      const name = `${item.rowcode || ''} - ${item.rowname || ''}`.replace(/^[-\s]+/, '');
+      const sl = Math.round(Number(item.quantity || 0));
+      const qd = Math.round(Number(item.revenue_kfactor || 0));
+      const thuc = Math.round(Number(item.revenue || 0));
+      const tb3t = Math.round(Number(item.avg3month_kfactor || item.avg3month || 0));
+      const rowTtDiff = tb3t > 0 ? (((Number(item.revenue_kfactor || 0) - tb3t) / tb3t) * 100).toFixed(1) : '0.0';
+      const tt = rowTtDiff.startsWith('-') ? `${rowTtDiff}%` : `+${rowTtDiff}%`;
+      const tg = Math.round(Number(item.revenue_tragop || 0));
+      const pctTg = thuc > 0 ? ((tg / thuc) * 100).toFixed(1) + '%' : '0.0%';
+
+      if (item.rowlevel === 'BICAT') {
+        sumSl += sl; sumQd += qd; sumThuc += thuc; sumTb3t += tb3t; sumTg += tg;
+      }
+
+      const [tgtCell, htCell] = acpLkTargetCells(item, luyKe);
+      lines.push(`${name}\t${sl.toLocaleString('en-US')}\t${qd.toLocaleString('en-US')}\t100.0%\t${thuc.toLocaleString('en-US')}\t${tgtCell}\t${htCell}\t${tb3t.toLocaleString('en-US')}\t${tt}\t${tg.toLocaleString('en-US')}\t${pctTg}`);
+    }
+
+    const totalTtDiff = sumTb3t > 0 ? (((sumQd - sumTb3t) / sumTb3t) * 100).toFixed(1) : '0.0';
+    const totalTt = totalTtDiff.startsWith('-') ? `${totalTtDiff}%` : `+${totalTtDiff}%`;
+    const totalPctTg = sumThuc > 0 ? ((sumTg / sumThuc) * 100).toFixed(1) + '%' : '0.0%';
+
+    lines.push(`Tổng\t${sumSl.toLocaleString('en-US')}\t${sumQd.toLocaleString('en-US')}\t100.0%\t${sumThuc.toLocaleString('en-US')}\t—\t—\t${sumTb3t.toLocaleString('en-US')}\t${totalTt}\t${sumTg.toLocaleString('en-US')}\t${totalPctTg}`);
+    return lines.join('\n');
+  }
+
+  /**
+   * Kiểm tra xem chuỗi/dữ liệu ngành hàng có hợp lệ không (có ít nhất 1 dòng ngành hàng con thực tế).
+   */
+  function acpIsIndustryDataValid(indTextOrData) {
+    if (!indTextOrData) return false;
+    if (Array.isArray(indTextOrData)) {
+      if (indTextOrData.length === 0) return false;
+      return indTextOrData.some(item => 
+        Boolean(item && (item.rowname || item.rowcode) && 
+        (Number(item.quantity || 0) > 0 || Number(item.revenue || 0) > 0 || Number(item.revenue_kfactor || 0) > 0 || Number(item.target || item.target_kfactor || 0) > 0 || Number(item.avg3month || item.avg3month_kfactor || 0) > 0))
+      );
+    }
+    if (typeof indTextOrData === 'string') {
+      const trimmed = indTextOrData.trim();
+      if (trimmed.length < 50) return false;
+      const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
+      // Tìm dòng dữ liệu con thực tế (không phải header, không phải dòng Tổng)
+      const dataRows = lines.filter(l => {
+        const firstCell = l.split('\t')[0].trim().toLowerCase();
+        return !firstCell.includes('ngành hàng') && firstCell !== 'tổng' && firstCell !== '—';
+      });
+      return dataRows.length > 0;
+    }
+    return false;
+  }
+
+  /**
+   * Gọi API ngành hàng BI cho 1 viewId cụ thể.
+   */
+  async function acpCallIndustryApi(viewId, fromDateKey, toDateKey, isLuyKe, token) {
+    if (!viewId) return null;
+    try {
+      const data = await acpFetchBiApi('revenue-consolidated-get', {
+        FROMDATE: fromDateKey,
+        TODATE: toDateKey,
+        VIEWLEVEL: 'STORE',
+        VIEWIDS: String(viewId).trim(),
+        CHAINIDS: null,
+        MAINGROUPIDS: null,
+        SUBGROUPIDS: null,
+        GROUPBY: 'BICAT',
+        TIMETYPE: isLuyKe ? 2 : 1, // 1 = Realtime; 2 = Luỹ kế
+        OUTPUTTYPEIDS: null,
+        OUTPUTTYPEEXCLUDES: null,
+        PAGEINDEX: 1,
+        PAGESIZE: 0,
+      }, token);
+      const list = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+      return list;
+    } catch (e) {
+      console.warn(`[BI-Sync] [API] Lỗi gọi API ngành hàng viewId=${viewId}:`, e);
+      return null;
+    }
+  }
+
+  /**
+   * Tải dữ liệu ngành hàng cho 1 siêu thị kết hợp vòng lặp kiểm tra xác thực:
+   * "Nếu không có dữ liệu phải chạy lại hoặc đợi có dữ liệu mới tiếp tục lấy dữ liệu khu vực khác.
+   * Đảm bảo khi hoàn tất phải có dữ liệu"
+   */
+  async function acpFetchSingleStoreIndustryWithRetry(st, fromDateKey, toDateKey, isLuyKe, token, maxRetries = 4, onProgress = null) {
+    const stId = String(st.id || '').trim();
+    const numId = stId.match(/^\d+/)?.[0] || String(st.name || '').match(/^\d+/)?.[0];
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      if (attempt > 1 && onProgress) {
+        onProgress(`Siêu thị ${st.name}: đang đợi dữ liệu ngành hàng (thử lại lần ${attempt}/${maxRetries})...`);
+      }
+
+      // 1. Thử gọi theo stId
+      let list = await acpCallIndustryApi(stId, fromDateKey, toDateKey, isLuyKe, token);
+
+      // 2. Fallback sang numId nếu stId chưa có dữ liệu và numId khác stId
+      if ((!list || list.length === 0) && numId && numId !== stId) {
+        list = await acpCallIndustryApi(numId, fromDateKey, toDateKey, isLuyKe, token);
+      }
+
+      if (list && list.length > 0) {
+        const serialized = acpSerializeIndustryRealtime(list, isLuyKe);
+        if (acpIsIndustryDataValid(serialized)) {
+          return { raw: list, serialized };
+        }
+      }
+
+      // Nếu chưa có dữ liệu và còn lượt retry: ĐỢI tăng dần để server giải toả nghẽn
+      if (attempt < maxRetries) {
+        const delayMs = attempt === 1 ? 1500 : (attempt === 2 ? 2500 : 3500);
+        console.warn(`[BI-Sync] [API] Siêu thị ${st.name} lần ${attempt} chưa có ngành hàng. Đang đợi ${delayMs}ms để thử lại...`);
+        await sleep(delayMs);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Lưu chuỗi ngành hàng vào map theo đa khóa để Dashboard luôn tìm thấy.
+   */
+  function acpStoreIndustryInMap(industryByStore, st, serializedInd) {
+    if (!serializedInd || !acpIsIndustryDataValid(serializedInd)) return;
+    if (st.name) industryByStore[st.name] = serializedInd;
+    if (st.id) industryByStore[st.id] = serializedInd;
+    const numId = String(st.id || '').match(/^\d+/)?.[0] || String(st.name || '').match(/^\d+/)?.[0];
+    if (numId) industryByStore[numId] = serializedInd;
+    
+    const shortName = acpShortenStoreName(st.name);
+    if (shortName) {
+      industryByStore[shortName] = serializedInd;
+      industryByStore[shortName.toUpperCase()] = serializedInd;
+      const cleanName = shortName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+      if (cleanName) {
+        industryByStore[cleanName] = serializedInd;
+        industryByStore[cleanName.toUpperCase()] = serializedInd;
+      }
+    }
+
+    if (typeof st.name === 'string' && st.name.includes(' - ')) {
+      const rawAfterDash = st.name.split(' - ').pop().trim();
+      if (rawAfterDash) {
+        industryByStore[rawAfterDash] = serializedInd;
+        industryByStore[rawAfterDash.toUpperCase()] = serializedInd;
+        const cleanAfterDash = rawAfterDash.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+        if (cleanAfterDash) {
+          industryByStore[cleanAfterDash] = serializedInd;
+          industryByStore[cleanAfterDash.toUpperCase()] = serializedInd;
+        }
+      }
+    }
+  }
+
+  /**
+   * Kiểm tra siêu thị đã có dữ liệu hợp lệ trong map chưa.
+   */
+  function acpFindIndustryInMap(industryByStore, st) {
+    if (!industryByStore || !st) return null;
+    const shortName = acpShortenStoreName(st.name);
+    const cleanName = shortName ? shortName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim() : '';
+    const numId = String(st.id || '').match(/^\d+/)?.[0] || String(st.name || '').match(/^\d+/)?.[0];
+    
+    return industryByStore[st.name] ||
+           industryByStore[st.id] ||
+           (numId && industryByStore[numId]) ||
+           (shortName && industryByStore[shortName]) ||
+           (shortName && industryByStore[shortName.toUpperCase()]) ||
+           (cleanName && industryByStore[cleanName]) ||
+           (cleanName && industryByStore[cleanName.toUpperCase()]);
+  }
+
+  function acpSerializeStaffThuc(staffRows, luyKe) {
+    const list = Array.isArray(staffRows) ? staffRows : [];
+    const lines = [
+      'NHÂN VIÊN\tSỐ LƯỢNG\tDOANH THU\t% TỈ TRỌNG\tTARGET\t% HT TARGET\tTB 3 THÁNG\t% TT\tDT TRẢ GÓP\t% TRẢ GÓP'
+    ];
+    let sumSl = 0, sumThuc = 0, sumTg = 0;
+
+    for (const item of list) {
+      const name = `${item.rowcode || ''} - ${item.rowname || ''}`.replace(/^[-\s]+/, '');
+      const sl = Math.round(Number(item.quantity || 0));
+      const thuc = Math.round(Number(item.revenue || 0));
+      const tg = Math.round(Number(item.revenue_tragop || 0));
+      const pctTg = thuc > 0 ? ((tg / thuc) * 100).toFixed(1) + '%' : '0.0%';
+
+      sumSl += sl; sumThuc += thuc; sumTg += tg;
+      const [tgtCell, htCell] = acpLkTargetCells(item, luyKe);
+      lines.push(`${name}\t${sl.toLocaleString('en-US')}\t${thuc.toLocaleString('en-US')}\t—\t${tgtCell}\t${htCell}\t—\t—\t${tg.toLocaleString('en-US')}\t${pctTg}`);
+    }
+
+    const totalPctTg = sumThuc > 0 ? ((sumTg / sumThuc) * 100).toFixed(1) + '%' : '0.0%';
+    lines.push(`Tổng\t${sumSl.toLocaleString('en-US')}\t${sumThuc.toLocaleString('en-US')}\t100.0%\t—\t—\t—\t—\t${sumTg.toLocaleString('en-US')}\t${totalPctTg}`);
+    return lines.join('\n');
+  }
+
+  function acpSerializeStaffQd(staffRows, luyKe) {
+    const list = Array.isArray(staffRows) ? staffRows : [];
+    const lines = [
+      'NHÂN VIÊN\tSỐ LƯỢNG\tDOANH THU QĐ\t% TỈ TRỌNG\tTARGET\t% HT TARGET\tTB 3 THÁNG\t% TT\tDT TRẢ GÓP\t% TRẢ GÓP'
+    ];
+    let sumSl = 0, sumQd = 0, sumTg = 0;
+
+    for (const item of list) {
+      const name = `${item.rowcode || ''} - ${item.rowname || ''}`.replace(/^[-\s]+/, '');
+      const sl = Math.round(Number(item.quantity || 0));
+      const qd = Math.round(Number(item.revenue_kfactor || 0));
+      const tg = Math.round(Number(item.revenue_tragop || 0));
+      const pctTg = qd > 0 ? ((tg / qd) * 100).toFixed(1) + '%' : '0.0%';
+
+      sumSl += sl; sumQd += qd; sumTg += tg;
+      const [tgtCell, htCell] = acpLkTargetCells(item, luyKe);
+      lines.push(`${name}\t${sl.toLocaleString('en-US')}\t${qd.toLocaleString('en-US')}\t—\t${tgtCell}\t${htCell}\t—\t—\t${tg.toLocaleString('en-US')}\t${pctTg}`);
+    }
+
+    const totalPctTg = sumQd > 0 ? ((sumTg / sumQd) * 100).toFixed(1) + '%' : '0.0%';
+    lines.push(`Tổng\t${sumSl.toLocaleString('en-US')}\t${sumQd.toLocaleString('en-US')}\t100.0%\t—\t—\t—\t—\t${sumTg.toLocaleString('en-US')}\t${totalPctTg}`);
+    return lines.join('\n');
+  }
+
+  function acpSerializeStaffRealtime(staffRows, luyKe) {
+    const list = Array.isArray(staffRows) ? staffRows : [];
+    const lines = [
+      'NHÂN VIÊN\tSỐ LƯỢNG\tDOANH THU QĐ\t% TỈ TRỌNG\tDOANH THU\tTARGET\t% HT TARGET\tTB 3 THÁNG\t% TT\tDT TRẢ GÓP\t% TRẢ GÓP'
+    ];
+    let sumSl = 0, sumQd = 0, sumThuc = 0, sumTg = 0;
+
+    for (const item of list) {
+      const name = `${item.rowcode || ''} - ${item.rowname || ''}`.replace(/^[-\s]+/, '');
+      const sl = Math.round(Number(item.quantity || 0));
+      const qd = Math.round(Number(item.revenue_kfactor || 0));
+      const thuc = Math.round(Number(item.revenue || 0));
+      const tg = Math.round(Number(item.revenue_tragop || 0));
+      const pctTg = thuc > 0 ? ((tg / thuc) * 100).toFixed(1) + '%' : '0.0%';
+
+      sumSl += sl; sumQd += qd; sumThuc += thuc; sumTg += tg;
+      const [tgtCell, htCell] = acpLkTargetCells(item, luyKe);
+      lines.push(`${name}\t${sl.toLocaleString('en-US')}\t${qd.toLocaleString('en-US')}\t—\t${thuc.toLocaleString('en-US')}\t${tgtCell}\t${htCell}\t—\t—\t${tg.toLocaleString('en-US')}\t${pctTg}`);
+    }
+
+    const totalPctTg = sumThuc > 0 ? ((sumTg / sumThuc) * 100).toFixed(1) + '%' : '0.0%';
+    lines.push(`Tổng\t${sumSl.toLocaleString('en-US')}\t${sumQd.toLocaleString('en-US')}\t100.0%\t${sumThuc.toLocaleString('en-US')}\t—\t—\t—\t—\t${sumTg.toLocaleString('en-US')}\t${totalPctTg}`);
+    return lines.join('\n');
+  }
+
+  async function acpRunBiAutomation(jobId, mode, month) {
+    if (biJobRunning) return;
+    biJobRunning = true;
+    // Hiện bảng tiến trình ngay khi bắt đầu, trước cả lượt chờ trang nạp xong
+    acpResetSyncPanel(mode, month);
+    try { acpRenderSyncPanel(); } catch (_) {}
+    console.log(`[BI-Sync] Bắt đầu tự động cập nhật: mode=${mode}, jobId=${jobId}`);
+
+    async function reportProgress(step, totalSteps, stepName, message) {
+      const payload = {
+        source: BI_BRIDGE_SOURCE,
+        type: 'progress',
+        jobId,
+        mode,
+        step,
+        totalSteps,
+        stepName,
+        message,
+      };
+      try {
+        await gmSet(GM_KEY_BI_PROGRESS, payload);
+      } catch (_) {}
+      acpEnsureProgressOverlay(step, totalSteps, stepName, message, mode);
+    }
+
+    async function reportError(message) {
+      const payload = {
+        source: BI_BRIDGE_SOURCE,
+        type: 'error',
+        jobId,
+        message,
+      };
+      try {
+        await gmSet(GM_KEY_BI_ERROR, payload);
+      } catch (_) {}
+      acpShowOverlayError(message);
+      biJobRunning = false;
+    }
+
+    async function reportDone(results) {
+      const payload = {
+        source: BI_BRIDGE_SOURCE,
+        type: 'done',
+        jobId,
+        mode,
+        results,
+      };
+      try {
+        await gmSet(GM_KEY_BI_DONE, payload);
+        await gmSet(GM_KEY_BI_JOB, { jobId, status: 'completed' });
+      } catch (_) {}
+      acpShowOverlayDone(mode);
+      biJobRunning = false;
+    }
+
+    const results = {};
+
+    try {
+      const isLuyKe = mode === 'luyke';
+      const modeLabel = isLuyKe ? 'Luỹ kế' : 'Realtime';
+      const totalSteps = isLuyKe ? 5 : 4; // Luỹ kế có thêm Trả chậm theo nhân viên
+
+      // ====== ƯU TIÊN SỐ 1: DIRECT INTERNAL API ENGINE (SIÊU TỐC 1-2S) ======
+      // Khởi chạy ngay lập tức bằng Token có sẵn trong bộ nhớ/storage mà không cần chờ trang nạp hay click UI (tiết kiệm 30-40s)
+      await reportProgress(1, totalSteps, 'Khởi tạo API', 'Đang kết nối Direct Internal API siêu tốc...');
+      let token = await acpGetAuthToken();
+      let storeIds = await acpGetUserStoreIds();
+
+      if (!token) {
+        for (let poll = 0; poll < 10; poll++) {
+          await sleep(200);
+          token = token || (await acpGetAuthToken());
+          storeIds = storeIds || (await acpGetUserStoreIds());
+          if (token) break;
+        }
+      }
+
+        if (token) {
+          try {
+            console.log(`[BI-Sync] Kích hoạt Direct Internal API Engine thành công! Token: ${token.substring(0, 15)}...`);
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const todayKey = parseInt(`${yyyy}${mm}${dd}`, 10);
+            // REALTIME = CHỈ HÔM NAY; LUỸ KẾ = 01 đầu tháng → hôm nay.
+            // (lỗi bản 6.8–7.0: Realtime dùng 01 → hôm nay nên đổ số Luỹ kế.)
+            // Luỹ kế theo THÁNG Dashboard chọn (YYYYMM): tháng hiện tại → 01 đến hôm nay; tháng đã qua → 01 đến
+            // ngày cuối tháng (đúng payload trang MWG: 20260901 → 20260930, MONTHKEY 202609).
+            const thangNay = parseInt(`${yyyy}${mm}`, 10);
+            const thangLk = isLuyKe && /^\d{6}$/.test(String(month || '')) ? parseInt(String(month), 10) : thangNay;
+            const yLk = Math.floor(thangLk / 100), mLk = thangLk % 100;
+            const cuoiThang = new Date(yLk, mLk, 0).getDate();
+            const fromDateKey = isLuyKe ? thangLk * 100 + 1 : todayKey;
+            const toDateKey = isLuyKe ? (thangLk === thangNay ? todayKey : thangLk * 100 + cuoiThang) : todayKey;
+            const monthKey = isLuyKe ? thangLk : thangNay;
+            console.log(`[BI-Sync] ${modeLabel}: ${fromDateKey} → ${toDateKey}, MONTHKEY ${monthKey}`);
+
+            // 1. Tự động lấy danh sách siêu thị chuẩn xác qua API filter-store-getbyasmlist của portal
+            let storeList = await acpFetchStoresFromAsmApi(token);
+            let activeStoreIds = storeList.length > 0 ? storeList.map(s => s.id).join(',') : (storeIds || null);
+            console.log(`[BI-Sync] Danh sách siêu thị phát hiện ban đầu (${storeList.length}):`, storeList.map(s => s.name));
+
+            // BƯỚC 1: Doanh thu hợp nhất Realtime (Luôn chọn DT quy đổi & Trả góp)
+            await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Đang tải dữ liệu Doanh thu hợp nhất (DT quy đổi & Trả góp)...');
+            const viewLevel = activeStoreIds ? 'STORE' : 'ALL';
+            const viewIds = activeStoreIds || null;
+            const [cardData, summaryRows] = await Promise.all([
+              acpFetchBiApi('revenue-consolidated-card-get', {
+                FROMDATE: fromDateKey,
+                TODATE: toDateKey,
+                VIEWLEVEL: viewLevel,
+                VIEWIDS: viewIds,
+                CHAINIDS: null,
+                MAINGROUPIDS: null,
+                SUBGROUPIDS: null,
+                OUTPUTTYPEIDS: null,
+                OUTPUTTYPEEXCLUDES: null,
+              }, token),
+              acpFetchBiApi('revenue-consolidated-get', {
+                FROMDATE: fromDateKey,
+                TODATE: toDateKey,
+                VIEWLEVEL: viewLevel,
+                VIEWIDS: viewIds,
+                CHAINIDS: null,
+                MAINGROUPIDS: null,
+                SUBGROUPIDS: null,
+                GROUPBY: 'LEVEL',
+                OUTPUTTYPEIDS: null,
+                OUTPUTTYPEEXCLUDES: null,
+                PAGEINDEX: 1,
+                PAGESIZE: 0,
+              }, token)
+            ]);
+            results.summary = acpSerializeSummaryRealtime(cardData, summaryRows);
+            console.log('[BI-Sync] [API] Bước 1 Xong: Doanh thu hợp nhất', results.summary?.length);
+
+            // Nếu storeList từ API rỗng thì bóc tách tiếp từ summaryRows
+            if (storeList.length === 0 && Array.isArray(summaryRows)) {
+              for (const r of summaryRows) {
+                if (r.rowcode) {
+                  const id = String(r.rowcode);
+                  const name = r.rowname ? `${r.rowcode} - ${r.rowname}`.replace(/^[-\s]+/, '') : id;
+                  if (!storeList.some(s => s.id === id)) {
+                    storeList.push({ id, name });
+                  }
+                }
+              }
+              if (storeList.length > 0) {
+                activeStoreIds = storeList.map(s => s.id).join(',');
+              }
+            }
+            if (storeList.length === 0 && storeIds) {
+              storeList.push({ id: storeIds, name: storeIds });
+            }
+            console.log(`[BI-Sync] [API] Tổng cộng ${storeList.length} siêu thị sẽ đồng bộ:`, storeList.map(s => s.name));
+
+            // BƯỚC 2: Thi đua Realtime (API trả về trọn vẹn cả 39 chương trình cho mọi siêu thị trong cụm)
+            await reportProgress(2, totalSteps, 'Thi đua', 'Đang tải 39 chương trình Thi đua qua API...');
+            const compData = await acpFetchBiApi('competition-bymsg-get', {
+              MONTHKEY: monthKey,
+              VIEWLEVEL: 'COMPANY',
+              VIEWIDS: null,
+              ISVIEWSTORE: 0,
+              TIMETYPE: isLuyKe ? 2 : 1, // 1 = Realtime (trang MWG: ?timetype=1); 2 = Luỹ kế
+              STOREIDS: activeStoreIds,
+              PAGESIZE: 0,
+            }, token);
+            results.competition = isLuyKe ? acpSerializeCompetitionLuyKe(compData) : acpSerializeCompetitionRealtime(compData);
+            console.log('[BI-Sync] [API] Bước 2 Xong: Thi đua', results.competition?.length);
+
+            // BƯỚC 3: Doanh thu ngành hàng BI Realtime/Luỹ kế (revenue-consolidated-get GROUPBY BICAT)
+            const industryByStore = {};
+            await reportProgress(3, totalSteps, 'Ngành hàng BI', `Đang tải cây ngành hàng BI cho ${storeList.length} siêu thị (đợi có dữ liệu từng khu vực)...`);
+
+            // Duyệt tuần tự từng siêu thị: nếu không có dữ liệu phải đợi/thử lại trước khi tiếp tục lấy khu vực khác
+            for (let i = 0; i < storeList.length; i++) {
+              const st = storeList[i];
+              await reportProgress(3, totalSteps, 'Ngành hàng BI', `Đang lấy ngành hàng cho ${st.name} (${i + 1}/${storeList.length})...`);
+              
+              const resInd = await acpFetchSingleStoreIndustryWithRetry(
+                st, fromDateKey, toDateKey, isLuyKe, token, 4,
+                (msg) => reportProgress(3, totalSteps, 'Ngành hàng BI', msg)
+              );
+
+              if (resInd && resInd.serialized && acpIsIndustryDataValid(resInd.serialized)) {
+                acpStoreIndustryInMap(industryByStore, st, resInd.serialized);
+                console.log(`[BI-Sync] [API] Đã có dữ liệu ngành hàng cho ${st.name}`);
+              } else {
+                console.warn(`[BI-Sync] [API] Chưa lấy được ngành hàng cho ${st.name} sau lượt 1`);
+              }
+
+              // Khoảng nghỉ nhỏ 300ms giữa các siêu thị để server MWG không bị quá tải
+              if (i < storeList.length - 1) {
+                await sleep(300);
+              }
+            }
+
+            // --- HÀM KIỂM TRA TOÀN CỤM: Phát hiện siêu thị nào chưa có dữ liệu ngành hàng hợp lệ ---
+            const getMissingIndustryStores = () => storeList.filter(st => {
+              const candidate = acpFindIndustryInMap(industryByStore, st);
+              return !acpIsIndustryDataValid(candidate);
+            });
+
+            let missingStores = getMissingIndustryStores();
+
+            // --- VÒNG VÉT BỔ SUNG (CLUSTER RECOVERY SWEEP) ---
+            // Nếu vẫn còn siêu thị thiếu dữ liệu, tự động nghỉ 2s giải toả nghẽn và vét lại tối đa 2 lượt
+            let sweepRound = 1;
+            while (missingStores.length > 0 && sweepRound <= 2) {
+              console.warn(`[BI-Sync] [API] Vòng vét ${sweepRound}: còn ${missingStores.length}/${storeList.length} siêu thị chưa có ngành hàng:`, missingStores.map(s => s.name));
+              await reportProgress(3, totalSteps, 'Ngành hàng BI', `Đang rà soát và tải bổ sung ngành hàng cho ${missingStores.length} kho (lượt vét ${sweepRound})...`);
+              
+              // Nghỉ 2000ms để server MWG giải phóng tài nguyên
+              await sleep(2000);
+
+              for (let i = 0; i < missingStores.length; i++) {
+                const st = missingStores[i];
+                await reportProgress(3, totalSteps, 'Ngành hàng BI', `Vét ngành hàng cho ${st.name} (${i + 1}/${missingStores.length})...`);
+                const resInd = await acpFetchSingleStoreIndustryWithRetry(
+                  st, fromDateKey, toDateKey, isLuyKe, token, 3,
+                  (msg) => reportProgress(3, totalSteps, 'Ngành hàng BI', msg)
+                );
+                if (resInd && resInd.serialized && acpIsIndustryDataValid(resInd.serialized)) {
+                  acpStoreIndustryInMap(industryByStore, st, resInd.serialized);
+                  console.log(`[BI-Sync] [API] Vét THÀNH CÔNG cho siêu thị ${st.name}`);
+                }
+                if (i < missingStores.length - 1) await sleep(500);
+              }
+
+              missingStores = getMissingIndustryStores();
+              sweepRound++;
+            }
+
+            // Gán kết quả đại diện
+            results.industry = Object.values(industryByStore).find(v => acpIsIndustryDataValid(v)) || Object.values(industryByStore)[0] || '';
+            results.industryByStore = industryByStore;
+            console.log('[BI-Sync] [API] Bước 3 Xong: Ngành hàng BI cho', Object.keys(industryByStore).length, 'kho/key');
+
+            // BƯỚC 4: Doanh thu nhân viên (Thực & QĐ) — Tải song song cho toàn bộ siêu thị
+            const employeeByStore = {};
+            const employeeThucByStore = {};
+            const employeeQdByStore = {};
+            await reportProgress(4, totalSteps, 'Doanh thu nhân viên', `Đang tải nhân viên (Thực & QĐ) song song cho ${storeList.length} siêu thị...`);
+            await Promise.all(storeList.map(async (st) => {
+              try {
+                const staffData = await acpFetchBiApi('revenue-consolidated-staff-get', {
+                  FROMDATE: fromDateKey,
+                  TODATE: toDateKey,
+                  VIEWLEVEL: 'STORE',
+                  VIEWIDS: st.id,
+                  CHAINIDS: null,
+                  MAINGROUPIDS: null,
+                  SUBGROUPIDS: null,
+                  ORDERBY: 'REVENUE',
+                  ORDERDIR: 'DESC',
+                  PAGEINDEX: 1,
+                  PAGESIZE: 50,
+                }, token);
+                const serializedStaff = acpSerializeStaffRealtime(staffData, isLuyKe);
+                const serializedThuc = acpSerializeStaffThuc(staffData, isLuyKe);
+                const serializedQd = acpSerializeStaffQd(staffData, isLuyKe);
+                const stNumId = String(st.id || '').match(/^\d+/)?.[0] || String(st.id || '');
+                const shortSt = acpShortenStoreName(st.name);
+
+                employeeThucByStore[st.name] = serializedThuc;
+                employeeThucByStore[st.id] = serializedThuc;
+                if (stNumId) employeeThucByStore[stNumId] = serializedThuc;
+                if (shortSt) {
+                  employeeThucByStore[shortSt] = serializedThuc;
+                  employeeThucByStore[shortSt.toUpperCase()] = serializedThuc;
+                }
+
+                employeeQdByStore[st.name] = serializedQd;
+                employeeQdByStore[st.id] = serializedQd;
+                if (stNumId) employeeQdByStore[stNumId] = serializedQd;
+                if (shortSt) {
+                  employeeQdByStore[shortSt] = serializedQd;
+                  employeeQdByStore[shortSt.toUpperCase()] = serializedQd;
+                }
+
+                employeeByStore[st.name] = serializedStaff;
+                employeeByStore[st.id] = serializedStaff;
+                if (stNumId) employeeByStore[stNumId] = serializedStaff;
+                if (shortSt) {
+                  employeeByStore[shortSt] = serializedStaff;
+                  employeeByStore[shortSt.toUpperCase()] = serializedStaff;
+                }
+              } catch (err) {
+                console.warn('[BI-Sync] [API] Lỗi tải nhân viên cho', st.name, err);
+              }
+            }));
+            results.employee = Object.values(employeeThucByStore)[0] || '';
+            results.employeeThuc = results.employee;
+            results.employeeQd = Object.values(employeeQdByStore)[0] || '';
+            results.employeeByStore = employeeByStore;
+            results.employeeThucByStore = employeeThucByStore;
+            results.employeeQdByStore = employeeQdByStore;
+            console.log('[BI-Sync] [API] Bước 4 Xong: Doanh thu nhân viên (Thực & QĐ) cho', Object.keys(employeeThucByStore).length, 'siêu thị');
+
+            // BƯỚC 5 (chỉ Luỹ kế): ô "THI ĐUA & TRẢ CHẬM" của từng siêu thị — Tải song song siêu tốc:
+            // Thi đua theo nhân viên (tận dụng allCompStaff bulk + fallback acpFetchCompetitionStaff) + Trả chậm nhân viên
+            if (isLuyKe) {
+              const installmentByStore = {};
+              const competitionByStore = {};
+
+              // 1. Thử tải gộp Thi đua nhân viên toàn cụm trước (như mẫu API 971 dòng trả theo storeid từng siêu thị)
+              let allCompStaff = [];
+              try {
+                await reportProgress(5, totalSteps, 'Thi đua & Trả chậm', 'Đang tải dữ liệu thi đua cụm...');
+                const bulkComp = await acpFetchBiApi('competition-bymsg-get', {
+                  MONTHKEY: monthKey,
+                  VIEWLEVEL: 'STORE',
+                  VIEWIDS: null,
+                  ISVIEWSTORE: 0,
+                  TIMETYPE: 2,
+                  STOREIDS: activeStoreIds,
+                  PAGESIZE: 0,
+                }, token);
+                allCompStaff = Array.isArray(bulkComp) ? bulkComp : (bulkComp && Array.isArray(bulkComp.data) ? bulkComp.data : []);
+              } catch (e) {
+                console.warn('[BI-Sync] [API] Tải gộp thi đua nhân viên gặp lỗi, sẽ thử từng siêu thị:', e);
+              }
+
+              await reportProgress(5, totalSteps, 'Thi đua & Trả chậm', `Đang tải thi đua & trả chậm song song cho ${storeList.length} siêu thị...`);
+              await Promise.all(storeList.map(async (st) => {
+                const stNumId = String(st.id || '').match(/^\d+/)?.[0] || String(st.id || '');
+                const shortSt = acpShortenStoreName(st.name);
+
+                // ƯU TIÊN 1: Lấy từ kết quả tải gộp allCompStaff nếu có dữ liệu nhân viên của kho này
+                let storeCompStaff = [];
+                if (allCompStaff.length > 0) {
+                  const filtered = allCompStaff.filter((r) => 
+                    (String(r.storeid) === stNumId || String(r.storeid) === String(st.id)) && acpCompIsStaffRow(r)
+                  );
+                  if (filtered.length > 0) {
+                    storeCompStaff = filtered;
+                  }
+                }
+
+                // Nếu tải gộp chưa có nhân viên của kho này, mới gọi acpFetchCompetitionStaff dò tìm
+                if (storeCompStaff.length === 0) {
+                  try {
+                    storeCompStaff = await acpFetchCompetitionStaff(st, monthKey, token);
+                  } catch (e) {
+                    console.warn('[BI-Sync] [API] Thi đua nhân viên lỗi cho', st.name, e);
+                  }
+                }
+
+                if (storeCompStaff && storeCompStaff.length > 0) {
+                  const serializedTd = acpSerializeCompetitionStaff(storeCompStaff, stNumId || st.id);
+                  if (serializedTd) {
+                    competitionByStore[st.name] = serializedTd;
+                    competitionByStore[st.id] = serializedTd;
+                    if (stNumId) competitionByStore[stNumId] = serializedTd;
+                    if (shortSt) {
+                      competitionByStore[shortSt] = serializedTd;
+                      competitionByStore[shortSt.toUpperCase()] = serializedTd;
+                    }
+                  }
+                }
+
+                // Trả chậm nhân viên song song
+                try {
+                  const tcData = await acpFetchBiApi('tra-cham-matrix-get', {
+                    VIEWLEVEL: 'STAFF',
+                    RSMIDS: null,
+                    AMIDS: null,
+                    STOREIDS: stNumId || String(st.id),
+                    MONTHKEY: monthKey,
+                  }, token);
+                  const tcList = Array.isArray(tcData) ? tcData : (tcData && Array.isArray(tcData.data) ? tcData.data : []);
+                  if (tcList.some((r) => /^\d+$/.test(String(r.group_id || '')))) {
+                    const serializedTc = acpSerializeInstallmentStaff(tcList);
+                    if (serializedTc) {
+                      installmentByStore[st.name] = serializedTc;
+                      installmentByStore[st.id] = serializedTc;
+                      if (stNumId) installmentByStore[stNumId] = serializedTc;
+                      if (shortSt) {
+                        installmentByStore[shortSt] = serializedTc;
+                        installmentByStore[shortSt.toUpperCase()] = serializedTc;
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.warn('[BI-Sync] [API] Trả chậm nhân viên lỗi cho', st.name, e);
+                }
+              }));
+
+              results.installmentByStore = installmentByStore;
+              results.competitionByStore = competitionByStore;
+              console.log('[BI-Sync] [API] Bước 5 Xong: Thi đua & Trả chậm cho', storeList.length, 'siêu thị');
+            }
+            console.log('[BI-Sync] [API] Bước 4 Xong: Doanh thu nhân viên cho', Object.keys(employeeByStore).length, 'siêu thị');
+
+            await reportDone(results);
+            return;
+          } catch (apiErr) {
+            console.warn('[BI-Sync] Direct API Engine gặp lỗi, tự động chuyển sang UI Fallback:', apiErr);
+          }
+        } else {
+          console.warn('[BI-Sync] Không bắt được Token, tự động kích hoạt UI Automation Fallback...');
+        }
+
+      if (mode === 'realtime') {
+        const totalSteps = 4;
+        // ====== NẾU KHÔNG CÓ TOKEN HOẶC API LỖI: CHẠY UI AUTOMATION FALLBACK ======
+
+        // --- BƯỚC 1: Doanh thu hợp nhất Realtime ---
+        if (!location.pathname.includes('/dashboard/revenue-consolidated')) {
+          await navigateToBiSection('Doanh thu hợp nhất', '/dashboard/revenue-consolidated');
+          await acpWaitForLoadingComplete(35000, 700, 500);
+        }
+
+        // 1. ƯU TIÊN SỐ 1: Tự động chọn tab "Realtime" (bg-blue-600 text-white)
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Bước 1/4: Đang chọn tab "Realtime"...');
+        await ensureRealtimeTabActive();
+        await sleep(250);
+
+        // 2. Tiếp theo: Tự động bật "DT quy đổi"
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Bước 1/4: Đang bật "DT quy đổi"...');
+        await ensureToggleActive('DT quy đổi');
+        await sleep(250);
+
+        // 3. Tiếp theo: Tự động bật nút "Trả góp"
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Bước 1/4: Đang bật "Trả góp"...');
+        await ensureTraGopActive();
+        await sleep(250);
+        await acpWaitForLoadingComplete(15000, 250, 250);
+
+        // 4. Tiếp theo: Thiết lập bộ lọc Siêu thị (Chọn tất cả)
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Bước 1/4: Đang chọn tất cả siêu thị...');
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(35000, 500, 400);
+
+        // 5. Kiểm tra và đảm bảo lại một lần nữa "Realtime", "DT quy đổi" & "Trả góp" vẫn được chọn
+        await ensureRealtimeTabActive();
+        await sleep(150);
+        await ensureToggleActive('DT quy đổi');
+        await sleep(150);
+        await ensureTraGopActive();
+        await sleep(150);
+        await acpWaitForLoadingComplete(15000, 250, 250);
+
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Bước 1/4: Đang mở rộng các cấp dữ liệu...');
+        await expandAllCandidates(null, (msg) => {
+          reportProgress(1, totalSteps, 'Doanh thu hợp nhất', msg);
+        });
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        results.summary = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 1: Doanh thu hợp nhất', results.summary?.length);
+
+        // --- BƯỚC 2: Báo cáo Thi đua (CHỌN TAB "Thi đua" NGAY TẠI REVENUE-CONSOLIDATED) ---
+        await reportProgress(2, totalSteps, 'Thi đua', 'Bước 2/4: Đang chọn tab "Thi đua"...');
+        let okTabThidua = await selectTabOrSection('Thi đua');
+        if (!okTabThidua) {
+          const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], [role="tab"], span, div.cursor-pointer'));
+          const btn = candidates.find(el => acpIsVisible(el) && (el.textContent || '').toLowerCase().includes('thi đua'));
+          if (btn) {
+            acpTriggerClick(btn.closest('button, a, [role="button"], [role="tab"]') || btn);
+            await acpWaitForLoadingComplete(35000, 600, 500);
+            okTabThidua = true;
+          }
+        }
+        await acpWaitForLoadingComplete(30000, 500, 400);
+
+        await reportProgress(2, totalSteps, 'Thi đua', 'Bước 2/4: Đang kiểm tra bộ lọc Siêu thị...');
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        // Đảm bảo nút Realtime đang chọn nếu trên bảng thi đua có toggle Realtime
+        await ensureRealtimeTabActive();
+        await sleep(150);
+        await acpWaitForLoadingComplete(15000, 250, 200);
+
+        await reportProgress(2, totalSteps, 'Thi đua', 'Bước 2/4: Đang sao chép dữ liệu Thi đua Realtime...');
+        results.competition = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 2: Thi đua Realtime', results.competition?.length);
+
+        // --- BƯỚC 3: Ngành hàng BI ---
+        await reportProgress(3, totalSteps, 'Ngành hàng BI', 'Bước 3/4: Đang chọn tab "Ngành hàng BI"...');
+        let okTabNganhHang = await selectTabOrSection('Ngành hàng');
+        if (!okTabNganhHang) {
+          okTabNganhHang = await selectTabOrSection('Ngành hàng BI');
+        }
+        if (!okTabNganhHang && !location.pathname.includes('bi-category')) {
+          await navigateToBiSection('Doanh Thu Ngành Hàng BI', '/dashboard/bi-category?timetype=1');
+        }
+        await acpWaitForLoadingComplete(35000, 600, 500);
+
+        // BẮT BUỘC: Đảm bảo chuyển sang chế độ Realtime (Số liệu trong ngày), DT quy đổi, Trả góp & chọn tất cả siêu thị!
+        await reportProgress(3, totalSteps, 'Ngành hàng BI', 'Bước 3/4: Đang kích hoạt Realtime & bộ lọc ngành hàng...');
+        await ensureRealtimeTabActive();
+        await sleep(200);
+        await ensureToggleActive('DT quy đổi');
+        await sleep(200);
+        await ensureTraGopActive();
+        await sleep(200);
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(15000, 250, 200);
+
+        await reportProgress(3, totalSteps, 'Ngành hàng BI', 'Bước 3/4: Đang mở rộng các cấp ngành hàng (chỉ mở cấp hiển thị)...');
+        await expandAllCandidates(null, (msg) => {
+          reportProgress(3, totalSteps, 'Ngành hàng BI', msg);
+        }, 2);
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        results.industry = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 3: Ngành hàng BI Realtime', results.industry?.length);
+
+        // HÀM KIỂM TRA & TỰ ĐỘNG CHẠY LẠI: Nếu chưa hiển thị hoặc rỗng thì đợi và thử lại tối đa 3 lần
+        let indAttempt = 1;
+        while (!acpIsIndustryDataValid(results.industry) && indAttempt <= 3) {
+          indAttempt++;
+          console.warn(`[BI-Sync] Dữ liệu Ngành hàng BI Realtime chưa hiển thị hoặc rỗng. Đang tự động kiểm tra và thử lại (lần ${indAttempt}/3)...`);
+          await reportProgress(3, totalSteps, 'Ngành hàng BI', `Dữ liệu ngành hàng chưa hiển thị, đang đợi nạp lại (lần ${indAttempt}/3)...`);
+          await sleep(2000);
+          await ensureSelectAllChecked();
+          await acpWaitForLoadingComplete(20000, 400, 300);
+          await expandAllCandidates(null, (msg) => {
+            reportProgress(3, totalSteps, `Ngành hàng BI (lần ${indAttempt})`, msg);
+          }, 3);
+          await acpWaitForLoadingComplete(25000, 500, 300);
+          results.industry = await collectCurrentBiData();
+          console.log(`[BI-Sync] Kết quả Ngành hàng BI Realtime sau lần ${indAttempt}:`, results.industry?.length);
+        }
+
+        // --- BƯỚC 4: Doanh thu nhân viên (Ở NGUYÊN TẠI REVENUE-CONSOLIDATED, CHỌN TAB "Nhân viên") ---
+        await reportProgress(4, totalSteps, 'Doanh thu nhân viên', 'Bước 4/4: Đang chọn tab "Nhân viên"...');
+        await selectTabOrSection('Nhân viên');
+        await acpWaitForLoadingComplete(35000, 600, 500);
+
+        // BẮT BUỘC: Tự động check nút "Chi tiết doanh thu" nếu chưa bật
+        await reportProgress(4, totalSteps, 'Doanh thu nhân viên', 'Bước 4/4: Đang kiểm tra & bật "Chi tiết doanh thu"...');
+        await ensureChiTietDoanhThuActive();
+        await sleep(250);
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        // 1. Sao chép Doanh thu Quy đổi trước
+        await reportProgress(4, totalSteps, 'Doanh thu nhân viên', 'Bước 4/4: Đang bật "DT quy đổi"...');
+        await ensureToggleActive('DT quy đổi');
+        await sleep(200);
+        await acpWaitForLoadingComplete(20000, 300, 200);
+        await ensureChiTietDoanhThuActive();
+        await sleep(150);
+        await acpWaitForLoadingComplete(15000, 250, 200);
+
+        await reportProgress(4, totalSteps, 'Doanh thu nhân viên', 'Bước 4/4: Đang sao chép doanh thu nhân viên (Quy đổi)...');
+        results.employeeQd = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 4: Doanh thu nhân viên (Quy đổi)', results.employeeQd?.length);
+
+        // 2. Chuyển sang "DT thực" và sao chép Doanh thu Thực
+        await reportProgress(4, totalSteps, 'Doanh thu nhân viên', 'Bước 4/4: Đang chuyển sang "DT thực"...');
+        await ensureToggleActive('DT thực');
+        await sleep(200);
+        await acpWaitForLoadingComplete(25000, 400, 300);
+        await ensureChiTietDoanhThuActive();
+        await sleep(150);
+        await acpWaitForLoadingComplete(15000, 250, 200);
+
+        await reportProgress(4, totalSteps, 'Doanh thu nhân viên', 'Bước 4/4: Đang sao chép doanh thu nhân viên (Thực)...');
+        results.employeeThuc = await collectCurrentBiData();
+        results.employee = results.employeeThuc;
+        console.log('[BI-Sync] Đã xong Bước 4: Doanh thu nhân viên (Thực)', results.employeeThuc?.length);
+
+        await reportDone(results);
+
+      } else {
+        // --- CHẾ ĐỘ LUỸ KẾ (5 BƯỚC) ---
+        const totalSteps = 5;
+
+        // --- BƯỚC 1: Doanh thu hợp nhất Luỹ kế ---
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Đang thiết lập bộ lọc Siêu thị và Luỹ kế...');
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(15000, 300, 200);
+
+        await ensureToggleActive('Lũy kế');
+        await acpWaitForLoadingComplete(15000, 300, 200);
+
+        await ensureToggleActive('DT quy đổi');
+        await sleep(150);
+        await ensureTraGopActive();
+        await acpWaitForLoadingComplete(15000, 300, 200);
+
+        await reportProgress(1, totalSteps, 'Doanh thu hợp nhất', 'Đang mở rộng các cấp dữ liệu...');
+        await expandAllCandidates(null, (msg) => {
+          reportProgress(1, totalSteps, 'Doanh thu hợp nhất', msg);
+        });
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        results.summary = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 1: Doanh thu hợp nhất Luỹ kế', results.summary?.length);
+
+        // --- BƯỚC 2: Ngành hàng BI ---
+        await reportProgress(2, totalSteps, 'Ngành hàng BI', 'Đang chuyển sang Doanh thu ngành hàng BI...');
+        await navigateToBiSection('Doanh Thu Ngành Hàng BI', '/dashboard/revenue-category');
+        await acpWaitForLoadingComplete(40000, 800, 500);
+
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(35000, 500, 400);
+
+        await reportProgress(2, totalSteps, 'Ngành hàng BI', 'Đang mở rộng các cấp ngành hàng...');
+        await expandAllCandidates(null, (msg) => {
+          reportProgress(2, totalSteps, 'Ngành hàng BI', msg);
+        });
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        results.industry = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 2: Ngành hàng BI', results.industry?.length);
+
+        // HÀM KIỂM TRA & TỰ ĐỘNG CHẠY LẠI: Nếu chưa hiển thị hoặc rỗng thì đợi và thử lại tối đa 3 lần
+        let indLkAttempt = 1;
+        while (!acpIsIndustryDataValid(results.industry) && indLkAttempt <= 3) {
+          indLkAttempt++;
+          console.warn(`[BI-Sync] Dữ liệu Ngành hàng BI Luỹ kế chưa hiển thị hoặc rỗng. Đang tự động kiểm tra và thử lại (lần ${indLkAttempt}/3)...`);
+          await reportProgress(2, totalSteps, 'Ngành hàng BI', `Dữ liệu ngành hàng chưa hiển thị, đang đợi nạp lại (lần ${indLkAttempt}/3)...`);
+          await sleep(2000);
+          await ensureSelectAllChecked();
+          await acpWaitForLoadingComplete(20000, 400, 300);
+          await expandAllCandidates(null, (msg) => {
+            reportProgress(2, totalSteps, `Ngành hàng BI (lần ${indLkAttempt})`, msg);
+          });
+          await acpWaitForLoadingComplete(25000, 500, 300);
+          results.industry = await collectCurrentBiData();
+          console.log(`[BI-Sync] Kết quả Ngành hàng BI Luỹ kế sau lần ${indLkAttempt}:`, results.industry?.length);
+        }
+
+        // --- BƯỚC 3: Doanh thu nhân viên ---
+        await reportProgress(3, totalSteps, 'Doanh thu nhân viên', 'Đang chuyển sang tab Nhân viên...');
+        await navigateToBiSection('Doanh thu hợp nhất', '/dashboard/revenue-consolidated');
+        await acpWaitForLoadingComplete(35000, 700, 500);
+
+        await selectTabOrSection('Nhân viên');
+        await acpWaitForLoadingComplete(35000, 600, 500);
+
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(30000, 500, 400);
+
+        // BẮT BUỘC: Tự động check nút "Chi tiết doanh thu" nếu chưa bật
+        await reportProgress(3, totalSteps, 'Doanh thu nhân viên', 'Đang kiểm tra & bật "Chi tiết doanh thu"...');
+        await ensureChiTietDoanhThuActive();
+        await sleep(250);
+        await acpWaitForLoadingComplete(20000, 400, 300);
+
+        // 1. Sao chép Doanh thu Quy đổi trước
+        await reportProgress(3, totalSteps, 'Doanh thu nhân viên', 'Đang bật "DT quy đổi"...');
+        await ensureToggleActive('DT quy đổi');
+        await sleep(200);
+        await acpWaitForLoadingComplete(20000, 300, 200);
+        await ensureChiTietDoanhThuActive();
+        await sleep(150);
+        await acpWaitForLoadingComplete(15000, 250, 200);
+
+        await reportProgress(3, totalSteps, 'Doanh thu nhân viên', 'Đang sao chép doanh thu nhân viên (Quy đổi)...');
+        results.employeeQd = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 3: Nhân viên (Quy đổi)', results.employeeQd?.length);
+
+        // 2. Chuyển sang "DT thực" và sao chép Doanh thu Thực
+        await reportProgress(3, totalSteps, 'Doanh thu nhân viên', 'Đang chuyển sang "DT thực"...');
+        await ensureToggleActive('DT thực');
+        await sleep(200);
+        await acpWaitForLoadingComplete(25000, 400, 300);
+        await ensureChiTietDoanhThuActive();
+        await sleep(150);
+        await acpWaitForLoadingComplete(15000, 250, 200);
+
+        await reportProgress(3, totalSteps, 'Doanh thu nhân viên', 'Đang sao chép doanh thu nhân viên (Thực)...');
+        results.employeeThuc = await collectCurrentBiData();
+        results.employee = results.employeeThuc;
+        console.log('[BI-Sync] Đã xong Bước 3: Nhân viên (Thực)', results.employeeThuc?.length);
+
+        // --- BƯỚC 4: Thi đua ---
+        await reportProgress(4, totalSteps, 'Thi đua', 'Đang chuyển sang Thi đua...');
+        let okTabThidua = await selectTabOrSection('Thi đua');
+        if (!okTabThidua) {
+          await navigateToBiSection('Thi đua', '/dashboard/thi-dua');
+        }
+        await acpWaitForLoadingComplete(35000, 600, 500);
+
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(30000, 500, 400);
+
+        results.competition = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 4: Thi đua', results.competition?.length);
+
+        // --- BƯỚC 5: Trả chậm ---
+        await reportProgress(5, totalSteps, 'Trả chậm', 'Đang chuyển sang Báo cáo trả chậm...');
+        await navigateToBiSection('Báo cáo trả chậm', '/dashboard/tra-cham');
+        await acpWaitForLoadingComplete(40000, 800, 500);
+
+        await ensureSelectAllChecked();
+        await acpWaitForLoadingComplete(35000, 500, 400);
+
+        results.installment = await collectCurrentBiData();
+        console.log('[BI-Sync] Đã xong Bước 5: Trả chậm', results.installment?.length);
+
+        await reportDone(results);
+      }
+    } catch (err) {
+      console.error('[BI-Sync] Lỗi trong quá trình chạy tự động:', err);
+      await reportError(`Lỗi: ${err && err.message ? err.message : String(err)}`);
+    }
+  }
+
+  async function acpCheckAndRunBiJob() {
+    if (biJobRunning) return;
+
+    const urlObj = new URL(location.href);
+    let mode = urlObj.searchParams.get('ycx_mode');
+    let jobId = urlObj.searchParams.get('job_id');
+    let month = urlObj.searchParams.get('ycx_month');
+
+    if (!mode || !jobId) {
+      const hash = location.hash.replace(/^#/, '');
+      const hashParams = new URLSearchParams(hash);
+      mode = mode || hashParams.get('ycx_mode');
+      jobId = jobId || hashParams.get('job_id');
+      month = month || hashParams.get('ycx_month');
+    }
+
+    if (!mode || !jobId) {
+      try {
+        const savedJob = await gmGet(GM_KEY_BI_JOB, null);
+        if (savedJob && savedJob.status === 'pending' && Date.now() - savedJob.createdAt < 10 * 60 * 1000) {
+          mode = savedJob.mode;
+          jobId = savedJob.jobId;
+          month = month || savedJob.month || null;
+        }
+      } catch (_) {}
+    }
+
+    if (mode && jobId) {
+      try {
+        await gmSet(GM_KEY_BI_JOB, { jobId, mode, month, status: 'running', startedAt: Date.now() });
+      } catch (_) {}
+      acpRunBiAutomation(jobId, mode, month);
+    }
+  }
+
+  // Khởi tạo nút nổi + tự cập nhật nhãn theo số nút "+" đang chờ mở
+  // và lắng nghe Job tự động hoá BI
+  function initBiPage() {
+    acpEnsureButton();
+
+    setInterval(() => {
+      if (acpRunning || biJobRunning) return;
+      const btn = document.getElementById('acp-float-btn');
+      if (!btn) return;
+      const count = acpGetPlusCandidates().length;
+      btn.textContent = count > 0 ? `⚡ Copy All (${count})` : '⚡ Copy All';
+    }, 1000);
+
+    acpCheckAndRunBiJob();
+
+    try {
+      GM_addValueChangeListener(GM_KEY_BI_JOB, (_n, _o, newVal) => {
+        // CHỈ tab làm việc (mở từ Dashboard, URL có ycx_mode) mới nhận job qua kênh này. Trước 7.11 MỌI tab baocao đang
+        // mở (Báo cáo, Trả chậm… người dùng để sẵn) đều chạy cùng job → nhiều tab cùng chạy (chủ dự án gặp 2026-10-01).
+        const laTabLamViec = /[?#&]ycx_mode=/.test(location.href);
+        if (laTabLamViec && newVal && newVal.status === 'pending' && !biJobRunning) {
+          acpRunBiAutomation(newVal.jobId, newVal.mode, newVal.month);
+        }
+      });
+    } catch (_) {}
+  }
+
+  // ====== TỰ ĐỘNG YCX (7.13): report.mwgroup.vn báo cáo 77 → Lịch sử xuất excel → file về Dashboard Phân tích ======
+  // Trang báo cáo là AngularJS (ng-controller="DashboardController"); form điều kiện là scope.ListCondition, nút "Xuất
+  // excel" gọi scope.ExportData(). Script đặt điều kiện vào CHÍNH scope đó rồi gọi hàm của trang — trang tự dựng gói gửi
+  // đi & định dạng ngày như khi bấm tay, không đoán định dạng.
+  function ycxBanner(text, kind) {
+    try {
+      let el = document.getElementById('ycx-ycx-banner');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'ycx-ycx-banner';
+        el.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483646;max-width:380px;padding:10px 14px;border-radius:6px;'
+          + 'font:600 13px/1.4 system-ui,sans-serif;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.2)';
+        (document.body || document.documentElement).appendChild(el);
+      }
+      el.style.background = kind === 'error' ? COLOR_DANGER : kind === 'ok' ? COLOR_SUCCESS : COLOR_PRIMARY;
+      el.textContent = `Dashboard · ${text}`;
+    } catch (_) { /* trang chưa có body */ }
+  }
+
+  function ycxErr(step, message) { const e = new Error(message); e.step = step; return e; }
+
+  // Cửa sổ THẬT của trang (Tampermonkey: unsafeWindow) — cần để chạm angular/jQuery/alert của trang
+  const ycxWin = () => (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window);
+  const ycxPageFetch = (...a) => (ycxWin().fetch ? ycxWin().fetch.bind(ycxWin()) : fetch)(...a);
+
+  async function ycxPostJson(path, body) {
+    try {
+      return await ycxGmRequest('POST', `https://${YCX_HOSTNAME}${path}`, { 'Content-Type': 'application/json; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json, text/plain, */*' }, JSON.stringify(body));
+    } catch (e) {
+      const res = await ycxPageFetch(`https://${YCX_HOSTNAME}${path}`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json, text/plain, */*' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`${path} HTTP ${res.status}`);
+      return res.json();
+    }
+  }
+
+
+  function ycxRowsFrom(j) {
+    if (Array.isArray(j)) return j;
+    for (const k of ['Data', 'data', 'Items', 'items']) {
+      if (j && Array.isArray(j[k])) return j[k];
+      if (j && j[k] && Array.isArray(j[k].Data)) return j[k].Data;
+    }
+    return null;
+  }
+
+  // 7.13.1: gọi thẳng ManagerDownload/GetData bị máy chủ trả HTTP 415 (chủ dự án gặp 2026-10-01) → đọc Lịch sử y như
+  // người dùng làm tay: mở trang "Lịch sử xuất excel" (khung ẩn cùng tên miền), mỗi lượt TẢI LẠI trang rồi đọc bảng.
+  let ycxFrame = null;
+  function ycxLoadFrame() {
+    return new Promise((resolve, reject) => {
+      if (!ycxFrame) {
+        ycxFrame = document.createElement('iframe');
+        ycxFrame.id = 'ycx-ycx-lich-su';
+        ycxFrame.setAttribute('aria-hidden', 'true');
+        ycxFrame.style.cssText = 'position:fixed;left:-10000px;top:0;width:1200px;height:800px;border:0;visibility:hidden';
+        document.body.appendChild(ycxFrame);
+      }
+      const t = setTimeout(() => reject(new Error('Trang Lịch sử xuất excel không tải được sau 30 giây')), 30000);
+      ycxFrame.onload = () => { clearTimeout(t); resolve(ycxFrame.contentWindow); };
+      ycxFrame.src = `https://${YCX_HOSTNAME}/ManagerDownload?ycx_t=${Date.now()}`;
+    });
+  }
+
+  /** Dòng của bảng Kendo trên trang Lịch sử: chờ bảng đọc dữ liệu xong (tối đa 20s), rỗng thì trả []. */
+  async function ycxHistoryFromFrame() {
+    const fw = await ycxLoadFrame();
+    const t0 = Date.now();
+    let thayBang = 0;
+    while (Date.now() - t0 < 20000) {
+      await sleep(400);
+      let doc;
+      try { doc = fw.document; } catch (_) { throw new Error('Không đọc được trang Lịch sử xuất excel (bị chặn khung)'); }
+      if (/\/login|dang-?nhap|account/i.test(fw.location.pathname)) throw ycxErr('waiting', 'Phiên report.mwgroup.vn hết hạn — đăng nhập lại rồi bấm Chạy lại.');
+      const $f = fw.jQuery || fw.$;
+      const el = doc.querySelector('[data-role="grid"]');
+      const grid = el && $f ? $f(el).data('kendoGrid') : null;
+      if (!grid || !grid.dataSource) continue;
+      const data = grid.dataSource.data();
+      const rows = data && data.toJSON ? data.toJSON() : Array.from(data || []);
+      if (rows.length) return rows;
+      if (!thayBang) thayBang = Date.now();
+      else if (Date.now() - thayBang > 6000) return [];
+    }
+    throw new Error('Bảng Lịch sử xuất excel không hiện sau 20 giây');
+  }
+
+  function ycxGmRequest(method, url, headers, data) {
+    return new Promise((resolve, reject) => {
+      try {
+        GM_xmlhttpRequest({
+          method, url, headers, data, timeout: 30000,
+          onload: (r) => {
+            if (r.status >= 400) return reject(new Error(`HTTP ${r.status}`));
+            try { resolve(JSON.parse(r.responseText)); } catch (_) { reject(new Error('không phải JSON')); }
+          },
+          onerror: () => reject(new Error('lỗi mạng')), ontimeout: () => reject(new Error('quá thời gian')),
+        });
+      } catch (e) { reject(e); }
+    });
+  }
+
+  const ycxHistoryWays = {
+    frame: () => ycxHistoryFromFrame(),
+    json: (u) => ycxGmRequest('POST', `https://${YCX_HOSTNAME}/ManagerDownload/GetData`, { 'Content-Type': 'application/json; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' }, JSON.stringify({ userName: u || '' })),
+    form: (u) => ycxGmRequest('POST', `https://${YCX_HOSTNAME}/ManagerDownload/GetData`, { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' }, `userName=${encodeURIComponent(u || '')}`),
+  };
+  let ycxHistoryWay = null;
+
+  /** Lấy các dòng ở "Lịch sử xuất excel". Thử trang thật trước (giống thao tác tay), rồi tới API; nhớ cách chạy được. */
+  async function ycxFetchHistory(userName) {
+    const order = ycxHistoryWay ? [ycxHistoryWay] : ['frame', 'json', 'form'];
+    const loi = [];
+    for (const w of order) {
+      try {
+        const rows = ycxRowsFrom(await ycxHistoryWays[w](userName));
+        if (!rows) throw new Error('dữ liệu lạ');
+        ycxHistoryWay = w;
+        return rows;
+      } catch (e) {
+        if (e && e.step) throw e;
+        loi.push(`${w}: ${e && e.message}`);
+      }
+    }
+    throw new Error(`Lịch sử xuất excel — ${loi.join('; ')}`);
+  }
+
+  function ycxRowKey(r) { return String(r.UNIQUEQUERYID || r.LINKDOWNLOAD || `${r.DYNAMICREPORTNAME}|${r.STARTTIME}`); }
+
+  /** STARTTIME: "/Date(1759300000000)/", ISO, hoặc "dd/MM/yyyy HH:mm:ss" → ms (0 nếu không đọc được). */
+  function ycxParseTime(v) {
+    if (v == null) return 0;
+    const s = String(v);
+    let m = s.match(/\/Date\((-?\d+)/);
+    if (m) return Number(m[1]);
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+    const t = Date.parse(s);
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  const ycxNorm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+
+  function ycxHasValue(v) {
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'number') return true;
+    if (typeof v === 'string') return v !== '' && v !== '[object Object]';
+    return false;
+  }
+
+  async function ycxWaitScope(timeoutMs) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs) {
+      try {
+        const ng = ycxWin().angular;
+        const el = document.querySelector('[ng-controller="DashboardController"]');
+        const scope = ng && el ? ng.element(el).scope() : null;
+        const hasExport = typeof (scope && scope.ExportData) === 'function'
+          || !!document.getElementById('btnGroupExportData')
+          || !!document.querySelector('a[ng-click*="ExportData"]');
+        if (scope && Array.isArray(scope.ListCondition) && scope.ListCondition.length > 0 && hasExport
+          && scope.objectDynamicReport && scope.objectDynamicReport.DYNAMICREPORTID) return scope;
+      } catch (_) { /* angular chưa sẵn */ }
+      await sleep(400);
+    }
+    const coForm = !!document.getElementById('reportId');
+    throw ycxErr('open', coForm
+      ? 'Trang báo cáo 77 mở nhưng form điều kiện không tải xong sau 60 giây — thử tải lại trang.'
+      : 'Không thấy form báo cáo — anh/chị đã đăng nhập report.mwgroup.vn chưa? Đăng nhập xong bấm lại "Tự động YCX".');
+  }
+
+  /** Phần tử DOM của một điều kiện (khối ng-repeat="item in ListCondition" có scope.item đúng điều kiện đó). */
+  function ycxCondEl(cond) {
+    const ng = ycxWin().angular;
+    const els = document.querySelectorAll('[ng-repeat="item in ListCondition"]');
+    for (const el of els) {
+      try { if (ng.element(el).scope().item === cond) return el; } catch (_) { /* bỏ qua */ }
+    }
+    return null;
+  }
+
+  function ycxApply(scope, fn) {
+    try { scope.$apply(fn); } catch (_) { fn(); try { scope.$evalAsync(() => {}); } catch (__) { /* bỏ qua */ } }
+  }
+
+  /** Bấm "Tất cả" của một ô chọn nhiều (cây jstree của trang); không được thì đổ danh sách lấy từ API làm dự phòng. */
+  /**
+   * Cây jstree của một ô chọn nhiều. Cây có thể KHÔNG nằm trong khối điều kiện: ô Kho mở cây trong cửa sổ Kendo, mà
+   * Kendo chuyển cửa sổ ra cuối <body> — nên tìm cả qua isolate scope của directive (componentStoreId / componentSubgroupId…).
+   */
+  function ycxFindTree(el, $) {
+    const trong = el.querySelector('.jstree');
+    if (trong) return trong;
+    try {
+      const ng = ycxWin().angular;
+      for (const child of el.querySelectorAll('*')) {
+        const iso = ng.element(child).isolateScope ? ng.element(child).isolateScope() : null;
+        if (!iso) continue;
+        for (const k of Object.keys(iso)) {
+          if (!/^component\w*Id$/i.test(k) || typeof iso[k] !== 'string' || !iso[k]) continue;
+          const t = document.getElementById(iso[k]);
+          if (t && $(t).jstree && $(t).jstree(true)) return t;
+        }
+      }
+    } catch (_) { /* không có angular */ }
+    return null;
+  }
+
+  /** Bấm "Tất cả" của một ô chọn nhiều (cây jstree của trang); không được thì đổ danh sách lấy từ API làm dự phòng. */
+  async function ycxSelectAll(scope, cond, label, fallback, onWait) {
+    const el = ycxCondEl(cond);
+    const $ = ycxWin().jQuery || ycxWin().$;
+    const t0 = Date.now();
+    let daChon = false;
+    // Cây có mà chưa tải xong danh sách → chờ tối đa 12s; không thấy cây sau 3s → dùng đường dự phòng API ngay
+    while (el && $) {
+      const tree = ycxFindTree(el, $);
+      if (Date.now() - t0 > (tree ? 12000 : 3000)) break;
+      try {
+        const inst = tree ? $(tree).jstree(true) : null;
+        if (inst && inst.get_json && inst.get_json('#', { flat: true }).length > 1) { inst.select_all(); daChon = true; break; }
+      } catch (_) { /* cây chưa dựng */ }
+      await sleep(300);
+    }
+    if (daChon) {
+      const t1 = Date.now();
+      while (!ycxHasValue(cond.OBJECTVALUE) && Date.now() - t1 < 4000) await sleep(200);
+    }
+    if (!ycxHasValue(cond.OBJECTVALUE)) {
+      if (onWait) onWait(`Ô ${label}: chọn "Tất cả" qua danh sách của MWG…`);
+      const ids = await fallback();
+      if (ids.length) ycxApply(scope, () => { cond.OBJECTVALUE = ids; });
+    }
+    if (!ycxHasValue(cond.OBJECTVALUE)) throw ycxErr('conditions', `Không chọn được "Tất cả" ở ô ${label}.`);
+    console.log(`[YCX] ${label}: ${Array.isArray(cond.OBJECTVALUE) ? cond.OBJECTVALUE.length : 1} mục (${daChon ? 'cây trên trang' : 'API'})`);
+  }
+
+  /** Chế độ thật sẽ chạy: Luỹ kế vào ngày 01 → Realtime (cùng quy tắc với Dashboard). */
+  function ycxResolveMode(mode, now) {
+    const d = now || new Date();
+    return mode === 'luyke' && d.getDate() !== 1 ? 'luyke' : 'realtime';
+  }
+
+  /** Luỹ kế: Từ 01 đầu tháng → Đến HÔM QUA (hoặc chọn tháng: 01 đến ngày cuối tháng), dạng dd/MM/yyyy (đúng định dạng ô ngày của trang khi chọn tay). */
+  function ycxLuyKeRange(now, month) {
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const fmt = (x) => `${pad2(x.getDate())}/${pad2(x.getMonth() + 1)}/${x.getFullYear()}`;
+    if (month) {
+      const [y, m] = month.includes('-') ? month.split('-').map(Number) : [Number(month.slice(0, 4)), Number(month.slice(4))];
+      const lastDay = new Date(y, m, 0).getDate();
+      const from = new Date(y, m - 1, 1);
+      const to = new Date(y, m - 1, lastDay);
+      return { from: fmt(from), to: fmt(to), fromDate: from, toDate: to };
+    }
+    const d = now || new Date();
+    const from = new Date(d.getFullYear(), d.getMonth(), 1);
+    const to = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
+    return { from: fmt(from), to: fmt(to), fromDate: from, toDate: to };
+  }
+
+  /** Đặt một ô ngày (kendo-date-picker ng-model="item.OBJECTVALUE"): đổi cả ô hiển thị lẫn model. */
+  function ycxSetDate(scope, cond, text, date) {
+    try {
+      const $ = ycxWin().jQuery || ycxWin().$;
+      const el = ycxCondEl(cond);
+      const input = el && el.querySelector('input[data-role="datepicker"], input[kendo-date-picker]');
+      const w = input && $ ? $(input).data('kendoDatePicker') : null;
+      if (w) w.value(date);
+    } catch (_) { /* không có widget — đặt model là đủ */ }
+    ycxApply(scope, () => { cond.OBJECTVALUE = text; });
+  }
+
+  async function ycxApplyConditions(scope, mode, month) {
+    const conds = scope.ListCondition;
+    const find = (p) => conds.find((c) => c.PARAMNAME === p);
+
+    // 1) Tìm theo (Kho) = Kho tạo (giá trị 2). Đặt cả ô combobox Kendo để màn hình khớp, rồi ép model.
+    const st = find('V_STORESEARCHTYPE');
+    if (!st) throw ycxErr('conditions', 'Báo cáo không có ô "Tìm theo (Kho)" — MWG đã đổi mẫu báo cáo 77?');
+    try {
+      const $ = ycxWin().jQuery || ycxWin().$;
+      const el = ycxCondEl(st);
+      const input = el && el.querySelector('input[data-role="combobox"], select[data-role="combobox"], input[data-role="dropdownlist"]');
+      const w = input && $ ? ($(input).data('kendoComboBox') || $(input).data('kendoDropDownList')) : null;
+      if (w) { w.value('2'); w.trigger('change'); }
+    } catch (_) { /* không có widget — đặt model là đủ */ }
+    ycxApply(scope, () => { st.OBJECTVALUE = '2'; });
+
+    // 2) Ngành hàng = Tất cả
+    const mg = find('V_MAINGROUPIDLIST');
+    if (mg) {
+      await ycxSelectAll(scope, mg, 'Ngành hàng', async () => {
+        const rows = await ycxPostJson('/Home/SearchMainGroup', { keyword: '', isRequire: 'false', isPermission: String(!!mg.ISPERMISSION), permissionValue: mg.PERMISSION || '', isCheckpermissionbykey: String(!!mg.ISCHECKPERMISSIONBYKEY) });
+        const list = Array.isArray(rows) ? rows : (rows && (rows.Data || rows.data)) || [];
+        return list.map((r) => r.MAINGROUPID).filter((x) => x != null && x !== 0);
+      });
+    }
+
+    // 3) Kho = Tất cả (trang bắt buộc chọn — để trống sẽ báo "Vui lòng chọn Kho là 'Tất cả'…")
+    const sk = find('V_STOREIDLIST');
+    if (sk) {
+      await ycxSelectAll(scope, sk, 'Kho', async () => {
+        let data = { isPermission: !!sk.ISPERMISSION, permissionValue: sk.PERMISSION || null, isActive: true, companyids: '', companybrandids: '', areaids: '' };
+        try { const iso = ycxWin().angular.element(ycxCondEl(sk).querySelector('searchstorebyarea')).isolateScope(); if (iso && iso.data) data = iso.data; } catch (_) { /* dùng mặc định */ }
+        const tree = await ycxPostJson('/Home/SearchStoreArea', data);
+        const ids = [];
+        const walk = (nodes) => (nodes || []).forEach((n) => { if (n.ISSTORE) ids.push(n.STOREGROUPID); walk(n.LISTCHILDREN); });
+        walk(Array.isArray(tree) ? tree : (tree && (tree.Data || tree.data)) || []);
+        return ids;
+      });
+    }
+    // Ngày: Realtime để mặc định (trang tự đặt hôm nay khi tải); Luỹ kế: 01 đầu tháng → hôm qua hoặc trọn tháng được chọn
+    if (mode === 'luyke') {
+      const r = ycxLuyKeRange(null, month);
+      const tu = find('V_FROMDATE');
+      const den = find('V_TODATE');
+      if (!tu || !den) throw ycxErr('conditions', 'Báo cáo không có ô "Từ ngày" / "Đến ngày" — MWG đã đổi mẫu báo cáo 77?');
+      ycxSetDate(scope, tu, r.from, r.fromDate);
+      ycxSetDate(scope, den, r.to, r.toDate);
+      console.log(`[YCX] Luỹ kế: ${r.from} → ${r.to}`);
+    }
+  }
+
+  async function ycxClickExport(scope, onProgress) {
+    const w = ycxWin();
+    const oldWAlert = w ? w.alert : null;
+    const oldWinAlert = window.alert;
+    let alertMsg = null;
+    const customAlert = function (m) {
+      alertMsg = String(m);
+      console.warn('[YCX] Trang báo:', m);
+    };
+    try { if (w) w.alert = customAlert; } catch (_) { /* không ghi đè được */ }
+    try { window.alert = customAlert; } catch (_) { /* không ghi đè được */ }
+
+    const MAX_RETRIES = 3;
+
+    try {
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        alertMsg = null;
+        const SENTINEL = '__ycx_cho__';
+        if (scope) ycxApply(scope, () => { scope.continueDownload = SENTINEL; });
+
+        // 1. Thao tác giao diện: Bấm nút "Xuất excel" (#btnGroupExportData) để mở menu xổ xuống
+        const btnExport = document.getElementById('btnGroupExportData')
+          || document.querySelector('button[data-toggle="dropdown"].btn-success')
+          || document.querySelector('button.dropdown-toggle');
+
+        if (btnExport) {
+          try { btnExport.click(); } catch (_) {}
+          try {
+            const $ = w.jQuery || w.$;
+            if ($ && $(btnExport).dropdown) $(btnExport).dropdown('toggle');
+          } catch (_) {}
+        }
+
+        // Đợi menu xổ xuống xuất hiện
+        await sleep(300);
+
+        // 2. Bấm chọn mục "EXCEL" (<a href="javascript:void(0);" ng-click="ExportData();">EXCEL</a>)
+        const findExcelEl = () => {
+          const byNg = document.querySelector('a[ng-click*="ExportData"]');
+          if (byNg) return byNg;
+          const links = document.querySelectorAll('.dropdown-menu a, a.dropdown-item, a');
+          for (const a of links) {
+            const txt = (a.textContent || '').trim().toUpperCase();
+            if (txt === 'EXCEL' || (a.getAttribute('ng-click') || '').includes('ExportData')) return a;
+          }
+          return null;
+        };
+
+        const excelLink = findExcelEl();
+        let clickedDom = false;
+        if (excelLink) {
+          try {
+            excelLink.click();
+            clickedDom = true;
+          } catch (_) {}
+        }
+
+        // 3. Chỉ dự phòng trực tiếp qua AngularJS scope nếu KHÔNG tìm thấy hoặc không kích hoạt được qua DOM
+        // Tuyệt đối KHÔNG gọi thêm scope.ExportData() song song nếu DOM đã click để tránh gửi 2-3 request cùng lúc gây đụng độ Airflow
+        if (!clickedDom && scope && typeof scope.ExportData === 'function') {
+          ycxApply(scope, () => { scope.ExportData(); });
+        }
+
+        const t0 = Date.now();
+        let shouldRetry = false;
+
+        while (Date.now() - t0 < 180000) {
+          if (alertMsg) {
+            // Nhận diện lỗi tạm thời từ Airflow / kết nối backend MWG để tự động thử lại
+            const isAirflowTransient = /error_export_excel|airflow|vui lòng thử lại|thử lại/i.test(alertMsg);
+            if (isAirflowTransient && attempt < MAX_RETRIES) {
+              console.warn(`[YCX] MWG báo lỗi Airflow bận (${alertMsg}). Tự động thử lại lần ${attempt + 1}/${MAX_RETRIES} sau 4s...`);
+              if (onProgress) {
+                onProgress(`MWG báo Airflow bận, đang tự động thử lại (lần ${attempt + 1}/${MAX_RETRIES}) sau 4s…`);
+              }
+              ycxBanner(`MWG báo: "${alertMsg}". Đang tự động thử lại (${attempt + 1}/${MAX_RETRIES}) sau 4s…`, 'warn');
+              shouldRetry = true;
+              break;
+            } else {
+              throw ycxErr('export', `MWG báo: ${alertMsg}`);
+            }
+          }
+          if (scope && scope.continueDownload !== SENTINEL) break;
+          await sleep(300);
+        }
+
+        if (shouldRetry) {
+          try { if (scope && scope.popupdownload && scope.popupdownload.close) scope.popupdownload.close(); } catch (_) { /* bỏ qua */ }
+          await sleep(4000); // Chờ 4s giải toả hàng đợi Airflow trước khi bấm lại
+          continue;
+        }
+
+        if (scope && scope.continueDownload === SENTINEL) throw ycxErr('export', 'Bấm Xuất excel nhưng MWG không phản hồi sau 3 phút.');
+        try { if (scope && scope.popupdownload && scope.popupdownload.close) scope.popupdownload.close(); } catch (_) { /* bỏ qua */ }
+        return;
+      }
+    } finally {
+      try { if (w && oldWAlert) w.alert = oldWAlert; } catch (_) { /* bỏ qua */ }
+      try { if (oldWinAlert) window.alert = oldWinAlert; } catch (_) { /* bỏ qua */ }
+    }
+  }
+
+  async function ycxWaitFile(before, userName, startedAt, onWait) {
+    const t0 = Date.now();
+    const TIMEOUT = 20 * 60 * 1000;
+    let lan = 0;
+    let loiLienTiep = 0;
+    while (Date.now() - t0 < TIMEOUT) {
+      // Như thao tác tay: xem lại Lịch sử mỗi ~5 giây
+      await sleep(lan++ === 0 ? 2500 : 5000);
+      let rows = [];
+      try { rows = await ycxFetchHistory(userName); loiLienTiep = 0; } catch (e) {
+        if (e && e.step) throw e;
+        if (++loiLienTiep >= 5) throw ycxErr('waiting', `Không đọc được Lịch sử xuất excel: ${e.message}`);
+        onWait(`Đọc Lịch sử xuất excel lỗi (${e.message}) — thử lại…`);
+        continue;
+      }
+      const moi = rows.filter((r) => {
+        // Nếu đã có trong danh sách trước khi bấm xuất -> chắc chắn là file cũ của lượt trước
+        if (before.has(ycxRowKey(r))) return false;
+        // Nếu trước đó chưa chụp được danh sách cũ (before.size === 0):
+        const rTime = ycxParseTime(r.STARTTIME);
+        if (before.size === 0) {
+          // Chỉ nhận dòng bắt đầu sau thời điểm bấm xuất (sai số tối đa 10s cho lệch đồng hồ)
+          if (rTime > 0 && rTime < startedAt - 10000) return false;
+          // Tuyệt đối không nhận một dòng đã có sẵn LINKDOWNLOAD và !ISLOADING mà bắt đầu trước startedAt
+          if (rTime <= startedAt && r.LINKDOWNLOAD && !r.ISLOADING) return false;
+        }
+        return true;
+      });
+      const dung = moi.filter((r) => /yeu cau xuat/.test(ycxNorm(r.DYNAMICREPORTNAME)));
+      const ung = (dung.length ? dung : moi).sort((a, b) => ycxParseTime(b.STARTTIME) - ycxParseTime(a.STARTTIME))[0];
+      const giay = Math.round((Date.now() - t0) / 1000);
+      if (!ung) { onWait(`Chờ yêu cầu xuất hiện trong Lịch sử xuất excel… (${giay}s)`); continue; }
+      if (ung.LINKDOWNLOAD && !ung.ISLOADING) return ung;
+      onWait(`MWG đang xuất file "${ung.DYNAMICREPORTNAME || 'Chi tiết yêu cầu xuất'}"… (${giay}s)`);
+    }
+    throw ycxErr('waiting', 'Chờ 20 phút mà MWG chưa xuất xong file — mở Lịch sử xuất excel để kiểm tra.');
+  }
+
+  function ycxGmHead(url) {
+    return new Promise((resolve) => {
+      try {
+        GM_xmlhttpRequest({
+          method: 'HEAD', url, timeout: 20000,
+          onload: (r) => { const m = /content-length:\s*(\d+)/i.exec(r.responseHeaders || ''); resolve(r.status < 400 ? (m ? Number(m[1]) : -1) : 0); },
+          onerror: () => resolve(-1), ontimeout: () => resolve(-1),
+        });
+      } catch (_) { resolve(-1); }
+    });
+  }
+
+  /** Như trang ManagerDownload: file trên máy chủ báo cáo phải có kích thước > 0 và không đổi qua 2 lần đo. */
+  async function ycxWaitStable(url, onWait) {
+    if (/cdnv2|render\/download/i.test(url)) return;
+    for (let i = 0; i < 30; i++) {
+      const a = await ycxGmHead(url);
+      if (a === -1) return; // không đo được (máy chủ chặn HEAD) — để bước tải tự xử lý
+      await sleep(600);
+      const b = await ycxGmHead(url);
+      if (a > 0 && a === b) return;
+      onWait('File đang được ghi xong trên máy chủ MWG…');
+      await sleep(2000);
+    }
+  }
+
+  function ycxFileName(url, mode) {
+    try {
+      const last = decodeURIComponent(new URL(url).pathname.split('/').pop() || '');
+      if (/\.(xlsx|xls|csv)$/i.test(last)) return last;
+    } catch (_) { /* bỏ qua */ }
+    const d = new Date();
+    return `YCX-${mode === 'luyke' ? 'LuyKe' : 'Realtime'}-${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}-${pad2(d.getHours())}${pad2(d.getMinutes())}.xlsx`;
+  }
+
+  async function ycxRunJob(job) {
+    const jobId = job.jobId;
+    const report = (step, message) => { ycxBanner(message); return gmSet(GM_KEY_YCX_PROGRESS, { source: YCX_SOURCE, type: 'progress', jobId, step, message, at: Date.now() }); };
+    await gmSet(GM_KEY_YCX_JOB, { ...job, status: 'running', claimedAt: Date.now() });
+    try {
+      await report('open', 'Đã mở báo cáo 77, chờ form điều kiện…');
+      const scope = await ycxWaitScope(60000);
+      const mode = ycxResolveMode(job.mode);
+      const ngay = mode === 'luyke' ? (() => { const r = ycxLuyKeRange(null, job.month); return `${r.from} → ${r.to}`; })() : 'ngày hôm nay';
+      await report('conditions', `${mode === 'luyke' ? (job.month ? `Tháng ${job.month}` : 'Luỹ kế') : 'Realtime'} — chọn điều kiện: ${ngay} · Kho tạo · Tất cả ngành hàng · Tất cả kho…`);
+      await ycxApplyConditions(scope, mode, job.month);
+
+      const userInput = document.querySelector('input[name="__UserName"]');
+      let userName = '';
+      let before = new Set();
+      try {
+        let rows = await ycxFetchHistory('');
+        if (rows.length === 0 && userInput && userInput.value) { userName = userInput.value; rows = await ycxFetchHistory(userName); }
+        before = new Set(rows.map(ycxRowKey));
+      } catch (e) { console.warn('[YCX] Không chụp được mốc Lịch sử xuất excel:', e); }
+
+      await report('export', 'Bấm Xuất excel…');
+      const startedAt = Date.now();
+      await ycxClickExport(scope, (m) => report('export', m));
+      // Trang ManagerDownload để trống userName; nếu lượt đầu không thấy dòng nào thì dùng mã NV đăng nhập
+      if (!userName && before.size === 0 && userInput && userInput.value) {
+        try { if ((await ycxFetchHistory('')).length === 0) userName = userInput.value; } catch (_) { /* bỏ qua */ }
+      }
+      await report('waiting', 'Đã gửi yêu cầu — chờ MWG xuất file (Lịch sử xuất excel)…');
+      const row = await ycxWaitFile(before, userName, startedAt, (m) => report('waiting', m));
+      const url = new URL(row.LINKDOWNLOAD, location.href).href;
+      await ycxWaitStable(url, (m) => report('waiting', m));
+      const fileName = ycxFileName(url, mode);
+      await gmSet(GM_KEY_YCX_DONE, { source: YCX_SOURCE, type: 'done', jobId, mode, month: job.month || null, url, fileName, reportName: row.DYNAMICREPORTNAME || '', at: Date.now() });
+      await gmSet(GM_KEY_YCX_JOB, { ...job, status: 'done' });
+      ycxBanner('Xong — đã gửi file về Dashboard, tab này sẽ tự đóng.', 'ok');
+      setTimeout(() => { try { window.close(); } catch (_) { /* không đóng được thì thôi */ } }, 2500);
+    } catch (e) {
+      const message = (e && e.message) || String(e);
+      console.warn('[YCX] Lỗi:', e);
+      ycxBanner(message, 'error');
+      await gmSet(GM_KEY_YCX_ERROR, { source: YCX_SOURCE, type: 'error', jobId, step: (e && e.step) || 'export', message, at: Date.now() });
+      await gmSet(GM_KEY_YCX_JOB, { ...job, status: 'error' });
+    }
+  }
+
+  async function initYcxReportPage() {
+    // Khung ẩn "Lịch sử xuất excel" do chính script mở cũng chạy userscript — không làm gì trong khung
+    if (window.top !== window.self) return;
+    const params = new URLSearchParams(location.search);
+    const urlJob = params.get('ycx_job');
+    const urlMode = params.get('ycx_ycx');
+    const urlMonth = params.get('ycx_month');
+    const laTrang77 = location.pathname.replace(/\/+$/, '').toLowerCase() === YCX_REPORT_PATH;
+    let job = await gmGet(GM_KEY_YCX_JOB, null);
+    if (urlJob && urlMode) {
+      if (!job || job.jobId !== urlJob) job = { jobId: urlJob, mode: urlMode, month: urlMonth || null, status: 'pending', createdAt: Date.now() };
+      if (job.status === 'done' || job.status === 'error') return; // tải lại tab cũ — không chạy lại
+    } else {
+      // Không có tham số (vd bị chuyển qua trang đăng nhập rồi về trang chủ): nhận lượt đang chờ còn mới
+      if (!job || job.status !== 'pending' || Date.now() - (job.createdAt || 0) > YCX_JOB_TTL_MS) return;
+    }
+    if (!laTrang77) {
+      if (!document.getElementById('reportId') && /login|dang-?nhap|account/i.test(location.pathname)) {
+        ycxBanner('Hãy đăng nhập — xong sẽ tự quay lại báo cáo 77.');
+        return;
+      }
+      const mParam = (job.month || urlMonth) ? `&ycx_month=${encodeURIComponent(job.month || urlMonth)}` : '';
+      location.href = `https://${YCX_HOSTNAME}${YCX_REPORT_PATH}?ycx_ycx=${encodeURIComponent(job.mode || 'realtime')}&ycx_job=${encodeURIComponent(job.jobId)}${mParam}`;
+      return;
+    }
+    if (!urlJob && job.status === 'running') return;
+    ycxRunJob(job);
+  }
+
+  // ====== TỰ ĐỘNG YCX (7.13) — phía Dashboard: chuyển tiến trình, tải file bằng phiên MWG rồi giao ArrayBuffer cho trang ======
+  function initYcxDashboardBridge() {
+    const post = (msg) => window.postMessage({ source: YCX_SOURCE, ...msg }, '*');
+    // Chỉ tab ĐÃ bấm bắt đầu mới tải file (mở 2 tab Dashboard thì không tải 2 lần)
+    const jobCuaTab = new Set();
+    const daTai = new Set();
+
+    window.addEventListener(EVT_YCX_START, (e) => {
+      const d = e.detail;
+      if (!d || d.source !== YCX_SOURCE || typeof d.jobId !== 'string') return;
+      jobCuaTab.add(d.jobId);
+      gmSet(GM_KEY_YCX_JOB, { jobId: d.jobId, mode: d.mode || 'realtime', month: d.month || null, status: 'pending', createdAt: Date.now() })
+        .catch((err) => console.warn('[YCX auto] Lỗi ghi job GM:', err));
+    });
+
+    function taiFile(done) {
+      if (!done || !jobCuaTab.has(done.jobId) || daTai.has(done.jobId)) return;
+      daTai.add(done.jobId);
+      post({ type: 'progress', jobId: done.jobId, step: 'download', message: 'Đang tải file từ MWG về Dashboard…' });
+      let lanCuoi = 0;
+      try {
+        GM_xmlhttpRequest({
+          method: 'GET', url: done.url, responseType: 'arraybuffer', timeout: 10 * 60 * 1000,
+          onprogress: (p) => {
+            if (Date.now() - lanCuoi < 400) return;
+            lanCuoi = Date.now();
+            const mb = (p.loaded / 1048576).toFixed(1);
+            const pct = p.lengthComputable && p.total ? ` (${Math.round((p.loaded / p.total) * 100)}%)` : '';
+            post({ type: 'progress', jobId: done.jobId, step: 'download', message: `Đang tải file… ${mb} MB${pct}` });
+          },
+          onload: (r) => {
+            const buf = r.response;
+            if (r.status >= 200 && r.status < 300 && buf && buf.byteLength > 0) {
+              post({ type: 'file', jobId: done.jobId, fileName: done.fileName || 'YCX-Realtime.xlsx', buffer: buf });
+            } else {
+              post({ type: 'error', jobId: done.jobId, step: 'download', message: `Tải file lỗi (HTTP ${r.status}) — phiên MWG hết hạn? Mở report.mwgroup.vn đăng nhập lại rồi thử lại.` });
+            }
+          },
+          onerror: () => post({ type: 'error', jobId: done.jobId, step: 'download', message: 'Không tải được file từ MWG (lỗi mạng hoặc Tampermonkey chưa cho phép truy cập tên miền tải file).' }),
+          ontimeout: () => post({ type: 'error', jobId: done.jobId, step: 'download', message: 'Tải file quá 10 phút — thử lại.' }),
+        });
+      } catch (err) {
+        post({ type: 'error', jobId: done.jobId, step: 'download', message: `Không tải được file: ${err && err.message ? err.message : err}` });
+      }
+    }
+
+    const chuyen = {
+      [GM_KEY_YCX_PROGRESS]: (v) => { if (v && jobCuaTab.has(v.jobId)) post({ ...v, type: 'progress' }); },
+      [GM_KEY_YCX_ERROR]: (v) => { if (v && jobCuaTab.has(v.jobId)) post({ ...v, type: 'error' }); },
+      [GM_KEY_YCX_DONE]: (v) => taiFile(v),
+    };
+    try {
+      Object.keys(chuyen).forEach((k) => GM_addValueChangeListener(k, (_n, _o, v) => chuyen[k](v)));
+    } catch (_) { /* chỉ còn poll */ }
+    // Poll dự phòng; mốc ban đầu = giá trị đang có (như 7.12) để không phát lại lượt cũ
+    const moc = {};
+    const sanSang = Promise.all(Object.keys(chuyen).map(async (k) => {
+      try { const v = await gmGet(k, null); moc[k] = v ? JSON.stringify(v) : null; } catch (_) { moc[k] = null; }
+    }));
+    setInterval(async () => {
+      await sanSang;
+      for (const k of Object.keys(chuyen)) {
+        try {
+          const v = await gmGet(k, null);
+          const s = v ? JSON.stringify(v) : null;
+          if (s && s !== moc[k]) { moc[k] = s; chuyen[k](v); }
+        } catch (_) { /* thử lại lượt sau */ }
+      }
+    }, 700);
+  }
+
+  // ====== TRANG ADMINTNB.COM/DATA ======
+  function initTnbDataPage() {
+    if (!location.pathname.startsWith('/data')) return;
+    if (window.__tnbDataAutoFillReady) return;
+    window.__tnbDataAutoFillReady = true;
+
+    console.log('[TNB Data Auto] Khởi chạy tự động điền mã bảo mật...');
+
+    function getCodeFromUrl() {
+      try {
+        const hash = (window.location.hash || '').replace(/^#/, '');
+        const hashParams = new URLSearchParams(hash);
+        if (hashParams.get('code')) return hashParams.get('code');
+        const queryParams = new URLSearchParams(window.location.search || '');
+        if (queryParams.get('code')) return queryParams.get('code');
+      } catch (e) {
+        console.warn('[TNB Data] Lỗi đọc mã từ URL:', e);
+      }
+      return null;
+    }
+
+    function setInputValue(input, val) {
+      try {
+        const proto = window.HTMLInputElement.prototype;
+        const descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
+        if (descriptor && descriptor.set) {
+          descriptor.set.call(input, val);
+        } else {
+          input.value = val;
+        }
+      } catch (e) {
+        input.value = val;
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    let code = getCodeFromUrl();
+    if (code) {
+      try { GM_setValue('tnb_mbm_code', code); } catch (e) {}
+      try { localStorage.setItem('tnb_mbm_code', code); } catch (e) {}
+    } else {
+      try { code = GM_getValue('tnb_mbm_code', ''); } catch (e) {}
+      if (!code) {
+        try { code = localStorage.getItem('tnb_mbm_code') || ''; } catch (e) {}
+      }
+    }
+
+    if (!code) {
+      console.log('[TNB Data] Chưa có mã bảo mật được lưu.');
+      return;
+    }
+
+    let tries = 0;
+    const maxTries = 60; // 60 x 200ms = 12s
+    const timer = setInterval(() => {
+      tries++;
+      const input = document.getElementById('mbm-code') || document.querySelector('input#mbm-code');
+      const btn = document.getElementById('mbm-btn') || document.querySelector('button#mbm-btn');
+
+      if (input && btn) {
+        clearInterval(timer);
+        if (!input.value || input.value !== code) {
+          setInputValue(input, code);
+          console.log('[TNB Data] Đã tự điền mã bảo mật:', code);
+        }
+        setTimeout(() => {
+          btn.click();
+          console.log('[TNB Data] Đã bấm XÁC NHẬN!');
+        }, 300);
+      } else if (tries >= maxTries) {
+        clearInterval(timer);
+        console.warn('[TNB Data] Hết thời gian chờ ô nhập #mbm-code');
+      }
+    }, 200);
+
+    // Lắng nghe nếu người dùng tự nhập mã mới rồi bấm nút để cập nhật mã đã lưu
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (target && (target.id === 'mbm-btn' || target.closest('#mbm-btn'))) {
+        const curInput = document.getElementById('mbm-code') || document.querySelector('input#mbm-code');
+        if (curInput && curInput.value && curInput.value.trim() !== '') {
+          const newCode = curInput.value.trim();
+          try { GM_setValue('tnb_mbm_code', newCode); } catch (err) {}
+          try { localStorage.setItem('tnb_mbm_code', newCode); } catch (err) {}
+        }
+      }
+    }, true);
+  }
+
+  // ====== RẼ NHÁNH THEO DOMAIN ======
+  if (location.hostname === MWG_HOSTNAME) {
+    initMwgPage();
+  } else if (location.hostname === YCX_HOSTNAME) {
+    initYcxReportPage();
+  } else if (BI_HOSTNAMES.includes(location.hostname)) {
+    initBiPage();
+  } else if (location.hostname === 'admintnb.com') {
+    initTnbDataPage();
+  } else {
+    initDashboardPage();
+  }
+})();
