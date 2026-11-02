@@ -1,0 +1,18 @@
+[WebServer] (node:28842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:40:1 › dùng coupon: ghi nhận đã dùng trên máy chủ, KHÔNG gửi tin vào nhóm, tự đóng (1.2s)
+  ✓   2 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:49:1 › máy chủ chậm > 4 giây: vẫn đóng, KHÔNG gửi tin (4.4s)
+  ✓   3 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:55:1 › mã đã có người dùng: báo rõ, KHÔNG gửi tin (422ms)
+  ✓   4 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:70:5 › API từ chối: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại (454ms)
+  ✓   5 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:70:5 › vé không hợp lệ: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại (422ms)
+  ✓   6 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:70:5 › mất mạng: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại (458ms)
+  ✓   7 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:70:5 › không có coupon khớp: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại (432ms)
+  ✓   8 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:80:1 › thử lại sau lỗi: chỉ lưu cờ sau phản hồi ghi nhận thành công, không gửi tin (725ms)
+  ✓   9 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:93:1 › phản hồi chậm: lúc đóng chưa xác nhận; phản hồi muộn mới lưu cờ (5.4s)
+  ✓  10 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:105:1 › mã hoàn kho: không lưu cờ đã dùng và không gửi tin (416ms)
+  ✓  11 [chromium] › tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:112:1 › có tên cache và mạng lỗi: không có rejection bỏ sót, cho thử lại (436ms)
+
+  11 passed (22.4s)

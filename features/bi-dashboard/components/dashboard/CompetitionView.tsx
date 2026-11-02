@@ -1,0 +1,564 @@
+import React, { useMemo, useEffect, useState, useRef } from 'react';
+import { AppIcon } from '../../../../components/shared/ui/icon/AppIcon';
+import ReactDOM from 'react-dom';
+import { toast } from '../../../../components/shared/ui/toast';
+import { useIndexedDBState } from '../../hooks/useIndexedDBState';
+import * as db from '../../utils/db';
+import { configStore } from '../../store/configStore';
+import { SupermarketCompetitionData, Criterion, shortenName, parseNumber, roundUp, getCompetitionColumnLabel, getDefaultGroupLabel, findMatchingSupermarketKey } from '../../utils/dashboardHelpers';
+import { buildCompetitionTable, type ProcessedProgram } from '../../services/competitionViewCalc';
+import CompetitionListView from './competition/CompetitionListView';
+import { CompetitionKpiCards } from './competition/CompetitionKpiCards';
+import { calculateCompetitionCommentary, generateZaloCommentaryMessage } from '../../services/competitionCommentaryCalc';
+import { Switch } from './DashboardWidgets';
+import { Button } from '../../../../components/shared/ui/Button';
+import { Input } from '../../../../components/shared/ui/Input';
+import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+import { useCheckThuongBonus } from '../../hooks/useCheckThuongBonus';
+import { MultiSelectDropdown } from '../../../../components/shared/ui/MultiSelectDropdown';
+
+import { 
+    calculateProgramRemaining, 
+    sortProgramsList, 
+    toggleCompetitionColumn,
+    matchesCompetitionKpiFilter,
+    type CompetitionKpiFilter,
+    ALLOWED_REALTIME_COLUMNS,
+    ALLOWED_LUYKE_COLUMNS
+} from '../../services/competitionSortAndCalc';
+
+// Program đã qua xử lý: thêm htdkVT (chỉ khi !isRealtime) và conLai (luôn có, tính từ actual - target)
+// Kiểu này nay khai ở services/competitionViewCalc.ts để sống sót qua đợt lột xác giao diện.
+// Re-export tại đây để 6 file đang `import type { ProcessedProgram } from '../CompetitionView'`
+// không phải sửa.
+export type { ProcessedProgram } from '../../services/competitionViewCalc';
+
+interface CompetitionViewProps {
+    data: Record<string, SupermarketCompetitionData>;
+    isRealtime: boolean;
+    activeSupermarket: string;
+    setActiveSupermarket: (sm: string) => void;
+    onBatchExport: () => void; 
+    isBatchExporting: boolean; 
+    updateTimestamp?: string | null;
+    onExport?: () => Promise<void>;
+    onNavigateToUpdater?: (options?: { configTab?: 'data' | 'revenueTarget' | 'competitionTarget' }) => void;
+}
+
+const CompetitionView = React.forwardRef<HTMLDivElement, CompetitionViewProps>((props, ref) => {
+    const { data, isRealtime, activeSupermarket } = props;
+
+    // Cột THƯỞNG (chỉ ở Luỹ kế): tiền thưởng thi đua từ dữ liệu Check Thưởng, khớp theo tên gốc
+    // chương trình. Không có dữ liệu Check Thưởng / không tìm thấy siêu thị -> cột không hiện.
+    const { bonusByGroup: checkThuongBonus, source: checkThuongSource } = useCheckThuongBonus(activeSupermarket, !isRealtime);
+
+    const modeKey = isRealtime ? 'realtime' : 'luyke';
+    // Cột bật MẶC ĐỊNH theo đúng chế độ:
+    // Realtime: THỰC HIỆN, TAR V.TRỘI, %HT V.TRỘI, C.LẠI
+    // Luỹ kế: LUỸ KẾ, TAR V.TRỘI, %HT V.TRỘI, %DKHT V.TRỘI, C.LẠI
+    const defaultVisibleCols = useMemo(
+        () => isRealtime
+            ? ['Realtime', 'Target V.Trội', '%HT V.Trội', 'Còn Lại']
+            : ['L.Kế', 'Target V.Trội', '%HT V.Trội', '%DKHT V.Trội', 'Còn Lại'],
+        [isRealtime]
+    );
+
+    const [selectedPrograms, setSelectedPrograms] = useIndexedDBState<string[]>(`competition-selected-programs-${modeKey}`, []);
+    // Hậu tố -v7: Mặc định luôn null để áp dụng chuỗi ưu tiên giảm dần %HT V.Trội > %DKHT > %HT
+    const [sortConfig, setSortConfig] = useIndexedDBState<{ columnIndex: number | 'conLai' | 'htdkVT' | -1; direction: 'asc' | 'desc' } | null>(`competition-sort-config-${modeKey}-v7`, null);
+    // Hậu tố -v6: đồng bộ bộ cột hiển thị mới bổ sung cột %HT V.TRỘI cho Luỹ kế
+    const [visibleColumnOrder, setVisibleColumnOrder] = useIndexedDBState<string[]>(`competition-visible-cols-${modeKey}-v6`, defaultVisibleCols);
+    const [nameOverrides] = useIndexedDBState<Record<string, string>>('competition-name-overrides', {});
+    // Nhóm tiêu chí cấu hình trong 'Cấu hình Target Thi đua' (SupermarketConfig.tsx)
+    const [groupOverrides] = useIndexedDBState<Record<string, string>>('competition-group-overrides', {});
+    // Thứ tự dòng ngành hàng tùy chỉnh do người dùng kéo thả trong 'Cấu hình Target Thi đua'
+    const [customOrder] = useIndexedDBState<Record<string, string[]>>('competition-custom-order', {});
+    // Chế độ xem theo tiêu chí: 'default' (tiêu chí gốc khi dán: SLLK, DTLK, DTQĐ) vs 'configured' (theo nhóm cấu hình trong Target Thi đua)
+    // Mặc định là 'configured' (Tuỳ chỉnh) và tự động đồng bộ lên Firebase qua useCloudSync
+    const [groupingMode, setGroupingMode] = useIndexedDBState<'default' | 'configured'>('competition-grouping-mode-v2', 'configured');
+    const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
+    const [copiedCommentary, setCopiedCommentary] = useState(false);
+    const [programFilterSearch, setProgramFilterSearch] = useState('');
+    const [kpiFilter, setKpiFilter] = useState<CompetitionKpiFilter>('all');
+    const columnSelectorRef = useRef<HTMLDivElement>(null);
+
+    // Tự động reset bộ lọc thẻ KPI về 'all' khi đổi siêu thị hoặc đổi chế độ realtime/luỹ kế
+    useEffect(() => {
+        setKpiFilter('all');
+    }, [activeSupermarket, isRealtime]);
+
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
+        return typeof document !== 'undefined' ? document.getElementById('column-settings-portal') : null;
+    });
+
+    useEffect(() => {
+        if (!portalTarget && typeof document !== 'undefined') {
+            setPortalTarget(document.getElementById('column-settings-portal'));
+        }
+    }, [portalTarget]);
+
+    // Click outside handler for column selector
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (columnSelectorRef.current && !columnSelectorRef.current.contains(event.target as Node)) {
+                setIsColumnSelectorOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+    
+    const handleSort = (columnIndex: number | 'conLai' | 'htdkVT' | -1) => {
+        setSortConfig(current => {
+            if (current && current.columnIndex === columnIndex) {
+                if (current.direction === 'desc') {
+                    return { columnIndex, direction: 'asc' };
+                }
+                // Click lần 3: Khôi phục về mặc định (sắp xếp giảm dần theo %HT V.Trội > %DKHT > %HT)
+                return null;
+            }
+            return { columnIndex, direction: 'desc' };
+        });
+    };
+
+    const allProgramNames = useMemo(() => {
+        const names = new Set<string>();
+        (Object.values(data) as SupermarketCompetitionData[]).forEach(supermarket => {
+            if (supermarket && supermarket.programs) {
+                supermarket.programs.forEach(program => names.add(program.name));
+            }
+        });
+        return Array.from(names).sort();
+    }, [data]);
+
+    const supermarketData = useMemo(() => {
+        if (data[activeSupermarket]) return data[activeSupermarket];
+        const matchKey = findMatchingSupermarketKey(activeSupermarket, Object.keys(data));
+        return matchKey ? data[matchKey] : undefined;
+    }, [data, activeSupermarket]);
+
+    const processedSupermarketData = useMemo(
+        () => buildCompetitionTable(supermarketData, isRealtime),
+        [supermarketData, isRealtime]
+    );
+
+    const allColumns = useMemo(() => processedSupermarketData?.headers || [], [processedSupermarketData]);
+    // THỨ TỰ CÁC CỘT SẼ LUÔN ĐƯỢC SẮP XẾP THEO THỨ TỰ NÀY (Thực hiện -> Target -> %HT -> %DKHT -> Vượt trội -> Còn Lại)
+    const visibleColumns = useMemo(
+        () => allColumns.filter(col => visibleColumnOrder.includes(col)),
+        [allColumns, visibleColumnOrder]
+    );
+    const hasHiddenColumn = allColumns.length > 0 && visibleColumns.length < allColumns.length;
+    /** Bật/tắt cột theo quy tắc nhóm loại trừ tương hỗ giữa Cơ bản và Vượt trội */
+    const toggleColumn = (header: string) => {
+        setVisibleColumnOrder(prev => toggleCompetitionColumn(header, prev, allColumns, isRealtime));
+    };
+
+    const sortedPrograms = useMemo(() => {
+        if (!processedSupermarketData?.programs) return [];
+        const currentProgramNames = processedSupermarketData.programs.map((p) => p.name);
+        const validSelected = selectedPrograms.filter(p => currentProgramNames.includes(p));
+        const selectedSet = new Set(validSelected);
+        const visible = processedSupermarketData.programs.filter((p) => selectedSet.size === 0 || selectedSet.has(p.name));
+
+        // Cột Còn Lại được tính dựa trên cột được hiển thị: SẼ LẤY THỰC HIỆN - MỤC TIÊU V.TRỘI (nếu có hiển thị)
+        const programsWithDynamicRemaining = visible.map(program => {
+            const dynamicRemaining = calculateProgramRemaining(program, visibleColumns, allColumns, isRealtime);
+            return {
+                ...program,
+                conLai: dynamicRemaining !== null ? dynamicRemaining : program.conLai
+            };
+        });
+
+        return sortProgramsList(programsWithDynamicRemaining, sortConfig, allColumns, nameOverrides, visibleColumns, isRealtime);
+    }, [processedSupermarketData, selectedPrograms, sortConfig, nameOverrides, visibleColumns, allColumns, isRealtime]);
+
+    // Lọc danh sách chương trình hiển thị trong bảng theo thẻ KPI được chọn:
+    // 'all': toàn bộ, 'over': >=100%, 'under': <100%, 'zero': 0%
+    const filteredPrograms = useMemo(() => {
+        if (kpiFilter === 'all') return sortedPrograms;
+        const isSuperMode = visibleColumns.some(col => col.includes('V.Trội'));
+        return sortedPrograms.filter(program =>
+            matchesCompetitionKpiFilter(program, kpiFilter, allColumns, isSuperMode, isRealtime, visibleColumns)
+        );
+    }, [sortedPrograms, kpiFilter, allColumns, visibleColumns, isRealtime]);
+
+    // BẢNG LUÔN ĐƯỢC SẮP XẾP GIẢM DẦN THEO CỘT ĐANG HIỂN THỊ TRONG TỪNG TIÊU CHÍ:
+    // - Mặc định: Phân nhóm theo tiêu chí gốc khi dán dữ liệu (SLLK, DTLK, DTQĐ)
+    // - Tuỳ chỉnh: Phân nhóm dựa theo nhóm tiêu chí người dùng đã cấu hình trong 'Cấu hình Target Thi đua'
+    const groupedAndSortedPrograms = useMemo(() => {
+        if (groupingMode === 'default') {
+            const groups: Record<string, ProcessedProgram[]> = {};
+            (['SLLK', 'DTLK', 'DTQĐ'] as Criterion[]).forEach(criterion => {
+                const criterionPrograms = filteredPrograms.filter(p => p.metric === criterion);
+                if (criterionPrograms.length > 0) {
+                    groups[criterion] = sortProgramsList(criterionPrograms, sortConfig, allColumns, nameOverrides, visibleColumns, isRealtime, customOrder[criterion]);
+                }
+            });
+            return groups;
+        } else {
+            // Chế độ Tuỳ chỉnh: Gom nhóm theo cấu hình trong 'Cấu hình Target Thi đua'
+            const rawGroups: Record<string, ProcessedProgram[]> = {};
+            filteredPrograms.forEach(program => {
+                const defaultGroup = getDefaultGroupLabel(program.metric) || program.metric;
+                const customGroup = (groupOverrides[program.name] && groupOverrides[program.name].trim())
+                    ? groupOverrides[program.name].trim()
+                    : defaultGroup;
+                if (!rawGroups[customGroup]) {
+                    rawGroups[customGroup] = [];
+                }
+                rawGroups[customGroup].push(program);
+            });
+
+            const sortedGroups: Record<string, ProcessedProgram[]> = {};
+            Object.keys(rawGroups).forEach(groupKey => {
+                sortedGroups[groupKey] = sortProgramsList(rawGroups[groupKey], sortConfig, allColumns, nameOverrides, visibleColumns, isRealtime, customOrder[groupKey]);
+            });
+            return sortedGroups;
+        }
+    }, [groupingMode, filteredPrograms, sortConfig, allColumns, nameOverrides, visibleColumns, isRealtime, groupOverrides, customOrder]);
+
+    const commentaryData = useMemo(() => {
+        if (!processedSupermarketData?.programs || sortedPrograms.length === 0) return null;
+        return calculateCompetitionCommentary(
+            groupedAndSortedPrograms,
+            processedSupermarketData.headers,
+            visibleColumns,
+            isRealtime,
+            activeSupermarket,
+            nameOverrides
+        );
+    }, [groupedAndSortedPrograms, processedSupermarketData?.programs, processedSupermarketData?.headers, visibleColumns, isRealtime, activeSupermarket, nameOverrides, sortedPrograms.length]);
+
+    const currentProgramNames = processedSupermarketData?.programs?.map((p) => p.name) || [];
+    const validSelectedPrograms = selectedPrograms.filter(p => currentProgramNames.includes(p));
+    const isProgramFiltered = validSelectedPrograms.length > 0 && validSelectedPrograms.length < allProgramNames.length;
+    const toggleProgram = (name: string) => setSelectedPrograms(prev => {
+        const s = new Set(prev);
+        if (s.has(name)) s.delete(name); else s.add(name);
+        return Array.from(s);
+    });
+    const toggleAllPrograms = () => setSelectedPrograms(validSelectedPrograms.length === allProgramNames.length ? [] : allProgramNames);
+    // Lọc theo tên HIỂN THỊ (đã áp dụng nameOverrides), khớp cách Nhân viên > Thi đua đang làm —
+    // trước đây chỗ này bỏ qua nameOverrides dù nameOverrides đã dùng ở nơi khác trong cùng file.
+    const programOptions = allProgramNames
+        .filter(name => shortenName(name, nameOverrides).toLowerCase().includes(programFilterSearch.toLowerCase()))
+        .map(name => ({ key: name, label: shortenName(name, nameOverrides), checked: selectedPrograms.includes(name) }));
+
+    const handleOpenTargetThiDua = async () => {
+        await db.set('supermarket-config-active-tab', 'competitionTarget');
+        configStore.setCache('supermarket-config-active-tab', 'competitionTarget');
+        configStore.setLoaded('supermarket-config-active-tab', true);
+        if (activeSupermarket && activeSupermarket !== 'Tổng') {
+            await db.set('updater-active-supermarket', activeSupermarket);
+        }
+        if (props.onNavigateToUpdater) {
+            props.onNavigateToUpdater({ configTab: 'competitionTarget' });
+        } else {
+            const updaterBtn = document.querySelector('button[title="Cập nhật"]') as HTMLButtonElement;
+            if (updaterBtn) updaterBtn.click();
+        }
+        setTimeout(() => {
+            const el = document.getElementById('supermarket-config-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    };
+
+    const handleCopyCommentary = async () => {
+        if (!commentaryData) {
+            toast.error('Chưa có dữ liệu nhận xét thi đua.');
+            return;
+        }
+        try {
+            const message = generateZaloCommentaryMessage(commentaryData);
+            await navigator.clipboard.writeText(message);
+            setCopiedCommentary(true);
+            toast.success('Đã sao chép nội dung nhận xét!');
+            setTimeout(() => setCopiedCommentary(false), 2000);
+        } catch (err) {
+            console.error('Lỗi khi sao chép nhận xét:', err);
+            toast.error('Không thể sao chép văn bản.');
+        }
+    };
+
+    const toolbarControls = (
+        <div id="competition-view-controls" className="flex items-center gap-0.5 sm:gap-1">
+            {/* Nút Sao chép Nhận xét thi đua (icon-only, sao chép trực tiếp không hiện modal) */}
+            <Button
+                variant="toolbar"
+                size="icon"
+                data-ui="bi"
+                onClick={handleCopyCommentary}
+                className={`preserve-rounded shrink-0 active:scale-[0.94] ${
+                    copiedCommentary ? 'text-emerald-700 bg-emerald-50 border-emerald-300 shadow-2xs hover:text-emerald-700 hover:bg-emerald-50' : ''
+                }`}
+                title={copiedCommentary ? "Đã sao chép nhận xét!" : "Sao chép nhận xét thi đua (LINE/Zalo)"}
+                aria-label="Sao chép nhận xét thi đua"
+            >
+                {copiedCommentary ? (
+                    <AppIcon name="check" size="md" className="text-emerald-600" />
+                ) : (
+                    <AppIcon name="message" size="md" />
+                )}
+            </Button>
+
+            {/* Chuyển đổi chế độ gom nhóm: Mặc định (gốc) vs Tuỳ chỉnh (theo cấu hình Target) */}
+            <Button
+                variant="toolbar" data-ui="bi"
+                size="icon"
+                onClick={() => setGroupingMode(prev => prev === 'default' ? 'configured' : 'default')}
+                className="ycx-hit rounded-control preserve-rounded shrink-0 flex items-center justify-center transition-all duration-150 active:scale-[0.94]" aria-pressed={groupingMode === 'configured'}
+                title={
+                    groupingMode === 'configured'
+                        ? 'Chế độ nhóm: Tuỳ chỉnh (Click để chuyển về Mặc định)'
+                        : 'Chế độ nhóm: Mặc định (Click để chuyển sang Tuỳ chỉnh)'
+                }
+                aria-label="Chuyển đổi nhóm tiêu chí Mặc định / Tuỳ chỉnh"
+            >
+                <AppIcon name="layers" size="md" />
+            </Button>
+
+            {/* Bộ lọc tích hợp 2 cột: Lọc chương trình & Cột hiển thị */}
+            <div className="relative" ref={columnSelectorRef}>
+                <Button
+                    variant="toolbar" data-ui="bi"
+                    size="icon"
+                    onClick={() => setIsColumnSelectorOpen(p => !p)}
+                    className="ycx-hit relative rounded-control preserve-rounded shrink-0 flex items-center justify-center transition-all duration-150 active:scale-[0.94]" aria-pressed={isColumnSelectorOpen || isProgramFiltered || hasHiddenColumn}
+                    title="Bộ lọc thi đua (Chương trình & Cột hiển thị)"
+                >
+                    <AppIcon name="filter" size="md" />
+                    {isProgramFiltered && (
+                        <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-sky-500 px-0.5 text-[11px] font-bold text-white shadow-sm ring-1 ring-white dark:ring-slate-900">
+                            {validSelectedPrograms.length}
+                        </span>
+                    )}
+                </Button>
+
+                {isColumnSelectorOpen && (
+                    <div className="absolute right-0 mt-2 w-[540px] max-w-[92vw] bg-white dark:bg-slate-800 rounded-card shadow-2xl border border-slate-200 dark:border-slate-700 z-[100] overflow-hidden text-left animate-in fade-in-50 zoom-in-95 duration-150">
+                        {/* Header của Popup */}
+                        <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/80">
+                            <div className="flex items-center gap-2">
+                                <AppIcon name="filter" size="sm" className="text-sky-500" />
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Bộ lọc bảng thi đua</span>
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                                {isRealtime ? 'Chế độ Realtime' : 'Chế độ Luỹ kế'}
+                            </span>
+                        </div>
+
+                        {/* Layout 2 cột */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-700/60">
+                            {/* CỘT 1: LỌC CHƯƠNG TRÌNH */}
+                            <div className="p-3 flex flex-col h-80">
+                                <div className="flex items-center justify-between mb-2 px-1">
+                                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                        Chương trình ({validSelectedPrograms.length}/{allProgramNames.length})
+                                    </span>
+                                    <Button
+                                        variant="link" data-ui="bi" size="none"
+                                        type="button"
+                                        onClick={toggleAllPrograms}
+                                        className="text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                                    >
+                                        {validSelectedPrograms.length === allProgramNames.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                                    </Button>
+                                </div>
+
+                                {/* Ô tìm kiếm chương trình */}
+                                <div className="relative mb-2">
+                                    {/* z-10: Input tự bọc <div relative> vẽ SAU icon nên sẽ che icon nếu không nâng lớp */}
+                                    <AppIcon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 text-slate-400" />
+                                    <Input
+                                        dense
+                                        aria-label="Tìm tên chương trình"
+                                        type="text"
+                                        value={programFilterSearch}
+                                        onChange={(e) => setProgramFilterSearch(e.target.value)}
+                                        placeholder="Tìm tên chương trình..."
+                                        className="h-auto pl-8 pr-3 py-1.5 text-xs bg-slate-50 border-slate-200 rounded-control text-slate-800 focus-visible:ring-0"
+                                    />
+                                </div>
+
+                                {/* Danh sách chương trình có thể cuộn */}
+                                <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 scrollbar-thin">
+                                    {programOptions.length > 0 ? (
+                                        programOptions.map(opt => (
+                                            <div
+                                                key={opt.key}
+                                                onClick={() => toggleProgram(opt.key)}
+                                                className="flex items-center justify-between px-2.5 py-1.5 rounded-control hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors select-none"
+                                            >
+                                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate pr-2" title={opt.label}>
+                                                    {opt.label}
+                                                </span>
+                                                <Switch
+                                                    label={opt.label}
+                                                    checked={opt.checked}
+                                                    onChange={() => toggleProgram(opt.key)}
+                                                />
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-6 text-center text-xs text-slate-400">
+                                            Không tìm thấy chương trình phù hợp
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* CỘT 2: CỘT HIỂN THỊ */}
+                            <div className="p-3 flex flex-col h-80">
+                                <div className="flex items-center justify-between mb-2 px-1">
+                                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                        Cột hiển thị ({visibleColumns.length}/{allColumns.length})
+                                    </span>
+                                    <Button
+                                        variant="link" data-ui="bi" size="none"
+                                        type="button"
+                                        onClick={() => setVisibleColumnOrder(defaultVisibleCols)}
+                                        className="text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                                        title="Khôi phục các cột mặc định"
+                                    >
+                                        Mặc định
+                                    </Button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto space-y-0.5 pr-1 scrollbar-thin mt-1">
+                                    {allColumns.map(header => {
+                                        const order = visibleColumns.indexOf(header);
+                                        return (
+                                            <div
+                                                key={header}
+                                                onClick={() => toggleColumn(header)}
+                                                className="flex items-center justify-between px-2.5 py-1.5 rounded-control hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors select-none"
+                                            >
+                                                <span className="flex items-center gap-1.5 min-w-0 pr-2">
+                                                    {/* Số thứ tự = vị trí cột trên bảng, giúp thấy ngay thứ tự đang bật */}
+                                                    <span className={`w-4 text-[11px] font-bold tabular-nums ${order === -1 ? 'text-transparent' : 'text-sky-600 dark:text-sky-400'}`}>
+                                                        {order === -1 ? '' : order + 1}
+                                                    </span>
+                                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
+                                                        {getCompetitionColumnLabel(header)}
+                                                    </span>
+                                                </span>
+                                                <Switch
+                                                    label={getCompetitionColumnLabel(header)}
+                                                    checked={order !== -1}
+                                                    onChange={() => toggleColumn(header)}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Nút cấu hình Target Thi đua (Lucide Settings) */}
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleOpenTargetThiDua}
+                className="ycx-hit w-8 h-8 lg:w-9 lg:h-9 rounded-control preserve-rounded flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.94] border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                title="Cấu hình Thi đua"
+            >
+                <AppIcon name="settings" size="md" />
+            </Button>
+        </div>
+    );
+
+    return (
+        <div ref={ref} className="relative z-10">
+            {/* Portal controls into DashboardHeader action bar */}
+            {portalTarget && ReactDOM.createPortal(toolbarControls, portalTarget)}
+
+            {/* Thẻ KPI tổng hợp dưới Quỹ thời gian — số liệu luôn giữ toàn bộ (sortedPrograms) */}
+            {processedSupermarketData && sortedPrograms.length > 0 && (
+                <div className="pt-1.5 sm:pt-2 px-1 sm:px-4">
+                    <CompetitionKpiCards
+                        programs={sortedPrograms}
+                        headers={processedSupermarketData.headers}
+                        visibleColumns={visibleColumns}
+                        isRealtime={isRealtime}
+                        bonusByGroup={isRealtime ? null : checkThuongBonus}
+                        activeFilter={kpiFilter}
+                        onSelectFilter={setKpiFilter}
+                    />
+                </div>
+            )}
+
+            {/* Scrollable table content — hiển thị trọn vẹn trên mobile không cần cuộn ngang */}
+            <div className="overflow-x-auto scrollbar-hide w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="px-1 sm:px-4 pb-4 pt-1 w-full">
+                    {/* Thanh trạng thái bộ lọc thẻ KPI khi đang lọc */}
+                    {kpiFilter !== 'all' && (
+                        <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-sky-50/80 dark:bg-sky-950/40 border border-sky-200/70 dark:border-sky-800/70 rounded-popup text-xs transition-all animate-in fade-in-50 duration-150">
+                            <div className="flex items-center gap-1.5 text-sky-900 dark:text-sky-200 font-medium">
+                                <AppIcon name="filter" size="sm" className="text-sky-600 dark:text-sky-400" />
+                                <span>
+                                    Đang lọc:&nbsp;
+                                    <strong className="font-bold text-sky-950 dark:text-white">
+                                        {kpiFilter === 'over' ? 'NHÓM >100%' : kpiFilter === 'under' ? 'NHÓM <100%' : 'NHÓM 0%'}
+                                    </strong>
+                                    &nbsp;({filteredPrograms.length}/{sortedPrograms.length} nhóm)
+                                </span>
+                            </div>
+                            <Button
+                                variant="link" data-ui="bi"
+                                size="none"
+                                type="button"
+                                onClick={() => setKpiFilter('all')}
+                                className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-200 hover:underline cursor-pointer flex items-center gap-1"
+                            >
+                                <span>Xem tất cả ({sortedPrograms.length})</span>
+                                <AppIcon name="close" px={12} />
+                            </Button>
+                        </div>
+                    )}
+
+                    <div className="p-0 w-full">
+                        {processedSupermarketData && sortedPrograms.length > 0 ? (
+                            filteredPrograms.length > 0 ? (
+                                <CompetitionListView
+                                    groupedAndSortedPrograms={groupedAndSortedPrograms}
+                                    groupingMode={groupingMode}
+                                    headers={processedSupermarketData.headers}
+                                    visibleColumns={visibleColumns}
+                                    isRealtime={isRealtime}
+                                    handleSort={handleSort}
+                                    bonusByGroup={isRealtime ? null : checkThuongBonus}
+                                    bonusSource={isRealtime ? null : checkThuongSource}
+                                />
+                            ) : (
+                                <EmptyState
+                                    title={`Không có nhóm nào trong mục ${kpiFilter === 'over' ? 'NHÓM >100%' : kpiFilter === 'under' ? 'NHÓM <100%' : 'NHÓM 0%'}`}
+                                    description="Bấm 'Xem tất cả' để hiển thị lại toàn bộ danh sách nhóm thi đua."
+                                    action={
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={() => setKpiFilter('all')}
+                                        >
+                                            Xem tất cả ({sortedPrograms.length} nhóm)
+                                        </Button>
+                                    }
+                                />
+                            )
+                        ) : (
+                            <EmptyState
+                                title={!supermarketData ? `Chưa có dữ liệu thi đua cho "${activeSupermarket}"` : 'Không có chương trình thi đua nào được chọn'}
+                                description={!supermarketData ? 'Vui lòng cập nhật dữ liệu.' : undefined}
+                            />
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+
+export default CompetitionView;

@@ -1,0 +1,7 @@
+components/summary/WarehouseSettingsModal.tsx:7:import SearchableSelect from '../shared/ui/SearchableSelect';
+components/modals/GtdhTargetModal.tsx:5:import SearchableSelect from '../shared/ui/SearchableSelect';
+components/modals/GtdhTargetModal.tsx:85:                            <SearchableSelect
+components/modals/GtdhTargetModal.tsx:94:                            <SearchableSelect
+components/shared/ui/SearchableSelect.tsx:6:interface SearchableSelectProps {
+components/shared/ui/SearchableSelect.tsx:15:const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, options, value, onChange, placeholder, allowCustom = false }) => {
+components/shared/ui/SearchableSelect.tsx:123:export default SearchableSelect;

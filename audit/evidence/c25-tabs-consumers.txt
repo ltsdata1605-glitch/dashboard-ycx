@@ -1,0 +1,25 @@
+features/tax-calculator/components/TaxHistorySidebar.tsx:183:                    <Tabs
+components/kpis/modals/KpiCardConfigModal.tsx:259:                <Tabs
+features/tax-calculator/components/TaxInputPanel.tsx:887:            <Tabs
+components/charts/TrendChart.tsx:488:                      <Tabs
+features/khai-thac/components/DashboardTab.tsx:73:                <Tabs items={RANGE_ITEMS} activeId={range} onChange={id => onRangeChange(id as DashboardRange)} variant="segment" size="sm" />
+components/views/UserManagementView.tsx:828:                    <Tabs
+components/views/UserManagementView.tsx:845:                                <Tabs
+features/tax-calculator/components/TaxHistoryModal.tsx:158:                        <Tabs
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:184:            <Tabs
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:260:                                    <Tabs
+features/line-bot/LineBotView.tsx:306:                <Tabs
+features/khai-thac/KhaiThacView.tsx:281:                <Tabs items={tabItems} activeId={tab} onChange={id => setTab(id as SubTab)} variant="underline" size="sm" />
+features/sticker-event/stickerprinter/StickerModeToolbar.tsx:55:                <Tabs
+components/shared/ui/Tabs.tsx:33:export const Tabs = React.memo<TabsProps>(({
+components/filters/FilterSection.tsx:317:                        <Tabs
+features/line-bot/components/CouponManagerTab.tsx:523:                    <Tabs
+features/bi-dashboard/components/NhanVien.tsx:524:                        <Tabs
+features/sticker-event/Login.tsx:414:              <Tabs
+features/sticker-event/LayoutSelectionModal.tsx:61:                    <Tabs
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:103:                    <Tabs
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:136:                    <Tabs
+features/check-thuong/components/CheckThuongFilterBar.tsx:94:                        <Tabs
+features/product-config/components/ProductConfigManagerTab.tsx:681:                <Tabs
+features/check-thuong/components/CheckThuongStatusSummary.tsx:86:                <Tabs
+features/bi-dashboard/components/SupermarketConfig.tsx:1226:                <Tabs

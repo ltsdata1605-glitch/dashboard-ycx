@@ -1,0 +1,271 @@
+import React, { useState, useEffect } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { fetchAllUsers, updateUserRole, clearAllUsers, deleteUserDoc } from './services/firebaseService';
+import { auth } from './firebase';
+import { signOut } from 'firebase/auth';
+import { Button } from '../../components/shared/ui/Button';
+import { Select } from '../../components/shared/ui/Select';
+import { Modal } from '../../components/shared/ui/Modal';
+import { StickerEventUserRecord } from './types';
+
+interface UserManagementModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    storeId: string | undefined;
+    currentUserId: string;
+}
+
+const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClose, storeId, currentUserId }) => {
+    const [users, setUsers] = useState<StickerEventUserRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{
+        type: 'delete_user' | 'reset_all' | 'error' | 'info';
+        title: string;
+        message: string;
+        userId?: string;
+    } | null>(null);
+
+    useEffect(() => {
+        if (isOpen && storeId) {
+            loadUsers();
+        }
+    }, [isOpen, storeId]);
+
+    const loadUsers = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const fetchedUsers = await fetchAllUsers(storeId!); // chỉ gọi khi có storeId (effect bên trên)
+            setUsers(fetchedUsers);
+        } catch (err) {
+            console.error("Error fetching users:", err);
+            setError("Không thể tải danh sách người dùng.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRoleChange = async (userId: string, newRole: 'admin' | 'staff', username?: string) => {
+        if (userId === currentUserId || username === 'admin') {
+            setConfirmAction({
+                type: 'info',
+                title: 'Không hợp lệ',
+                message: 'Bạn không thể thay đổi quyền của tài khoản này.'
+            });
+            return;
+        }
+
+        try {
+            await updateUserRole(userId, newRole);
+            setUsers(prev => prev.map(u => u.uid === userId ? { ...u, role: newRole } : u));
+        } catch (err) {
+            console.error("Error updating role:", err);
+            setConfirmAction({
+                type: 'error',
+                title: 'Lỗi',
+                message: 'Lỗi khi cập nhật quyền người dùng.'
+            });
+        }
+    };
+
+    const handleDeleteUser = async (userId: string, username?: string) => {
+        if (userId === currentUserId || username === 'admin') {
+            setConfirmAction({
+                type: 'info',
+                title: 'Không hợp lệ',
+                message: username === 'admin' ? 'Không thể xóa tài khoản Super Admin.' : 'Bạn không thể tự xóa chính mình.'
+            });
+            return;
+        }
+        
+        setConfirmAction({
+            type: 'delete_user',
+            title: 'Xác nhận xóa',
+            message: 'Bạn có chắc chắn muốn xóa người dùng này? Họ sẽ bị mất quyền truy cập vào hệ thống. (Lưu ý: Hành động này chỉ xóa dữ liệu người dùng, bạn cần xóa tài khoản Auth trong Firebase Console để xóa hoàn toàn).',
+            userId: userId
+        });
+    };
+
+    const executeDeleteUser = async (userId: string) => {
+        setConfirmAction(null);
+        try {
+            await deleteUserDoc(userId);
+            setUsers(prev => prev.filter(u => u.uid !== userId));
+        } catch (err) {
+            console.error("Error deleting user:", err);
+            setConfirmAction({
+                type: 'error',
+                title: 'Lỗi',
+                message: 'Lỗi khi xóa người dùng.'
+            });
+        }
+    };
+
+    const handleResetAllUsers = async () => {
+        setConfirmAction({
+            type: 'reset_all',
+            title: 'CẢNH BÁO',
+            message: 'Hành động này sẽ xóa tất cả người dùng trong hệ thống (ngoại trừ tài khoản Auth). Bạn sẽ bị đăng xuất ngay lập tức. Tiếp tục?'
+        });
+    };
+
+    const executeResetAllUsers = async () => {
+        setConfirmAction(null);
+        setIsLoading(true);
+        try {
+            await clearAllUsers(storeId ?? ''); // clearAllUsers tự bỏ qua khi rỗng
+            await signOut(auth);
+            window.location.reload();
+        } catch (err) {
+            console.error("Error resetting users:", err);
+            setConfirmAction({
+                type: 'error',
+                title: 'Lỗi',
+                message: 'Lỗi khi xóa danh sách người dùng.'
+            });
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={
+                <span className="flex items-center gap-2 text-xl">
+                    <AppIcon name="user" size="xl" className="text-sky-600" />
+                    Quản lý người dùng
+                </span>
+            }
+            titleColorClass="text-slate-900"
+            maxWidth="lg"
+            footer={
+                <div className="flex justify-between items-center">
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        icon="delete"
+                        onClick={handleResetAllUsers}
+                    >
+                        Xóa tất cả người dùng
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={onClose}
+                        className="px-6"
+                    >
+                        Đóng
+                    </Button>
+                </div>
+            }
+        >
+                <div className="modal-bleed p-4">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <AppIcon name="loading" size="state" spin className="text-sky-600 mb-4" />
+                            <p className="text-slate-500">Đang tải danh sách người dùng...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="bg-rose-50 text-rose-600 p-4 rounded-control text-center">
+                            {error}
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {users.map((user) => (
+                                <div key={user.uid} className="flex items-center justify-between p-4 rounded-popup border border-slate-200 hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-full ${user.role === 'admin' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
+                                            {user.role === 'admin' ? <AppIcon name="securityAlert" size="lg" /> : <AppIcon name="security" size="lg" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900">{user.email}</p>
+                                            <p className="text-xs text-slate-500">UID: {user.uid.substring(0, 8)}...</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <Select
+                                            fullWidth={false}
+                                            aria-label={`Vai trò của ${user.email}`}
+                                            value={user.role}
+                                            onChange={(e) => handleRoleChange(user.uid, e.target.value as 'admin' | 'staff', user.username)}
+                                            disabled={user.uid === currentUserId || user.username === 'admin'}
+                                            options={[
+                                                { value: 'staff', label: 'Nhân viên' },
+                                                { value: 'admin', label: 'Quản trị viên' },
+                                            ]}
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            icon="delete"
+                                            onClick={() => handleDeleteUser(user.uid, user.username)}
+                                            disabled={user.uid === currentUserId || user.username === 'admin'}
+                                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                            title={user.username === 'admin' ? "Không thể xóa Super Admin" : "Xóa người dùng"}
+                                            aria-label={user.username === 'admin' ? "Không thể xóa Super Admin" : "Xóa người dùng"}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+        </Modal>
+
+            {/* Confirmation Modal */}
+            {confirmAction && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setConfirmAction(null)}
+                    maxWidth="sm"
+                    title={
+                        <span className="flex items-center gap-3 text-[17px] leading-7">
+                            {confirmAction.type === 'error' ? (
+                                <AppIcon name="securityAlert" size="xl" className="text-rose-600" />
+                            ) : confirmAction.type === 'info' ? (
+                                <AppIcon name="security" size="xl" className="text-sky-600" />
+                            ) : (
+                                <AppIcon name="securityAlert" size="xl" className="text-amber-600" />
+                            )}
+                            {confirmAction.title}
+                        </span>
+                    }
+                    titleColorClass="text-slate-900"
+                    footer={
+                        <div className="flex justify-end gap-3">
+                            {(confirmAction.type === 'delete_user' || confirmAction.type === 'reset_all') && (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setConfirmAction(null)}
+                                >
+                                    Hủy
+                                </Button>
+                            )}
+                            <Button
+                                variant={confirmAction.type === 'error' || confirmAction.type === 'info' ? 'primary' : 'danger'}
+                                onClick={() => {
+                                    if (confirmAction.type === 'delete_user' && confirmAction.userId) {
+                                        executeDeleteUser(confirmAction.userId);
+                                    } else if (confirmAction.type === 'reset_all') {
+                                        executeResetAllUsers();
+                                    } else {
+                                        setConfirmAction(null);
+                                    }
+                                }}
+                            >
+                                {confirmAction.type === 'error' || confirmAction.type === 'info' ? 'Đóng' : 'Xác nhận'}
+                            </Button>
+                        </div>
+                    }
+                >
+                    <p className="text-slate-600">{confirmAction.message}</p>
+                </Modal>
+            )}
+        </>
+    );
+};
+
+export default UserManagementModal;

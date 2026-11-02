@@ -1,0 +1,9 @@
+[WebServer] (node:49775) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/error-boundary-recovery.spec.ts:2:1 › ordinary render failure can recover through actual retry state (1.2s)
+  ✓  2 [chromium] › tests/e2e/error-boundary-recovery.spec.ts:11:1 › exhausted chunk reload budget shows truthful recovery message and manual reload works (349ms)
+
+  2 passed (3.4s)

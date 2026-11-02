@@ -1,0 +1,14 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+ ✓ components/shared/ui/cnBoGoc.test.ts (3 tests) 5ms
+ ✓ components/shared/ui/Select.test.ts (2 tests) 13ms
+ ✓ components/shared/ui/Input.test.ts (2 tests) 12ms
+ ✓ components/shared/ui/TextareaCheckbox.test.ts (5 tests) 14ms
+
+ Test Files  4 passed (4)
+      Tests  12 passed (12)
+   Start at  08:49:35
+   Duration  306ms (transform 277ms, setup 0ms, import 702ms, tests 44ms, environment 0ms)
+
+JSON report written to /Users/ltson/dashboardycx/audit/evidence/c11-unit.json

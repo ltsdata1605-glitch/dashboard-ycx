@@ -1,0 +1,122 @@
+import React from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { Modal } from '../shared/ui/Modal';
+import { Button } from '../shared/ui/Button';
+
+interface ChangelogModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            hideHeader
+            ariaLabel="Lịch sử cập nhật"
+            maxWidth="lg"
+            footer={
+                <div className="flex justify-end">
+                    <Button onClick={onClose} variant="primary">
+                        Đóng
+                    </Button>
+                </div>
+            }
+        >
+            <div className="modal-bleed">
+            {/* Header */}
+            <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 rounded-t-card">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-control sm:rounded-popup bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                        <AppIcon name="history" size="lg" />
+                    </div>
+                    <div>
+                        <h2 className="text-base sm:text-xl font-bold tracking-tight text-slate-800 dark:text-white uppercase">Lịch sử cập nhật</h2>
+                        <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Phiên bản 3.1.0 (Dynamic Matrix & Hyper Speed)</p>
+                    </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={onClose} className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 flex items-center justify-center p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-control sm:rounded-popup transition-colors">
+                    <AppIcon name="close" size="md" />
+                </Button>
+            </div>
+
+            {/* Content */}
+            <div className="p-3 sm:p-6 space-y-5 sm:space-y-8 bg-white dark:bg-slate-900">
+                {/* v3.1.0 */}
+                <div className="relative pl-4 sm:pl-6 border-l-2 border-primary-500 pb-5 sm:pb-8">
+                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-500 border-4 border-white dark:border-slate-900"></div>
+                    <h3 className="text-sm sm:text-[17px] font-bold text-slate-800 dark:text-white mb-1 sm:leading-7">Phiên bản 3.1.0 (Dynamic Matrix & Hyper Speed)</h3>
+                    <p className="text-[11px] sm:text-xs text-primary-600 dark:text-primary-400 font-bold mb-2 sm:mb-4 uppercase tracking-wider">Cập nhật lớn - Cuối Tháng 03/2026</p>
+                    <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                        <li className="flex gap-2">
+                            <AppIcon name="table" size="md" className="text-emerald-500 mt-0.5" />
+                            <span><strong>Ma trận Cấu Hình Động (Dynamic Cross-Selling):</strong> Bảng Bán Kèm lột xác hoàn toàn, cho phép tự do thiết kế vô hạn số cột và dòng. Tự động quy đổi linh hoạt giữa Sản Lượng và Doanh Thu. Hỗ trợ Format điều kiện Xanh/Đỏ theo Target %.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="cloudDownload" size="md" className="text-sky-500 mt-0.5" />
+                            <span><strong>Hệ thống Nạp Cấu Hình Mẫu:</strong> Nút One-Click thần thánh dựng lại khung báo cáo chuẩn ngành hàng (ICT, CE, Tử Lạnh, Bảo Hiểm...) với đầy đủ bộ lọc nhóm con 100% ngay lập tức mà không cần tốn 10 phút click tay.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="gallery" size="md" className="text-rose-500 mt-0.5" />
+                            <span><strong>Trải nghiệm Load siêu thực (Skeleton Blur):</strong> Kỹ thuật làm mờ UI nền thay thế cho màn hình trắng truyền thống. Tận hưởng cảm giác màn hình Dashboard chuyển động mượt mà trong lúc dữ liệu tải lại.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="cpu" size="md" className="text-amber-500 mt-0.5" />
+                            <span><strong>RAM Memory Management 2.0:</strong> Đập đi xây lại luồng xử lý Data (Single-pass iteration). Dữ liệu sẽ load ngay lập tức cực êm mà không còn bị treo cứng trình duyệt như ở phiên bản 3.0.0. Tăng tốc Load gấp 20 lần!</span>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* v3.0.0 */}
+                <div className="relative pl-4 sm:pl-6 border-l-2 border-slate-200 dark:border-slate-700 pb-5 sm:pb-8">
+                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 border-4 border-white dark:border-slate-900"></div>
+                    <h3 className="text-sm sm:text-[17px] font-bold text-slate-800 dark:text-white mb-1 sm:leading-7">Phiên bản 3.0.0 (High Performance & Core Update)</h3>
+                    <p className="text-[11px] sm:text-xs text-primary-600 dark:text-primary-400 font-bold mb-2 sm:mb-4 uppercase tracking-wider">Cập nhật lớn - Tháng 03/2026</p>
+                    <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                        <li className="flex gap-2">
+                            <AppIcon name="quick" size="md" className="text-amber-500 mt-0.5" />
+                            <span><strong>Tối ưu hóa hiệu năng cực hạn (Web Worker):</strong> Xử lý dữ liệu Excel khổng lồ (100MB+) dưới nền. Giao diện hoàn toàn không bị đơ hay treo trong suốt quá trình xử lý.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="database" size="md" className="text-sky-500 mt-0.5" />
+                            <span><strong>Lưu trữ trạng thái toàn diện (IndexedDB):</strong> Mọi thao tác lọc (phòng ban, kho, thời gian, nhà sản xuất,...), sắp xếp và cấu hình hiển thị đều được tự động lưu lại. Không bao giờ mất dữ liệu khi tải lại trang!</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="scan" size="md" className="text-emerald-500 mt-0.5" />
+                            <span><strong>Loại bỏ code thừa & Tái cấu trúc:</strong> Xóa bỏ triệt để các tính năng/thành phần không còn sử dụng. Cơ sở mã nguồn được tối ưu và chia tách thành các module siêu nhỏ nhắn, tăng tốc độ tải trang cực nhanh.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="dashboard" size="md" className="text-sky-500 mt-0.5" />
+                            <span><strong>Giao diện:</strong> Cập nhật thông tin phiên bản ở cuối trang. Thay thế thuật ngữ cũ bằng giao diện Lịch sử cập nhật chuyên nghiệp.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* v2.1.0 */}
+                <div className="relative pl-4 sm:pl-6 border-l-2 border-slate-200 dark:border-slate-700 pb-2">
+                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 border-4 border-white dark:border-slate-900"></div>
+                    <h3 className="text-sm sm:text-[17px] font-bold text-slate-800 dark:text-white mb-1 opacity-70 sm:leading-7">Phiên bản 2.1.0 (Intelligence Hub 2.0)</h3>
+                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold mb-2 sm:mb-4 uppercase tracking-wider">Tháng 02/2026</p>
+                    <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        <li className="flex gap-2">
+                            <AppIcon name="success" size="md" className="mt-0.5" />
+                            <span>Ra mắt giao diện Dashboard 2.0 đậm chất High-tech.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="success" size="md" className="mt-0.5" />
+                            <span>Hệ thống phân tích Head-to-Head và Performance với bảng chỉ số phức tạp.</span>
+                        </li>
+                        <li className="flex gap-2">
+                            <AppIcon name="success" size="md" className="mt-0.5" />
+                            <span>Giao diện Flat Design toàn diện.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            </div>
+        </Modal>
+    );
+};
+
+export default ChangelogModal;

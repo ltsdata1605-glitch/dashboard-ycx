@@ -1,0 +1,4 @@
+{
+  "features/tax-calculator/services/taxIndexedDbService.ts": "00fd37a6485b86d388a037470555a9ece675ce6de7892f3884c913a0bbc2733f",
+  "tests/e2e/tax-storage-atomicity.spec.ts": "e76da93cb9baa5dca3cd228c5717d23e57fffcacc776db4912b4d2c499334de1"
+}

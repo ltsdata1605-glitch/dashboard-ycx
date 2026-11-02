@@ -1,0 +1,167 @@
+[
+  {
+    "path": "components/charts/IndustryGrid.tsx",
+    "line": 4,
+    "text": "import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from 'recharts';"
+  },
+  {
+    "path": "components/charts/IndustryGrid.tsx",
+    "line": 204,
+    "text": "// ── Tooltip ──────────────────────────────────────────────────────────────"
+  },
+  {
+    "path": "components/charts/IndustryGrid.tsx",
+    "line": 205,
+    "text": "const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: IndustryData }[] }) => {"
+  },
+  {
+    "path": "components/charts/IndustryGrid.tsx",
+    "line": 467,
+    "text": "<RechartsTooltip content={<CustomTooltip />} />"
+  },
+  {
+    "path": "components/charts/TrendChart.tsx",
+    "line": 5,
+    "text": "import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, LabelList } from 'recharts';"
+  },
+  {
+    "path": "components/charts/TrendChart.tsx",
+    "line": 29,
+    "text": "const CustomTooltip = ({ active, payload, metricName }: { active?: boolean; payload?: { payload: RechartsTrendData }[]; metricName: string }) => {"
+  },
+  {
+    "path": "components/charts/TrendChart.tsx",
+    "line": 345,
+    "text": "<RechartsTooltip content={<CustomTooltip metricName={metricName} />} cursor={{ stroke: gridColor, strokeWidth: 1, strokeDasharray: '3 3' }} />"
+  },
+  {
+    "path": "components/charts/TrendChart.tsx",
+    "line": 378,
+    "text": "<RechartsTooltip content={<CustomTooltip metricName={metricName} />} cursor={{ fill: 'transparent' }} />"
+  },
+  {
+    "path": "components/layout/Sidebar.tsx",
+    "line": 194,
+    "text": "{/* Tooltip for items without subItems */}"
+  },
+  {
+    "path": "components/shared/export/AreaAutoExportButton.tsx",
+    "line": 177,
+    "text": "const titleTooltip = isAnyActive"
+  },
+  {
+    "path": "components/shared/export/AreaAutoExportButton.tsx",
+    "line": 200,
+    "text": "title={titleTooltip}"
+  },
+  {
+    "path": "components/shared/export/AreaAutoExportButton.tsx",
+    "line": 201,
+    "text": "aria-label={titleTooltip}"
+  },
+  {
+    "path": "components/shared/ui/Tooltip.tsx",
+    "line": 4,
+    "text": "/* ─── Tooltip ─── */"
+  },
+  {
+    "path": "components/shared/ui/Tooltip.tsx",
+    "line": 6,
+    "text": "export interface TooltipProps {"
+  },
+  {
+    "path": "components/shared/ui/Tooltip.tsx",
+    "line": 8,
+    "text": "/** Tooltip placement */"
+  },
+  {
+    "path": "components/shared/ui/Tooltip.tsx",
+    "line": 18,
+    "text": "export const Tooltip: React.FC<TooltipProps> = ({"
+  },
+  {
+    "path": "components/shared/ui/Tooltip.tsx",
+    "line": 89,
+    "text": "Tooltip.displayName = 'Tooltip';"
+  },
+  {
+    "path": "components/shared/ui/index.ts",
+    "line": 68,
+    "text": "export { Tooltip } from './Tooltip';"
+  },
+  {
+    "path": "components/shared/ui/index.ts",
+    "line": 69,
+    "text": "export type { TooltipProps } from './Tooltip';"
+  },
+  {
+    "path": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+    "line": 120,
+    "text": "let cardTooltip: string | undefined;"
+  },
+  {
+    "path": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+    "line": 126,
+    "text": "cardTooltip = 'Bấm để hiển thị tất cả nhóm thi đua (không lọc)';"
+  },
+  {
+    "path": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+    "line": 130,
+    "text": "cardTooltip = activeFilter === 'over'"
+  },
+  {
+    "path": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+    "line": 136,
+    "text": "cardTooltip = activeFilter === 'under'"
+  },
+  {
+    "path": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+    "line": 142,
+    "text": "cardTooltip = activeFilter === 'zero'"
+  },
+  {
+    "path": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+    "line": 162,
+    "text": "cardTitle={cardTooltip}"
+  },
+  {
+    "path": "features/sticker-event/stickerprinter/FloatingFormatToolbar.tsx",
+    "line": 673,
+    "text": "{/* Tooltip arrow */}"
+  },
+  {
+    "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+    "line": 70,
+    "text": "return localStorage.getItem('hasSeenStickerDiscountTooltip') !== 'true';"
+  },
+  {
+    "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+    "line": 74,
+    "text": "localStorage.setItem('hasSeenStickerDiscountTooltip', 'true');"
+  },
+  {
+    "path": "features/tax-calculator/TaxCalculatorView.tsx",
+    "line": 397,
+    "text": "{/* Tooltip hướng dẫn */}"
+  },
+  {
+    "path": "services/localDataOwner.ts",
+    "line": 42,
+    "text": "'hasSeenSticker',               // hasSeenStickerDiscountTooltip"
+  },
+  {
+    "path": "tests/e2e/tax-qr-and-export.spec.ts",
+    "line": 208,
+    "text": "// Tooltip hướng dẫn hiện khi rê chuột"
+  },
+  {
+    "path": "tests/e2e/helpers/materialHarness.html",
+    "line": 16,
+    "text": "const { Tooltip } = await import('/components/shared/ui/Tooltip.tsx');"
+  },
+  {
+    "path": "tests/e2e/helpers/materialHarness.html",
+    "line": 22,
+    "text": "h(Tooltip, {content:'Lưu thay đổi', side:'bottom', delay:200},"
+  }
+]

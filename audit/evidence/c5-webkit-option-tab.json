@@ -1,0 +1,175 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c5-playwright.config.mjs",
+      "navigation-material.spec.ts",
+      "-g",
+      "keyboard focus"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c5-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c5-webkit-option-tab",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "tax-storage-atomicity.spec.ts",
+          "navigation-material.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c5-webkit-option-tab.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "navigation-material.spec.ts",
+      "file": "navigation-material.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "system group",
+          "file": "navigation-material.spec.ts",
+          "line": 54,
+          "column": 6,
+          "specs": [
+            {
+              "title": "keyboard focus ring is not clipped by the system group",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 68719,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/navigation-material.spec.ts",
+                            "column": 28,
+                            "line": 65
+                          },
+                          "message": "Error: locator.evaluate: Test timeout of 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#global-header-actions button').filter({ has: locator('svg[data-icon=\"font\"]') }).first()\u001b[22m\n\n\n  63 |             await page.keyboard.press(key);\n  64 |             focusTrace.push(await page.evaluate(() => ({ tag: document.activeElement?.tagName, id: document.activeElement?.id, title: document.activeElement?.getAttribute('title') })));\n> 65 |             if (await font.evaluate(el => el === document.activeElement)) break;\n     |                            ^\n  66 |         }\n  67 |         await testInfo.attach('keyboard-sequence', { body: JSON.stringify({ key, focusTrace }), contentType: 'application/json' });\n  68 |         console.log('keyboard sequence', JSON.stringify({ key, focusTrace }));\n    at /Users/ltson/dashboardycx/tests/e2e/navigation-material.spec.ts:65:28"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:41:16.426Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c5-webkit-option-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c5-webkit-option-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c5-webkit-option-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "abb4894e38ecf0e582f9-753604afc4a900420327",
+              "file": "navigation-material.spec.ts",
+              "line": 56,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-25T05:41:04.975Z",
+    "duration": 84764.898,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

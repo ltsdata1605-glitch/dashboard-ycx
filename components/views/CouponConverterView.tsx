@@ -1,0 +1,304 @@
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { transformCouponText } from '../../utils/couponFormatter';
+import { SAMPLE_TITLE, SAMPLE_OUTPUT } from '../../utils/couponSampleData';
+import { Button, Input, ActionMenu } from '../shared/ui';
+
+export default function CouponConverterView() {
+    const [title, setTitle] = useState<string>('');
+    const [inputText, setInputText] = useState<string>('');
+    const [outputText, setOutputText] = useState<string>('');
+    const [isCopied, setIsCopied] = useState<boolean>(false);
+    const [lastUpdated, setLastUpdated] = useState<string>('');
+    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [showGuide, setShowGuide] = useState<boolean>(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const copyTimeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+        };
+    }, []);
+
+    // --- Helpers ---
+    const copyToClipboard = useCallback(async (text: string) => {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (err) {
+            console.warn('Clipboard API failed', err);
+            throw new Error('Không thể sao chép. Vui lòng kiểm tra quyền trình duyệt.');
+        }
+    }, []);
+
+    const showCopySuccessFeedback = useCallback(() => {
+        setIsCopied(true);
+        if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = window.setTimeout(() => setIsCopied(false), 2500);
+    }, []);
+
+    const updateOutput = useCallback((input: string, titleVal: string) => {
+         const newOutput = transformCouponText(input, titleVal);
+         setOutputText(newOutput);
+    }, []);
+
+    // --- Event Handlers ---
+    const handleManualCopyClick = async () => {
+        if (!outputText) return;
+        setErrorMessage('');
+        try {
+            await copyToClipboard(outputText);
+            showCopySuccessFeedback();
+        } catch (err) {
+            setErrorMessage('Sao chép không thành công. Vui lòng thử lại.');
+        }
+    };
+
+    const handlePasteClick = async () => {
+        try {
+            await navigator.clipboard.readText();
+            // Just clear and focus to prepare for paste
+            setInputText('');
+            setErrorMessage('');
+            textareaRef.current?.focus();
+        } catch (e) {
+            setInputText('');
+            setErrorMessage('');
+            textareaRef.current?.focus();
+        }
+    };
+
+    const handleClearAll = () => {
+        setTitle('');
+        setInputText('');
+        setOutputText('');
+        setErrorMessage('');
+        textareaRef.current?.focus();
+    };
+    
+    const handleClearContent = () => {
+        setInputText('');
+        setOutputText(transformCouponText('', title));
+        setErrorMessage('');
+        textareaRef.current?.focus();
+    };
+
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTitle = e.target.value;
+        setTitle(newTitle);
+        updateOutput(inputText, newTitle);
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newInput = e.target.value;
+        setInputText(newInput);
+        updateOutput(newInput, title);
+    };
+    
+    const handleTitlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const pastedTitle = e.clipboardData.getData('text/plain');
+        if (!pastedTitle) return;
+
+        const newOutput = transformCouponText(inputText, pastedTitle);
+        setTitle(pastedTitle);
+        setOutputText(newOutput);
+
+        if (newOutput) {
+            copyToClipboard(newOutput)
+                .then(showCopySuccessFeedback)
+                .catch(() => setErrorMessage('Sao chép tự động thất bại.'));
+        }
+        textareaRef.current?.focus();
+    };
+    
+    const handleContentPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        e.preventDefault();
+        const pastedText = e.clipboardData.getData('text/plain');
+        if (!pastedText) return;
+
+        const transformedText = transformCouponText(pastedText, title);
+        setOutputText(transformedText);
+
+        if (transformedText) {
+            copyToClipboard(transformedText)
+                .then(showCopySuccessFeedback)
+                .catch(() => setErrorMessage('Tự động sao chép thất bại.'));
+        }
+        
+        setInputText(''); 
+        textareaRef.current?.focus();
+    };
+    
+    useEffect(() => {
+        if (inputText || title || outputText) {
+            setLastUpdated(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute:'2-digit' }));
+        } else {
+            setLastUpdated('');
+        }
+    }, [inputText, title, outputText]);
+
+    return (
+        <main className="h-full w-full flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-y-auto">
+            <div className="w-full max-w-[960px] mx-auto relative z-10 flex flex-col h-full min-h-[600px]">
+                {/* GĐ7: bỏ tiêu đề chữ chuyển màu xanh→đỏ 36px (trang trí, lặp tên ở thanh trên iPhone) → tiêu đề thường, chỉ laptop */}
+                <header className="text-center mb-6 lg:mb-8 shrink-0">
+                    <h1 className="hidden lg:block type-title font-bold text-slate-900 dark:text-white mb-2">
+                        Rút gọn coupon GVGS, Event
+                    </h1>
+                    <div className="type-footnote lg:text-sm text-slate-500 dark:text-slate-400 max-w-3xl mx-auto space-y-1">
+                        <p>Hỗ trợ rút gọn COUPON từ báo cáo Anh 3169 - Phạm Nguyên Vũ gửi Event, GVGS:</p>
+                        <p>Mã COUPON Áp Dụng Cho Máy lọc nước Giờ vàng giá sốc ngày 1/5 - 3/5/2026</p>
+                        <p>Mã COUPON Áp Dụng Cho Tivi - Loa Karaoke Giờ vàng giá sốc ngày 1/5 - 3/5/2026</p>
+                    </div>
+
+                    <Button
+                        variant="tinted"
+                        size="sm"
+                        icon={showGuide ? 'chevronUp' : 'help'}
+                        onClick={() => setShowGuide(!showGuide)}
+                        className="mt-4 rounded-full"
+                    >
+                        {showGuide ? "Ẩn hướng dẫn sử dụng" : "Xem hướng dẫn sử dụng"}
+                    </Button>
+                    
+                    {showGuide && (
+                        <div className="mt-6 max-w-4xl mx-auto rounded-popup overflow-hidden border border-slate-200 dark:border-slate-700 shadow-md animate-in fade-in slide-in-from-top-4 duration-300">
+                            <img 
+                                src="/Tuts/Coupon.png" 
+                                alt="Hướng dẫn sử dụng" 
+                                className="w-full h-auto object-contain bg-slate-100 dark:bg-slate-800 block" 
+                            />
+                        </div>
+                    )}
+                </header>
+
+                {errorMessage && (
+                    <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 p-4 mb-8 flex justify-between items-start shadow-sm shrink-0 rounded-control">
+                        <div className="flex items-center gap-3">
+                            <AppIcon name="warning" size="xl" className="text-rose-500" />
+                            <div>
+                                <p className="font-semibold text-sm">Lỗi xử lý</p>
+                                <p className="text-sm mt-0.5 opacity-90">{errorMessage}</p>
+                            </div>
+                        </div>
+                        <Button
+                            variant="ghost" size="icon-xs"
+                            onClick={() => setErrorMessage('')}
+                            className="text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40"
+                        >
+                            <AppIcon name="close" size="md" />
+                        </Button>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 flex-grow">
+                    {/* Input Section */}
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md rounded-popup">
+                          <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                              <h2 className="text-[17px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 leading-7">
+                                  <div className="w-2.5 h-2.5 bg-sky-500 rounded-full" />
+                                  Nguồn dữ liệu
+                              </h2>
+                              {/* GĐ7: 3 nút icon (dán xanh + 2 thùng rác vàng/đỏ khác nghĩa nhưng cùng hình) → "Dán" có chữ + menu "⋯" có
+                                  2 lệnh xoá ghi rõ nghĩa, "Xoá toàn bộ" chữ đỏ ở cuối */}
+                              <div className="flex items-center gap-1.5">
+                                  <Button variant="tinted" size="sm" icon="paste" onClick={handlePasteClick} title="Làm mới và chuẩn bị dán">
+                                      Dán
+                                  </Button>
+                                  <ActionMenu
+                                      label="Xoá dữ liệu nhập"
+                                      title="Nguồn dữ liệu"
+                                      data-testid="coupon-xoa-menu"
+                                      items={[
+                                          { id: 'xoa-noi-dung', label: 'Xoá nội dung, giữ tiêu đề', icon: 'delete', onSelect: handleClearContent },
+                                          { id: 'xoa-tat-ca', label: 'Xoá toàn bộ', icon: 'delete', destructive: true, onSelect: handleClearAll },
+                                      ]}
+                                  />
+                              </div>
+                         </div>
+                         <div className="p-5 flex-grow flex flex-col gap-4">
+                              <div>
+                                  <label htmlFor="title-input" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                      Tiêu đề (tuỳ chọn)
+                                  </label>
+                                  <Input
+                                      id="title-input"
+                                      type="text"
+                                      value={title}
+                                      onChange={handleTitleChange}
+                                      onPaste={handleTitlePaste}
+                                      className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                                      placeholder={SAMPLE_TITLE}
+                                  />
+                              </div>
+                              <div className="flex-grow flex flex-col">
+                                  <label htmlFor="input-text" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex justify-between items-end">
+                                      <span>Nội dung thô</span>
+                                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Hỗ trợ dán (Ctrl+V)</span>
+                                  </label>
+                                  <textarea
+                                      ref={textareaRef}
+                                      id="input-text"
+                                      value={inputText}
+                                      onChange={handleInputChange}
+                                      onPaste={handleContentPaste}
+                                      className="w-full h-full min-h-[200px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-sm font-mono text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all resize-none custom-scrollbar rounded-control"
+                                      placeholder="Dán dữ liệu thô vào đây...&#10;Hệ thống sẽ tự động định dạng và sao chép kết quả."
+                                  />
+                              </div>
+                         </div>
+                    </div>
+
+                    {/* Output Section */}
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:shadow-md relative group rounded-popup">
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 relative z-10">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-[17px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 leading-7">
+                                    <div className="w-2.5 h-2.5 bg-emerald-500" />
+                                    Kết quả
+                                </h2>
+                                {lastUpdated && (
+                                    <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2 py-1 border border-slate-200 dark:border-slate-700 rounded-md">
+                                        <AppIcon name="clock" size="sm" /> {lastUpdated}
+                                    </span>
+                                )}
+                            </div>
+                            <Button
+                                onClick={handleManualCopyClick}
+                                disabled={!outputText}
+                                size="sm"
+                                variant={isCopied ? 'tinted' : 'primary'}
+                                icon={isCopied ? 'success' : 'copy'}
+                            >
+                                {isCopied ? 'Đã chép' : 'Sao chép'}
+                            </Button>
+                        </div>
+                        
+                        {/* min-h trên điện thoại (GĐ7): khung xếp 1 cột không có chiều cao từ lưới → lớp kết quả `absolute inset-0` xẹp
+                            thành một vạch mỏng, người dùng iPhone không thấy kết quả. Laptop chiều cao theo cột Nguồn dữ liệu. */}
+                        <div className="relative flex-grow min-h-[260px] lg:min-h-0 m-4 sm:m-6 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden z-10 rounded-control">
+                            <div className="absolute inset-0 overflow-auto p-5 custom-scrollbar">
+                                <pre className="text-sm font-mono text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                                    {outputText ? (
+                                        outputText
+                                    ) : (!inputText && !title) ? (
+                                        <div className="opacity-40 pointer-events-none select-none">
+                                            {SAMPLE_OUTPUT}
+                                        </div>
+                                    ) : (
+                                        <span className="text-slate-400 dark:text-slate-500 select-none italic flex flex-col items-center justify-center h-full text-center">
+                                            <AppIcon name="code" size="hero" className="mb-4 opacity-40" />
+                                            Kết quả hiển thị tại đây...
+                                        </span>
+                                    )}
+                                </pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    );
+}

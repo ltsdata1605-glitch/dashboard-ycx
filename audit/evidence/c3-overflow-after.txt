@@ -1,0 +1,53 @@
+[WebServer] (node:42118) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 14 tests using 1 worker
+
+material viewport diagnostics {
+  innerWidth: 390,
+  innerHeight: 844,
+  visualWidth: 390,
+  visualHeight: 844,
+  documentWidth: 390,
+  cancel: {
+    x: 8,
+    y: 913.7186279296875,
+    width: 374,
+    height: 52,
+    top: 913.7186279296875,
+    right: 382,
+    bottom: 965.7186279296875,
+    left: 8
+  },
+  sheet: {
+    x: 0,
+    y: 698.7186279296875,
+    width: 390,
+    height: 275,
+    top: 698.7186279296875,
+    right: 390,
+    bottom: 973.7186279296875,
+    left: 0
+  }
+}
+(node:42121) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests/e2e/glass-material-foundation.spec.ts:6:1 › Material token và reduced transparency trên action sheet thật (1.9s)
+overflow candidates []
+  ✓   2 [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 320px and keeps cancel in viewport (1.5s)
+overflow candidates []
+  ✓   3 [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 390px and keeps cancel in viewport (1.5s)
+overflow candidates []
+  ✓   4 [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 440px and keeps cancel in viewport (969ms)
+  ✓   5 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:19:5 › iPhone 16 Pro Max › Switch: role=switch, bấm/Space bật tắt, 44×26, vùng chạm ≥ 44 (583ms)
+  ✓   6 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:40:5 › iPhone 16 Pro Max › SegmentedControl: nhóm nút aria-pressed, núm trắng trượt theo mục chọn, cao 44px trên cảm ứng (858ms)
+  ✓   7 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:57:5 › iPhone 16 Pro Max › Banner: chữ đứng yên tối đa 2 dòng, "Xem thêm" mở đủ, × đóng (467ms)
+  ✓   8 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:72:5 › iPhone 16 Pro Max › ListGroup: hàng ≥ 48px cảm ứng, có đường kẻ thụt lề, hàng bấm được (396ms)
+  ✓   9 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:83:5 › iPhone 16 Pro Max › ActionMenu trên iPhone là action sheet: nhóm nguy hiểm riêng, nút Huỷ, chọn mục chạy ngay (2.3s)
+  ✓  10 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:100:5 › iPhone 16 Pro Max › Modal sheet: đầu kiểu iOS [Huỷ — Tiêu đề — Lưu], thân chỉ cuộn dọc, kéo thanh nắm để đóng (1.4s)
+  ✓  11 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:128:5 › iPhone 16 Pro Max › SectionHeader v2 viết thường 17px; EmptyState có icon (364ms)
+  ✓  12 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:141:5 › laptop 1366×900 › ActionMenu là menu thả: ↓ di chuyển, Esc đóng và trả focus, mục nguy hiểm cuối sau vạch ngăn (687ms)
+  ✓  13 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:160:5 › laptop 1366×900 › PageActions: khung app vẽ tiêu đề/nút từ màn đang khai báo, luôn gọi hàm MỚI nhất, màn ẩn thì gỡ (820ms)
+  ✓  14 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:177:5 › laptop 1366×900 › Modal giữa màn: primaryAction thành cặp nút ở chân, có nút × ở đầu (755ms)
+
+  14 passed (15.8s)

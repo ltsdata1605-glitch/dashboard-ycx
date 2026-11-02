@@ -1,0 +1,25 @@
+App.tsx:50:import { installTableScrollCue } from './components/shared/ui/tableScrollCue';
+tests/e2e/bang-iphone-ghim-cot-vien-mo.spec.ts:5: *  - Viền mờ mép phải khi còn cột bên phải (components/shared/ui/tableScrollCue.ts), cuộn hết thì tắt.
+tests/e2e/helpers/uiHarness.tsx:3: * (Vite biên dịch file này như mọi module của app): DataTable có nhóm cột + cột ẩn trên mobile + cuộn
+tests/e2e/helpers/uiHarness.tsx:11:import { DataTable } from '../../../components/shared/ui/DataTable';
+tests/e2e/helpers/uiHarness.tsx:26:                <DataTable<Row>
+tests/e2e/ui-dung-chung-dot-2.spec.ts:5: * A16 Button có dấu focus khi dùng bàn phím; A18/A19 DataTable đầu bảng dính trên + nhóm cột đúng
+components/shared/README.md:30:| Thẻ, khối | `SectionCard`, `SectionHeader`, `Card`, `KpiCard`, `StatCard`, `DataTable`, `Badge`, `ProgressBar`, `Tooltip` | |
+tests/e2e/data-table-foundation.spec.ts:3:  test(`DataTable native sort groups and loading/empty ${width}`,async({page})=>{
+tests/e2e/data-table-foundation.spec.ts:24:  test(`DataTable scroll cue sticky header and column ${width}`,async({page})=>{
+components/shared/ui/index.ts:71:export { DataTable } from './DataTable';
+components/shared/ui/index.ts:72:export type { DataTableProps, DataTableColumn, SortDirection } from './DataTable';
+components/shared/ui/DataTable.tsx:7:/* ─── DataTable ─── */
+components/shared/ui/DataTable.tsx:11:export interface DataTableColumn<T = unknown> {
+components/shared/ui/DataTable.tsx:40:export interface DataTableProps<T = unknown> {
+components/shared/ui/DataTable.tsx:41:  columns: DataTableColumn<T>[];
+components/shared/ui/DataTable.tsx:120:export function DataTable<T>({
+components/shared/ui/DataTable.tsx:143:}: DataTableProps<T>) {
+components/shared/ui/DataTable.tsx:176:  const handleSort = React.useCallback((col: DataTableColumn<T>) => {
+components/shared/ui/DataTable.tsx:366:DataTable.displayName = 'DataTable';
+features/bi-dashboard/components/BiSupermarketMapAdmin.tsx:7:import { DataTable, type DataTableColumn } from '../../../components/shared/ui/DataTable';
+features/bi-dashboard/components/BiSupermarketMapAdmin.tsx:258:    const columns: DataTableColumn<{ name: string; maKho: string }>[] = [
+features/bi-dashboard/components/BiSupermarketMapAdmin.tsx:408:                                <DataTable columns={columns} data={rows} rowKey={(row) => row.name} compact maxHeight="300px" className="rounded-none" />
+features/bi-dashboard/components/SupermarketConfig.tsx:27:import { DataTable, type DataTableColumn } from '../../../components/shared/ui/DataTable';
+features/bi-dashboard/components/SupermarketConfig.tsx:729:                const columns: DataTableColumn<Competition>[] = [
+features/bi-dashboard/components/SupermarketConfig.tsx:887:                                    <DataTable

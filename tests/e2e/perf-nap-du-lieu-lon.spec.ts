@@ -1,0 +1,115 @@
+import { expect, test } from '@playwright/test';
+/**
+ * ĐO HIỆU NĂNG (tuỳ chọn, mặc định BỎ QUA): nạp file doanh số lớn vào Phân tích và in ra thời gian,
+ * heap, số lần khựng luồng chính, top hàm tốn CPU. Chủ dự án (2026-09-29): dữ liệu lớn nhất
+ * thường dùng 200.000 dòng (~100MB), 40 NV, 5 kho.
+ *   node tests/bench/gen-sales-xlsx.mjs 200000 /tmp/sales-200k.xlsx
+ *   npm run build && npx vite preview --port 4173   (bản dev phóng đại chi phí React — đo bản build)
+ *   E2E_BASE_URL=http://127.0.0.1:4173 PERF_FILE=/tmp/sales-200k.xlsx npx playwright test perf-nap-du-lieu-lon
+ */
+test('đo nạp dữ liệu lớn vào Phân tích', async ({ page }) => {
+    test.skip(!process.env.PERF_FILE, 'Chỉ chạy khi đặt PERF_FILE');
+    test.setTimeout(900_000);
+    await page.addInitScript(() => {
+        const w = window as unknown as { __long: number[] };
+        w.__long = [];
+        new PerformanceObserver(l => l.getEntries().forEach(e => w.__long.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true });
+        const wl = window as unknown as { __longTs: [number, number][] };
+        wl.__longTs = [];
+        new PerformanceObserver(l => l.getEntries().forEach(e => wl.__longTs.push([e.startTime, e.duration]))).observe({ type: 'longtask', buffered: true });
+    });
+    await page.goto('/?tab=analysis');
+    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Profiler.enable');
+    await cdp.send('Profiler.setSamplingInterval', { interval: 1000 });
+    const perfT0 = await page.evaluate(() => performance.now());
+    await cdp.send('Profiler.start');
+    const t0 = Date.now();
+    await page.locator('input[type="file"]').first().setInputFiles(process.env.PERF_FILE!);
+    await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
+    const tChon = Date.now();
+    await expect(page.locator('#business-overview')).toContainText(/DT Thực\D{0,20}[\d.]+ (Tr|Tỷ)/, { timeout: 800_000 });
+    const tXong = Date.now();
+    const { profile } = await cdp.send('Profiler.stop') as { profile: { startTime?: number; nodes: { id: number; callFrame: { functionName: string; url: string; lineNumber: number }; hitCount?: number }[]; samples: number[]; timeDeltas: number[] } };
+    const self = new Map<number, number>();
+    profile.samples.forEach((id, i) => self.set(id, (self.get(id) || 0) + (profile.timeDeltas[i] || 0)));
+    const agg = new Map<string, number>();
+    for (const n of profile.nodes) {
+        const t = self.get(n.id) || 0; if (!t) continue;
+        const key = `${n.callFrame.functionName || '(anon)'} ${n.callFrame.url.replace(/^.*5173/, '').split('?')[0]}:${n.callFrame.lineNumber + 1}`;
+        agg.set(key, (agg.get(key) || 0) + t);
+    }
+    const top = [...agg.entries()].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => `${(v / 1000).toFixed(0)}ms ${k}`);
+    console.log('TOP\n' + top.join('\n'));
+    // Từng LONG TASK (PerformanceObserver) → các hàm app (gần nhất, bỏ node_modules) chiếm CPU trong đúng khoảng đó.
+    {
+        const par = new Map<number, number>();
+        profile.nodes.forEach(n => ((n as unknown as { children?: number[] }).children || []).forEach(c => par.set(c, n.id)));
+        const byIdL = new Map(profile.nodes.map(n => [n.id, n]));
+        const appKey = (id: number) => {
+            for (let p: number | undefined = id; p !== undefined; p = par.get(p)) {
+                const cf = byIdL.get(p)!.callFrame;
+                if (cf.url && !cf.url.includes('node_modules') && !cf.url.includes('vendor-')) return `${cf.functionName || '(anon)'} ${cf.url.replace(/^.*\/assets\//, '').split('?')[0]}:${cf.lineNumber + 1}`;
+            }
+            const cf = byIdL.get(id)!.callFrame; return `${cf.functionName || '(native)'}`;
+        };
+        const longTs = await page.evaluate(() => (window as unknown as { __longTs: [number, number][] }).__longTs);
+        let tt = 0; const times: number[] = [];
+        profile.timeDeltas.forEach(d => { tt += d; times.push(perfT0 + tt / 1000); });
+        const bang = longTs.filter(([st]) => st >= perfT0).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([st, d]) => {
+            const agg2 = new Map<string, number>();
+            profile.samples.forEach((id, i) => { if (times[i] >= st && times[i] <= st + d) { const k = appKey(id); agg2.set(k, (agg2.get(k) || 0) + (profile.timeDeltas[i] || 0) / 1000); } });
+            return `${Math.round(d)}ms = ` + [...agg2.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${v.toFixed(0)} ${k}`).join(' | ');
+        });
+        console.log('LONGTASK\n' + bang.join('\n'));
+    }
+    // Các lần khựng DÀI NHẤT (chuỗi mẫu liên tục không "(idle)") và hàm nào lấp đầy từng lần.
+    const nodeKey = new Map(profile.nodes.map(n => [n.id, `${n.callFrame.functionName || '(anon)'} ${n.callFrame.url.replace(/^.*\/assets\//, '').split('?')[0]}:${n.callFrame.lineNumber + 1}`]));
+    const runs: { ms: number; fns: Map<string, number> }[] = [];
+    let cur: { ms: number; fns: Map<string, number> } | null = null;
+    profile.samples.forEach((id, i) => {
+        const k = nodeKey.get(id) || '?';
+        const dt = (profile.timeDeltas[i] || 0) / 1000;
+        if (k.startsWith('(idle)')) { if (cur) runs.push(cur); cur = null; return; }
+        cur = cur || { ms: 0, fns: new Map() };
+        cur.ms += dt;
+        cur.fns.set(k, (cur.fns.get(k) || 0) + dt);
+    });
+    if (cur) runs.push(cur);
+    console.log('KHUNG\n' + runs.sort((a, b) => b.ms - a.ms).slice(0, 4).map(r => `${r.ms.toFixed(0)}ms = ` +
+        [...r.fns.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${v.toFixed(0)} ${k}`).join(' | ')).join('\n'));
+    // Thời gian tự thân của jsxDEV/createElement, cộng dồn theo component NGƯỜI GỌI gần nhất trong mã app
+    const parent = new Map<number, number>();
+    profile.nodes.forEach(n => ((n as unknown as { children?: number[] }).children || []).forEach(c => parent.set(c, n.id)));
+    const byId = new Map(profile.nodes.map(n => [n.id, n]));
+    const caller = new Map<string, number>();
+    for (const n of profile.nodes) {
+        const t = self.get(n.id) || 0; if (!t) continue;
+        if (!/jsxDEV|createElement|ReactElement/.test(n.callFrame.functionName)) continue;
+        let p = parent.get(n.id);
+        while (p !== undefined) {
+            const pn = byId.get(p)!;
+            if (!pn.callFrame.url.includes('node_modules') && pn.callFrame.url) {
+                const key = `${pn.callFrame.functionName || '(anon)'} ${pn.callFrame.url.replace(/^.*5173/, '').split('?')[0]}:${pn.callFrame.lineNumber + 1}`;
+                caller.set(key, (caller.get(key) || 0) + t);
+                break;
+            }
+            p = parent.get(p);
+        }
+    }
+    console.log('JSXCALLER\n' + [...caller.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `${(v / 1000).toFixed(0)}ms ${k}`).join('\n'));
+    await page.waitForTimeout(3000);
+    // Ép dọn rác trước khi đọc heap — không thì số heap lẫn rác chưa thu, không so sánh được giữa 2 lượt.
+    await cdp.send('HeapProfiler.enable');
+    await cdp.send('HeapProfiler.collectGarbage');
+    await page.waitForTimeout(12_000); // quá hạn cache 10s của salesData (nếu còn) rồi dọn lần nữa
+    await cdp.send('HeapProfiler.collectGarbage');
+    const m = await page.evaluate(() => {
+        const w = window as unknown as { __long: number[]; performance: Performance & { memory?: { usedJSHeapSize: number } } };
+        const l = w.__long;
+        return { heapMB: Math.round((w.performance.memory?.usedJSHeapSize || 0) / 1e6), longCount: l.length, longMax: Math.max(0, ...l), longTotal: l.reduce((a, b) => a + b, 0) };
+    });
+    console.log('SOLIEU', (await page.locator('#business-overview').innerText()).replace(/\s+/g, ' ').slice(0, 160));
+    console.log('PERF', JSON.stringify({ taiFileDenChonCheDo_s: (tChon - t0) / 1000, chonDenHienSo_s: (tXong - tChon) / 1000, ...m }));
+});

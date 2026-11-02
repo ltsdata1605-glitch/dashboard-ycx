@@ -1,0 +1,541 @@
+
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { AppIcon } from '../../../../components/shared/ui/icon/AppIcon';
+import { startExportJob } from '../../../../components/shared/export';
+import Card from '../Card';
+import { toast } from '../../../../components/shared/ui/toast';
+import { useExportOptionsContext } from '../../contexts/ExportOptionsContext';
+import ExportButton from '../ExportButton';
+import { InstallmentRow, InstallmentProvider } from '../../types/nhanVienTypes';
+import { getYesterdayDateString, parseInstallmentData, computeColumnTiers, DataTier } from '../../utils/nhanVienHelpers';
+import { useIndexedDBState } from '../../hooks/useIndexedDBState';
+import { Button } from '../../../../components/shared/ui/Button';
+import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+import { onActivateKey } from '../../../../components/shared/ui';
+import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { MedalBadge, DeltaBadge } from '../shared/Badges';
+import AvatarDisplay from './shared/AvatarDisplay';
+import { getMetricColorByTarget } from './revenue/ColorSettingsModal';
+import { shortenSupermarketName } from '../../utils/dashboardHelpers';
+import * as db from '../../utils/db';
+import { TieuDeBaoCao } from './shared/TieuDeBaoCao';
+
+const f = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+
+// Dòng nhân viên/phòng ban/tổng đã gộp thêm rank (thứ hạng) và oldRow (dữ liệu tháng trước để so sánh)
+type InstallmentDisplayRow = InstallmentRow & { rank?: number; oldRow?: InstallmentRow };
+
+interface InstallmentDesktopRowProps {
+    row: InstallmentDisplayRow;
+    isTotal: boolean;
+    isHighlighted: boolean;
+    onHighlightToggle: (name: string) => void;
+    supermarketName: string;
+    hidePercent: boolean;
+    f: Intl.NumberFormat;
+    targetTraGop: number;
+    providerTiers?: DataTier[];
+    totalTier?: DataTier;
+}
+
+const InstallmentDesktopRow = React.memo<InstallmentDesktopRowProps>(({
+    row, isTotal, isHighlighted, onHighlightToggle, supermarketName, hidePercent, f, targetTraGop, providerTiers, totalTier
+}) => {
+    const oldRow = row.oldRow;
+    // Vạch trạng thái 3px mép trái và màu số %T.Chậm — tính theo Target Trả chậm
+    // (Đạt >=100% lục, Tiệm cận >=85% cam, Kém <85% đỏ)
+    const metricColor = getMetricColorByTarget(row.totalPercent, targetTraGop);
+    const stripeColor = isTotal ? undefined : metricColor;
+
+    const totalDtColorClass = isTotal ? '' : (
+        row.totalDtSieuThi <= 0 ? 'text-slate-400 dark:text-slate-500 font-normal' :
+        totalTier === 'top' ? 'text-emerald-600 dark:text-emerald-400 font-bold' :
+        totalTier === 'trung' ? 'text-amber-600 dark:text-amber-400 font-semibold' :
+        totalTier === 'bot' ? 'text-rose-500 dark:text-rose-400 font-medium' :
+        'text-slate-700 dark:text-slate-300 font-semibold'
+    );
+
+    return (
+        <tr
+            style={{ borderLeftColor: stripeColor }}
+            className={`border-l-[3.5px] transition-colors duration-150 cursor-pointer text-[13px] border-b border-slate-200/80 dark:border-slate-800 ${
+                isTotal
+                    ? 'bg-emerald-50/85 dark:bg-emerald-950/40 font-black text-emerald-900 dark:text-emerald-200 border-t-2 border-emerald-300/80 dark:border-emerald-700/80'
+                    : isHighlighted
+                        ? 'bg-sky-50/70 dark:bg-sky-950/40 ring-1 ring-inset ring-sky-300/50 dark:ring-sky-700/50 font-semibold'
+                        : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/50'
+            }`}
+        >
+            <td className={`px-2.5 py-1.5 whitespace-nowrap min-w-[200px] border-r border-slate-200/80 dark:border-slate-800 ${isTotal ? 'text-center uppercase tracking-wider text-[12px] font-black' : ''}`}>
+                <div className={`flex items-center ${isTotal ? 'justify-center' : 'gap-2'}`}>
+                    {!isTotal && <MedalBadge rank={row.rank} />}
+                    {!isTotal && <AvatarDisplay employeeName={row.originalName!} supermarketName={supermarketName} />}
+                    <div
+                        role={isTotal ? undefined : 'button'}
+                        tabIndex={isTotal ? undefined : 0}
+                        className="flex flex-col min-w-0 cursor-pointer"
+                        onClick={isTotal ? undefined : () => onHighlightToggle(row.originalName!)}
+                        onKeyDown={isTotal ? undefined : onActivateKey(() => onHighlightToggle(row.originalName!))}
+                    >
+                        <span className={`font-bold tracking-tight ${isTotal ? 'text-emerald-900 dark:text-emerald-200' : 'text-slate-800 dark:text-slate-100 text-[13px] hover:text-sky-600 dark:hover:text-sky-400 transition-colors'}`}>
+                            {row.name}
+                        </span>
+                    </div>
+                </div>
+            </td>
+            {row.providers.map((p: InstallmentProvider, pIdx: number) => {
+                const oldP = oldRow?.providers[pIdx];
+                const tier = isTotal ? 'none' : (providerTiers?.[pIdx] || 'none');
+                const dtColorClass = isTotal ? '' : (
+                    p.dt <= 0 ? 'text-slate-300 dark:text-slate-600 font-normal' :
+                    tier === 'top' ? 'text-emerald-600 dark:text-emerald-400 font-bold' :
+                    tier === 'trung' ? 'text-amber-600 dark:text-amber-400 font-semibold' :
+                    tier === 'bot' ? 'text-rose-500 dark:text-rose-400 font-medium' :
+                    'text-slate-700 dark:text-slate-300 font-semibold'
+                );
+
+                return (
+                    <React.Fragment key={pIdx}>
+                        <td className={`px-1.5 py-1.5 text-[13px] text-center border-r border-slate-200/80 dark:border-slate-800 tabular-nums ${dtColorClass || 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                            <div>{p.dt > 0 ? f.format(Math.ceil(p.dt)) : '-'}</div>
+                        </td>
+                        {!hidePercent && (
+                            <td className={`px-1.5 py-1.5 text-[12px] text-center border-r border-slate-200/80 dark:border-slate-800 font-semibold tabular-nums ${p.percent >= 40 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                <div>{p.percent > 0 ? `${p.percent.toFixed(2)}%` : '-'}</div>
+                                <DeltaBadge current={p.percent} previous={oldP?.percent} />
+                            </td>
+                        )}
+                    </React.Fragment>
+                );
+            })}
+            <td className={`px-2 py-1.5 text-[13px] text-center border-r border-slate-200/80 dark:border-slate-800 tabular-nums ${isTotal ? 'font-black text-emerald-900 dark:text-emerald-200' : totalDtColorClass}`}>
+                {f.format(Math.ceil(row.totalDtSieuThi))}
+            </td>
+            <td className="px-2 py-1.5 text-[13px] text-center border-r border-slate-200/80 dark:border-slate-800 font-black tabular-nums" style={{ color: metricColor }}>
+                <div className="text-[13px] sm:text-sm font-black">{Math.round(row.totalPercent)}%</div>
+                <DeltaBadge current={row.totalPercent} previous={oldRow?.totalPercent} />
+            </td>
+        </tr>
+    );
+});
+
+interface InstallmentTabProps {
+    rows: InstallmentRow[];
+    supermarketName: string;
+    activeSupermarkets?: string[];
+    activeDepartments: string[];
+    highlightedEmployees: Set<string>;
+    setHighlightedEmployees: React.Dispatch<React.SetStateAction<Set<string>>>;
+    isActive?: boolean;
+    targetTraGop?: number;
+}
+
+const InstallmentTab: React.FC<InstallmentTabProps> = ({ 
+    rows, supermarketName, activeSupermarkets, activeDepartments, highlightedEmployees, setHighlightedEmployees, isActive, targetTraGop 
+}) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const importFileRef = useRef<HTMLInputElement>(null);
+
+    // Target động từ tab Cập nhật (Target Trả chậm)
+    const safeName = shortenSupermarketName(supermarketName);
+    const [storedTraGopTarget] = useIndexedDBState<number>(`targethero-${safeName}-tragop`, 60);
+    const [multiTraGopTarget, setMultiTraGopTarget] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!activeSupermarkets || activeSupermarkets.length <= 1) {
+            setMultiTraGopTarget(null);
+            return;
+        }
+        let isMounted = true;
+        const loadMultiTargets = async () => {
+            const results = await Promise.all(activeSupermarkets.map(async (sm) => {
+                const sName = shortenSupermarketName(sm);
+                const tg = await db.get<number>(`targethero-${sName}-tragop`);
+                return tg ?? 60;
+            }));
+            if (isMounted && results.length > 0) {
+                const avgTg = results.reduce((sum, r) => sum + r, 0) / results.length;
+                setMultiTraGopTarget(avgTg);
+            }
+        };
+        loadMultiTargets();
+        return () => { isMounted = false; };
+    }, [activeSupermarkets]);
+
+    const effectiveTargetTraCham = targetTraGop ?? multiTraGopTarget ?? storedTraGopTarget ?? 60;
+
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'totalPercent', direction: 'desc' });
+    const [viewMode, setViewMode] = useIndexedDBState<'group' | 'list'>('installment-view-mode', 'group');
+    const [hidePercent, setHidePercent] = useIndexedDBState<boolean>('installment-hide-percent', true);
+    
+    const [prevMonthRaw, setPrevMonthRaw] = useIndexedDBState<string>(`prev-month-installment-${supermarketName}`, '');
+    const prevMonthRows = useMemo((): InstallmentRow[] => {
+        try {
+            if (isActive === false) return [];
+            if (!prevMonthRaw) return [];
+            if (prevMonthRaw.startsWith('[')) return JSON.parse(prevMonthRaw) as InstallmentRow[];
+            const map: Record<string, string> = {};
+            rows.forEach(r => { if(r.originalName) map[r.originalName] = r.department || ''; });
+            return parseInstallmentData(prevMonthRaw, map);
+        } catch { return []; }
+    }, [prevMonthRaw, rows, isActive]);
+
+    const [exportDeptFilter, setExportDeptFilter] = useState<string | null>(null);
+    const [isExportingByDept, setIsExportingByDept] = useState(false);
+    const [exportDeptProgress, setExportDeptProgress] = useState({ current: 0, total: 0 });
+
+    const handleSort = (key: string) => { setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' })); };
+
+    const handleHighlightToggle = React.useCallback((originalName: string) => {
+        setHighlightedEmployees((prev: Set<string>) => {
+            const n = new Set(prev);
+            if (n.has(originalName)) n.delete(originalName);
+            else n.add(originalName);
+            return n;
+        });
+    }, [setHighlightedEmployees]);
+
+    const displayList = useMemo(() => {
+        if (isActive === false) return [];
+        if (rows.length === 0) return [];
+        const allDepts = Array.from(new Set(rows.filter(r => r.type === 'employee' && r.department).map(r => r.department as string))).sort();
+        // activeDepartments đến từ effectiveActiveDepartments (NhanVien.tsx) — đã quy đổi 'all' thành
+        // danh sách phòng ban cụ thể trước khi truyền xuống, nên .includes('all') không bao giờ đúng.
+        // Phải so thêm với allDepts để biết người dùng có thật sự đang lọc hay không (ảnh hưởng dòng TỔNG CỘNG bên dưới).
+        const isFiltering = !activeDepartments.includes('all') && !(allDepts.length > 0 && allDepts.every(d => activeDepartments.includes(d)));
+
+        let deptsToProcess = exportDeptFilter ? [exportDeptFilter] : (isFiltering ? activeDepartments : allDepts);
+
+        const prevMonthRowsMap = new Map(prevMonthRows.map(pr => [pr.originalName, pr]));
+        const calculateRowWithComparison = (row: InstallmentRow): InstallmentDisplayRow => {
+            const oldRow = prevMonthRowsMap.get(row.originalName);
+            return { ...row, oldRow };
+        };
+
+        const totalRow = rows.find(r => r.type === 'total');
+
+        if (viewMode === 'list' && !exportDeptFilter) {
+            const list = rows.filter(r => r.type === 'employee' && (isFiltering ? activeDepartments.includes(r.department!) : true))
+                             .map(calculateRowWithComparison);
+            list.sort((a, b) => {
+                let valA: string | number = 0, valB: string | number = 0;
+                if (sortConfig.key === 'name') { valA = a.originalName || a.name; valB = b.originalName || b.name; }
+                else if (sortConfig.key === 'totalDtSieuThi') { valA = a.totalDtSieuThi; valB = b.totalDtSieuThi; }
+                else if (sortConfig.key === 'totalPercent') { valA = a.totalPercent; valB = b.totalPercent; }
+                const compare = typeof valA === 'string' ? valA.localeCompare(valB as string) : (valA - (valB as number));
+                return sortConfig.direction === 'asc' ? compare : -compare;
+            });
+            
+            const result = list.map((emp, idx) => ({ ...emp, rank: idx + 1 }));
+            if (totalRow && !exportDeptFilter) {
+                result.push({ ...calculateRowWithComparison(totalRow), rank: 0 });
+            }
+            return result;
+        }
+
+        let deptGroups = deptsToProcess.map(deptName => {
+            const deptEmployees = rows.filter(r => r.type === 'employee' && r.department === deptName)
+                                      .map(calculateRowWithComparison);
+            
+            deptEmployees.sort((a, b) => {
+                let valA: string | number = 0, valB: string | number = 0;
+                if (sortConfig.key === 'name') { valA = a.originalName || a.name; valB = b.originalName || b.name; }
+                else if (sortConfig.key === 'totalDtSieuThi') { valA = a.totalDtSieuThi; valB = b.totalDtSieuThi; }
+                else if (sortConfig.key === 'totalPercent') { valA = a.totalPercent; valB = b.totalPercent; }
+                const compare = typeof valA === 'string' ? valA.localeCompare(valB as string) : (valA - (valB as number));
+                return sortConfig.direction === 'asc' ? compare : -compare;
+            });
+
+            const sumDtSieuThi = deptEmployees.reduce((s, e) => s + e.totalDtSieuThi, 0);
+            
+            const sampleProviders = rows.find(r => r.providers.length > 0)?.providers || [];
+            
+            const sumProviders = sampleProviders.map((sp, i) => {
+                const totalDt = deptEmployees.reduce((s, e) => s + (e.providers[i]?.dt || 0), 0);
+                return {
+                    name: sp.name,
+                    shortName: sp.shortName,
+                    dt: totalDt,
+                    percent: sumDtSieuThi > 0 ? (totalDt / sumDtSieuThi) * 100 : 0
+                };
+            });
+            const totalPercent = sumDtSieuThi > 0 ? (sumProviders.reduce((s, p) => s + p.dt, 0) / sumDtSieuThi) * 100 : 0;
+
+            return {
+                name: deptName,
+                employees: deptEmployees,
+                sumDtSieuThi,
+                sumProviders,
+                totalPercent,
+                sortValue: sortConfig.key === 'totalPercent' ? totalPercent : (sortConfig.key === 'totalDtSieuThi' ? sumDtSieuThi : totalPercent)
+            };
+        });
+
+        deptGroups.sort((a, b) => {
+             if (sortConfig.key === 'name') return sortConfig.direction === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+             return sortConfig.direction === 'asc' ? a.sortValue - b.sortValue : b.sortValue - a.sortValue;
+        });
+
+        const finalOutput: InstallmentDisplayRow[] = [];
+        deptGroups.forEach(group => {
+            if (group.employees.length > 0) {
+                finalOutput.push({ 
+                    type: 'department', 
+                    name: group.name, 
+                    providers: group.sumProviders,
+                    totalDtSieuThi: group.sumDtSieuThi,
+                    totalPercent: group.totalPercent
+                });
+                finalOutput.push(...group.employees.map((emp, idx) => ({ ...emp, rank: idx + 1 })));
+            }
+        });
+
+        if (totalRow && !exportDeptFilter) {
+            finalOutput.push({ ...calculateRowWithComparison(totalRow), rank: 0 });
+        }
+
+        return finalOutput;
+    }, [rows, activeDepartments, sortConfig, viewMode, exportDeptFilter, prevMonthRows, isActive]);
+
+    const employeeTiersMap = useMemo(() => {
+        const map = new Map<string, { providerTiers: DataTier[]; totalTier: DataTier }>();
+        const employeeRows = displayList.filter(r => r.type === 'employee');
+        if (employeeRows.length === 0) return map;
+
+        const numProviders = employeeRows[0]?.providers?.length || 0;
+        const providerTierCols: DataTier[][] = [];
+
+        for (let pIdx = 0; pIdx < numProviders; pIdx++) {
+            const vals = employeeRows.map(e => e.providers[pIdx]?.dt || 0);
+            providerTierCols.push(computeColumnTiers(vals));
+        }
+
+        const totalVals = employeeRows.map(e => e.totalDtSieuThi || 0);
+        const totalTiers = computeColumnTiers(totalVals);
+
+        employeeRows.forEach((e, idx) => {
+            const pTiers = providerTierCols.map(col => col[idx]);
+            const tTier = totalTiers[idx];
+            const key = e.originalName || e.name;
+            map.set(key, { providerTiers: pTiers, totalTier: tTier });
+        });
+
+        return map;
+    }, [displayList]);
+
+    const { showExportOptions } = useExportOptionsContext();
+
+    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+        if (!cardRef.current) return null;
+        const original = cardRef.current;
+        try {
+            const safeName = customFilename || `Báo Cáo Trả Chậm - ${supermarketName}.png`;
+            const blob = await exportElementAsImage(original, safeName, {
+                mode: 'blob-only', elementsToHide: ['.no-print', '.export-button-component'], isCompactTable: true
+            });
+            if (blob) {
+                if (autoAction === 'download') {
+                    downloadBlob(blob, safeName);
+                    return 'download';
+                } else if (autoAction === 'share') {
+                    await shareBlob(blob, safeName);
+                    return 'share';
+                } else {
+                    return await showExportOptions(blob, safeName);
+                }
+            }
+            return null;
+        } catch (err) {
+            console.error('Failed to export image', err);
+            return null;
+        }
+    };
+
+    const handleBatchExportByDept = async () => {
+        const allDepts = Array.from(new Set(rows.filter(r => r.type === 'employee' && r.department).map(r => r.department as string))).sort();
+        if (allDepts.length === 0) return;
+        setIsExportingByDept(true);
+        setExportDeptProgress({ current: 0, total: allDepts.length });
+        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        
+        // Bảng tiến trình chung (components/shared/export): %, tên bộ phận, Huỷ, tổng kết
+        const job = startExportJob({ title: 'Xuất ảnh Trả chậm theo bộ phận', total: allDepts.length });
+        for (let i = 0; i < allDepts.length; i++) {
+            if (job.cancelled) break;
+            const dept = allDepts[i] as string;
+            job.item(i, dept);
+            setExportDeptFilter(dept);
+            setExportDeptProgress({ current: i + 1, total: allDepts.length });
+            await new Promise(r => setTimeout(r, 400));
+            const safeDeptName = dept.replace(/[\\/:*?"<>|]/g, '');
+            const action = await handleExportPNG(`Trả Chậm - ${safeDeptName} - ${supermarketName}.png`, autoAction);
+            job.result(dept, action === null ? 'failed' : action === 'cancel' ? 'skipped' : 'ok', action === null ? 'Không tạo được ảnh' : undefined);
+            if (action === 'cancel') break;
+            autoAction = action;
+        }
+        job.finish();
+        setExportDeptFilter(null);
+        setIsExportingByDept(false);
+    };
+
+    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                JSON.parse(content); 
+                setPrevMonthRaw(content);
+                toast.success('Đã nạp dữ liệu trả chậm cùng kỳ thành công!');
+            } catch (err) { toast.error('File không hợp lệ.'); }
+            if (importFileRef.current) importFileRef.current.value = '';
+        };
+        reader.readAsText(file);
+    };
+
+    if (isActive === false) {
+        return <div className="hidden" />;
+    }
+
+    if (rows.length === 0) return <Card bordered={false} title="Phân tích Trả chậm"><EmptyState icon={<AppIcon name="report" size="xl" />} title="Chưa có dữ liệu" /></Card>;
+    
+    const providers = rows.find(r => r.providers.length > 0)?.providers || [];
+
+    const cardTitle = <span className="js-report-title">Trả chậm nhân viên đến ngày {getYesterdayDateString()}</span>;
+    const cardSubtitle = <span className="js-report-title">Khi lợi ích được đặt đúng chỗ, quyết định mua trở nên tự nhiên.</span>;
+
+    return (
+        <div ref={cardRef} className="space-y-0 bg-white dark:bg-slate-900">
+            {/* 1. Tiêu đề lên TRÊN CÙNG */}
+            <TieuDeBaoCao title={cardTitle} subtitle={cardSubtitle} />
+
+            {/* 2. Thanh nút gôm gọn lại ngay dưới tiêu đề */}
+            <div className="flex flex-nowrap justify-between items-center px-2.5 sm:px-4 py-2 bg-slate-50/80 dark:bg-slate-900/60 no-print border-b border-slate-200/80 dark:border-slate-800/80 gap-1 sm:gap-2 w-full relative z-20">
+                <div className="flex gap-1 sm:gap-1.5 items-center shrink-0 min-w-0 overflow-x-auto scrollbar-hide py-0.5">
+                    <input type="file" ref={importFileRef} onChange={handleFileImport} accept=".json" className="hidden" />
+                    <Button
+                        variant="toggle" data-ui="bi" aria-pressed={Boolean(prevMonthRaw)}
+                        size="sm"
+                        onClick={() => importFileRef.current?.click()}
+                        className="gap-1.5 sm:text-xs rounded-full active:scale-[0.97] shrink-0 aria-pressed:bg-emerald-50 aria-pressed:border-emerald-300 aria-pressed:text-emerald-700 aria-pressed:hover:bg-emerald-100 aria-pressed:shadow-2xs"
+                    >
+                        <AppIcon name="clock" size="md" className={prevMonthRaw ? 'text-emerald-600' : 'text-slate-400'} />
+                        <span>Cùng kỳ</span>
+                        {prevMonthRaw && (
+                            <Button variant="ghost" size="none" onClick={(e) => { e.stopPropagation(); setPrevMonthRaw(''); }} className="ml-0.5 p-0.5 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800">
+                                <AppIcon name="close" size="sm" />
+                            </Button>
+                        )}
+                    </Button>
+
+                    {/* Nút bật/tắt cột % — capsule con nhộng bo tròn chuẩn */}
+                    <Button
+                        variant="toggle" data-ui="bi" aria-pressed={!hidePercent}
+                        size="sm"
+                        onClick={() => setHidePercent(v => !v)}
+                        title={hidePercent ? 'Bấm để hiện cột %' : 'Bấm để ẩn cột %'}
+                        className="gap-1 sm:text-xs rounded-full active:scale-[0.97] shrink-0 aria-pressed:bg-sky-50 aria-pressed:border-sky-300 aria-pressed:text-sky-700 aria-pressed:hover:bg-sky-100 aria-pressed:shadow-2xs"
+                    >
+                        <span className={`font-black text-xs leading-none ${!hidePercent ? 'text-sky-600' : 'text-slate-400'}`}>%</span>
+                        <span>Cột %</span>
+                    </Button>
+                </div>
+                <div className="flex gap-1.5 items-center shrink-0">
+                    <Button
+                        variant="toolbar" data-ui="bi"
+                        size="icon"
+                        onClick={() => setViewMode(viewMode === 'group' ? 'list' : 'group')}
+                        title={viewMode === 'group' ? 'Đang xem theo Bộ phận (Bấm để xem Danh sách)' : 'Đang xem Danh sách (Bấm để xem theo Bộ phận)'}
+                        className="ycx-hit rounded-control preserve-rounded flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.94]" aria-pressed={viewMode === 'group'}
+                    >
+                        {viewMode === 'group' ? <AppIcon name="viewGrid" size="md" /> : <AppIcon name="viewList" size="md" />}
+                    </Button>
+                    <div className="h-4 w-px bg-slate-200/80 dark:bg-slate-750 mx-0.5" />
+                    <Button
+                        variant="toolbar" data-ui="bi"
+                        size="icon"
+                        onClick={handleBatchExportByDept}
+                        disabled={isExportingByDept}
+                        title={isExportingByDept ? `Đang xuất ${exportDeptProgress.current}/${exportDeptProgress.total}` : 'Xuất ảnh theo bộ phận'}
+                        className="ycx-hit rounded-control preserve-rounded flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.94] disabled:opacity-40" aria-pressed={isExportingByDept}
+                    >
+                        {isExportingByDept ? <AppIcon name="loading" size="md" spin /> : <AppIcon name="exportBatch" size="md" />}
+                    </Button>
+                    <ExportButton
+                        onExportPNG={async () => { await handleExportPNG(); }}
+                        autoExportAreaId="bi-nhan-vien-tra-cham"
+                        autoExportAreaName="BI: Nhân Viên — Trả Chậm"
+                    />
+                </div>
+            </div>
+
+
+            {/* 4. Bảng dữ liệu: Wrapper bo góc concentric radii chuẩn Apple & Taste */}
+            <div className="w-full px-3.5 sm:px-4 pb-4">
+                <div className="rounded-card preserve-rounded border border-slate-200/80 dark:border-slate-800/80 shadow-2xs overflow-hidden bg-white dark:bg-slate-900">
+                    <div className="overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <table className="table-pin-first w-full border-collapse">
+                            <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 border-b border-slate-200/80 dark:border-slate-700/80">
+                                {/* Tier 1: Group Headers */}
+                                <tr>
+                                    <th rowSpan={hidePercent ? 1 : 2} onClick={() => handleSort('name')} className="px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-l-[3.5px] border-l-slate-200 dark:border-l-slate-700 border-r border-b border-slate-200/70 dark:border-slate-700/70 cursor-pointer hover:bg-slate-200/70 dark:hover:bg-slate-750 min-w-[200px] align-middle transition-colors">Nhân viên</th>
+                                    {providers.map(p => <th key={p.name} rowSpan={hidePercent ? 1 : undefined} colSpan={hidePercent ? 1 : 2} className="px-1 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-r border-b border-slate-200/70 dark:border-slate-700/70 leading-tight align-middle">{p.shortName}</th>)}
+                                    <th rowSpan={hidePercent ? 1 : 2} onClick={() => handleSort('totalDtSieuThi')} className="px-2 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-r border-b border-slate-200/70 dark:border-slate-700/70 cursor-pointer hover:bg-slate-200/70 dark:hover:bg-emerald-950/40 leading-tight align-middle transition-colors"><div>D.THU</div><div>THỰC</div></th>
+                                    <th rowSpan={hidePercent ? 1 : 2} onClick={() => handleSort('totalPercent')} className="px-2 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200/70 dark:border-slate-700/70 cursor-pointer hover:bg-slate-200/70 dark:hover:bg-amber-950/40 leading-tight align-middle transition-colors">%T.Chậm</th>
+                                </tr>
+                                {/* Tier 2: Column Headers - only shown when % columns visible */}
+                                {!hidePercent && <tr>
+                                    {providers.map(p => <React.Fragment key={p.name}><th className="px-1 py-1 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-r border-b border-slate-200/70 dark:border-slate-700/70 cursor-pointer hover:bg-slate-200/70 dark:hover:bg-sky-950/50 transition-colors">DT</th><th className="px-1 py-1 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-r border-b border-slate-200/70 dark:border-slate-700/70 cursor-pointer hover:bg-slate-200/70 dark:hover:bg-sky-950/50 transition-colors">%</th></React.Fragment>)}
+                                </tr>}
+                            </thead>
+                            <tbody className="bg-white dark:bg-slate-900">
+                                {displayList.map((row, idx) => {
+                                    if (row.type === 'department') {
+                                        return (
+                                            <tr key={`dept-${idx}`} className="bg-slate-50/90 dark:bg-slate-800/40 font-bold text-slate-700 dark:text-slate-300 border-t border-b border-slate-200/80 dark:border-slate-700/80">
+                                                <td className="px-2.5 py-1 text-[12px] uppercase tracking-wider border-r border-slate-200/70 dark:border-slate-700/70 font-extrabold whitespace-nowrap min-w-[200px]">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                                                        <span>{row.name}</span>
+                                                    </div>
+                                                </td>
+                                                {row.providers.map((p, pIdx: number) => (
+                                                    <React.Fragment key={pIdx}>
+                                                        <td className="px-1 py-1 text-[13px] text-center border-r border-slate-200/70 dark:border-slate-700/70 tabular-nums font-bold"><div>{p.dt > 0 ? f.format(Math.ceil(p.dt)) : '-'}</div></td>
+                                                         {!hidePercent && <td className={`px-1 py-1 text-[13px] text-center border-r border-slate-200/70 dark:border-slate-700/70 tabular-nums font-bold ${p.percent >= effectiveTargetTraCham ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}><div>{p.percent > 0 ? `${p.percent.toFixed(2)}%` : '-'}</div></td>}
+                                                    </React.Fragment>
+                                                ))}
+                                                <td className="px-1.5 py-1 text-[13px] text-center border-r border-slate-200/70 dark:border-slate-700/70 tabular-nums font-bold">{f.format(Math.ceil(row.totalDtSieuThi))}</td>
+                                                <td className="px-1.5 py-1 text-[13px] text-center border-r border-slate-200/70 dark:border-slate-700/70 tabular-nums font-extrabold" style={{ color: getMetricColorByTarget(row.totalPercent, effectiveTargetTraCham) }}>{Math.round(row.totalPercent)}%</td>
+                                            </tr>
+                                        );
+                                    }
+                                    const isTotal = row.type === 'total';
+                                    const isHighlighted = highlightedEmployees.has(row.originalName || '');
+                                    const tiers = employeeTiersMap.get(row.originalName || row.name);
+                                    return (
+                                        <InstallmentDesktopRow
+                                            key={row.originalName || idx}
+                                            row={row}
+                                            isTotal={isTotal}
+                                            isHighlighted={isHighlighted}
+                                            onHighlightToggle={handleHighlightToggle}
+                                            supermarketName={supermarketName}
+                                            hidePercent={hidePercent}
+                                            f={f}
+                                            targetTraGop={effectiveTargetTraCham}
+                                            providerTiers={tiers?.providerTiers}
+                                            totalTier={tiers?.totalTier}
+                                        />
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+export default React.memo(InstallmentTab);

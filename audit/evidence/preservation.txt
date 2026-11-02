@@ -1,0 +1,3 @@
+PASS: all 1346 original entries unchanged; HEAD unchanged; staged and unstaged tracked diff empty.
+?? AGENTS.md
+?? audit/

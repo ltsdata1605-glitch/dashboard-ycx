@@ -1,0 +1,59 @@
+# `components/shared` — MỘT nơi cho mọi thứ dùng chung
+
+Cả 5 khu vực (gốc/Phân tích, `features/bi-dashboard`, `phan-ca`, `sticker-event`, `line-bot`, cùng `khai-thac`) chỉ được dùng chung
+những gì nằm ở đây (+ `utils/dataUtils.ts`, `utils/localDbScope.ts` — CLAUDE.md mục 1). ESLint chặn `features/*` import
+`components/common` (đồ riêng của Phân tích), `components/views`, `components/layout` (khung app — ngoại lệ duy nhất: Report BI dùng
+`layout/FontSelector` vì nó lưu phông toàn app qua `services/dbService` gốc).
+
+Cần một thứ dùng chung mà chưa có → **thêm vào đây** (kèm test), đừng chép một bản riêng trong khu vực của mình — đó chính là cách
+sinh ra 2 bản `MultiSelectDropdown`, 17 công tắc tự vẽ, 5 kiểu toast trước GĐ8.
+
+## `ui/` — giao diện (`import { … } from 'components/shared/ui'`)
+
+| Cần gì | Dùng | Ghi chú |
+|---|---|---|
+| Nút | `Button` | `primary` (một nút/màn) · `secondary` (Huỷ, phụ) · `tinted` (phụ quan trọng) · `destructive` (việc nguy hiểm) · `danger` (chỉ nút xác nhận cuối) · `ghost` · `warning` (amber đặc) · `link` (liên kết không viền) · `toolbar` (icon đầu thẻ, bật = `aria-pressed`) · `toggle` (viên bật/tắt có chữ, bật = `aria-pressed`). Kiểu VAI TRÒ không ép cỡ: `cell` (ô bảng/đầu cột) · `row` (dòng danh sách/menu) · `card` (thẻ chọn) · `tab` (dải tab tự dựng). Cỡ `xs`/`sm`/`md`/`lg`, icon `icon-inline` (trong dòng chữ) / `icon-xs` (24) / `icon` (32 · laptop 36); `sm/md` tự cao 44px trên điện thoại/cảm ứng, `xs`/`icon-*` có vùng chạm 44 vô hình (`ycx-hit`). KHÔNG dùng `unstyled` (0 chỗ, test khoá). |
+| Ô nhập / chọn | `Input` (có `leftIcon`, `type="search"`, nút icon phải có tên: `rightIconLabel`), `Select`, `Textarea` (nhiều dòng) | chọn một có ô tìm: `SearchableSelect`. Ô trong lưới/bảng dày: `dense` (28px, không ép 44px) cho cả `Input` lẫn `Select` |
+| Ô tick | `Checkbox` (`label`, `wrapperClassName` cho khung chip, `labelClassName`) — luôn bọc `<label>` có `ycx-hit` (vùng chạm 44) | không chữ thì PHẢI có `aria-label`; bật/tắt một tuỳ chọn → `Switch` |
+| Chọn nhiều | `StringMultiSelect` (danh sách chuỗi: kho, ngành hàng — có tìm, "Tất cả", đếm) · `MultiSelectDropdown` (tuỳ chọn có key/nhóm) | |
+| Bật/tắt | `Switch` (`size="sm"` trong bảng/menu) | CẤM tự vẽ (`khongCongTacTuVe.test.ts`). Công tắc chỉ để nhìn trong hàng bấm được: bọc `aria-hidden`, `tabIndex={-1}`. |
+| Chọn 1 trong 2–5 chế độ | `Tabs variant="segment"` | dải cuộn ngang tự đưa mục đang chọn vào giữa; `underline` cho tab trang |
+| Nút "⋯" nhiều lệnh | `ActionMenu` | iPhone là action sheet; mục `destructive` tự xuống nhóm cuối, chữ đỏ |
+| Bề mặt kính nổi (Liquid Glass) | `GlassSurface` (`shape` = capsule · circle · panel) + lớp `ycx-glass-item` cho mục bấm | CHỈ lớp điều khiển nổi (thanh tab, dock, cụm con nhộng) — không phủ bảng/KPI/biểu đồ. Token `--glass-*`, có đường lùi. CẤM chép rgba/blur tay (`khongKinhTuVe.test.ts`). `DESIGN_SYSTEM.md` mục 8 |
+| Cụm con nhộng thanh trên | `CapsuleBar` | Kiểu viên nhộng Zalo/iOS mẫu: nhìn thấy 32×32px, `ycx-hit` chạm 44px, `portalTargetId="mobile-topbar-actions"` |
+| Nút trên thanh trên | `usePageActions({ scope, primary, quick, items })` | KHÔNG `createPortal` thủ công. `scope: 'mobile'` khi laptop đã có thanh công cụ riêng |
+| Hộp thoại / sheet | `Modal` (`position="bottom"`, `primaryAction`), `ConfirmDialog` (`extraAction` = hộp 3 lựa chọn, nút xếp dọc) | khối tràn sát mép thân modal: `modal-bleed*` (CẤM `-m-5`). CẤM `window.confirm/alert/prompt` — ESLint chặn cả dạng `window.` |
+| Lớp phủ | `Overlay kind="busy"\|"scrim"\|"fullscreen"`, `BusyBar` (tính ngầm không chặn màn) | CẤM tự viết `fixed inset-0` (ratchet `rawOverlay`) |
+| Thông báo nhanh | `toast.*`, `toastViecDai()` (việc nhiều bước) | `toast/`. CẤM `react-hot-toast` ngoài module này, cấm dựng toast bằng DOM |
+| Sao chép vào clipboard | `saoChep(text, { thanhCong })` (`ghiClipboard` nếu tự báo) | luôn báo: được → toast thành công; trình duyệt chặn → thử `execCommand('copy')` → vẫn hỏng thì toast lỗi kèm nội dung để chép tay. Đừng gọi trần `navigator.clipboard.writeText(...).then(...)` (im lặng khi bị từ chối) |
+| Thông báo tĩnh trong trang | `Banner tone="info\|success\|warning\|danger"` | có `action`, `onDismiss`; cấm chữ chạy |
+| Trang cài đặt / danh sách nhóm | `ListGroup` + `ListRow` | kiểu Cài đặt iOS; hàng `destructive` cho "Vùng nguy hiểm" |
+| Trống / chưa có dữ liệu | `EmptyState` | một kiểu cho cả app |
+| Thẻ, khối | `SectionCard`, `SectionHeader`, `Card`, `KpiCard`, `StatCard`, `DataTable`, `Badge`, `ProgressBar`, `Tooltip` | |
+| Đang tải | `Skeleton*`, `AppIcon name="loading" spin` | |
+| Màn chào chưa có dữ liệu | `FeatureLandingLayout` | Phân tích + Report BI |
+| Lỗi hiển thị một khu vực | `ErrorBoundary name="…"` | |
+| Icon | `AppIcon name="<chức năng>" size="<token>"` | `icon/iconRegistry.ts` là nơi DUY NHẤT import lucide; cấm `size={số}`, cấm emoji làm icon |
+| Phông Google | `napPhongGoogle`, `PHONG_GOOGLE` | |
+| Hành vi | `usePresence` (vào/ra bằng CSS — thư viện `motion` đã gỡ), `useModalBehavior`, `onActivateKey`, `cn` | |
+
+Chữ dùng thang `type-*` (`type-title`, `type-headline`, `type-body`, `type-subhead`, `type-footnote`, `type-caption`…), bo góc dùng
+token (`rounded-control/card/popup/overlay`), màu theo 5 họ semantic — chi tiết `DESIGN_SYSTEM.md` mục 7.
+
+Đè lớp qua `className` (`cn` = tailwind-merge): lớp cùng nhóm được gộp (vd `h-9` → `h-8`, `text-sm` → `text-xs`, `border` →
+`border-0`). Bo góc token cũng vậy (GĐ10 bước 4, 21/10): `cn` đã khai `rounded-control/card/popup/overlay` cho tailwind-merge nên
+lớp bo góc SAU thắng — `<Input className="rounded-card">` ra 16px, không cần `!` nữa (test `ui/cnBoGoc.test.ts`). Trước đó token không
+được nhận ra và lớp thắng theo chữ cái trong CSS (`rounded-control` thắng `rounded-card`/`rounded` trơn — đo 20/10 khi làm In Sticker).
+
+## `export/` — xuất ảnh DUY NHẤT
+
+`exportElementAsImage` / `startExportJob` (preset `standard` · `bi` · `raw`), `ExportOptionsModal` (sheet Tải về / Chia sẻ). CẤM import
+`html-to-image`/`html2canvas` ở nơi khác (`khongBanSao.test.ts`; ngoại lệ: trang IN của In Sticker). `services/uiService.ts` và
+`features/{phan-ca,sticker-event}/services/uiService.ts` chỉ là lối chuyển tiếp sang đây (giữ để ~20 nơi gọi không đổi đường dẫn);
+bản của Report BI gắn preset `bi`.
+
+## Khung app (không nằm ở đây, chỉ để biết)
+
+`components/layout/MobileNavBar.tsx` (thanh trên iPhone), `MobileBottomNav.tsx` (thanh tab + sheet "Khác"), `PageActionsBar.tsx`. Lớp
+CSS khung trong `styles.css`: `ycx-hit` (vùng chạm 44 vô hình), `ycx-tranh-dock` (trang tràn ngang laptop chừa lề dock nổi — đặt
+`--trang-max` nếu có max-width), `[data-thay-tieu-de]` (màn đưa cả thanh công cụ lên thanh trên: dưới 540px chữ tiêu đề nhường chỗ).

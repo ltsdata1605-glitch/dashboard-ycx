@@ -1,0 +1,9 @@
+{
+  "components/shared/ui/CapsuleBar.tsx": "1ad9a2da81b1bb8bfb097e98c107664aaf3927358beba1f016e0f148a4662bfd",
+  "components/shared/ui/TopBarActions.tsx": "511a05bc3e9aae61bc4572e0c968202d632708899cc389eabedec4870ba1e647",
+  "styles/tokens.css": "3ba835daa228ce914164566e9a7319dd55f44bfdb1008c50df122d6b86ea3b3d",
+  "styles.css": "51459fcfb5fbd4db2a7d24a92d695ab5c7bb0036fccf31834e5674aec865e45e",
+  "tests/e2e/glass-material-foundation.spec.ts": "17b300554505d1c2e736e40792a81c42f2f197e954e6eb24deffa5b6417ad7c2",
+  "tests/e2e/helpers/appleUiHarness.tsx": "a7f7c56dfde0bbb3250ac15a745199b0d5f6bfb3129e8b70e3236db09e0a0dee",
+  "tests/e2e/helpers/materialHarness.html": "8f24e909a6746861149026f14f2c6f8dabb6dfd3fe6c7ba6b08332c9dedf004f"
+}

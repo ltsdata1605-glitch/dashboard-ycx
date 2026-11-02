@@ -1,0 +1,279 @@
+
+import React, { useState, useRef, useEffect, useMemo, useDeferredValue } from 'react';
+import { resolveIconName } from './icon/legacyIconNames';
+import { AppIcon } from './icon/AppIcon';
+import type { IconSize } from './icon/iconTokens';
+import { createPortal } from 'react-dom';
+import { Button } from './Button';
+
+export interface StringMultiSelectProps {
+    options: string[];
+    selected: string[];
+    onChange: (selected: string[]) => void;
+    label: string;
+    placeholder?: string;
+    className?: string;
+    variant?: 'default' | 'compact';
+    iconOnly?: boolean;
+    iconName?: string;
+    iconSize?: IconSize;
+    mobileIconSize?: IconSize;
+}
+
+const StringMultiSelect: React.FC<StringMultiSelectProps> = ({ 
+    options, 
+    selected, 
+    onChange, 
+    label,
+    placeholder = "Tìm kiếm...",
+    className = "",
+    variant = 'default',
+    iconOnly = false,
+    iconName = 'filter',
+    iconSize = 'md',
+    mobileIconSize
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [dropdownStyles, setDropdownStyles] = useState<React.CSSProperties>({});
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            const isOutsideContainer = containerRef.current && !containerRef.current.contains(event.target as Node);
+            const isOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(event.target as Node);
+            if (isOutsideContainer && isOutsideDropdown) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside, { passive: true });
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isOpen && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const minW = Math.max(rect.width, 240);
+            
+            setDropdownStyles({
+                minWidth: `${minW}px`,
+            });
+        }
+    }, [isOpen]);
+
+    const handleToggleOption = (option: string) => {
+        const newSelected = selected.includes(option)
+            ? selected.filter(item => item !== option)
+            : [...selected, option];
+        onChange(newSelected);
+    };
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(e.target.checked ? allUniqueOptions : []);
+    };
+
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+
+    const allUniqueOptions = useMemo(() => {
+        // Ensure selected items are always in the options list so they can be seen/unchecked
+        // even if they are not present in the current data source.
+        // We sort them so they appear naturally in the list.
+        const set = new Set([...selected, ...options]);
+        return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }, [selected, options]);
+
+    const filteredOptions = useMemo(() => {
+        return allUniqueOptions.filter(option =>
+            option.toLowerCase().includes(deferredSearchTerm.toLowerCase())
+        );
+    }, [allUniqueOptions, deferredSearchTerm]);
+
+    // Format display text or tags
+    const renderContent = () => {
+        const labelText = variant === 'compact' ? label : label;
+        if (selected.length === 0) return <span className="text-slate-500 font-normal text-[11px] sm:text-xs whitespace-nowrap">{label}</span>;
+        
+        if (selected.length === allUniqueOptions.length) {
+            return <span className="text-sky-700 dark:text-sky-400 font-medium text-[11px] sm:text-xs whitespace-nowrap">
+                {variant === 'compact' ? 'ALL' : `Tất cả ${label}`}
+            </span>;
+        }
+        
+        if (variant === 'compact') {
+            return <span className="text-sky-700 dark:text-sky-400 font-medium text-[11px] sm:text-xs whitespace-nowrap">{label}</span>;
+        }
+
+        if (selected.length <= 2) {
+            return (
+                <div className="flex flex-wrap gap-1">
+                    {selected.map(item => (
+                        <span key={item} className="bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-xs px-1.5 py-0.5 rounded-md border border-sky-100/50 dark:border-sky-800/50 max-w-[80px] truncate">
+                            {item}
+                        </span>
+                    ))}
+                </div>
+            );
+        }
+        
+        return <span className="text-sky-700 dark:text-sky-400 font-medium text-[11px] sm:text-xs whitespace-nowrap">{selected.length} {label}</span>;
+    };
+
+    const isFiltered = selected.length > 0 && selected.length < allUniqueOptions.length;
+
+    return (
+        <div className={`relative ${iconOnly ? 'w-auto' : 'w-full'} ${className}`} ref={containerRef} style={{ zIndex: isOpen ? 50 : 11 }}>
+            {iconOnly ? (
+                <Button
+                    type="button"
+                    variant="toolbar" size="icon"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="ycx-hit relative flex items-center justify-center rounded-control transition-colors shrink-0" aria-pressed={isOpen || isFiltered}
+                    title={label}
+                >
+                    {mobileIconSize && mobileIconSize !== iconSize ? (
+                        <>
+                            <AppIcon name={resolveIconName(iconName) ?? 'help'} size={mobileIconSize} className="lg:hidden" />
+                            <AppIcon name={resolveIconName(iconName) ?? 'help'} size={iconSize} className="hidden lg:block" />
+                        </>
+                    ) : (
+                        <AppIcon name={resolveIconName(iconName) ?? 'help'} size={iconSize} />
+                    )}
+                    {isFiltered && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-sky-600 text-white text-[11px] flex items-center justify-center font-bold">
+                            {selected.length}
+                        </span>
+                    )}
+                </Button>
+            ) : (
+                <Button
+                    type="button"
+                    variant="row" size="none"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`justify-between rounded-md border focus:outline-none focus:ring-1 focus:border-sky-500 focus:ring-sky-500 ${
+                        variant === 'compact' ? 'px-1.5 sm:px-2 py-0.5 sm:py-1 h-8 sm:h-9' : 'px-3 py-2 h-9'
+                    } ${
+                        isOpen
+                        ? 'border-sky-500 bg-white dark:bg-slate-800 ring-1 ring-sky-500'
+                        : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500'
+                    }`}
+                >
+                    <div className="flex-grow flex items-center overflow-hidden">
+                        {renderContent()}
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-1 sm:ml-2">
+                        {selected.length > 0 && !(variant === 'compact' && selected.length === allUniqueOptions.length) && (
+                            <div className="w-4.5 h-4.5 sm:w-4 sm:h-4 rounded-full bg-sky-600 text-white text-[11px] flex items-center justify-center font-black animate-in fade-in zoom-in duration-200 shrink-0">
+                                {selected.length}
+                            </div>
+                        )}
+                        <AppIcon name="chevronDown" size="sm" className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                </Button>
+            )}
+
+            {isOpen && createPortal(
+                <div 
+                    ref={dropdownRef}
+                    style={{
+                        ...dropdownStyles,
+                        position: 'fixed',
+                        top: containerRef.current ? containerRef.current.getBoundingClientRect().bottom + 4 : 0,
+                        left: containerRef.current ? Math.min(containerRef.current.getBoundingClientRect().left, window.innerWidth - 260) : 0,
+                    }}
+                    className="z-[999999] overflow-hidden bg-white dark:bg-slate-800 rounded-popup shadow-lg border border-slate-200 dark:border-slate-700 flex flex-col w-max max-w-[85vw] sm:max-w-[90vw]"
+                >
+                    {/* Search Field */}
+                    <div className="p-1.5 sm:p-2 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30">
+                        <div className="relative">
+                            <AppIcon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder={placeholder}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (filteredOptions.length > 0) {
+                                            handleToggleOption(filteredOptions[0]);
+                                        }
+                                    }
+                                }}
+                                className="w-full text-[11px] sm:text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-md pl-7 sm:pl-8 pr-2 sm:pr-3 py-1.5 sm:py-2 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 border-b border-slate-100 dark:border-slate-700/50">
+                        <label className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group">
+                            <div className="relative flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    checked={selected.length === allUniqueOptions.length && allUniqueOptions.length > 0} 
+                                    onChange={handleSelectAll} 
+                                    className="peer sr-only" 
+                                />
+                                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border border-slate-300 dark:border-slate-600 transition-colors peer-checked:bg-sky-600 peer-checked:border-sky-600" />
+                                <AppIcon name="check" size="xs" className="absolute inset-0 m-auto text-white opacity-0 peer-checked:opacity-100" />
+                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 group-hover:text-sky-700 transition-colors">Tất cả {label}</span>
+                        </label>
+                        <span className="text-[11px] font-bold text-slate-400">{filteredOptions.length} / {allUniqueOptions.length}</span>
+                    </div>
+
+                    {/* Options List */}
+                    <div className="flex-grow overflow-y-auto custom-scrollbar p-0.5 sm:p-1 max-h-48">
+                        {filteredOptions.length > 0 ? (
+                            <div className="grid grid-cols-1 gap-0.5">
+                                {filteredOptions.slice(0, 200).map(option => {
+                                    const isSelected = selected.includes(option);
+                                    return (
+                                        <Button
+                                            type="button"
+                                            variant="row" size="none"
+                                            key={option}
+                                            onClick={() => handleToggleOption(option)}
+                                            className={`gap-1.5 sm:gap-2.5 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-control transition-all justify-start ${
+                                                isSelected
+                                                ? 'bg-sky-50/60 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400'
+                                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                                            }`}
+                                        >
+                                            <div className={`relative flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border-2 transition-all shrink-0 ${
+                                                isSelected ? 'bg-sky-600 border-sky-600 shadow-sm' : 'border-slate-300 dark:border-slate-600'
+                                            }`}>
+                                                {isSelected && <><AppIcon name="check" size="xs" className="text-white" /></>}
+                                            </div>
+                                            <span className={`text-[11px] sm:text-[12px] truncate ${isSelected ? 'font-black' : 'font-medium'}`}>{option}</span>
+                                        </Button>
+                                    );
+                                })}
+                                {filteredOptions.length > 200 && (
+                                    <div className="text-center py-2 text-[11px] items-center italic text-slate-400 font-medium">
+                                        Hiển thị 200 kết quả đầu tiên. Vui lòng sử dụng ô tìm kiếm để xem thêm.
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-6 px-4 text-center">
+                                <AppIcon name="searchEmpty" size="xl" className="text-slate-300 mb-2" />
+                                <p className="text-[11px] text-slate-500 font-medium">Không tìm thấy "{searchTerm}"</p>
+                            </div>
+                        )}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
+export { StringMultiSelect };
+export default StringMultiSelect;

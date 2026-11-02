@@ -1,0 +1,11 @@
+{
+  "components/shared/ui/ProgressBar.tsx": "Full source read; Shared rendering bounds + name; CSS/colors/state remain existing. Tests labeled/overmax/zero max; nonfinite/negative exhaustive cases pending.",
+  "components/shared/ui/Banner.tsx": "Full source read; useId disclosure linkage and expanded state; maxLines dependency.2independent banners tested. Action/dismiss/ResizeObserver lifecycle further review pending.",
+  "features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx": "Full source read; Only accessible name added; custom15/30 runtime50 verified. Existing time formula uses || defaults (midnight/minute0 edge) and fixed label8h-21h30; separate business review required, no formula edit.",
+  "components/shared/ui/index.ts": "Full source read; Barrel exports controls; no side-effect execution/dead-code conclusion from export alone.",
+  "features/bi-dashboard/components/dashboard/DashboardWidgets.tsx": "Full source read; Separate BI ProgressBar supports over100 secondary fill; retain distinct behavior. Switch wrapper forwards id but not label; consumer accessible names pending.",
+  "features/bi-dashboard/services/metricService.test.ts": "Full source read; 6pure local math/date cases safety-reviewed and executed.",
+  "tests/e2e/helpers/materialHarness.html": "Full source read; Added actual React feedback controls + TimeProgressBar fixture; no service calls.",
+  "tests/e2e/shared-feedback-controls.spec.ts": "Full source read; New 4viewport cases, real keyboard disclosure+accessible names/values; no live backend.",
+  "features/bi-dashboard/services/metricService.ts": "PARTIAL read only getMonthProgress lines130-190 and imports check; source unchanged; full function/file review pending."
+}

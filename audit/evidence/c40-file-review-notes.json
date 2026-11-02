@@ -1,0 +1,8 @@
+{
+  "components/shared/ui/toast/AppToaster.tsx": "Fullsource read C39,changed handler review C40. Native Chromium cancelled swipe invoked onDismiss/removal; separate reset gesture from completed swipe.3cases/enginePASS; WebKit real mouse drag/syntheticcancel boundary not native touch. Queue durations/performance/accessibility still pending.",
+  "components/shared/ui/icon/brandIcons.tsx": "Full28line source read: intentional LINE SVG registry exception,currentColor/viewBox/decorative default,props forwarding,size intentionally ignored. Retain brand asset; attribution provenance/consumer a11y not fully verified. No change.",
+  "components/shared/ui/icon/index.ts": "Full10line barrel read: AppIcon,registry,tokens,legacy resolver,renderIcon/LineIcon exports retained. No deletion from no direct import alone. No change.",
+  "components/shared/ui/FeatureLandingLayout.tsx": "Full87line source read: shared welcome surface with opaque rounded-card,static grid,no GPU glow; approved Vietnamese text preserved. Branding typography/gradient/maxWidth and actualconsumer visuals pending; no source change.",
+  "tests/e2e/helpers/materialHarness.html": "Actual AppToaster/toast.action React fixture with dismissal/action counters; no realshare/data mutation. Cleanup toast store on unmount.",
+  "tests/e2e/toast-gesture-cancel.spec.ts": "Authored/read3localcases: cancel retains toast/no callback; swipe completes exactly once;keepOpen/default action callback contract. Native Chromium CDP touch vs WebKit mouse/syntheticcancel distinguished."
+}

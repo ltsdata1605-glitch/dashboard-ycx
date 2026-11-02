@@ -1,0 +1,5 @@
+source,target,kind,evidence
+tests/e2e/helpers/materialHarness.html,components/shared/ui/CapsuleBar.tsx,HTML_MODULE_IMPORT,audit/correction-batch-c3.md
+tests/e2e/helpers/materialHarness.html,components/shared/ui/TopBarActions.tsx,HTML_MODULE_IMPORT,audit/correction-batch-c3.md
+tests/e2e/helpers/materialHarness.html,components/shared/ui/ActionMenu.tsx,HTML_MODULE_IMPORT,audit/correction-batch-c3.md
+tests/e2e/helpers/materialHarness.html,tests/e2e/helpers/appleUiHarness.tsx,HTML_MODULE_IMPORT,audit/correction-batch-c3.md

@@ -1,0 +1,86 @@
+[WebServer] (node:38218) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 390 (11.3s)
+  ✘  2 [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 1366 (10.4s)
+
+
+  1) [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 390 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: getByRole('switch', { name: 'AUDIT A', exact: true })
+    Expected: "true"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('switch', { name: 'AUDIT A', exact: true }) with timeout 10000ms
+      - waiting for getByRole('switch', { name: 'AUDIT A', exact: true })
+
+
+       6 |     await page.getByRole('button',{name:'Lọc danh sách siêu thị'}).click();
+       7 |     const control=page.getByRole('switch',{name:'AUDIT A',exact:true});
+    >  8 |     await expect(control).toHaveAttribute('aria-checked','true');
+         |                           ^
+       9 |     const row=page.locator('tbody tr').filter({has:page.getByRole('cell',{name:'AUDIT A',exact:true})});
+      10 |     await expect(row).toHaveCount(1);
+      11 |     const id=(await control.getAttribute('id'))!;
+        at /Users/ltson/dashboardycx/tests/e2e/summary-switch-labels.spec.ts:8:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c27-before/summary-switch-labels-summ-2090f--label-and-toggles-once-390-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c27-before/summary-switch-labels-summ-2090f--label-and-toggles-once-390-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c27-before/summary-switch-labels-summ-2090f--label-and-toggles-once-390-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c27-before/summary-switch-labels-summ-2090f--label-and-toggles-once-390-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 1366 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: getByRole('switch', { name: 'AUDIT A', exact: true })
+    Expected: "true"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('switch', { name: 'AUDIT A', exact: true }) with timeout 10000ms
+      - waiting for getByRole('switch', { name: 'AUDIT A', exact: true })
+
+
+       6 |     await page.getByRole('button',{name:'Lọc danh sách siêu thị'}).click();
+       7 |     const control=page.getByRole('switch',{name:'AUDIT A',exact:true});
+    >  8 |     await expect(control).toHaveAttribute('aria-checked','true');
+         |                           ^
+       9 |     const row=page.locator('tbody tr').filter({has:page.getByRole('cell',{name:'AUDIT A',exact:true})});
+      10 |     await expect(row).toHaveCount(1);
+      11 |     const id=(await control.getAttribute('id'))!;
+        at /Users/ltson/dashboardycx/tests/e2e/summary-switch-labels.spec.ts:8:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c27-before/summary-switch-labels-summ-fc861-label-and-toggles-once-1366-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c27-before/summary-switch-labels-summ-fc861-label-and-toggles-once-1366-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c27-before/summary-switch-labels-summ-fc861-label-and-toggles-once-1366-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c27-before/summary-switch-labels-summ-fc861-label-and-toggles-once-1366-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 390 
+    [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 1366 

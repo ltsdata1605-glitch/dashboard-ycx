@@ -1,0 +1,74 @@
+[WebServer] (node:49158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native add transaction aborts (6.6s)
+  ✘  2 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native put transaction aborts (1.6s)
+  ✓  3 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:31:1 › committed save retains overwrite behavior and stable local ID (980ms)
+
+
+  1) [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native add transaction aborts 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "rejected"
+    Received: "resolved"
+
+      25 |         }, operation);
+      26 |         expect(result.incomes).toEqual(operation === 'put' ? [100] : []);
+    > 27 |         expect(result.outcome).toBe('rejected');
+         |                                ^
+      28 |     });
+      29 | }
+      30 |
+        at /Users/ltson/dashboardycx/tests/e2e/tax-storage-atomicity.spec.ts:27:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c5-storage-before/tax-storage-atomicity-save-3bdb7-tive-add-transaction-aborts-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c5-storage-before/tax-storage-atomicity-save-3bdb7-tive-add-transaction-aborts-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c5-storage-before/tax-storage-atomicity-save-3bdb7-tive-add-transaction-aborts-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c5-storage-before/tax-storage-atomicity-save-3bdb7-tive-add-transaction-aborts-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native put transaction aborts 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "rejected"
+    Received: "resolved"
+
+      25 |         }, operation);
+      26 |         expect(result.incomes).toEqual(operation === 'put' ? [100] : []);
+    > 27 |         expect(result.outcome).toBe('rejected');
+         |                                ^
+      28 |     });
+      29 | }
+      30 |
+        at /Users/ltson/dashboardycx/tests/e2e/tax-storage-atomicity.spec.ts:27:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c5-storage-before/tax-storage-atomicity-save-2972d-tive-put-transaction-aborts-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c5-storage-before/tax-storage-atomicity-save-2972d-tive-put-transaction-aborts-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c5-storage-before/tax-storage-atomicity-save-2972d-tive-put-transaction-aborts-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c5-storage-before/tax-storage-atomicity-save-2972d-tive-put-transaction-aborts-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native add transaction aborts 
+    [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native put transaction aborts 
+  1 passed (18.8s)

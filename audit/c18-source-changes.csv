@@ -1,0 +1,2 @@
+path,before_sha256,after_sha256,evidence
+tests/e2e/audit-network-isolation.spec.ts,NEW,d8fa54aa377a1e8d4c27e1847799298583bfa99ab19fc1bc44e31b5de88949a7,audit/correction-batch-c18.md

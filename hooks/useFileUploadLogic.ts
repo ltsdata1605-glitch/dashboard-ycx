@@ -1,0 +1,700 @@
+import { useState, useRef, startTransition, useEffect, createElement } from 'react';
+import { AppIcon } from '../components/shared/ui/icon/AppIcon';
+import SalesWorker from '../services/worker?worker';
+import type { DataRow, Status, AppState, ProductConfig, ProcessedData, FilterState } from '../types';
+import type { User } from 'firebase/auth';
+import { processShiftFile, DepartmentMap } from '../services/dataService';
+import * as dbService from '../services/dbService';
+import { toast } from '../components/shared/ui/toast';
+import { initialFilterState } from './useFilterState';
+import { normalizeSalesData, parseExcelDate, getRowValue, toLocalISOString, workerTimeoutMs } from '../utils/dataUtils';
+import { COL } from '../constants';
+import { workerResultToChunks, parseJsonChunks } from '../services/salesJsonChunks';
+
+import type { UploadConflictInfo } from '../components/modals/UploadConflictModal';
+import { formatYcxLuyKeTitle, cleanYcxFileName } from '../services/ycxAutoSyncService';
+
+const ISO_NGAY = /^\d{4}-\d{2}-\d{2}T/;
+
+interface FileUploadLogicProps {
+    originalData: DataRow[];
+    setOriginalData: (data: DataRow[]) => void;
+    setDepartmentMap: (map: DepartmentMap | null) => void;
+    setProcessedData: (data: ProcessedData | null) => void;
+    setFileInfo: (info: { filename: string; savedAt: string } | null) => void;
+    setAppState: (state: AppState) => void;
+    setStatus: (status: Status) => void;
+    setFilterState?: (filters: FilterState) => void;
+    user?: User | null;
+    userRole?: 'admin' | 'manager' | 'employee' | 'pending' | null;
+    departmentId?: string;
+    onRegistryChange?: () => void;
+}
+
+
+export const useFileUploadLogic = ({
+    originalData,
+    setOriginalData,
+    setDepartmentMap,
+    setProcessedData,
+    setFileInfo,
+    setAppState,
+    setStatus,
+    setFilterState,
+    user,
+    userRole,
+    departmentId,
+    onRegistryChange
+}: FileUploadLogicProps) => {
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isClearingDepartments, setIsClearingDepartments] = useState(false);
+    const [processingTime, setProcessingTime] = useState(0);
+    const [pendingNaming, setPendingNaming] = useState<{
+        fileName: string;
+        defaultName?: string;
+        resolve: (name: string) => void;
+    } | null>(null);
+    const [pendingConflict, setPendingConflict] = useState<{
+        newFilename: string;
+        newDateRangeStr: string;
+        conflicts: UploadConflictInfo[];
+        resolve: (action: 'overwrite_deactivate' | 'merge_all' | 'cancel') => void;
+    } | null>(null);
+    const timerRef = useRef<number | undefined>(undefined);
+
+    // Cleanup timer on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, []);
+
+    const startTimer = () => {
+        setProcessingTime(0);
+        const startTime = Date.now();
+        timerRef.current = window.setInterval(() => {
+            setProcessingTime(Date.now() - startTime);
+        }, 100);
+    };
+
+    const stopTimer = () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = undefined;
+        }
+    };
+
+    const handleClearDepartments = async () => {
+        setIsClearingDepartments(true);
+        try {
+            await dbService.clearDepartmentMap();
+            setDepartmentMap(null);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsClearingDepartments(false);
+        }
+    };
+    
+    const handleClearData = async () => {
+        try {
+            await dbService.clearAllSalesFiles();
+            setOriginalData([]);
+            setProcessedData(null);
+            setFileInfo(null);
+            if (onRegistryChange) {
+                onRegistryChange();
+            }
+            if (user) {
+                const { deleteCloudSalesData } = await import('../services/cloudDataService');
+                await deleteCloudSalesData(user).catch(console.error);
+                if (userRole === 'manager' && departmentId) {
+                    const { purgeKhoSalesFiles } = await import('../services/khoDataService');
+                    const { parseKhoList } = await import('../utils/dataUtils');
+                    const khos = parseKhoList(departmentId);
+                    for (const k of khos) {
+                        await purgeKhoSalesFiles(k).catch(console.error);
+                    }
+                }
+            }
+            setAppState('upload');
+            toast.success('Đã xóa sạch dữ liệu phân tích!');
+        } catch (error) {
+            console.error(error);
+            toast.error('Có lỗi xảy ra khi xóa dữ liệu!');
+        }
+    };
+
+    const handleShiftFileProcessing = async (files: File[], maKho?: string) => {
+        if (files.length === 0) return;
+        setAppState('loading');
+        setIsProcessing(true);
+        setStatus({ message: `Đang xử lý ${files.length} file phân ca...`, type: 'info', progress: 20 });
+        try {
+            const cleanMaKho = maKho ? String(maKho).trim().replace(/\D/g, '') : '';
+            let mergedMap: DepartmentMap = {}; 
+            let skippedTotal = 0;
+            const skippedDepts = new Set<string>();
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const shiftMsg = files.length > 1 ? `Đang xử lý tệp ${i + 1}/${files.length}...` : 'Đang xử lý tệp phân ca...';
+                setStatus({ message: shiftMsg, type: 'info', progress: 20 + (60 * (i + 1) / files.length) });
+                const { map, skippedCount, skippedDepartments } = await processShiftFile(file, cleanMaKho); 
+                mergedMap = { ...mergedMap, ...map }; 
+                skippedTotal += skippedCount;
+                skippedDepartments.forEach(d => skippedDepts.add(d));
+            }
+            
+            // Giữ lại nhân viên của các kho khác nếu đã nạp trước đó, gộp thêm nhân viên mới
+            const existingMap = await dbService.getDepartmentMap() || {};
+            const combinedMap: DepartmentMap = { ...existingMap, ...mergedMap };
+
+            await dbService.saveDepartmentMap(combinedMap);
+            await dbService.saveSetting('originalDepartmentMap', combinedMap);
+            setDepartmentMap(combinedMap);
+            // Nói rõ đã bỏ qua bao nhiêu người ngoài BP All In One và thông báo mã kho
+            const khoBadge = cleanMaKho ? ` (Kho ${cleanMaKho})` : '';
+            const keptMsg = `Đã nạp ${Object.keys(mergedMap).length} nhân viên BP All In One${khoBadge}`;
+            const skipMsg = skippedTotal > 0
+                ? ` • bỏ qua ${skippedTotal} người thuộc ${Array.from(skippedDepts).join(', ')}`
+                : '';
+            setStatus({ message: `${keptMsg}${skipMsg}`, type: 'success', progress: 100 });
+            // Toast để người dùng chắc chắn thấy vì sao danh sách ít hơn file (banner tự ẩn)
+            toast.success(`${keptMsg}${skipMsg}`, { duration: skippedTotal > 0 ? 7000 : 4000 });
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : "Lỗi không xác định";
+            setStatus({ message: msg, type: 'error', progress: 0 });
+        } finally {
+            setIsProcessing(false);
+            if(originalData.length > 0) setAppState('dashboard');
+            else setAppState('upload');
+        }
+    };
+
+    const handleFileProcessing = async (
+        files: File[],
+        isCloudSync: boolean = false,
+        isHistorical: boolean = false,
+        options?: { 
+            autoFilename?: string;
+            autoResolveConflict?: 'overwrite_deactivate' | 'merge_all' | 'cancel';
+            isAuto?: boolean;
+        }
+    ) => {
+        if (!files || files.length === 0) return;
+        setAppState('loading');
+        setIsProcessing(true);
+        startTimer();
+        
+        // Audit D11/DATA08: tệp lịch sử vừa ghi dữ liệu nhưng registry chưa lưu được thì phải dọn — không thì
+        // nằm lại trong IndexedDB mà không mục lục nào trỏ tới (chiếm dung lượng — đúng thứ vừa làm lưu hỏng).
+        const newFileIds: string[] = [];
+        let registrySaved = false;
+        try {
+            const registry = await dbService.getSalesFilesRegistry();
+            const updatedRegistry = [...registry];
+            const realtimeRows: DataRow[] = [];
+            let maxRealtimeLastModified = 0;
+            // Đợt 6: khúc JSON gốc (UTF-8) từ Worker của các tệp Realtime — lưu thẳng ngoài luồng chính,
+            // bỏ JSON.stringify ~1,4s. null = có tệp không dùng được JSON gốc → lưu kiểu cũ.
+            let realtimeJsonParts: ArrayBuffer[] | null = [];
+            
+            // Luôn dọn sạch dữ liệu Realtime tạm cũ trước khi nạp tệp mới để tránh rác phiên cũ cộng dồn x2
+            await dbService.clearTempRealtimeData().catch(() => {});
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Spin up worker for this specific file
+                const workerResult = await new Promise<unknown>((resolve, reject) => {
+                    let worker: Worker;
+                    let timeoutId: ReturnType<typeof setTimeout>;
+
+                    const cleanup = () => {
+                        if (timeoutId) clearTimeout(timeoutId);
+                        if (worker) worker.terminate();
+                    };
+
+                    try {
+                        worker = new SalesWorker();
+                    } catch (e) {
+                        reject(new Error('Trình duyệt không hỗ trợ xử lý nền (Worker)'));
+                        return;
+                    }
+                    
+                    // Đợt 4 (2026-09-30): trước đây hạn CỨNG 60s cho cả tệp — file 194MB mất ~35s trên máy
+                    // 4 nhân, file 100MB trên iPhone dễ vượt 60s và nạp thất bại hẳn. Nay hạn theo dung
+                    // lượng tệp và được GIA HẠN mỗi khi Worker báo tiến độ (Worker còn sống, chỉ chậm).
+                    const hanCho = workerTimeoutMs(file.size);
+                    const datHan = () => {
+                        if (timeoutId) clearTimeout(timeoutId);
+                        timeoutId = setTimeout(() => {
+                            cleanup();
+                            reject(new Error(`Quá thời gian xử lý tệp ${file.name} (quá ${Math.round(hanCho / 1000)} giây không có tiến triển)`));
+                        }, hanCho);
+                    };
+                    datHan();
+
+                    worker.onmessage = (e) => {
+                        const { type, payload } = e.data;
+                        if (type === 'progress') {
+                            datHan();
+                            const fileProgress = payload.progress || 0;
+                            const overallProgress = Math.round(
+                                (i / files.length) * 100 + (fileProgress / files.length)
+                            );
+                            const stepPrefix = files.length > 1 ? `Tệp ${i + 1}/${files.length}: ` : '';
+                            setStatus({
+                                message: `${stepPrefix}${payload.message}`,
+                                type: 'info',
+                                progress: overallProgress
+                            });
+                        } else if (type === 'result') {
+                            cleanup();
+                            resolve(payload);
+                        } else if (type === 'error') {
+                            cleanup();
+                            reject(new Error(payload));
+                        }
+                    };
+                    
+                    worker.onerror = (error) => {
+                        console.error("Worker error for file:", file.name, error);
+                        cleanup();
+                        reject(new Error(`Lỗi luồng xử lý nền (Worker): ${file.name}`));
+                    };
+                    
+                    worker.postMessage({ file });
+                });
+                
+                // Đợt 6: Worker gửi các KHÚC JSON → parse từng khúc, nhường luồng giữa các khúc
+                // (trước: 1 lần JSON.parse ~1,5s đứng giao diện ở 200.000 dòng).
+                const jsonChunks = workerResultToChunks(workerResult);
+                const parsedData: DataRow[] = jsonChunks ? await parseJsonChunks(jsonChunks) : (workerResult as DataRow[]);
+                // JSON gốc còn dùng để LƯU được không: chỉ khi luồng chính không làm lệch dòng nào so
+                // với chuỗi gốc (việc duy nhất nó làm là đổi parsedDate ISO → Date, stringify lại ra
+                // đúng ISO đó). Lệch 1 dòng → quay về JSON.stringify như cũ.
+                let jsonGocKhop = jsonChunks !== null;
+                // Chỉ khúc dạng ArrayBuffer (Worker mới) mới chuyển được sang Worker ghi.
+                const rawChunks = jsonChunks && jsonChunks.every(c => c instanceof ArrayBuffer) ? jsonChunks as ArrayBuffer[] : null;
+                
+                // Calculate file dates and unique dates
+                const fileDates: Date[] = [];
+                parsedData.forEach(row => {
+                    let dateObj: Date | null = null;
+                    const rawDate = row.parsedDate;
+                    if (rawDate) {
+                        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+                            dateObj = rawDate;
+                        } else if (typeof rawDate === 'string' && ISO_NGAY.test(rawDate)) {
+                            // Đường nhanh (2026-09-30): Worker luôn gửi parsedDate dạng ISO. parseExcelDate
+                            // thử regex dd/MM/yyyy trước (không bao giờ khớp chuỗi bắt đầu bằng năm 4 số)
+                            // rồi mới `new Date(chuỗi)` — kết quả y hệt, bỏ 200.000 lần thử regex.
+                            dateObj = new Date(rawDate);
+                        } else if (typeof rawDate === 'string' || typeof rawDate === 'number') {
+                            dateObj = parseExcelDate(rawDate);
+                        }
+                    }
+                    if (!dateObj || isNaN(dateObj.getTime())) {
+                        dateObj = parseExcelDate(getRowValue(row, COL.DATE_CREATED));
+                    }
+                    if (dateObj && !isNaN(dateObj.getTime())) {
+                        if (jsonGocKhop && (typeof rawDate !== 'string' || dateObj.toISOString() !== rawDate)) jsonGocKhop = false;
+                        row.parsedDate = dateObj;
+                        fileDates.push(dateObj);
+                    }
+                });
+
+                const fileTimestamps = fileDates.map(d => d.getTime());
+                const fileMinTime = fileTimestamps.length > 0 ? fileTimestamps.reduce((min, val) => val < min ? val : min, fileTimestamps[0]) : Date.now();
+                const fileMaxTime = fileTimestamps.length > 0 ? fileTimestamps.reduce((max, val) => val > max ? val : max, fileTimestamps[0]) : Date.now();
+                const fileUniqueDates = Array.from(new Set(fileDates.map(d => {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${day}`;
+                }))).sort();
+
+                // Overlap and duplication check
+                const conflicts: UploadConflictInfo[] = [];
+
+                if (isHistorical) {
+                    // A. Check against active historical files
+                    const activeHistFiles = updatedRegistry.filter(f => f.isActive);
+                    for (const histFile of activeHistFiles) {
+                        const isExactDup = histFile.filename === file.name || 
+                                            (file.lastModified && histFile.fileLastModified === file.lastModified);
+                        
+                        let histUniqueDates = histFile.uniqueDates;
+                        // Backfill for older registry entries that don't have uniqueDates cached
+                        if (!histUniqueDates) {
+                            const histData = await dbService.getSalesFileData(histFile.id);
+                            if (histData && histData.length > 0) {
+                                const parsedDates = histData.map(r => {
+                                    let dObj = r.parsedDate;
+                                    if (dObj && typeof dObj === 'string') dObj = parseExcelDate(dObj);
+                                    if (!dObj || !(dObj instanceof Date) || isNaN(dObj.getTime())) {
+                                        dObj = parseExcelDate(getRowValue(r, COL.DATE_CREATED));
+                                    }
+                                    return dObj;
+                                }).filter(Boolean) as Date[];
+                                
+                                histUniqueDates = Array.from(new Set(parsedDates.map(d => {
+                                    const y = d.getFullYear();
+                                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    return `${y}-${m}-${day}`;
+                                }))).sort();
+
+                                // Update registry in memory and save
+                                const regIdx = updatedRegistry.findIndex(f => f.id === histFile.id);
+                                if (regIdx !== -1) {
+                                    updatedRegistry[regIdx].uniqueDates = histUniqueDates;
+                                    const tss = parsedDates.map(d => d.getTime());
+                                    if (tss.length > 0) {
+                                        updatedRegistry[regIdx].minDate = tss.reduce((min, val) => val < min ? val : min, tss[0]);
+                                        updatedRegistry[regIdx].maxDate = tss.reduce((max, val) => val > max ? val : max, tss[0]);
+                                    }
+                                    await dbService.saveSalesFilesRegistry(updatedRegistry);
+                                }
+                            }
+                        }
+
+                        const existingDates = new Set(histUniqueDates || []);
+                        const overlaps = fileUniqueDates.filter(d => existingDates.has(d));
+
+                        if (isExactDup) {
+                            conflicts.push({
+                                type: 'exact_duplicate',
+                                targetType: 'historical',
+                                conflictingFileId: histFile.id,
+                                conflictingFilename: histFile.filename,
+                                conflictingLastModified: histFile.fileLastModified,
+                                overlappingDates: []
+                            });
+                        } else if (overlaps.length > 0) {
+                            let totalOverlappingOrdersCount = 0;
+                            const histData = await dbService.getSalesFileData(histFile.id);
+                            if (histData && histData.length > 0) {
+                                const histOrders = new Set(histData.map(r => String(getRowValue(r, COL.ID) || '').trim()).filter(Boolean));
+                                parsedData.forEach(r => {
+                                    const orderId = String(getRowValue(r, COL.ID) || '').trim();
+                                    if (orderId && histOrders.has(orderId)) {
+                                        totalOverlappingOrdersCount++;
+                                    }
+                                });
+                            }
+
+                            conflicts.push({
+                                type: 'overlap_dates',
+                                targetType: 'historical',
+                                conflictingFileId: histFile.id,
+                                conflictingFilename: histFile.filename,
+                                conflictingLastModified: histFile.fileLastModified,
+                                overlappingDates: overlaps,
+                                totalOverlappingOrdersCount
+                            });
+                        }
+                    }
+
+                    // B. Check against active realtime data
+                    const tempRealtime = await dbService.getTempRealtimeData();
+                    if (tempRealtime && tempRealtime.data.length > 0) {
+                        const isExactDup = tempRealtime.filename === file.name || 
+                                            (file.lastModified && tempRealtime.fileLastModified === file.lastModified);
+                        
+                        const rtDatesList = tempRealtime.data.map(r => {
+                            let dObj = r.parsedDate;
+                            if (dObj && typeof dObj === 'string') dObj = parseExcelDate(dObj);
+                            if (!dObj || !(dObj instanceof Date) || isNaN(dObj.getTime())) {
+                                dObj = parseExcelDate(getRowValue(r, COL.DATE_CREATED));
+                            }
+                            return dObj;
+                        }).filter(Boolean) as Date[];
+                        
+                        const rtUniqueDates = Array.from(new Set(rtDatesList.map(d => {
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            return `${y}-${m}-${day}`;
+                        }))).sort();
+
+                        const rtExistingDates = new Set(rtUniqueDates);
+                        const overlaps = fileUniqueDates.filter(d => rtExistingDates.has(d));
+
+                        if (isExactDup) {
+                            conflicts.push({
+                                type: 'exact_duplicate',
+                                targetType: 'realtime',
+                                conflictingFilename: tempRealtime.filename,
+                                conflictingLastModified: tempRealtime.fileLastModified,
+                                overlappingDates: []
+                            });
+                        } else if (overlaps.length > 0) {
+                            let totalOverlappingOrdersCount = 0;
+                            const rtOrders = new Set(tempRealtime.data.map(r => String(getRowValue(r, COL.ID) || '').trim()).filter(Boolean));
+                            parsedData.forEach(r => {
+                                const orderId = String(getRowValue(r, COL.ID) || '').trim();
+                                if (orderId && rtOrders.has(orderId)) {
+                                    totalOverlappingOrdersCount++;
+                                }
+                            });
+
+                            conflicts.push({
+                                type: 'overlap_dates',
+                                targetType: 'realtime',
+                                conflictingFilename: tempRealtime.filename,
+                                conflictingLastModified: tempRealtime.fileLastModified,
+                                overlappingDates: overlaps,
+                                totalOverlappingOrdersCount
+                            });
+                        }
+                    }
+                }
+
+                // If conflicts found, prompt user and await decision
+                let shouldSkipFile = false;
+                if (conflicts.length > 0) {
+                    const rangeStr = fileDates.length > 0
+                        ? `${toLocalISOString(fileDates[0])} đến ${toLocalISOString(fileDates[fileDates.length - 1])}`
+                        : 'Không xác định';
+
+                    // Tự động ghi đè không cần hỏi nếu:
+                    // 1. Có cấu hình autoResolveConflict được truyền vào
+                    // 2. Tệp nạp từ tiến trình chạy tự động (options.isAuto hoặc options.autoFilename)
+                    // 3. Có cờ tạm __pendingYcxAutoResolveConflict trên window
+                    // 4. Người dùng đã cấu hình "Luôn tự động ghi đè" trong localStorage
+                    const isAutoFlow = Boolean(
+                        options?.autoResolveConflict || 
+                        options?.autoFilename || 
+                        options?.isAuto ||
+                        (typeof window !== 'undefined' && (window as any).__pendingYcxAutoResolveConflict)
+                    );
+                    const userPrefAutoOverwrite = typeof window !== 'undefined' && localStorage.getItem('ycx_auto_overwrite_conflicts') === 'true';
+
+                    let action: 'overwrite_deactivate' | 'merge_all' | 'cancel';
+
+                    if (isAutoFlow || userPrefAutoOverwrite) {
+                        action = options?.autoResolveConflict || 'overwrite_deactivate';
+                        console.info(`[useFileUploadLogic] Tự động xử lý trùng lặp lịch sử: "${action}" cho tệp "${file.name}" mà không cần hỏi (đang chạy tự động).`);
+                    } else {
+                        action = await new Promise<'overwrite_deactivate' | 'merge_all' | 'cancel'>((resolve) => {
+                            setPendingConflict({
+                                newFilename: file.name,
+                                newDateRangeStr: rangeStr,
+                                conflicts,
+                                resolve
+                            });
+                        });
+                    }
+
+                    if (action === 'cancel') {
+                        shouldSkipFile = true;
+                    } else if (action === 'overwrite_deactivate') {
+                        for (const conflict of conflicts) {
+                            if (conflict.targetType === 'historical' && conflict.conflictingFileId) {
+                                const idx = updatedRegistry.findIndex(f => f.id === conflict.conflictingFileId);
+                                if (idx !== -1) {
+                                    updatedRegistry[idx].isActive = false;
+                                }
+                            } else if (conflict.targetType === 'realtime') {
+                                await dbService.clearTempRealtimeData();
+                            }
+                        }
+                    }
+                }
+
+                if (shouldSkipFile) {
+                    // Small sleep before next file in loop
+                    await new Promise(r => setTimeout(r, 100));
+                    continue;
+                }
+
+                if (isHistorical) {
+                    let customFilename = options?.autoFilename;
+                    if (!customFilename && typeof window !== 'undefined') {
+                        const cleanSuggested = cleanYcxFileName(file.name);
+                        customFilename = await new Promise<string>((resolve) => {
+                            setPendingNaming({
+                                fileName: file.name,
+                                defaultName: cleanSuggested.startsWith('YCX') ? cleanSuggested : formatYcxLuyKeTitle(),
+                                resolve: resolve
+                            });
+                        });
+                    }
+
+                    if (!customFilename || !customFilename.trim()) {
+                        customFilename = cleanYcxFileName(file.name);
+                    } else {
+                        customFilename = customFilename.trim();
+                    }
+
+                    // Save this file's data to IDB
+                    const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    await dbService.saveSalesFileData(fileId, parsedData, jsonGocKhop && rawChunks ? rawChunks : undefined);
+                    newFileIds.push(fileId);
+                    
+                    // Add metadata to registry
+                    updatedRegistry.push({
+                        id: fileId,
+                        filename: customFilename,
+                        rowCount: parsedData.length,
+                        savedAt: Date.now(),
+                        fileLastModified: file.lastModified,
+                        isActive: true,
+                        minDate: fileMinTime,
+                        maxDate: fileMaxTime,
+                        uniqueDates: fileUniqueDates
+                    });
+                } else {
+                    // Collect for realtime
+                    for (let j = 0; j < parsedData.length; j++) {
+                        realtimeRows.push(parsedData[j]);
+                    }
+                    if (realtimeJsonParts && jsonGocKhop && rawChunks) realtimeJsonParts.push(...rawChunks);
+                    else realtimeJsonParts = null;
+                    if (file.lastModified && file.lastModified > maxRealtimeLastModified) {
+                        maxRealtimeLastModified = file.lastModified;
+                    }
+                }
+                
+                // Small sleep to yield the CPU and let Garbage Collection release memory
+                await new Promise(r => setTimeout(r, 100));
+
+            }
+            
+            if (isHistorical) {
+                // Save registry — ném lỗi nếu không lưu được (trước đây nuốt lỗi rồi vẫn báo thành công)
+                await dbService.saveSalesFilesRegistry(updatedRegistry);
+                registrySaved = true;
+            } else {
+                // Đổ Realtime: Tự động bỏ active các file lịch sử/luỹ kế để người dùng xem đúng số liệu Realtime hôm nay,
+                // không bị dính/gộp số liệu luỹ kế cũ từ các ngày trước làm sai lệch doanh thu và %HT mục tiêu ngày.
+                let registryChanged = false;
+                for (let k = 0; k < updatedRegistry.length; k++) {
+                    if (updatedRegistry[k].isActive) {
+                        updatedRegistry[k].isActive = false;
+                        registryChanged = true;
+                    }
+                }
+                if (registryChanged) {
+                    await dbService.saveSalesFilesRegistry(updatedRegistry);
+                }
+
+                // Determine combined filename for realtime
+                let realtimeFilename = '';
+                if (files.length === 1) {
+                    realtimeFilename = files[0].name;
+                } else {
+                    const names = files.map(f => f.name.replace(/\.[^/.]+$/, ''));
+                    realtimeFilename = `Gộp ${files.length} tệp Realtime (${names.join(', ')})`;
+                    if (realtimeFilename.length > 85) {
+                        realtimeFilename = `Gộp ${files.length} tệp Realtime (${names.slice(0, 2).join(', ')}...)`;
+                    }
+                }
+                // Save to tempRealtimeData
+                await dbService.saveTempRealtimeData(realtimeRows, realtimeFilename, maxRealtimeLastModified || Date.now(),
+                    realtimeJsonParts && realtimeJsonParts.length > 0 ? realtimeJsonParts : undefined);
+            }
+            
+            // Notify registry change if listener exists
+            if (onRegistryChange) {
+                onRegistryChange();
+            }
+            
+            // Retrieve the merged data for the dashboard
+            setStatus({ message: 'Đang gộp và phân tích dữ liệu tích lũy...', type: 'info', progress: 95 });
+            const merged = await dbService.getMergedSalesData();
+            
+            if (merged) {
+                if (setFilterState) {
+                    const registry = await dbService.getSalesFilesRegistry();
+                    const activeHistoricalCount = registry.filter(f => f.isActive).length;
+                    if (activeHistoricalCount > 0) {
+                        const allTrangThai = Array.from(new Set(merged.data.map(r => getRowValue(r, COL.TRANG_THAI)).filter(Boolean))) as string[];
+                        setFilterState({
+                            ...initialFilterState,
+                            trangThai: allTrangThai,
+                            dateRange: 'all',
+                            selectedMonths: []
+                        });
+                    } else {
+                        setFilterState(initialFilterState);
+                    }
+                }
+                
+                setFileInfo({ filename: merged.filename, savedAt: merged.savedAt.toLocaleString('vi-VN') });
+
+                const srcData = normalizeSalesData(merged.data);
+
+                setOriginalData(srcData);
+                setAppState('processing');
+
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('ycx-sales-data-uploaded', {
+                        detail: { savedAt: merged.savedAt.getTime(), fileLastModified: merged.fileLastModified || merged.savedAt.getTime() }
+                    }));
+                }
+
+                // Báo tải file thành công — chỉ ở đây (thao tác upload do người dùng chủ động chọn file), KHÔNG đặt ở
+                // loadInitialData/Kho-sync. Pháo giấy đã bỏ 2026-10-11 (KE_HOACH_GIAO_DIEN_APPLE.md lỗi #26): không "sang", lại
+                // kéo thêm 11 KB vào gói khởi động.
+                toast.success(`Đã tải lên và xử lý thành công ${merged.data.length.toLocaleString('vi-VN')} dòng dữ liệu!`, { duration: 3500 });
+
+                // Sync the merged result to Firebase
+                if (user && !isCloudSync) {
+                    (async () => {
+                        try {
+                            toast('Đang đồng bộ dữ liệu gộp lên đám mây...', { icon: createElement(AppIcon, { name: 'cloud', size: 'md', className: 'text-sky-600' }), id: 'cloud-sync-start', duration: 2000 });
+                            const { uploadProcessedData } = await import('../services/cloudDataService');
+                            await uploadProcessedData(user, merged.data, merged.filename, merged.fileLastModified || merged.savedAt.getTime(), merged.savedAt.getTime(), merged.isRealtime);
+                            const { syncDataToKhoIfManager } = await import('../services/khoDataService');
+                            syncDataToKhoIfManager(user, userRole, departmentId, merged.data, merged.filename, merged.fileLastModified || merged.savedAt.getTime(), !!merged.isRealtime).catch(console.error);
+                            toast.success('Đã đồng bộ dữ liệu lên đám mây!', { id: 'cloud-sync-done' });
+                        } catch (err) {
+                            console.error('Cloud data sync failed:', err);
+                            toast('Dữ liệu đã lưu trên máy. Đồng bộ đám mây sẽ thử lại sau.', { icon: createElement(AppIcon, { name: 'cloud', size: 'md', className: 'text-amber-600' }), id: 'cloud-sync-fail' });
+                        }
+                    })();
+                }
+            } else {
+                setAppState('upload');
+            }
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : "Lỗi khi xử lý danh sách file";
+            console.error(errorMsg, error);
+            if (!registrySaved && newFileIds.length > 0) {
+                await Promise.all(newFileIds.map(id => dbService.deleteSalesFileData(id).catch(() => undefined)));
+            }
+            setStatus({ message: errorMsg, type: 'error', progress: 0 });
+            // Re-load existing merged data if any, otherwise return to upload
+            const merged = await dbService.getMergedSalesData();
+            if (merged && merged.data.length > 0) {
+                setAppState('dashboard');
+            } else {
+                setAppState('upload');
+            }
+        } finally {
+            setIsProcessing(false);
+            stopTimer();
+        }
+    };
+
+    return {
+        isProcessing,
+        isClearingDepartments,
+        processingTime,
+        handleFileProcessing,
+        handleShiftFileProcessing,
+        handleClearData,
+        handleClearDepartments,
+        pendingNaming,
+        setPendingNaming,
+        pendingConflict,
+        setPendingConflict
+    };
+};
+

@@ -1,0 +1,792 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c3-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c3-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 180000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c3",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "glass-controls.spec.ts",
+          "glass-material-foundation.spec.ts",
+          "lop-apple-gd3.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c3-e2e.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5192 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5192",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "glass-controls.spec.ts",
+      "file": "glass-controls.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Shared glass controls 390",
+          "file": "glass-controls.spec.ts",
+          "line": 4,
+          "column": 10,
+          "specs": [
+            {
+              "title": "tokens, active/disabled, keyboard focus and transparency fallback",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2508,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m2\u001b[27mpx\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27mpx\"\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m2\u001b[27mpx\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27mpx\"\u001b[39m\n    at /Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts:23:33",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts",
+                          "column": 33,
+                          "line": 23
+                        },
+                        "snippet": "  21 |             expect(ring.style).toBe('solid');\n  22 |             expect(ring.width).toBe('2px');\n> 23 |             expect(ring.offset).toBe('2px');\n     |                                 ^\n  24 |             expect(ring.color).not.toBe('rgba(0, 0, 0, 0)');\n  25 |             await page.keyboard.press('Tab');\n  26 |             await expect(second).toBeFocused();"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts",
+                            "column": 33,
+                            "line": 23
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m2\u001b[27mpx\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27mpx\"\u001b[39m\n\n  21 |             expect(ring.style).toBe('solid');\n  22 |             expect(ring.width).toBe('2px');\n> 23 |             expect(ring.offset).toBe('2px');\n     |                                 ^\n  24 |             expect(ring.color).not.toBe('rgba(0, 0, 0, 0)');\n  25 |             await page.keyboard.press('Tab');\n  26 |             await expect(second).toBeFocused();\n    at /Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts:23:33"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:33.200Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c3/glass-controls-Shared-glas-61c9b-s-and-transparency-fallback-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c3/glass-controls-Shared-glas-61c9b-s-and-transparency-fallback-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c3/glass-controls-Shared-glas-61c9b-s-and-transparency-fallback-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts",
+                        "column": 33,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a9b181d3a660a463c20-496bd983741fb4770955",
+              "file": "glass-controls.spec.ts",
+              "line": 8,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Shared glass controls 1366",
+          "file": "glass-controls.spec.ts",
+          "line": 4,
+          "column": 10,
+          "specs": [
+            {
+              "title": "tokens, active/disabled, keyboard focus and transparency fallback",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 547,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m2\u001b[27mpx\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27mpx\"\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m2\u001b[27mpx\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27mpx\"\u001b[39m\n    at /Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts:23:33",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts",
+                          "column": 33,
+                          "line": 23
+                        },
+                        "snippet": "  21 |             expect(ring.style).toBe('solid');\n  22 |             expect(ring.width).toBe('2px');\n> 23 |             expect(ring.offset).toBe('2px');\n     |                                 ^\n  24 |             expect(ring.color).not.toBe('rgba(0, 0, 0, 0)');\n  25 |             await page.keyboard.press('Tab');\n  26 |             await expect(second).toBeFocused();"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts",
+                            "column": 33,
+                            "line": 23
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"\u001b[7m2\u001b[27mpx\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27mpx\"\u001b[39m\n\n  21 |             expect(ring.style).toBe('solid');\n  22 |             expect(ring.width).toBe('2px');\n> 23 |             expect(ring.offset).toBe('2px');\n     |                                 ^\n  24 |             expect(ring.color).not.toBe('rgba(0, 0, 0, 0)');\n  25 |             await page.keyboard.press('Tab');\n  26 |             await expect(second).toBeFocused();\n    at /Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts:23:33"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:36.564Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c3/glass-controls-Shared-glas-35030-s-and-transparency-fallback-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c3/glass-controls-Shared-glas-35030-s-and-transparency-fallback-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c3/glass-controls-Shared-glas-35030-s-and-transparency-fallback-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/glass-controls.spec.ts",
+                        "column": 33,
+                        "line": 23
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1a9b181d3a660a463c20-54dbc150cb5134510df1",
+              "file": "glass-controls.spec.ts",
+              "line": 8,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "glass-material-foundation.spec.ts",
+      "file": "glass-material-foundation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Material token và reduced transparency trên action sheet thật",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 918,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "material viewport diagnostics {\n  innerWidth: \u001b[33m390\u001b[39m,\n  innerHeight: \u001b[33m844\u001b[39m,\n  visualWidth: \u001b[33m390\u001b[39m,\n  visualHeight: \u001b[33m844\u001b[39m,\n  documentWidth: \u001b[33m390\u001b[39m,\n  cancel: {\n    x: \u001b[33m8\u001b[39m,\n    y: \u001b[33m833.2268676757812\u001b[39m,\n    width: \u001b[33m374\u001b[39m,\n    height: \u001b[33m52\u001b[39m,\n    top: \u001b[33m833.2268676757812\u001b[39m,\n    right: \u001b[33m382\u001b[39m,\n    bottom: \u001b[33m885.2268676757812\u001b[39m,\n    left: \u001b[33m8\u001b[39m\n  },\n  sheet: {\n    x: \u001b[33m0\u001b[39m,\n    y: \u001b[33m618.2268676757812\u001b[39m,\n    width: \u001b[33m390\u001b[39m,\n    height: \u001b[33m275\u001b[39m,\n    top: \u001b[33m618.2268676757812\u001b[39m,\n    right: \u001b[33m390\u001b[39m,\n    bottom: \u001b[33m893.2268676757812\u001b[39m,\n    left: \u001b[33m0\u001b[39m\n  }\n}\n"
+                    }
+                  ],
+                  "stderr": [
+                    {
+                      "text": "(node:42420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-10-25T05:06:37.870Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1b0b6c111c5e63211e09-a634bca4bfed277e3dfc",
+          "file": "glass-material-foundation.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "Aggregate harness fits 320px and keeps cancel in viewport",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1668,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "overflow candidates []\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T05:06:38.911Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1b0b6c111c5e63211e09-5e12af4d64942e7ba41a",
+          "file": "glass-material-foundation.spec.ts",
+          "line": 47,
+          "column": 5
+        },
+        {
+          "title": "Aggregate harness fits 390px and keeps cancel in viewport",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1044,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "overflow candidates []\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T05:06:40.586Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1b0b6c111c5e63211e09-8708a088ae7f8c939b8a",
+          "file": "glass-material-foundation.spec.ts",
+          "line": 47,
+          "column": 5
+        },
+        {
+          "title": "Aggregate harness fits 440px and keeps cancel in viewport",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1553,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "overflow candidates []\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T05:06:41.634Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1b0b6c111c5e63211e09-fa76f6d3b76a42cf3cb3",
+          "file": "glass-material-foundation.spec.ts",
+          "line": 47,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "lop-apple-gd3.spec.ts",
+      "file": "lop-apple-gd3.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "iPhone 16 Pro Max",
+          "file": "lop-apple-gd3.spec.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Switch: role=switch, bấm/Space bật tắt, 44×26, vùng chạm ≥ 44",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 605,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:43.211Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-c7c1cec2aca0fa88e914",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 19,
+              "column": 5
+            },
+            {
+              "title": "SegmentedControl: nhóm nút aria-pressed, núm trắng trượt theo mục chọn, cao 44px trên cảm ứng",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 920,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:43.823Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-f2f55d012638be5efec3",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 40,
+              "column": 5
+            },
+            {
+              "title": "Banner: chữ đứng yên tối đa 2 dòng, \"Xem thêm\" mở đủ, × đóng",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 517,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:44.748Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-4366e363a025ab3da437",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 57,
+              "column": 5
+            },
+            {
+              "title": "ListGroup: hàng ≥ 48px cảm ứng, có đường kẻ thụt lề, hàng bấm được",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 464,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:45.270Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-783c99ad3a282bee851d",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 72,
+              "column": 5
+            },
+            {
+              "title": "ActionMenu trên iPhone là action sheet: nhóm nguy hiểm riêng, nút Huỷ, chọn mục chạy ngay",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1845,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:45.740Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-1ca5ef0ef13603dabb8f",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 83,
+              "column": 5
+            },
+            {
+              "title": "Modal sheet: đầu kiểu iOS [Huỷ — Tiêu đề — Lưu], thân chỉ cuộn dọc, kéo thanh nắm để đóng",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1719,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:47.593Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-7697a921cc13426409f5",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 100,
+              "column": 5
+            },
+            {
+              "title": "SectionHeader v2 viết thường 17px; EmptyState có icon",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 409,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:49.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-9a0886e466ed00afdc86",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 128,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "laptop 1366×900",
+          "file": "lop-apple-gd3.spec.ts",
+          "line": 138,
+          "column": 6,
+          "specs": [
+            {
+              "title": "ActionMenu là menu thả: ↓ di chuyển, Esc đóng và trả focus, mục nguy hiểm cuối sau vạch ngăn",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 865,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:49.738Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-2a6ec62de0023728c764",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 141,
+              "column": 5
+            },
+            {
+              "title": "PageActions: khung app vẽ tiêu đề/nút từ màn đang khai báo, luôn gọi hàm MỚI nhất, màn ẩn thì gỡ",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 924,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:50.612Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-36310fdd893d606df127",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 160,
+              "column": 5
+            },
+            {
+              "title": "Modal giữa màn: primaryAction thành cặp nút ở chân, có nút × ở đầu",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 774,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:06:51.542Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3843ada21e0bd4917053-186e6e6dd9fdbe5e003f",
+              "file": "lop-apple-gd3.spec.ts",
+              "line": 177,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-25T05:06:31.341Z",
+    "duration": 21059.956000000002,
+    "expected": 14,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

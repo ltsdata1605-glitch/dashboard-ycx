@@ -1,0 +1,54 @@
+
+> reportycx_11.2.2026_new@0.0.0 test:unit
+> vitest run
+
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+(node:5020) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5052) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5076) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ components/shared/ui/TextareaCheckbox.test.ts (5 tests | 1 failed) 33ms
+     × ô gọn 28px chữ 12px, KHÔNG ép 44px 16ms
+(node:5105) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5117) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5132) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5136) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5143) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5191) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:5197) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  components/shared/ui/TextareaCheckbox.test.ts > Input dense (GĐ10 2026-10-20) > ô gọn 28px chữ 12px, KHÔNG ép 44px
+AssertionError: expected 'flex h-[var(--input-height-dense)] ro…' to contain 'h-7'
+
+Expected: "h-7"
+Received: "flex h-[var(--input-height-dense)] rounded-control border bg-white px-2 py-0 text-xs font-normal transition-colors border-slate-300 text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:border-sky-500 focus-visible:ring-1 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:border-sky-400 dark:focus-visible:ring-sky-400 dark:disabled:bg-slate-900/50 w-14 text-center"
+
+ ❯ components/shared/ui/TextareaCheckbox.test.ts:45:80
+     43|     it('ô gọn 28px chữ 12px, KHÔNG ép 44px', () => {
+     44|         const cls = lop(renderToStaticMarkup(h(Input, { dense: true, d…
+     45|         for (const c of ['h-7', 'text-xs', 'w-14', 'text-center']) exp…
+       |                                                                                ^
+     46|         expect(cls).not.toContain('min-h-11');
+     47|         expect(cls).not.toContain('h-9');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 171 passed | 1 skipped (173)
+      Tests  1 failed | 1489 passed | 4 skipped (1494)
+   Start at  08:38:46
+   Duration  10.89s (transform 6.72s, setup 0ms, import 24.87s, tests 13.53s, environment 18ms)
+

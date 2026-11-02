@@ -1,0 +1,544 @@
+
+features/line-bot/components/KeywordLibraryTab.tsx:93
+                                        </span>
+                                    </div>
+
+                                    {/* Toggle Active */}
+                                    <Switch size="sm" checked={kw.active} onChange={() => onToggleActive(kw)} label="Bật / tắt từ khoá" />
+                                </div>
+
+                                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 whitespace-pre-wrap font-sans">
+                                    {kw.replyText || <span className="italic text-slate-400">Không có văn bản</span>}
+                                </p>
+
+                                {kw.imageUrls && kw.imageUrls.length > 0 && (
+                                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                                        <AppIcon name="image" size="sm" />
+                                        <span>Kèm {kw.imageUrls.length} hình ảnh</span>
+
+features/product-config/components/HtxConfigTable.tsx:345
+                            </div>
+
+                            <div className="flex items-center gap-2 pl-0 sm:pl-3 sm:border-l border-slate-200 dark:border-slate-700">
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Tính doanh thu:</span>
+                                <Switch
+                                    checked={formIsRevenueEligible}
+                                    onChange={setFormIsRevenueEligible}
+                                    label="Bật/Tắt tính doanh thu"
+                                />
+                                <span className={`text-[11px] font-bold ${formIsRevenueEligible ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                    {formIsRevenueEligible ? 'Có tính DT' : 'Không tính DT'}
+                                </span>
+                            </div>
+                        </div>
+
+
+features/product-config/components/HtxConfigTable.tsx:463
+
+                                            {/* Tính doanh thu (Công tắc 1-chạm + Badge) */}
+                                            <td className="py-2 px-3 align-middle">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Switch
+                                                        checked={item.isRevenueEligible}
+                                                        disabled={!isEditable}
+                                                        size="sm"
+                                                        onChange={checked => {
+                                                            if (onToggleRevenue) {
+                                                                onToggleRevenue(item.name, checked);
+                                                            }
+                                                        }}
+                                                        label={`Tính doanh thu cho ${item.name}`}
+                                                    />
+
+features/product-config/components/HtxConfigTable.tsx:641
+                        <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold ${formIsRevenueEligible ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {formIsRevenueEligible ? 'Có' : 'Không'}
+                            </span>
+                            <Switch
+                                checked={formIsRevenueEligible}
+                                onChange={setFormIsRevenueEligible}
+                                label="Bật/Tắt tính doanh thu"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
+                            Ghi Chú / Mô Tả (Tuỳ chọn)
+
+components/employees/EmployeeAnalysis.tsx:241
+                                                    <AppIcon name={resolveIconName(tab.icon) ?? 'help'} size="sm" />
+                                                </div>
+                                                {tab.label}
+                                            </span>
+                                            <Switch size="sm" id={`vis-toggle-${tab.id}`} checked={visibleTabs.has(tab.id)} onChange={() => handleToggleTabVisibility(tab.id)} label={tab.label} />
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </SectionHeader>
+            {/* END: Header Section */}
+            
+
+features/line-bot/components/LineBotSettingsTab.tsx:140
+                    <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+                        <span id="bot-dung-chung-kho" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Cho phép các quản lý cùng mã kho <strong>{deptId || 'này'}</strong> kế thừa và dùng chung Bot
+                        </span>
+                        <Switch checked={isWarehouseShared} onChange={setIsWarehouseShared} aria-labelledby="bot-dung-chung-kho" />
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 italic">
+                        {isWarehouseShared
+                            ? <><AppIcon name="check" size="xs" className="text-emerald-600" />Tài khoản cùng kho sẽ được dùng chung kho coupon & bot</>
+                            : <><AppIcon name="lock" size="xs" />Bot hoạt động riêng cho tài khoản này</>}
+                    </span>
+                </div>
+            </div>
+
+            {/* Webhook URL Box */}
+
+features/line-bot/components/LineBotSettingsTab.tsx:410
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Khi nhân viên gửi đúng cú pháp form xin mã PMH, Bot sẽ tự động kiểm tra kho và phát mã ngay mà không cần Quản lý gõ lệnh duyệt.
+                        </span>
+                    </div>
+                    <Switch checked={autoApprove} onChange={setAutoApprove} aria-labelledby="bot-tu-duyet" className="ml-4 shrink-0" />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Lệnh duyệt đơn thủ công (khi tắt Auto-Approve)
+                    </label>
+                    <Input
+                        aria-label="Lệnh duyệt đơn thủ công"
+                        type="text"
+                        value={approvalCmd}
+
+features/bi-dashboard/components/nhanvien/CompetitionTab.tsx:822
+                                                                <div role="button" tabIndex={0} className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onClick={() => setHighlightedEmployees(prev => { const newSet = new Set(prev); if (newSet.has(emp.originalName)) newSet.delete(emp.originalName); else newSet.add(emp.originalName); return newSet; })} onKeyDown={onActivateKey(() => setHighlightedEmployees(prev => { const newSet = new Set(prev); if (newSet.has(emp.originalName)) newSet.delete(emp.originalName); else newSet.add(emp.originalName); return newSet; }))}>
+                                                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getEmployeeDotColor(emp.originalName)}`}></span>
+                                                                    <span className={`text-sm truncate ${isSelected ? 'font-medium text-slate-900' : 'text-slate-600'}`}>{emp.name}</span>
+                                                                </div>
+                                                                <Switch checked={isSelected} onChange={() => setHighlightedEmployees(prev => { const newSet = new Set(prev); if (newSet.has(emp.originalName)) newSet.delete(emp.originalName); else newSet.add(emp.originalName); return newSet; })} />
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>,
+                                            document.body
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx:572
+                                .map(header => {
+                                    const isSelected = selectedTitles.includes(header.title);
+                                    return (
+                                        <label key={header.title} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer select-none text-xs text-slate-700 dark:text-slate-300">
+                                            <Switch
+                                                checked={isSelected}
+                                                onChange={() => handleToggleTitle(header.title)}
+                                            />
+                                            <span className="truncate uppercase">{shortenName(header.originalTitle, nameOverrides)}</span>
+                                        </label>
+                                    );
+                                })}
+                        </div>
+                    )}
+                </div>
+
+features/line-bot/components/AdminDeclarationTab.tsx:263
+                                                {a.role === 'SUPER_ADMIN' ? 'Toàn quyền' : (a.role === 'APPROVER' ? 'Duyệt đơn' : 'Chỉ xem')}
+                                            </span>
+                                        </td>
+                                        <td className="py-2 px-3 text-center border-r border-slate-100 dark:border-slate-800/60">
+                                            <Switch size="sm" checked={a.active} onChange={() => onToggleActive(a)} label="Bật / tắt quyền Admin" />
+                                        </td>
+                                        <td className="p-3 pr-4 text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => handleTestPush(a)}
+                                                    disabled={testingId === a.id}
+                                                    className="p-1.5 text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 rounded-control"
+                                                    title="Gửi tin nhắn test"
+                                                >
+
+features/line-bot/components/ScheduleManagerTab.tsx:178
+                                        </p>
+                                    </div>
+
+                                    {/* Toggle Active */}
+                                    <Switch size="sm" checked={sched.active} onChange={() => onToggleActive(sched)} label="Bật / tắt lịch gửi" />
+                                </div>
+
+                                <div className="p-2 bg-slate-50 dark:bg-slate-900/40 rounded-control text-[11px] text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap line-clamp-2">
+                                    {sched.messageTemplate}
+                                </div>
+
+                                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                                    <span className={`truncate ${sched.lastAutoRunResult?.startsWith('Không gửi được') ? 'text-rose-600 font-semibold' : ''}`} title={sched.lastAutoRunResult || undefined}>Gần nhất: {sched.lastRunAt ? new Date(sched.lastRunAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Chưa chạy'}{sched.lastAutoRunResult ? ` · ${sched.lastAutoRunResult}` : ''}</span>
+
+                                    <div className="flex items-center gap-0.5 shrink-0">
+
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:318
+                                    onClick={() => setHiddenSupermarkets(prev => prev.includes(sm) ? prev.filter(i => i !== sm) : [...prev, sm])}
+                                >
+                                    {shortenSupermarketName(sm)}
+                                </label>
+                                <Switch
+                                    checked={!hiddenSupermarkets.includes(sm)}
+                                    onChange={() => setHiddenSupermarkets(prev => prev.includes(sm) ? prev.filter(i => i !== sm) : [...prev, sm])}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:357
+                                    className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-grow cursor-pointer select-none"
+                                >
+                                    {headerMapping[h]?.replace(/<br\/>/g, ' ') || h}
+                                </label>
+                                <Switch
+                                    id={`col-toggle-sum-${h}`}
+                                    checked={visibleColumns.has(h)}
+                                    onChange={() => toggleColumn(h)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+
+features/bi-dashboard/components/dashboard/DashboardWidgets.tsx:9
+// Công tắc của Report BI = công tắc DÙNG CHUNG (GĐ6, 2026-10-13 — trước là bản tự vẽ 28×16 màu sky, lệch kiểu với phần còn lại
+// của app; KE_HOACH_GIAO_DIEN_APPLE.md lỗi #16). Giữ chữ ký cũ `onChange: () => void` cho 9 nơi gọi. Bản dùng chung đã tự chặn
+// nổi bọt (cần cho Bộ lọc bảng Thi đua: công tắc nằm TRONG một <div onClick> bật/tắt cả dòng).
+export const Switch: React.FC<{ checked: boolean; onChange: () => void; id?: string }> = ({ checked, onChange, id }) => (
+    <SwitchChung checked={checked} onChange={() => onChange()} id={id} size="sm" />
+);
+
+export const ProgressBar: React.FC<{ value: number; customColorClass?: string }> = ({ value, customColorClass }) => {
+    const percentage = Math.min(Math.max(value, 0), 200);
+    const displayPercentage = Math.min(percentage, 100);
+
+    let colorClass = customColorClass;
+    if (!colorClass) {
+        colorClass = 'bg-sky-500';
+        if (value >= 100) colorClass = 'bg-emerald-500';
+
+features/bi-dashboard/components/dashboard/IndustryView.tsx:364
+                                                title={formatIndustryDisplayName(industry)}
+                                            >
+                                                {formatIndustryDisplayName(industry)}
+                                            </label>
+                                            <Switch
+                                                checked={!hiddenIndustries.includes(industry)}
+                                                onChange={() => setHiddenIndustries(prev => prev.includes(industry) ? prev.filter(i => i !== industry) : [...prev, industry])}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Cột 2: Nhóm hàng (chỉ hiển thị khi có treeData) */}
+                            {hasTreeData && (
+
+features/bi-dashboard/components/dashboard/IndustryView.tsx:418
+                                                    title={formatIndustryDisplayName(sub)}
+                                                >
+                                                    {formatIndustryDisplayName(sub)}
+                                                </label>
+                                                <Switch
+                                                    checked={!hiddenSubIndustries.includes(sub)}
+                                                    onChange={() => setHiddenSubIndustries(prev => prev.includes(sub) ? prev.filter(i => i !== sub) : [...prev, sub])}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+features/bi-dashboard/components/dashboard/IndustryView.tsx:459
+                                        className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-grow cursor-pointer select-none"
+                                    >
+                                        {headerMapping[h]?.replace(/<br\/>/g, ' ') || h}
+                                    </label>
+                                    <Switch
+                                        id={`col-toggle-ind-${h}`}
+                                        checked={visibleColumns.has(h)}
+                                        onChange={() => toggleColumn(h)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:405
+                                            >
+                                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate pr-2" title={opt.label}>
+                                                    {opt.label}
+                                                </span>
+                                                <Switch
+                                                    checked={opt.checked}
+                                                    onChange={() => toggleProgram(opt.key)}
+                                                />
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-6 text-center text-xs text-slate-400">
+                                            Không tìm thấy chương trình phù hợp
+                                        </div>
+                                    )}
+
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:454
+                                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
+                                                        {getCompetitionColumnLabel(header)}
+                                                    </span>
+                                                </span>
+                                                <Switch
+                                                    checked={order !== -1}
+                                                    onChange={() => toggleColumn(header)}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+components/views/settings/ApprovalSettingsTab.tsx:265
+
+                    {/* Toggle Switch */}
+                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                        {isAdmin ? (
+                            <Switch checked={settings.autoApproveManagers} onChange={() => handleToggleAutoApproveManagers()} disabled={savingManager} label="Tự động duyệt quản lý kho" />
+                        ) : (
+                            <span className="text-xs text-slate-400 italic">Chỉ Super Admin</span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="pt-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <AppIcon name="info" size="sm" className="text-sky-500 shrink-0" />
+                    <span>Mặc định: <strong>TẮT</strong> (Admin kiểm duyệt quản lý). Khi bật, quyền Quản lý kho sẽ có hiệu lực ngay khi họ đổi mã kho.</span>
+                </div>
+
+components/views/settings/ApprovalSettingsTab.tsx:337
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <Switch size="sm" checked={isKhoEnabled} onChange={() => handleToggleAutoApproveEmployeesForDept(kho)} disabled={isSavingThisKho} label={`Tự động duyệt nhân viên Kho ${kho}`} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Nếu là Admin/Super Admin: Cấu hình mặc định toàn hệ thống + theo từng kho */}
+                {isAdmin && (
+                    <div className="space-y-4 pt-2">
+
+components/views/settings/ApprovalSettingsTab.tsx:357
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Áp dụng cho mọi siêu thị chưa có cấu hình riêng (Mặc định: BẬT).
+                                </div>
+                            </div>
+                            <Switch checked={settings.autoApproveEmployees} onChange={() => handleToggleAutoApproveEmployeesGlobal()} disabled={savingEmployee} label="Tự động duyệt nhân viên (toàn hệ thống)" />
+                        </div>
+                    </div>
+                )}
+
+                <div className="pt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <AppIcon name="info" size="sm" className="text-sky-500 shrink-0" />
+                    <span>
+                        Tính năng tự động duyệt nhân viên ở cấp Quản lý luôn được <strong>mặc định BẬT</strong> để nhân viên có thể sử dụng ngay sau khi đăng ký vào kho.
+                    </span>
+                </div>
+
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:252
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 min-h-11 sm:min-h-0 py-1">
+                                    <span id="phieu-tu-nhay-so" className="text-[13px] font-medium text-slate-700">Tự động nhảy số liên tục</span>
+                                    <Switch checked={drawAutoIncrement ?? true} onChange={setDrawAutoIncrement} aria-labelledby="phieu-tu-nhay-so" />
+                                </div>
+
+                                {/* Chọn nền in */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                                        Nền in
+                                    </label>
+                                    <Tabs
+                                        variant="segment"
+                                        size="sm"
+
+components/tables/summary/SummaryTableHeader.tsx:181
+                                                            {col.label}
+                                                        </span>
+                                                        {/* Chỉ để NHÌN (cả hàng mới là nút bấm) — công tắc dùng chung, bỏ khỏi cây trợ năng */}
+                                                        <span aria-hidden="true" className="pointer-events-none inline-flex">
+                                                            <Switch size="sm" checked={visibleColumns.includes(col.key)} onChange={() => {}} tabIndex={-1} />
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+components/shared/ui/ListGroup.tsx:46
+  icon?: IconName;
+  iconTone?: ListIconTone;
+  /** Giá trị hiện bên phải (xám), vd "Bật", "UTM Avo". */
+  value?: React.ReactNode;
+  /** Phần tử bên phải tự dựng — thường là `<Switch>`. */
+  trailing?: React.ReactNode;
+  /** Mũi tên › — mặc định hiện khi có `onClick` và không có `trailing`. */
+  chevron?: boolean;
+  destructive?: boolean;
+  selected?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  className?: string;
+  'data-testid'?: string;
+}
+
+components/shared/ui/Switch.tsx:11
+ *
+ * Thay cho ≥ 15 công tắc tự vẽ mỗi nơi một cỡ, một màu (xanh / xanh lá / đỏ / cam — lỗi #16 trong video). Một kiểu duy nhất:
+ * bật = xanh lá `emerald-500` (đúng quy ước iOS), tắt = `slate-300`, núm trắng có bóng, chuyển động 200 ms.
+ *  - `md` 44 × 26 (mặc định — danh sách cài đặt, iPhone) · `sm` 36 × 20 (thanh công cụ / bảng dày trên laptop).
+ *  - Vùng chạm ≥ 44 × 44 trên màn cảm ứng nhờ lớp `::after` vô hình (styles.css `.ycx-switch`) — không đổi bố cục.
+ *  - Là `<button role="switch" aria-checked>`: Space/Enter bật tắt, trình đọc màn hình đọc đúng "công tắc, bật/tắt".
+ *  - Đặt cạnh nhãn: `<label htmlFor={id}>` hoặc `aria-labelledby`; không có nhãn nhìn thấy thì truyền `label`.
+ */
+export interface SwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  /** Tên đọc cho trình đọc màn hình khi không có nhãn nhìn thấy. */
+  label?: string;
+  size?: 'md' | 'sm';
+  disabled?: boolean;
+
+components/shared/ui/Switch.tsx:52
+      disabled={disabled}
+      onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+      data-state={checked ? 'on' : 'off'}
+      className={cn(
+        'ycx-switch relative inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer',
+        md ? 'h-[26px] w-11' : 'h-5 w-9',
+        checked ? 'bg-emerald-500' : 'bg-slate-300',
+        className,
+      )}
+      {...rest}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'block rounded-full bg-white shadow-[0_1px_3px_rgba(15,23,42,0.28)] transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]',
+
+components/filters/FilterSection.tsx:367
+                                    key={opt.key}
+                                    icon={resolveIconName(opt.icon) ?? 'help'}
+                                    iconTone={opt.tone}
+                                    label={opt.label}
+                                    trailing={<Switch checked={bat} onChange={(v) => onVisibilityChange(opt.key, v)} label={opt.label} />}
+                                />
+                            );
+                        })}
+                    </ListGroup>
+
+                    {/* Cấu hình */}
+                    <ListGroup title="Cấu hình">
+                        <ListRow
+                            icon="target" iconTone="sky"
+                            label="Mục tiêu GTĐH"
+
+components/kpis/modals/KpiCardConfigModal.tsx:450
+            <ListGroup footer={editingCard.hasTarget ? 'Tự hiện thanh tiến độ, tính % đạt và đổi màu trạng thái.' : undefined}>
+                <ListRow
+                    label="Mục tiêu tháng"
+                    trailing={(
+                        <Switch
+                            checked={!!editingCard.hasTarget}
+                            onChange={(on) => updateEditingCard({ hasTarget: on, targetType: on ? 'custom' : 'none', customTargetValue: editingCard.customTargetValue || 0 })}
+                            label="Mục tiêu tháng"
+                        />
+                    )}
+                />
+                {editingCard.hasTarget && (
+                    <div className="px-4 pb-3 pt-1">
+                        <label className={nhanTruong}>Chỉ tiêu ({editingCard.format === 'percentage' ? '%' : 'VNĐ'})</label>
+                        <Input
+
+components/kpis/modals/KpiCardConfigModal.tsx:501
+                                <span className="block text-[13px] leading-[18px] text-slate-500 truncate">{nhanNguon(config)}</span>
+                            </span>
+                            <AppIcon name="chevronRight" size="md" className="shrink-0 text-slate-300" />
+                        </Button>
+                        <Switch
+                            checked={config.isVisible}
+                            onChange={() => toggleVisibility(config.id)}
+                            label={`Hiện thẻ ${config.title}`}
+                        />
+                        <ActionMenu
+                            label={`Thao tác thẻ ${config.title}`}
+                            title={config.title}
+                            items={[
+                                { id: 'up', label: 'Đưa lên trên', icon: 'arrowUp', disabled: i === 0, onSelect: () => moveCard(i, 'up') },
+                                { id: 'down', label: 'Đưa xuống dưới', icon: 'arrowDown', disabled: i === internalConfigs.length - 1, onSelect: () => moveCard(i, 'down') },
+
+components/tables/summary/FilterPopover.tsx:149
+                                <>
+                                    {filteredOptions.slice(0, 200).map(option => (
+                                        <label key={option} className="flex items-center justify-between p-1.5 rounded-control hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer active:bg-slate-200 dark:active:bg-slate-600">
+                                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate pr-2 flex-grow" title={option}>{option}</span>
+                                            <Switch size="sm" checked={selected.includes(option)} onChange={() => toggleOption(option)} label={option} />
+                                        </label>
+                                    ))}
+                                    {filteredOptions.length > 200 && (
+                                        <div className="text-center py-2 text-xs italic text-slate-400 font-medium">
+                                            Hiển thị 200 kết quả đầu tiên.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center text-xs text-slate-500 py-4">Không tìm thấy kết quả</div>
+
+components/tables/summary/FilterPopover.tsx:191
+                                <>
+                                    {filteredOptions.slice(0, 200).map(option => (
+                                        <label key={option} className="flex items-center justify-between p-1.5 rounded-control hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer active:bg-slate-200 dark:active:bg-slate-600">
+                                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate pr-2 flex-grow" title={option}>{option}</span>
+                                            <Switch size="sm" checked={selected.includes(option)} onChange={() => toggleOption(option)} label={option} />
+                                        </label>
+                                    ))}
+                                    {filteredOptions.length > 200 && (
+                                        <div className="text-center py-2 text-xs italic text-slate-400 font-medium">
+                                            Hiển thị 200 kết quả đầu tiên. Vui lòng sử dụng ô tìm kiếm để xem thêm.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center text-xs text-slate-500 py-4">Không tìm thấy kết quả</div>

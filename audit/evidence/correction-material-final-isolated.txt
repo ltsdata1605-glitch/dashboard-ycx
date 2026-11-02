@@ -1,0 +1,37 @@
+[WebServer] (node:38741) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+material viewport diagnostics {
+  innerWidth: 390,
+  innerHeight: 844,
+  visualWidth: 390,
+  visualHeight: 844,
+  documentWidth: 390,
+  cancel: {
+    x: 8,
+    y: 913.6763305664062,
+    width: 374,
+    height: 52,
+    top: 913.6763305664062,
+    right: 382,
+    bottom: 965.6763305664062,
+    left: 8
+  },
+  sheet: {
+    x: 0,
+    y: 698.6763305664062,
+    width: 390,
+    height: 275,
+    top: 698.6763305664062,
+    right: 390,
+    bottom: 973.6763305664062,
+    left: 0
+  }
+}
+(node:38744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/glass-material-foundation.spec.ts:6:1 › Material token và reduced transparency trên action sheet thật (1.8s)
+
+  1 passed (2.9s)

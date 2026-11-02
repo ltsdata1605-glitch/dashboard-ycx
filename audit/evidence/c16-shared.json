@@ -1,0 +1,663 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c16-playwright.config.mjs",
+      "shared-dropdown.spec.ts"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c16-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c16-shared",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "ui-dung-chung-dot-2.spec.ts",
+          "shared-dropdown.spec.ts",
+          "bi-bonus-compare.spec.ts",
+          "shared-tooltip.spec.ts",
+          "shared-form-states.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c16-shared.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "shared-dropdown.spec.ts",
+      "file": "shared-dropdown.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "floating dropdown follows viewport resize and page scroll",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 647,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:36:49.076Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "042264e8edd1c82fb310-20783599a927e6c6155d",
+          "file": "shared-dropdown.spec.ts",
+          "line": 68,
+          "column": 1
+        }
+      ],
+      "suites": [
+        {
+          "title": "Dropdown inline 390",
+          "file": "shared-dropdown.spec.ts",
+          "line": 6,
+          "column": 10,
+          "specs": [
+            {
+              "title": "span icon trigger has a name without nested interactive controls",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2570,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:38.262Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-da198b4bd26e515d78d6",
+              "file": "shared-dropdown.spec.ts",
+              "line": 8,
+              "column": 9
+            },
+            {
+              "title": "keyboard selection skips disabled items and restores focus to trigger",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1116,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:41.183Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-39470821e567390a156e",
+              "file": "shared-dropdown.spec.ts",
+              "line": 14,
+              "column": 9
+            },
+            {
+              "title": "Escape returns focus but outside click preserves the destination focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 811,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:42.312Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-7ad92817feb024345f48",
+              "file": "shared-dropdown.spec.ts",
+              "line": 35,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Dropdown inline 1366",
+          "file": "shared-dropdown.spec.ts",
+          "line": 6,
+          "column": 10,
+          "specs": [
+            {
+              "title": "span icon trigger has a name without nested interactive controls",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 437,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:43.169Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-d062120a21af5ad7babd",
+              "file": "shared-dropdown.spec.ts",
+              "line": 8,
+              "column": 9
+            },
+            {
+              "title": "keyboard selection skips disabled items and restores focus to trigger",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 654,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:43.612Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-1489e8a3694b7c98a0c1",
+              "file": "shared-dropdown.spec.ts",
+              "line": 14,
+              "column": 9
+            },
+            {
+              "title": "Escape returns focus but outside click preserves the destination focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 733,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:44.287Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-4e54170d124afcebca39",
+              "file": "shared-dropdown.spec.ts",
+              "line": 35,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Dropdown touch emulation inline",
+          "file": "shared-dropdown.spec.ts",
+          "line": 52,
+          "column": 6,
+          "specs": [
+            {
+              "title": "tap selects and reopening preserves the current item",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 843,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:45.027Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-8e8384b30ae2dbab9146",
+              "file": "shared-dropdown.spec.ts",
+              "line": 54,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "Dropdown floating 390",
+          "file": "shared-dropdown.spec.ts",
+          "line": 6,
+          "column": 10,
+          "specs": [
+            {
+              "title": "span icon trigger has a name without nested interactive controls",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 284,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:45.882Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-689d8a57b6108d175ad1",
+              "file": "shared-dropdown.spec.ts",
+              "line": 8,
+              "column": 9
+            },
+            {
+              "title": "keyboard selection skips disabled items and restores focus to trigger",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 402,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:46.177Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-6115857871d96b6a859e",
+              "file": "shared-dropdown.spec.ts",
+              "line": 14,
+              "column": 9
+            },
+            {
+              "title": "Escape returns focus but outside click preserves the destination focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 543,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:46.587Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-146e2f1c9f61d72fdfe6",
+              "file": "shared-dropdown.spec.ts",
+              "line": 35,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Dropdown floating 1366",
+          "file": "shared-dropdown.spec.ts",
+          "line": 6,
+          "column": 10,
+          "specs": [
+            {
+              "title": "span icon trigger has a name without nested interactive controls",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 333,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:47.143Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-80e692df477b8e7f2a9d",
+              "file": "shared-dropdown.spec.ts",
+              "line": 8,
+              "column": 9
+            },
+            {
+              "title": "keyboard selection skips disabled items and restores focus to trigger",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 535,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:47.483Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-c0451a44d033daa41401",
+              "file": "shared-dropdown.spec.ts",
+              "line": 14,
+              "column": 9
+            },
+            {
+              "title": "Escape returns focus but outside click preserves the destination focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 544,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:48.034Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-a26c8232a8c2da26849b",
+              "file": "shared-dropdown.spec.ts",
+              "line": 35,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Dropdown touch emulation floating",
+          "file": "shared-dropdown.spec.ts",
+          "line": 52,
+          "column": 6,
+          "specs": [
+            {
+              "title": "tap selects and reopening preserves the current item",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 479,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:48.589Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-8086e0b1646ae734fe56",
+              "file": "shared-dropdown.spec.ts",
+              "line": 54,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:36:33.921Z",
+    "duration": 15903.630000000001,
+    "expected": 15,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

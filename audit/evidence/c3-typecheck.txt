@@ -1,0 +1,21 @@
+
+> reportycx_11.2.2026_new@0.0.0 typecheck
+> tsc --noEmit
+
+audit/evidence/c3-checkpoint/components/shared/ui/CapsuleBar.tsx(3,40): error TS2307: Cannot find module './icon' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/components/shared/ui/CapsuleBar.tsx(4,24): error TS2307: Cannot find module './Button' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/components/shared/ui/CapsuleBar.tsx(5,20): error TS2307: Cannot find module './utils' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/components/shared/ui/TopBarActions.tsx(3,40): error TS2307: Cannot find module './icon' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/components/shared/ui/TopBarActions.tsx(4,24): error TS2307: Cannot find module './Button' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/components/shared/ui/TopBarActions.tsx(5,20): error TS2307: Cannot find module './utils' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/components/shared/ui/TopBarActions.tsx(6,31): error TS2307: Cannot find module '../../layout/HeaderSystemGroup' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(4,24): error TS2307: Cannot find module '../../../components/shared/ui/Switch' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(5,24): error TS2307: Cannot find module '../../../components/shared/ui/Banner' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(6,36): error TS2307: Cannot find module '../../../components/shared/ui/ListGroup' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(7,28): error TS2307: Cannot find module '../../../components/shared/ui/ActionMenu' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(8,22): error TS2307: Cannot find module '../../../components/shared/ui/Tabs' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(9,23): error TS2307: Cannot find module '../../../components/shared/ui/Modal' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(10,24): error TS2307: Cannot find module '../../../components/shared/ui/Button' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(11,28): error TS2307: Cannot find module '../../../components/shared/ui/EmptyState' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(12,31): error TS2307: Cannot find module '../../../components/shared/ui/SectionHeader' or its corresponding type declarations.
+audit/evidence/c3-checkpoint/tests/e2e/helpers/appleUiHarness.tsx(13,76): error TS2307: Cannot find module '../../../components/shared/ui/PageActions' or its corresponding type declarations.

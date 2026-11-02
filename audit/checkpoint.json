@@ -1,0 +1,8 @@
+{
+  "path": "/Users/ltson/dashboardycx/archive/phase0-20261024-140610",
+  "head": "c4df4d1d5ba30cf3c317cc9c42644d917c557537",
+  "files": 1346,
+  "archive_sha256": "4d524d4423499fecd8dfe60c14906ff4499f2083a8decaca5eef5460b3f10d5a",
+  "verification": "PASS: all archive entries match manifest SHA-256; symlinks hashed by link target text",
+  "scope": "Tracked working-tree files and non-ignored untracked files; ignored secrets, profiles, dependencies, generated files not copied; originals untouched"
+}

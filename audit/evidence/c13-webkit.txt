@@ -1,0 +1,17 @@
+[WebServer] (node:12198) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+  ✓   1 [webkit] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 390 › Escape cancels a pending hover timer (1.7s)
+  ✓   2 [webkit] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 1366 › Escape cancels a pending hover timer (563ms)
+  ✓   3 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto top tooltip and leaves without focus (1.3s)
+  ✓   4 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto bottom tooltip and leaves without focus (1.9s)
+  ✓   5 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto left tooltip and leaves without focus (1.3s)
+  ✓   6 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto right tooltip and leaves without focus (1.2s)
+  ✓   7 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto top tooltip and leaves without focus (1.3s)
+  ✓   8 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto bottom tooltip and leaves without focus (1.3s)
+  ✓   9 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto left tooltip and leaves without focus (1.4s)
+  ✓  10 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto right tooltip and leaves without focus (1.4s)
+
+  10 passed (16.3s)

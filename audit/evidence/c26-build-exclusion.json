@@ -1,0 +1,70 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "original": "public/exports-audit/phan-tich-khai-thac-chi-tiet-mobile.png",
+      "internal": "audit/evidence/internal-exports/phan-tich-khai-thac-chi-tiet-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/phan-tich-khai-thac-hieu-qua-mobile.png",
+      "internal": "audit/evidence/internal-exports/phan-tich-khai-thac-hieu-qua-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/phan-tich-tab-hieu-suat-mobile.png",
+      "internal": "audit/evidence/internal-exports/phan-tich-tab-hieu-suat-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/phan-tich-tab-top-mobile.png",
+      "internal": "audit/evidence/internal-exports/phan-tich-tab-top-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/report-bi-nhan-vien-doanh-thu-mobile.png",
+      "internal": "audit/evidence/internal-exports/report-bi-nhan-vien-doanh-thu-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/report-bi-nhan-vien-thi-dua-mobile.png",
+      "internal": "audit/evidence/internal-exports/report-bi-nhan-vien-thi-dua-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/report-bi-nhan-vien-thuong-mobile.png",
+      "internal": "audit/evidence/internal-exports/report-bi-nhan-vien-thuong-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    },
+    {
+      "original": "public/exports-audit/report-bi-nhan-vien-tra-cham-mobile.png",
+      "internal": "audit/evidence/internal-exports/report-bi-nhan-vien-tra-cham-mobile.png",
+      "source_absent": true,
+      "build_absent": true,
+      "internal_hash_matches": true,
+      "archive_hash_matches": true
+    }
+  ],
+  "production": "NOT_CHECKED; NOT_DEPLOYED"
+}

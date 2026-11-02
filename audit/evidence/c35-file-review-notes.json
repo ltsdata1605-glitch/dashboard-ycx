@@ -1,0 +1,7 @@
+{
+  "components/shared/ui/ErrorBoundary.tsx": "Full102line source read: React error capture/retry/customfallback, chunk-message detection and reloadbudget. Replaced unsupported new-version/ongoingreload claim with neutral loadfailure/retry message. No reloadpolicy changes; controlled throw/retry and realmanualreload tested.",
+  "components/shared/ui/taiLaiKhiLoiChunk.ts": "Full62line source read: global unload flags, session2per5minutes and10second guard, delayed reload cancellation. No modification. Unit6PASS mocks timers/storage/window; actual physicalnavigation/bfcache and malformedstorage pending.",
+  "components/shared/ui/taiLaiKhiLoiChunk.test.ts": "Full111line safetyread: isolated vi fake timers/window/sessionstorage, cleanup, localpublic JS key consistency.6PASS; mocked lifecycle not Safari device proof.",
+  "tests/e2e/helpers/materialHarness.html": "Added actual ErrorBoundary+throwing child; statebutton fixes child then boundaryretry. Chunk exception simulated as React error; local sessionbudget exhausted; no real missingnetworkchunk proof.",
+  "tests/e2e/error-boundary-recovery.spec.ts": "Full authored safetyreview: ordinary retry via React state; exhaustedbudget truthfultext and actual browser reload recorded via sessionloadcounter. Synthetic fixturedata only, no externalservices."
+}

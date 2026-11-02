@@ -1,0 +1,10 @@
+features/bi-dashboard/components/Dashboard.tsx:6:import SummaryTableView from './dashboard/SummaryTableView';
+features/bi-dashboard/components/Dashboard.tsx:552:                        {/* Revenue tab: KpiOverview + SummaryTableView merges into header container */}
+features/bi-dashboard/components/Dashboard.tsx:565:                                <SummaryTableView
+features/bi-dashboard/components/dashboard/IndustryView.tsx:134:    // dùng ẩn/hiện cột. Giống hệt cách làm ở SummaryTableView.tsx (2 bảng này nằm cùng một màn,
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:82:interface SummaryTableViewProps {
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:95:const SummaryTableView = React.forwardRef<HTMLDivElement, SummaryTableViewProps>((props, ref) => {
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:708:export default SummaryTableView;
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:160:                            {/* Portal target for inline filter from SummaryTableView */}
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:163:                            {/* Column settings / extra controls portal target (for CompetitionView & SummaryTableView) */}
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:233:                {/* Children content (e.g. merged SummaryTableView) */}

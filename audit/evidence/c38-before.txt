@@ -1,0 +1,52 @@
+[WebServer] (node:53588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/touch-title-gesture.spec.ts:22:1 › long hold consumes its click but next touch still works (1.8s)
+  ✘  2 [chromium] › tests/e2e/touch-title-gesture.spec.ts:26:1 › cancelled hold must not swallow next touch (11.1s)
+  ✓  3 [chromium] › tests/e2e/touch-title-gesture.spec.ts:30:1 › quick tap remains a normal action without hint (300ms)
+
+
+  1) [chromium] › tests/e2e/touch-title-gesture.spec.ts:26:1 › cancelled hold must not swallow next touch 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByLabel('Counts')
+    Expected: "0/1"
+    Received: "0/0"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveText" getByLabel('Counts') with timeout 10000ms
+      - waiting for getByLabel('Counts')
+        24 × locator resolved to <output aria-label="Counts">0/0</output>
+           - unexpected value "0/0"
+
+
+      26 | test('cancelled hold must not swallow next touch',async({page})=>{
+      27 |   await hold(page,'cancel');
+    > 28 |   await page.getByRole('button',{name:'Other',exact:true}).tap();await expect(page.getByLabel('Counts')).toHaveText('0/1');
+         |                                                                                                          ^
+      29 | });
+      30 | test('quick tap remains a normal action without hint',async({page})=>{
+      31 |   await page.getByRole('button',{name:'Hint',exact:true}).tap();await expect(page.getByLabel('Counts')).toHaveText('1/0');
+        at /Users/ltson/dashboardycx/tests/e2e/touch-title-gesture.spec.ts:28:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c38-before/touch-title-gesture-cancel-694ba-must-not-swallow-next-touch-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c38-before/touch-title-gesture-cancel-694ba-must-not-swallow-next-touch-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c38-before/touch-title-gesture-cancel-694ba-must-not-swallow-next-touch-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c38-before/touch-title-gesture-cancel-694ba-must-not-swallow-next-touch-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/touch-title-gesture.spec.ts:26:1 › cancelled hold must not swallow next touch 
+  2 passed (15.0s)

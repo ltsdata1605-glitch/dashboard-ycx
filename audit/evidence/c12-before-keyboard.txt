@@ -1,0 +1,70 @@
+[WebServer] (node:9285) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 390 › keyboard description and Escape preserve focus and caller description (1.4s)
+  ✘  2 [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 1366 › keyboard description and Escape preserve focus and caller description (594ms)
+
+
+  1) [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 390 › keyboard description and Escape preserve focus and caller description 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: null
+
+      13 |             await expect(tooltip).toBeVisible();
+      14 |             const id = await tooltip.getAttribute('id');
+    > 15 |             expect(id).toBeTruthy();
+         |                        ^
+      16 |             expect((await trigger.getAttribute('aria-describedby'))!.split(' ')).toEqual(['tooltip-help', id]);
+      17 |             await page.keyboard.press('Escape');
+      18 |             await expect(tooltip).toHaveCount(0);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:15:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c12-before-keyboard/shared-tooltip-Tooltip-390-66a40-ocus-and-caller-description-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c12-before-keyboard/shared-tooltip-Tooltip-390-66a40-ocus-and-caller-description-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c12-before-keyboard/shared-tooltip-Tooltip-390-66a40-ocus-and-caller-description-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c12-before-keyboard/shared-tooltip-Tooltip-390-66a40-ocus-and-caller-description-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 1366 › keyboard description and Escape preserve focus and caller description 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: null
+
+      13 |             await expect(tooltip).toBeVisible();
+      14 |             const id = await tooltip.getAttribute('id');
+    > 15 |             expect(id).toBeTruthy();
+         |                        ^
+      16 |             expect((await trigger.getAttribute('aria-describedby'))!.split(' ')).toEqual(['tooltip-help', id]);
+      17 |             await page.keyboard.press('Escape');
+      18 |             await expect(tooltip).toHaveCount(0);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:15:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c12-before-keyboard/shared-tooltip-Tooltip-136-3504c-ocus-and-caller-description-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c12-before-keyboard/shared-tooltip-Tooltip-136-3504c-ocus-and-caller-description-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c12-before-keyboard/shared-tooltip-Tooltip-136-3504c-ocus-and-caller-description-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c12-before-keyboard/shared-tooltip-Tooltip-136-3504c-ocus-and-caller-description-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 390 › keyboard description and Escape preserve focus and caller description 
+    [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 1366 › keyboard description and Escape preserve focus and caller description 

@@ -1,0 +1,210 @@
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { AppIcon } from '../../shared/ui/icon/AppIcon';
+import ReactDOM from 'react-dom';
+import { Button } from '../../shared/ui/Button';
+import { Switch } from '../../shared/ui/Switch';
+import { Overlay } from '../../shared/ui/Overlay';
+
+interface FilterPopoverProps {
+    label: string;
+    options: string[];
+    selected: string[];
+    onChange: (selected: string[]) => void;
+    isOpen: boolean;
+    onToggle: () => void;
+    onClose: () => void;
+    alignment?: 'left' | 'right';
+}
+
+export const FilterPopover: React.FC<FilterPopoverProps> = ({ 
+    label, options, selected, onChange, isOpen, onToggle, onClose, alignment = 'right' 
+}) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+
+    const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (isOpen && 
+                popoverRef.current && !popoverRef.current.contains(event.target as Node) && 
+                triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isOpen, onClose]);
+
+    // useLayoutEffect (không phải useEffect) — đo vị trí nút trigger TRƯỚC khi trình
+    // duyệt paint khung hình đầu tiên. Trước đây dùng useEffect chạy SAU paint, nên lần
+    // mở đầu tiên của mỗi pill lọc, popup portal thẳng vào body không có position/top/left
+    // gì cả (triggerRect vẫn null) → hiện ở cuối trang rồi mới "nhảy" về đúng chỗ ngay khi
+    // effect chạy xong — đúng hiện tượng "dropdown lệch xa nút lọc" đã gặp.
+    useLayoutEffect(() => {
+        if (isOpen) {
+            setSearchTerm('');
+            if (triggerRef.current) {
+                setTriggerRect(triggerRef.current.getBoundingClientRect());
+            }
+            requestAnimationFrame(() => {
+                inputRef.current?.focus({ preventScroll: true });
+            });
+        }
+    }, [isOpen]);
+
+    const toggleOption = (option: string) => {
+        const newSelected = selected.includes(option)
+            ? selected.filter(item => item !== option)
+            : [...selected, option];
+        onChange(newSelected);
+    };
+
+    const handleSelectAll = () => onChange(options);
+    const handleDeselectAll = () => onChange([]);
+
+    const deferredSearchTerm = React.useDeferredValue(searchTerm);
+
+    const filteredOptions = useMemo(() => {
+        return options.filter(opt => String(opt).toLowerCase().includes(deferredSearchTerm.toLowerCase()));
+    }, [options, deferredSearchTerm]);
+
+    const hasFilters = selected.length > 0 && selected.length < options.length;
+
+    // Compute desktop popover position style from trigger rect
+    const desktopStyle = useMemo(() => {
+        if (!triggerRect) return {};
+        const style: React.CSSProperties = {
+            position: 'fixed',
+            top: triggerRect.bottom + 8,
+            width: 288, // w-72 = 18rem = 288px
+            zIndex: 9999,
+        };
+        if (alignment === 'left') {
+            style.left = triggerRect.left;
+        } else {
+            style.right = window.innerWidth - triggerRect.right;
+        }
+        return style;
+    }, [triggerRect, alignment]);
+
+    return (
+        <div className="relative inline-flex items-center ml-0.5">
+            <Button
+                variant="ghost" size="icon-inline"
+                ref={triggerRef}
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                onMouseDown={stopPropagation}
+                className={`rounded-full hover:bg-black/10 dark:hover:bg-white/10 ${hasFilters ? 'text-sky-700 dark:text-sky-400 bg-white/50' : 'text-inherit opacity-60 hover:opacity-100'}`}
+                title={`Lọc ${label}`}
+            >
+                <AppIcon name="filter" size="xs" className={`${hasFilters ? "fill-current" : ""}`} />
+                {hasFilters && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-slate-800"></span>
+                )}
+            </Button>
+
+            {/* Always use portal to escape parent transform/overflow */}
+            {isOpen && ReactDOM.createPortal(
+                <>
+                    {/* Mobile: full-width bottom overlay */}
+                    <Overlay kind="scrim" className="sm:hidden bg-black/30 z-[9998]" onClick={(e) => { e.stopPropagation(); onClose(); }} />
+                    {/* Desktop: invisible overlay to catch clicks */}
+                    <Overlay kind="scrim" className="hidden sm:block z-[9997]" onClick={(e) => { e.stopPropagation(); onClose(); }} />
+                    
+                    {/* Mobile: bottom sheet */}
+                    <div 
+                        ref={popoverRef}
+                        onClick={stopPropagation}
+                        onMouseDown={stopPropagation}
+                        className="sm:hidden fixed z-[9999] bottom-0 left-0 right-0 w-full rounded-t-card shadow-xl bg-white dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/10 p-3 cursor-default text-left"
+                    >
+                        <div className="flex justify-center mb-2">
+                            <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                        </div>
+                        <div className="mb-2">
+                            <input 
+                                ref={inputRef}
+                                type="text" 
+                                placeholder="Tìm kiếm..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-1.5 mb-1.5">
+                            <Button variant="link" size="none" onClick={handleSelectAll} className="text-[11px] font-bold text-sky-700 dark:text-sky-400 hover:underline">Chọn tất cả</Button>
+                            <span className="text-[11px] text-slate-400 font-semibold">{selected.length} / {options.length}</span>
+                            <Button variant="link" size="none" onClick={handleDeselectAll} className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:underline">Bỏ chọn</Button>
+                        </div>
+                        <div className="overflow-y-auto max-h-[40vh] space-y-0.5 custom-scrollbar">
+                            {filteredOptions.length > 0 ? (
+                                <>
+                                    {filteredOptions.slice(0, 200).map(option => (
+                                        <label key={option} className="flex items-center justify-between p-1.5 rounded-control hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer active:bg-slate-200 dark:active:bg-slate-600">
+                                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate pr-2 flex-grow" title={option}>{option}</span>
+                                            <Switch size="sm" checked={selected.includes(option)} onChange={() => toggleOption(option)} label={option} />
+                                        </label>
+                                    ))}
+                                    {filteredOptions.length > 200 && (
+                                        <div className="text-center py-2 text-xs italic text-slate-400 font-medium">
+                                            Hiển thị 200 kết quả đầu tiên.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center text-xs text-slate-500 py-4">Không tìm thấy kết quả</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Desktop: dropdown */}
+                    <div 
+                        onClick={stopPropagation}
+                        onMouseDown={stopPropagation}
+                        className="hidden sm:block rounded-popup shadow-xl bg-white dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/10 p-2.5 cursor-default text-left"
+                        style={desktopStyle}
+                    >
+                        <div className="mb-2">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-1.5 mb-1.5">
+                            <Button variant="link" size="none" onClick={handleSelectAll} className="text-xs font-bold text-sky-700 dark:text-sky-400 hover:underline">Chọn tất cả</Button>
+                            <span className="text-xs text-slate-400 font-semibold">{selected.length} / {options.length}</span>
+                            <Button variant="link" size="none" onClick={handleDeselectAll} className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:underline">Bỏ chọn</Button>
+                        </div>
+                        <div className="overflow-y-auto max-h-60 space-y-0.5 custom-scrollbar">
+                            {filteredOptions.length > 0 ? (
+                                <>
+                                    {filteredOptions.slice(0, 200).map(option => (
+                                        <label key={option} className="flex items-center justify-between p-1.5 rounded-control hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer active:bg-slate-200 dark:active:bg-slate-600">
+                                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate pr-2 flex-grow" title={option}>{option}</span>
+                                            <Switch size="sm" checked={selected.includes(option)} onChange={() => toggleOption(option)} label={option} />
+                                        </label>
+                                    ))}
+                                    {filteredOptions.length > 200 && (
+                                        <div className="text-center py-2 text-xs italic text-slate-400 font-medium">
+                                            Hiển thị 200 kết quả đầu tiên. Vui lòng sử dụng ô tìm kiếm để xem thêm.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center text-xs text-slate-500 py-4">Không tìm thấy kết quả</div>
+                            )}
+                        </div>
+                    </div>
+                </>,
+                document.body
+            )}
+        </div>
+    );
+};

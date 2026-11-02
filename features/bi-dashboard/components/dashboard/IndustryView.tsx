@@ -1,0 +1,915 @@
+import React, { useState, useMemo, useEffect, useRef, useCallback, useId } from 'react';
+import { AppIcon } from '../../../../components/shared/ui/icon/AppIcon';
+import Card from '../Card';
+import ExportButton from '../ExportButton';
+import { parseIndustryRealtimeData, parseIndustryLuyKeData, parseNumber, shortenSupermarketName, formatIndustryDisplayName } from '../../utils/dashboardHelpers';
+import { getBorderAccentFromColorClass } from '../../../../utils/dataUtils';
+import { Switch } from './DashboardWidgets';
+import { renderHeaderText } from './SafeHeaderText';
+import { useIndustryViewLogic } from '../../hooks/useIndustryViewLogic';
+import { useIndexedDBState } from '../../hooks/useIndexedDBState';
+import { Button } from '../../../../components/shared/ui/Button';
+import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+import { Modal, useIsSheetWidth } from '../../../../components/shared/ui/Modal';
+import { Input } from '../../../../components/shared/ui/Input';
+import { GROUP_TONE_BG, GROUP_TONE_TEXT, GROUP_EDGE } from '../../utils/tableTokens';
+import { IndustryKpiGrid } from './industryKpi';
+
+export { formatIndustryDisplayName };
+
+type SortDirection = 'asc' | 'desc' | null;
+interface SortConfig {
+    column: string | null;
+    direction: SortDirection;
+}
+
+interface IndustryViewProps {
+    // Có thể null (chưa dán dữ liệu ngành hàng). Dashboard CHỈ render view khi bộ dữ liệu của chế độ
+    // đang xem có (strict 2026-09-30 — trước đây null ở đây là sập màn Siêu thị › Doanh thu).
+    realtimeData: ReturnType<typeof parseIndustryRealtimeData> | null;
+    luykeData: ReturnType<typeof parseIndustryLuyKeData> | null;
+    isRealtime: boolean;
+    activeSupermarket?: string;
+    onExport?: () => Promise<void>;
+}
+
+/**
+
+ * Nhóm cột — chuẩn "Bảng điều khiển ca trực" (2026-09-11).
+ *
+ * Bản cũ gán mỗi nhóm một MÀU NỀN riêng (SỐ LƯỢNG xanh lá, DOANH THU QĐ xanh dương, TRẢ CHẬM
+ * hồng). Bảng này nằm NGAY DƯỚI bảng Tổng quan Siêu thị vốn đã về một tông xám — hai bảng cùng
+ * một màn mà một bảng rực màu, một bảng xám, chính là thứ chuẩn thiết kế muốn tránh.
+ * Nay phân nhóm đọc bằng nhãn `label` và viền `GROUP_EDGE`, không bằng nền màu.
+ */
+const COLUMN_GROUPS: Record<string, { label: string, bg: string, text: string }> = {
+    'Nhóm ngành hàng': { label: 'DANH MỤC', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'SL Realtime': { label: 'SỐ LƯỢNG', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'Số lượng': { label: 'SỐ LƯỢNG', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DTLK': { label: 'D.THU', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DT Realtime (QĐ)': { label: 'D.THU', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DTQĐ': { label: 'D.THU', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    '% Tỉ trọng': { label: 'TỈ TRỌNG', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'TB 3 Tháng': { label: 'TĂNG TRƯỞNG', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    '% TT': { label: 'TĂNG TRƯỞNG', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'Target Ngày (QĐ)': { label: 'DOANH THU QĐ', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    '% HT Target Ngày (QĐ)': { label: 'DOANH THU QĐ', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'Target (QĐ)': { label: 'DOANH THU QĐ', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    '% HT Target (QĐ)': { label: 'DOANH THU QĐ', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    '+/- DTCK Tháng (QĐ)': { label: 'TĂNG TRƯỞNG', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+
+    'Lãi gộp QĐ': { label: 'LÃI GỘP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DT Trả Góp': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DT Trả Gộp': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DT TRẢ GÓP': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DTTRẢGÓP': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DT TRẢ CHẬM': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'DT Trả Chậm': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'Tỷ Trọng Trả Góp': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'Tỷ Trọng Trả Chậm': { label: 'TRẢ GÓP', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'Đơn giá': { label: 'GTĐH', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+    'ĐƠN GIÁ': { label: 'GTĐH', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT },
+};
+
+const IndustryView = React.forwardRef<HTMLDivElement, IndustryViewProps>((props, ref) => {
+    const filterId = useId();
+    const isSheetWidth = useIsSheetWidth();
+    const { realtimeData, luykeData, isRealtime, activeSupermarket, onExport } = props;
+
+
+    const safeName = activeSupermarket ? shortenSupermarketName(activeSupermarket) : '';
+    const [storedTraGop] = useIndexedDBState<number>(safeName ? (`targethero-${safeName}-tragop` as any) : null, 60);
+    const [storedQuyDoi] = useIndexedDBState<number>(safeName ? (`targethero-${safeName}-quydoi` as any) : null, 60);
+    const targetTraGop = storedTraGop ?? 60;
+    const targetQuyDoi = storedQuyDoi ?? 60;
+
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const filterRef = useRef<HTMLDivElement>(null);
+    const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
+    const selectorRef = useRef<HTMLDivElement>(null);
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+    const [industryFilterSearch, setIndustryFilterSearch] = useState('');
+    const [subIndustryFilterSearch, setSubIndustryFilterSearch] = useState('');
+
+    // --- Column Sort State ---
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ column: null, direction: null });
+
+    const logic = useIndustryViewLogic(realtimeData, luykeData, isRealtime);
+    const {
+        allIndustries,
+        processedTable,
+        treeDisplayRows,
+        hasTreeData,
+        hasAnyExpanded,
+        orderedHeaders,
+        visibleColumns,
+        hiddenIndustries,
+        setHiddenIndustries,
+        toggleRow,
+        expandAll,
+        collapseAll,
+        toggleColumn,
+        hiddenSubIndustries,
+        setHiddenSubIndustries,
+        allSubIndustries
+    } = logic;
+
+    const data = isRealtime ? realtimeData! : luykeData!.table; // Dashboard đảm bảo bộ đang xem khác null
+    const { headers, rows } = data;
+
+    const headerGroups = useMemo(() => {
+        const visH = orderedHeaders.filter(h => visibleColumns.has(h) && h !== 'Nhóm ngành hàng');
+        const groups: { label: string, bg: string, text: string, colspan: number, isSticky: boolean, isSingle: boolean, singleHeader: string }[] = [];
+        visH.forEach(h => {
+            const defaultGroup = { label: 'TRẢ CHẬM', bg: GROUP_TONE_BG, text: GROUP_TONE_TEXT };
+            const g = COLUMN_GROUPS[h] || defaultGroup;
+            if (groups.length > 0 && groups[groups.length - 1].label === g.label) {
+                groups[groups.length - 1].colspan += 1;
+                groups[groups.length - 1].isSingle = false;
+            } else {
+                groups.push({ ...g, colspan: 1, isSticky: false, isSingle: true, singleHeader: h });
+            }
+        });
+        return groups;
+    }, [orderedHeaders, visibleColumns]);
+
+    // Cột MỞ ĐẦU mỗi nhóm — nơi kẻ viền 2px. Tính từ chính `headerGroups` để luôn khớp khi người
+    // dùng ẩn/hiện cột. Giống hệt cách làm ở SummaryTableView.tsx (2 bảng này nằm cùng một màn,
+    // lệch nhau thì chính là thứ chuẩn thiết kế muốn tránh).
+    const groupStartHeaders = useMemo(() => {
+        const visH = orderedHeaders.filter(h => visibleColumns.has(h) && h !== 'Nhóm ngành hàng');
+        const starts = new Set<string>();
+        let cursor = 0;
+        headerGroups.forEach(g => {
+            if (visH[cursor]) starts.add(visH[cursor]);
+            cursor += g.colspan;
+        });
+        return starts;
+    }, [headerGroups, orderedHeaders, visibleColumns]);
+
+    // Cột DTQĐ mặc định luôn được ưu tiên sắp xếp giảm dần khi chưa chọn cột
+    const defaultDtqdHeader = useMemo(() => {
+        return orderedHeaders.find(h => h === 'DTQĐ' || h === 'DT Realtime (QĐ)' || h.includes('DTQĐ')) || null;
+    }, [orderedHeaders]);
+
+    // CHỈ highlight và hiện icon khi người dùng chủ động chọn cột (không fallback để tránh luôn bị tô màu)
+    const activeSortColumn = sortConfig.column;
+    const activeSortDirection = sortConfig.direction || 'desc';
+
+    // --- Column Sort Handler ---
+    const handleColumnSort = useCallback((headerName: string) => {
+        setSortConfig(prev => {
+            const currentCol = prev.column;
+            const currentDir = prev.direction;
+
+            if (currentCol === headerName) {
+                // Đang ở cột này: đảo chiều hoặc quay về trạng thái ban đầu (bỏ chọn)
+                if (currentDir === 'desc') {
+                    return { column: headerName, direction: 'asc' };
+                }
+                // Nếu đang asc: huỷ chọn cột
+                return { column: null, direction: null };
+            }
+            // Chọn cột mới: bắt đầu từ giảm dần (desc)
+            return { column: headerName, direction: 'desc' };
+        });
+    }, []);
+
+    // --- Sort rows helper ---
+    const sortRows = useCallback(<T extends unknown[]>(rows: T[], getValues: (row: T) => string[]): T[] => {
+        const targetCol = sortConfig.column || defaultDtqdHeader;
+        const targetDir = sortConfig.column ? sortConfig.direction : 'desc';
+        if (!targetCol || !targetDir) return rows;
+        const colIdx = processedTable.headers.indexOf(targetCol);
+        if (colIdx === -1) return rows;
+        
+        return [...rows].sort((a, b) => {
+            const valuesA = getValues(a);
+            const valuesB = getValues(b);
+            
+            // Always keep total row at the bottom
+            if (valuesA[0] === 'Tổng') return 1;
+            if (valuesB[0] === 'Tổng') return -1;
+            
+            const numA = parseNumber(valuesA[colIdx]);
+            const numB = parseNumber(valuesB[colIdx]);
+            const diff = numA - numB;
+            return targetDir === 'asc' ? diff : -diff;
+        });
+    }, [sortConfig, processedTable.headers, defaultDtqdHeader]);
+
+    const headerMapping: Record<string, string> = {
+        'Nhóm ngành hàng': 'NGÀNH HÀNG',
+        'SL Realtime': 'SL',
+        'DT Realtime (QĐ)': 'T.HIỆN',
+        'Target Ngày (QĐ)': 'TAR',
+        '% HT Target Ngày (QĐ)': '%HT',
+        'DT Trả Gộp': 'D.THU',
+        'DT TRẢ GÓP': 'D.THU',
+        'DT Trả Góp': 'D.THU',
+        'DTTRẢGÓP': 'D.THU',
+        'DT TRẢ CHẬM': 'D.THU',
+        'DT Trả Chậm': 'D.THU',
+        'Tỷ Trọng Trả Góp': '%TC',
+        'Tỷ Trọng Trả Chậm': '%TC',
+        'Số lượng': 'SL',
+        'DTQĐ': 'DTQĐ',
+        '% Tỉ trọng': '%TT',
+        'DTLK': 'THỰC',
+        'Target (QĐ)': 'TAR',
+        '% HT Target (QĐ)': '%HT',
+        'TB 3 Tháng': 'TB 3T',
+        '% TT': '%TT',
+        '+/- DTCK Tháng (QĐ)': '+/-CK',
+        'Lãi gộp QĐ': 'L.GỘP<br/>QĐ',
+        'Đơn giá': 'GTĐH',
+        'ĐƠN GIÁ': 'GTĐH',
+    };
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (selectorRef.current && !selectorRef.current.contains(event.target as Node)) {
+                setIsColumnSelectorOpen(false);
+            }
+            if (!isSheetWidth && filterRef.current && !filterRef.current.contains(event.target as Node)) {
+                setIsFilterOpen(false);
+            }
+            if (tableContainerRef.current && !tableContainerRef.current.contains(event.target as Node)) {
+                // Khi người dùng bấm ra ngoài bảng -> Huỷ chọn cột & tắt toàn bộ tô màu
+                setSortConfig(prev => {
+                    if (prev.column !== null) {
+                        return { column: null, direction: null };
+                    }
+                    return prev;
+                });
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isSheetWidth]);
+
+    const filterContent = (
+        <>
+                        {/* Popup Header */}
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-700">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Bộ lọc hiển thị</span>
+                            {(hiddenIndustries.length > 0 || hiddenSubIndustries.length > 0) && (
+                                <Button
+                                    variant="link" data-ui="bi"
+                                    size="none"
+                                    onClick={() => {
+                                        setHiddenIndustries([]);
+                                        setHiddenSubIndustries([]);
+                                    }}
+                                    className="text-[11px] font-medium text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                                >
+                                    Hiện tất cả
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* 2 Cột Lọc: Ngành hàng và Nhóm hàng */}
+                        <div className={`grid ${hasTreeData ? 'grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-700' : 'grid-cols-1'}`}>
+                            {/* Cột 1: Ngành hàng */}
+                            <div className="flex flex-col min-w-0">
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                                        Ngành hàng ({allIndustries.length - hiddenIndustries.length}/{allIndustries.length})
+                                    </p>
+                                    <div className="flex items-center gap-1.5 text-[11px]">
+                                        <Button
+                                            variant="link" data-ui="bi"
+                                            size="none"
+                                            onClick={() => setHiddenIndustries([])}
+                                            className="text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                                        >
+                                            Tất cả
+                                        </Button>
+                                        <span className="text-slate-300 dark:text-slate-600">|</span>
+                                        <Button
+                                            variant="link" data-ui="bi"
+                                            size="none"
+                                            onClick={() => setHiddenIndustries([...allIndustries])}
+                                            className="text-slate-500 hover:underline cursor-pointer"
+                                        >
+                                            Bỏ chọn
+                                        </Button>
+                                    </div>
+                                </div>
+                                <Input
+                                    type="text"
+                                    value={industryFilterSearch}
+                                    onChange={(e) => setIndustryFilterSearch(e.target.value)}
+                                    placeholder="Tìm ngành hàng..."
+                                    leftIcon="search"
+                                    className="mb-2 text-xs"
+                                />
+                                <div className="overflow-y-auto space-y-0.5 max-h-60 pr-1">
+                                    {allIndustries.filter(n => n.toLowerCase().includes(industryFilterSearch.toLowerCase())).map((industry, index) => (
+                                        <div key={industry} className="flex items-center justify-between px-2 py-1 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                            <label
+                                                className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-grow cursor-pointer select-none truncate pr-2"
+                                                htmlFor={`${filterId}-industry-${index}`}
+                                                title={formatIndustryDisplayName(industry)}
+                                            >
+                                                {formatIndustryDisplayName(industry)}
+                                            </label>
+                                            <Switch
+                                                id={`${filterId}-industry-${index}`}
+                                                checked={!hiddenIndustries.includes(industry)}
+                                                onChange={() => setHiddenIndustries(prev => prev.includes(industry) ? prev.filter(i => i !== industry) : [...prev, industry])}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Cột 2: Nhóm hàng (chỉ hiển thị khi có treeData) */}
+                            {hasTreeData && (
+                                <div className="flex flex-col min-w-0 sm:pl-3 pt-2 sm:pt-0">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                                            Nhóm hàng ({allSubIndustries.length - hiddenSubIndustries.length}/{allSubIndustries.length})
+                                        </p>
+                                        <div className="flex items-center gap-1.5 text-[11px]">
+                                            <Button
+                                                variant="link" data-ui="bi"
+                                                size="none"
+                                                onClick={() => setHiddenSubIndustries([])}
+                                                className="text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                                            >
+                                                Tất cả
+                                            </Button>
+                                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                                            <Button
+                                                variant="link" data-ui="bi"
+                                                size="none"
+                                                onClick={() => setHiddenSubIndustries([...allSubIndustries])}
+                                                className="text-slate-500 hover:underline cursor-pointer"
+                                            >
+                                                Bỏ chọn
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <Input
+                                        type="text"
+                                        value={subIndustryFilterSearch}
+                                        onChange={(e) => setSubIndustryFilterSearch(e.target.value)}
+                                        placeholder="Tìm nhóm hàng..."
+                                        leftIcon="search"
+                                        className="mb-2 text-xs"
+                                    />
+                                    <div className="overflow-y-auto space-y-0.5 max-h-60 pr-1">
+                                        {allSubIndustries.filter(n => n.toLowerCase().includes(subIndustryFilterSearch.toLowerCase())).map((sub, index) => (
+                                            <div key={sub} className="flex items-center justify-between px-2 py-1 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                <label
+                                                    className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-grow cursor-pointer select-none truncate pr-2"
+                                                    htmlFor={`${filterId}-sub-${index}`}
+                                                    title={formatIndustryDisplayName(sub)}
+                                                >
+                                                    {formatIndustryDisplayName(sub)}
+                                                </label>
+                                                <Switch
+                                                    id={`${filterId}-sub-${index}`}
+                                                    checked={!hiddenSubIndustries.includes(sub)}
+                                                    onChange={() => setHiddenSubIndustries(prev => prev.includes(sub) ? prev.filter(i => i !== sub) : [...prev, sub])}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+        </>
+    );
+
+    const actionButton = (
+        <div className="industry-view-controls flex items-center gap-0.5 sm:gap-1 no-print shrink-0">
+             {/* Expand/Collapse buttons for tree mode */}
+             {hasTreeData && (
+                <div className="flex items-center gap-0.5 sm:gap-1">
+                    <Button
+                        variant="toolbar" size="icon" data-ui="bi"
+                        onClick={expandAll}
+                        className="preserve-rounded active:scale-[0.94] shrink-0"
+                        title="Mở rộng tất cả"
+                        aria-label="Mở rộng tất cả"
+                    >
+                        <AppIcon name="expandAll" size="md" />
+                    </Button>
+                    <Button
+                        variant="toolbar" size="icon" data-ui="bi"
+                        onClick={collapseAll}
+                        className="preserve-rounded active:scale-[0.94] shrink-0 disabled:opacity-40"
+                        title="Thu gọn tất cả"
+                        aria-label="Thu gọn tất cả"
+                        disabled={!hasAnyExpanded}
+                    >
+                        <AppIcon name="collapseAll" size="md" />
+                    </Button>
+                </div>
+             )}
+
+             {/* Divider: expand/collapse | filter+column */}
+             {hasTreeData && <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1" />}
+
+             {/* Filter Ngành Hàng & Nhóm Hàng (Gộp chung 1 nút, mở popup 2 cột) */}
+             <div className="relative" ref={filterRef}>
+                <Button
+                    variant="toolbar" size="icon" data-ui="bi"
+                    onClick={() => setIsFilterOpen(prev => !prev)}
+                    aria-pressed={isFilterOpen}
+                    className={`preserve-rounded active:scale-[0.94] relative shrink-0 ${
+                        !isFilterOpen && (hiddenIndustries.length > 0 || hiddenSubIndustries.length > 0) ? 'text-sky-600' : ''
+                    }`}
+                    title="Bộ lọc ngành hàng & nhóm hàng"
+                    aria-label="Bộ lọc ngành hàng & nhóm hàng"
+                    aria-expanded={isFilterOpen}
+                    aria-haspopup={isSheetWidth ? "dialog" : undefined}
+                >
+                    <AppIcon name="filter" size="md" />
+                    {(hiddenIndustries.length > 0 || hiddenSubIndustries.length > 0) && !isFilterOpen && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-sky-500 rounded-full ring-2 ring-white dark:ring-slate-800" />
+                    )}
+                </Button>
+                {isSheetWidth ? (
+                    <Modal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)}
+                        title="Bộ lọc ngành hàng & nhóm hàng" position="bottom" maxWidth="md">
+                        {filterContent}
+                    </Modal>
+                ) : isFilterOpen && (
+                    <div className={`absolute right-0 mt-2 ${hasTreeData ? 'w-[580px] max-w-[92vw]' : 'w-72 max-w-[90vw]'} bg-white dark:bg-slate-800 rounded-control shadow-xl border border-slate-200 dark:border-slate-700 z-[100] p-3 text-left animate-in fade-in zoom-in-95 duration-150`}>
+                        {filterContent}
+                    </div>
+                )}
+            </div>
+
+            {/* Column settings */}
+            <div className="relative" ref={selectorRef}>
+                <Button
+                    variant="toolbar" data-ui="bi" size="icon"
+                    onClick={() => setIsColumnSelectorOpen(prev => !prev)}
+                    className="ycx-hit rounded-control preserve-rounded flex items-center justify-center transition-all duration-150 active:scale-[0.94] shrink-0" aria-pressed={isColumnSelectorOpen}
+                    title="Tuỳ chỉnh hiển thị cột"
+                    aria-label="Tuỳ chỉnh hiển thị cột"
+                >
+                    <AppIcon name="settings" size="md" />
+                </Button>
+                {isColumnSelectorOpen && (
+                    <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-card shadow-xl border border-slate-200 dark:border-slate-700 p-3 z-[100] max-h-[400px] overflow-y-auto">
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Tuỳ chỉnh hiển thị cột</p>
+                        <div className="grid gap-0.5">
+                            {orderedHeaders.filter(h => h !== 'Nhóm ngành hàng').map((h) => (
+                                <div key={h} className="flex items-center justify-between px-2 py-1 rounded-control hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <label
+                                        htmlFor={`col-toggle-ind-${h}`}
+                                        className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-grow cursor-pointer select-none"
+                                    >
+                                        {headerMapping[h]?.replace(/<br\/>/g, ' ') || h}
+                                    </label>
+                                    <Switch
+                                        id={`col-toggle-ind-${h}`}
+                                        checked={visibleColumns.has(h)}
+                                        onChange={() => toggleColumn(h)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Divider: filter+column | export */}
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1" />
+
+            {/* Export */}
+            {onExport && (
+                <ExportButton
+                    onExportPNG={onExport}
+                    autoExportAreaId="bi-nganh-hang-tung-st"
+                    autoExportAreaName={`BI: Ngành Hàng — ${shortenSupermarketName(activeSupermarket || '')}`}
+                />
+            )}
+        </div>
+    );
+
+    const title = 'CHI TIẾT NGÀNH HÀNG';
+
+
+
+    if (!headers || headers.length === 0 || !rows || rows.length === 0) {
+        return (
+            <div ref={ref} className="js-industry-view-container relative z-10 bg-white dark:bg-slate-800 rounded-none border border-slate-200 dark:border-slate-700/60 shadow-sm overflow-hidden">
+                <Card 
+                    title={title} 
+                    titleClassName="text-[17px] sm:text-[25px] font-normal uppercase text-slate-800 dark:text-white leading-normal py-0.5"
+                    bordered={false} 
+                    rounded={false}
+                >
+                    <EmptyState title="Chưa có dữ liệu cho siêu thị này" compact />
+                </Card>
+            </div>
+        );
+    }
+
+
+
+    // --- Shared cell rendering logic ---
+    const renderCell = (cell: string | number, headerName: string, originalCellIndex: number, isTotalRow: boolean, level: number, rowKey: string, hasChildren: boolean, isExpanded: boolean, childrenCount: number = 0) => {
+        const numericValue = parseNumber(cell);
+        const isPercentCol = headerName.includes('%') || headerName === 'Tỷ Trọng Trả Góp' || headerName === 'Tỷ Trọng Trả Chậm';
+        const isNumericCol = !isNaN(numericValue) && !String(cell).includes('%') && originalCellIndex > 0;
+        const isQdCkCol = headerName === '+/- DTCK Tháng (QĐ)' || headerName === '% TT';
+        const isHtCol = headerName.includes('% HT');
+        const isDtqdCol = (headerName === 'DT Realtime (QĐ)' || headerName === 'DTQĐ');
+        const isGTDHCol = (headerName === 'Đơn giá' || headerName === 'ĐƠN GIÁ');
+        const isNNH = level === 0;
+        const isNhomHang = level === 1;
+        const isHang = level === 2;
+
+        // Formatter cho GTĐH — 1 số lẻ
+        const fmtGTDH = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+
+        const cellContent = () => {
+            if (headerName === 'Nhóm ngành hàng') {
+                const displayName = isTotalRow ? 'Tổng cộng' 
+                    : formatIndustryDisplayName(String(cell || ''));
+
+
+                
+                const indent = isNhomHang ? 20 : isHang ? 40 : 0;
+                
+                return (
+                    <div className="flex items-center" style={{ paddingLeft: indent }}>
+                        {hasChildren && (
+                            <Button
+                                type="button"
+                                variant="ghost" data-ui="bi" size="icon-inline"
+                                aria-label={`${isExpanded ? "Thu gọn" : "Mở rộng"} ${displayName}`}
+                                aria-expanded={isExpanded}
+                                onClick={(e) => { e.stopPropagation(); toggleRow(rowKey); }}
+                                onTouchEnd={(e) => { e.preventDefault(); toggleRow(rowKey); }}
+                                className="mr-1 w-4 h-4 p-0 flex text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 shrink-0 transition-transform duration-150"
+                                style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                            >
+                                <AppIcon name="chevronDown" size="sm" />
+                            </Button>
+                        )}
+                        {!hasChildren && level > 0 && (
+                            <span className="mr-1 w-4 h-4 flex items-center justify-center text-slate-300 dark:text-slate-600 shrink-0">
+                                <span className="w-1 h-1 rounded-full bg-current" aria-hidden="true" />
+                            </span>
+                        )}
+                        <span className={
+                            isTotalRow ? 'font-bold text-slate-800 dark:text-slate-100'
+                            : isNNH ? 'font-bold text-slate-800 dark:text-slate-200'
+                            : isNhomHang ? 'font-semibold text-slate-700 dark:text-slate-300'
+                            : 'font-normal text-slate-600 dark:text-slate-400'
+                        }>
+                            {displayName}
+                        </span>
+                        {hasChildren && (
+                            <span className="ml-1.5 text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded flex-shrink-0">
+                                {childrenCount}
+                            </span>
+                        )}
+                    </div>
+                );
+            }
+            if (cell === '—' || cell === '-' || cell === 'N/A' || cell === null || cell === undefined || cell === '') return '-';
+            if (isTotalRow && (isPercentCol || isNumericCol)) {
+                if (isPercentCol) {
+                    const rounded = Math.round(numericValue);
+                    return (isNaN(numericValue) || rounded === 0) ? '-' : `${rounded}%`;
+                }
+                if (isGTDHCol) return fmtGTDH.format(numericValue);
+                return new Intl.NumberFormat('vi-VN').format(Math.round(numericValue));
+            }
+            if (isHtCol) {
+                const rounded = Math.round(numericValue);
+                if (isNaN(numericValue) || rounded === 0) {
+                    return <span className="text-slate-400 font-bold">-</span>;
+                }
+                return (
+                    <div className="flex justify-center items-center">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-black inline-block min-w-[45px] text-center ${rounded >= 100 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : rounded >= 85 ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'}`}>
+                            {rounded}%
+                        </span>
+                    </div>
+                );
+            }
+            if (isDtqdCol) return <span className="text-sky-700 dark:text-sky-400 font-black text-[12px]">{new Intl.NumberFormat('vi-VN').format(Math.round(numericValue))}</span>;
+            if (isGTDHCol && isNumericCol) return fmtGTDH.format(numericValue);
+            if (isPercentCol) {
+                const rounded = Math.round(numericValue);
+                if (isNaN(numericValue) || rounded === 0) return '-';
+                return `${rounded}%`;
+            }
+            if (isNumericCol) return new Intl.NumberFormat('vi-VN').format(Math.round(numericValue));
+            if (cell === '0.0%' || cell === '0%' || cell === '0.0' || cell === '0,0%') return '-';
+            return cell;
+        };
+
+        const isTraGop = (headerName === 'Tỷ Trọng Trả Góp' || headerName === 'Tỷ Trọng Trả Chậm' || headerName === '%TC' || headerName === 'TRẢ CHẬM' || headerName === '%T.CHẬM' || headerName === 'TC' || headerName === 'Target Trả chậm') && !isNaN(numericValue);
+        const isHqqd = (headerName === '%HQQĐ' || headerName === '%QĐ' || headerName === 'HQQĐ' || headerName === 'Target Quy đổi' || headerName === 'Target Hiệu quả quy đổi') && !isNaN(numericValue);
+
+        let cellTitle: string | undefined = undefined;
+        if (isTraGop) {
+            cellTitle = `Target Trả chậm: ${targetTraGop}% (${numericValue >= targetTraGop ? 'Đạt' : 'Chưa đạt - Cảnh báo'})`;
+        } else if (isHqqd) {
+            cellTitle = `Target Hiệu quả quy đổi: ${targetQuyDoi}% (${numericValue >= targetQuyDoi ? 'Đạt' : 'Chưa đạt - Cảnh báo'})`;
+        }
+
+        let cellClasses = `
+            px-2 whitespace-nowrap
+            border-r border-b border-slate-200 dark:border-slate-700/80 last:border-r-0
+            ${groupStartHeaders.has(headerName) ? GROUP_EDGE : ''}
+            tabular-nums align-middle
+            ${originalCellIndex > 0 ? 'text-center' : `text-left sticky left-0 z-[5] max-w-[220px] truncate ${isTotalRow ? 'bg-emerald-50 dark:bg-emerald-900/20' : isNNH ? 'bg-white dark:bg-slate-900' : isNhomHang ? 'bg-slate-50/80 dark:bg-slate-800/40' : 'bg-white dark:bg-slate-900'}`}
+            ${isHang ? 'py-1 text-[11px]' : 'py-1 text-[13px]'}
+        `;
+        
+        if (isTotalRow) {
+            if (isTraGop) {
+                cellClasses += numericValue >= targetTraGop ? ' text-[15px] !text-emerald-700 dark:!text-emerald-400 font-extrabold' : ' text-[15px] !text-rose-700 dark:!text-rose-400 font-extrabold';
+            } else if (isHqqd) {
+                cellClasses += numericValue >= targetQuyDoi ? ' text-[15px] !text-emerald-700 dark:!text-emerald-400 font-extrabold' : ' text-[15px] !text-rose-700 dark:!text-rose-400 font-extrabold';
+            } else {
+                cellClasses += ' text-[15px] text-emerald-800 dark:text-emerald-400 font-extrabold';
+            }
+        } else if (isHang) {
+            cellClasses += originalCellIndex === 0 ? ' text-slate-500 dark:text-slate-400' : ' font-bold text-slate-500 dark:text-slate-400';
+            if (isTraGop) {
+                if (numericValue >= targetTraGop) cellClasses += ' !text-emerald-500 dark:!text-emerald-500';
+                else cellClasses += ' !text-rose-500 dark:!text-rose-500';
+            } else if (isHqqd) {
+                if (numericValue >= targetQuyDoi) cellClasses += ' !text-emerald-500 dark:!text-emerald-500';
+                else cellClasses += ' !text-rose-500 dark:!text-rose-500';
+            } else if (isPercentCol && !isNaN(numericValue) && !isHtCol) {
+                if (numericValue >= 100) cellClasses += ' !text-emerald-500 dark:!text-emerald-500';
+                else if (numericValue >= 85) cellClasses += ' !text-amber-500 dark:!text-amber-500';
+                else if (numericValue > 0) cellClasses += ' !text-rose-500 dark:!text-rose-500';
+            }
+        } else {
+            cellClasses += originalCellIndex === 0 ? ' font-bold text-slate-700 dark:text-slate-300' : ' font-bold';
+
+            if (isTraGop) {
+                if (numericValue >= targetTraGop) cellClasses += ' text-emerald-700 dark:text-emerald-400 font-bold';
+                else cellClasses += ' text-rose-700 dark:text-rose-400 font-bold';
+            } else if (isHqqd) {
+                if (numericValue >= targetQuyDoi) cellClasses += ' text-emerald-700 dark:text-emerald-400 font-bold';
+                else cellClasses += ' text-rose-700 dark:text-rose-400 font-bold';
+            } else if (isPercentCol && !isNaN(numericValue) && !isHtCol) {
+                if (numericValue >= 100) cellClasses += ' text-emerald-700 dark:text-emerald-400 font-bold';
+                else if (numericValue >= 85) cellClasses += ' text-amber-700 dark:text-amber-400 font-bold';
+                else if (numericValue > 0) cellClasses += ' text-rose-700 dark:text-rose-400 font-bold';
+                else cellClasses += ' text-slate-700 dark:text-slate-300';
+            } else if (isQdCkCol && !isNaN(numericValue)) {
+                if (numericValue > 20) cellClasses += ' text-emerald-700 dark:text-emerald-400 font-bold';
+                else if (numericValue < 0) cellClasses += ' text-rose-700 dark:text-rose-400 font-bold';
+                else cellClasses += ' text-slate-700 dark:text-slate-300';
+            } else if (!isDtqdCol) {
+                cellClasses += ' text-slate-700 dark:text-slate-300';
+            }
+        }
+
+        if (headerName === activeSortColumn) {
+            cellClasses += isTotalRow
+                ? ' !bg-sky-100/60 dark:!bg-sky-900/40'
+                : ' !bg-sky-50/50 dark:!bg-sky-950/30';
+        }
+
+        return <td key={headerName} title={cellTitle} className={cellClasses}>{cellContent()}</td>;
+    };
+
+    return (
+        <div ref={ref} className="js-industry-view-container relative z-10 bg-white dark:bg-slate-800 rounded-none border border-slate-200 dark:border-slate-700/60 shadow-sm overflow-hidden">
+            <Card 
+                title={title} 
+                titleClassName="text-[17px] sm:text-[25px] font-normal uppercase text-slate-800 dark:text-white leading-normal py-0.5"
+                actionButton={actionButton} 
+                headerClassName="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-700/60"
+                bordered={false} 
+                noPadding
+            >
+
+                <div className="overflow-hidden">
+                    <div className="w-full">
+                            {/* ─── DESKTOP TABLE VIEW ─── */}
+                            <div className="overflow-hidden px-4 pt-3.5 sm:pt-4 pb-4">
+                                <IndustryKpiGrid
+                                    tree={isRealtime ? realtimeData?.tree : luykeData?.tree}
+                                    headers={processedTable.headers}
+                                    isRealtime={isRealtime}
+                                />
+                                <div ref={tableContainerRef} className="overflow-x-auto scrollbar-hide border border-slate-200 dark:border-slate-700">
+                                <table className="w-full border-collapse compact-export-table">
+                                    <thead>
+                                        {/* TIER 1: GROUP HEADERS */}
+                                        <tr className="text-[11px] font-black uppercase tracking-wider">
+                                            {/* Sticky 'NGÀNH HÀNG' merged header (rowSpan=2) */}
+                                            {visibleColumns.has('Nhóm ngành hàng') && (
+                                                <th
+                                                    rowSpan={2}
+                                                    className={`
+                                                        px-3 py-1 text-left text-[11px] font-black
+                                                        text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800
+                                                        border-b border-b-slate-200 dark:border-b-slate-700
+                                                        border-r border-slate-200 dark:border-slate-700
+                                                        sticky left-0 z-20 align-middle
+                                                        uppercase tracking-wider min-w-[120px] max-w-[220px]
+                                                    `}
+                                                >
+                                                    NGÀNH HÀNG
+                                                </th>
+                                            )}
+                                            {headerGroups.map((g, idx) => {
+                                                if (g.isSingle) {
+                                                    const isSorted = g.singleHeader === activeSortColumn;
+                                                    return (
+                                                        <th
+                                                            key={`group-${idx}`}
+                                                            rowSpan={2}
+                                                            className={`
+                                                                py-1 px-1.5 text-[11px] font-black uppercase tracking-wider text-center
+                                                                align-middle whitespace-nowrap cursor-pointer
+                                                                border-b border-r border-slate-200 dark:border-slate-700
+                                                                ${GROUP_EDGE}
+                                                                hover:opacity-80 transition-opacity select-none
+                                                                ${isSorted 
+                                                                    ? '!bg-sky-50 dark:!bg-sky-950/70 !text-sky-700 dark:!text-sky-300 ring-2 ring-inset ring-sky-400 dark:ring-sky-500 shadow-sm font-black' 
+                                                                    : `${g.bg} ${g.text}`}
+                                                            `}
+                                                            onClick={() => handleColumnSort(g.singleHeader)}
+                                                            title={`Click để sắp xếp theo ${headerMapping[g.singleHeader]?.replace(/<br\/>/g, ' ') || g.singleHeader}`}
+                                                        >
+                                                            <span>{renderHeaderText(headerMapping[g.singleHeader] || g.singleHeader)}</span>
+                                                            {isSorted && (
+                                                                <span className="ml-1 text-[11px] text-sky-600 dark:text-sky-400 font-black inline-block">
+                                                                    {activeSortDirection === 'asc' ? '▲' : '▼'}
+                                                                </span>
+                                                            )}
+                                                        </th>
+                                                    );
+                                                }
+                                                return (
+                                                    <th
+                                                        key={`group-${idx}`}
+                                                        colSpan={g.colspan}
+                                                        className={`
+                                                            py-1 px-1.5 text-[11px] font-black uppercase tracking-wider text-center
+                                                            border-b border-r border-slate-200 dark:border-slate-700
+                                                            ${GROUP_EDGE}
+                                                            ${g.bg} ${g.text}
+                                                        `}
+                                                    >
+                                                        {g.label}
+                                                    </th>
+                                                );
+                                            })}
+                                        </tr>
+
+                                        {/* TIER 2: COLUMN HEADERS */}
+                                        <tr>
+                                            {orderedHeaders.map(h => {
+                                                if (!visibleColumns.has(h)) return null;
+                                                if (h === 'Nhóm ngành hàng') return null;
+                                                const isSingleGroup = headerGroups.some(g => g.isSingle && g.singleHeader === h);
+                                                if (isSingleGroup) return null;
+                                                const g = COLUMN_GROUPS[h] || { text: GROUP_TONE_TEXT, bg: GROUP_TONE_BG };
+                                                const isSorted = h === activeSortColumn;
+                                                return (
+                                                    <th
+                                                        key={h}
+                                                        scope="col"
+                                                        className={`
+                                                            px-1.5 py-1 text-[11px] font-bold uppercase
+                                                             border-r border-slate-200 dark:border-slate-700
+                                                             ${groupStartHeaders.has(h) ? GROUP_EDGE : ''}
+                                                             border-b border-b-slate-200 dark:border-b-slate-700
+                                                             text-center align-middle whitespace-nowrap
+                                                             cursor-pointer hover:opacity-80 transition-opacity select-none
+                                                             ${isSorted 
+                                                                ? '!bg-sky-50 dark:!bg-sky-950/70 !text-sky-700 dark:!text-sky-300 ring-2 ring-inset ring-sky-400 dark:ring-sky-500 shadow-sm font-black' 
+                                                                : `${g.bg} ${g.text}`}
+                                                        `}
+                                                        onClick={() => handleColumnSort(h)}
+                                                        title={`Click để sắp xếp theo ${headerMapping[h]?.replace(/<br\/>/g, ' ') || h}`}
+                                                    >
+                                                        <span>{renderHeaderText(headerMapping[h] || h)}</span>
+                                                        {isSorted && (
+                                                            <span className="ml-1 text-[11px] text-sky-600 dark:text-sky-400 font-black inline-block">
+                                                                {activeSortDirection === 'asc' ? '▲' : '▼'}
+                                                            </span>
+                                                        )}
+                                                    </th>
+                                                );
+                                            })}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {treeDisplayRows ? (
+                                            /* ─── TREE TABLE ROWS (luyke mode with hierarchy) ─── */
+                                            (() => {
+                                                // Apply sorting to tree rows: sort only top-level (NNH, level=0) nodes, keep total at bottom
+                                                let displayRows = treeDisplayRows;
+                                                if (sortConfig.column && sortConfig.direction) {
+                                                    const colIdx = processedTable.headers.indexOf(sortConfig.column);
+                                                    if (colIdx !== -1) {
+                                                        // Group rows by top-level parent
+                                                        const groups: { parent: typeof treeDisplayRows[0]; children: typeof treeDisplayRows }[] = [];
+                                                        let totalRow: typeof treeDisplayRows[0] | null = null;
+                                                        
+                                                        displayRows.forEach(row => {
+                                                            if (row.level === -1) {
+                                                                totalRow = row;
+                                                            } else if (row.level === 0) {
+                                                                groups.push({ parent: row, children: [] });
+                                                            } else if (groups.length > 0) {
+                                                                groups[groups.length - 1].children.push(row);
+                                                            }
+                                                        });
+                                                        
+                                                        // Sort groups by the column value of the parent
+                                                        groups.sort((a, b) => {
+                                                            const numA = parseNumber(a.parent.values[colIdx]);
+                                                            const numB = parseNumber(b.parent.values[colIdx]);
+                                                            const diff = numA - numB;
+                                                            return sortConfig.direction === 'asc' ? diff : -diff;
+                                                        });
+                                                        
+                                                        // Flatten back
+                                                        displayRows = [];
+                                                        groups.forEach(g => {
+                                                            displayRows.push(g.parent);
+                                                            displayRows.push(...g.children);
+                                                        });
+                                                        if (totalRow) displayRows.push(totalRow);
+                                                    }
+                                                }
+                                                
+                                                return displayRows.map((flatRow) => {
+                                                    const isTotalRow = flatRow.level === -1;
+                                                    const isNNH = flatRow.level === 0;
+                                                    const isNhomHang = flatRow.level === 1;
+
+                                                    return (
+                                                        <tr
+                                                            key={flatRow.rowKey}
+                                                            className={`
+                                                                transition-colors duration-100 group
+                                                                ${isTotalRow
+                                                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 font-extrabold border-t border-emerald-200 dark:border-emerald-800'
+                                                                    : isNNH ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 border-b border-slate-100 dark:border-slate-700'
+                                                                    : isNhomHang ? 'bg-slate-50/50 dark:bg-slate-800/20 hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-100 dark:border-slate-700'
+                                                                    : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/10 border-b border-slate-100 dark:border-slate-700'
+                                                                }
+                                                            `}
+                                                        >
+                                                            {orderedHeaders.map((headerName) => {
+                                                                if (!visibleColumns.has(headerName)) return null;
+                                                                const originalCellIndex = processedTable.headers.indexOf(headerName);
+                                                                const cell = flatRow.values[originalCellIndex];
+                                                                return renderCell(cell, headerName, originalCellIndex, isTotalRow, flatRow.level, flatRow.rowKey, flatRow.hasChildren, flatRow.isExpanded, flatRow.childrenCount);
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                });
+                                            })()
+                                        ) : (
+                                            /* ─── FLAT TABLE ROWS (realtime / fallback) ─── */
+                                            sortRows(processedTable.rows, (row) => row).map((row, rIdx) => {
+                                                const isTotalRow = row[0] === 'Tổng';
+                                                return (
+                                                    <tr 
+                                                        key={rIdx} 
+                                                        className={`
+                                                            transition-colors duration-100 group
+                                                            ${isTotalRow 
+                                                                ? 'bg-emerald-50 dark:bg-emerald-900/20 font-extrabold border-t border-emerald-200 dark:border-emerald-800' 
+                                                                : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 border-b border-slate-100 dark:border-slate-700'
+                                                            }
+                                                        `}
+                                                    >
+                                                        {orderedHeaders.map((headerName) => {
+                                                            if (!visibleColumns.has(headerName)) return null;
+                                                            const originalCellIndex = processedTable.headers.indexOf(headerName);
+                                                            const cell = row[originalCellIndex];
+                                                            return renderCell(cell, headerName, originalCellIndex, isTotalRow, 0, `flat-${rIdx}`, false, false);
+                                                        })}
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                                </div>
+                            </div>
+                    </div>
+                </div>
+            </Card>
+        </div>
+    );
+});
+
+export default IndustryView;

@@ -1,0 +1,225 @@
+import React, { useState, useRef, useMemo } from 'react';
+import { AppIcon } from '../../../../../components/shared/ui/icon/AppIcon';
+import { CARTOON_AVATARS, getCartoonAvatar, CartoonAvatar } from '../../../utils/cartoonAvatars';
+import { Button } from '../../../../../components/shared/ui/Button';
+import { Modal } from '../../../../../components/shared/ui/Modal';
+import { Tabs } from '../../../../../components/shared/ui/Tabs';
+
+interface AvatarPickerModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    employeeName: string;
+    currentAvatarSrc: string | null;
+    onSelectAvatar: (dataUrl: string) => Promise<void> | void;
+    onResetDefault: () => Promise<void> | void;
+    onUploadFile: (file: File) => Promise<void>;
+}
+
+export const AvatarPickerModal: React.FC<AvatarPickerModalProps> = ({
+    isOpen,
+    onClose,
+    employeeName,
+    currentAvatarSrc,
+    onSelectAvatar,
+    onResetDefault,
+    onUploadFile
+}) => {
+    const [selectedTab, setSelectedTab] = useState<'library' | 'upload'>('library');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'animal' | 'character' | 'fun_object'>('all');
+    const [isProcessing, setIsProcessing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const defaultAvatar = useMemo(() => getCartoonAvatar(employeeName), [employeeName]);
+
+    const filteredAvatars = useMemo(() => {
+        if (categoryFilter === 'all') return CARTOON_AVATARS;
+        return CARTOON_AVATARS.filter(a => a.category === categoryFilter);
+    }, [categoryFilter]);
+
+    const handleSelectCartoon = async (avatar: CartoonAvatar) => {
+        setIsProcessing(true);
+        try {
+            await onSelectAvatar(avatar.dataUrl);
+            onClose();
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleReset = async () => {
+        setIsProcessing(true);
+        try {
+            await onResetDefault();
+            onClose();
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setIsProcessing(true);
+        try {
+            await onUploadFile(file);
+            onClose();
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        // Modal render qua portal nhưng sự kiện click vẫn nổi lên cha trong cây React (dòng bảng nhân viên có onClick) — chặn như bản cũ.
+        <div className="contents" onClick={(e) => e.stopPropagation()}>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="lg"
+            zIndex="z-[100]"
+            ariaLabel="Ảnh đại diện nhân viên"
+            subTitle={employeeName}
+            title={
+                <span className="flex items-center gap-2 min-w-0">
+                    <span className="w-8 h-8 rounded-full overflow-hidden border-2 border-sky-500 shadow-sm shrink-0 bg-white">
+                        <img src={currentAvatarSrc || defaultAvatar.dataUrl} alt={employeeName} className="w-full h-full object-cover" />
+                    </span>
+                    <span className="truncate">Ảnh Đại Diện Nhân Viên</span>
+                </span>
+            }
+            footer={
+                <div className="flex items-center justify-between">
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleReset}
+                        disabled={isProcessing || !currentAvatarSrc}
+                        className="text-xs text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 gap-1.5"
+                    >
+                        <AppIcon name="reset" size="sm" />
+                        <span>Khôi phục avatar mặc định</span>
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={onClose}
+                        className="text-xs px-4"
+                    >
+                        Đóng
+                    </Button>
+                </div>
+            }
+        >
+            {/* Thân giữ nguyên bố cục cũ; bù lề của Modal để không đổi giao diện. */}
+            <div className="modal-bleed">
+
+                {/* Sub-bar / Tabs & Filters */}
+                <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-50/30 dark:bg-slate-800/20">
+                    <Tabs
+                        variant="segment"
+                        size="sm"
+                        activeId={selectedTab}
+                        onChange={(id) => setSelectedTab(id as typeof selectedTab)}
+                        items={[
+                            { id: 'library', label: "50 Icon Hoạt Hình", icon: 'sparkles' },
+                            { id: 'upload', label: "Tải Ảnh Từ Máy", icon: 'upload' },
+                        ]}
+                    />
+
+                    {selectedTab === 'library' && (
+                        <Tabs
+                            variant="chips"
+                            size="sm"
+                            activeId={categoryFilter}
+                            onChange={(id) => setCategoryFilter(id as typeof categoryFilter)}
+                            items={[
+                                { id: 'all', label: "Tất cả", badge: CARTOON_AVATARS.length },
+                                { id: 'animal', label: "Thú cưng" },
+                                { id: 'character', label: "Nhân vật" },
+                                { id: 'fun_object', label: "Đồ vật" },
+                            ]}
+                        />
+                    )}
+                </div>
+
+                {/* Content Area */}
+                <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-[300px]">
+                    {selectedTab === 'library' ? (
+                        <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 flex items-center justify-between">
+                                <span>Nhấp vào icon hoạt hình để chọn làm đại diện cho nhân viên:</span>
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredAvatars.length} icon</span>
+                            </p>
+                            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                                {filteredAvatars.map((avatar) => {
+                                    const isSelected = currentAvatarSrc === avatar.dataUrl || (!currentAvatarSrc && defaultAvatar.id === avatar.id);
+                                    return (
+                                        <Button
+                                            variant="card"
+                                            size="none"
+                                            key={avatar.id}
+                                            type="button"
+                                            disabled={isProcessing}
+                                            onClick={() => handleSelectCartoon(avatar)}
+                                            className={`group relative flex flex-col items-center justify-center p-2 rounded-popup duration-200 ${
+                                                isSelected
+                                                    ? 'bg-sky-50 dark:bg-sky-950/40 ring-2 ring-sky-500 scale-105 shadow-sm'
+                                                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 hover:scale-105'
+                                            }`}
+                                            title={`#${avatar.id} - ${avatar.name}`}
+                                        >
+                                            <div className="w-12 h-12 rounded-full overflow-hidden shadow-xs group-hover:shadow-md transition-shadow">
+                                                <img 
+                                                    src={avatar.dataUrl} 
+                                                    alt={avatar.name} 
+                                                    className="w-full h-full object-cover pointer-events-none" 
+                                                />
+                                            </div>
+                                            <span className="text-[11px] text-slate-600 dark:text-slate-400 text-center truncate w-full mt-1.5 font-medium group-hover:text-sky-600 dark:group-hover:text-sky-400">
+                                                {avatar.name}
+                                            </span>
+                                            {isSelected && (
+                                                <div className="absolute top-1 right-1 bg-sky-500 text-white rounded-full p-0.5 shadow-xs">
+                                                    <AppIcon name="success" size="sm" />
+                                                </div>
+                                            )}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                            <div className="w-24 h-24 rounded-full border-2 border-dashed border-sky-300 dark:border-sky-700 bg-sky-50/50 dark:bg-sky-950/20 flex items-center justify-center mb-4">
+                                <AppIcon name="upload" size="state" className="text-sky-500" />
+                            </div>
+                            <h4 className="font-bold text-slate-800 dark:text-slate-200 text-base mb-1">
+                                Tải ảnh chân dung từ máy
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-5">
+                                Hỗ trợ các định dạng JPG, PNG, WEBP. Ảnh sẽ tự động được cắt vuông và nén tối ưu hiển thị siêu nhanh.
+                            </p>
+                            <Button
+                                variant="primary"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isProcessing}
+                                className="px-5 py-2 text-sm font-semibold rounded-popup bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white shadow-md hover:shadow-lg transition-all"
+                            >
+                                <AppIcon name="upload" size="md" className="mr-2" />
+                                {isProcessing ? 'Đang xử lý...' : 'Chọn file từ thiết bị'}
+                            </Button>
+                            <input 
+                                ref={fileInputRef} 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={handleFileChange} 
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </Modal>
+        </div>
+    );
+};

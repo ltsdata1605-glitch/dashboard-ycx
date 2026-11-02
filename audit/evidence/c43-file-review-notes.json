@@ -1,0 +1,12 @@
+{
+  "components/shared/ui/icon/iconRegistry.ts": "Full314line source review:explicitlucideimports/semantickeys/brandexception. Added shared own-key guard; removed only unused ExternalLink import (one occurrence before/no mapping). Canonical glyph mappings unchanged.",
+  "components/shared/ui/icon/legacyIconNames.ts": "Full226line review: persisted legacy aliases retained; canonical precedence preserved. Guard both registry and legacy lookups against inherited Object.prototype names. Legacy active, no alias deletion.",
+  "components/shared/ui/icon/AppIcon.tsx": "Full source reread:token CSS size/stroke/brand/label/fallback. Guard untrusted runtime name at renderer via shared own-key function; invalid names safely use alert. Consumer fixture PASS,all screens pending.",
+  "components/shared/ui/icon/renderIcon.tsx": "Full source reread:React nodes/text preserved; recognized canonical string renders AppIcon. Use shared own-key guard so inherited names stay literaltext rather than fakecomponents.",
+  "components/shared/ui/icon/iconTokens.ts": "Full source reread:size ladder/1024breakpoint/stroke2/gap6; hero mobile40 vsdesktop48 intentional exception. No change,existingunit validates subset; allconsumer sizingpending.",
+  "components/shared/ui/toast/toast.ts": "C39 fullsource review; C43 isIconName delegates shared canonical guard preserving publicAPI. Existing11toastunitPASS; no time/metadata changes.",
+  "tests/unit/icon-registry.test.ts": "Full source safetyreview:SSR registry/semantics/token/brand/Button/Input plus regex source/ratchet guards; no production actions. PASS in c43fullunit; sourcechecks not fullUIproof.",
+  "tests/e2e/helpers/materialHarness.html": "Real Input/AppIcon/renderIcon fixture with inherited names and canonical exportImage; no backend.",
+  "tests/unit/icon-registry-boundaries.test.ts": "Authored/read6unitcases:4inherited keys rejected/fallback rendering,allcanonical/legacy mappings preserved,unknown/empty/Reactnode behavior. Initial test discovery TSXunsupported retained; renamedTS with createElement.",
+  "tests/e2e/icon-registry-consumer.spec.ts": "Authored/read2viewportcases390/1366 actualReact Input and AppIcon fallback,labels,literalnode and no pageerrors.2PASS perengine."
+}

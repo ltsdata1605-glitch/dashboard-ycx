@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/modal-ngan-xep.spec.ts:59:1 › a11y: role=dialog + aria-modal + tên; focus vào trong, Tab vòng trong modal, đóng thì trả focus (1.1s)
+
+  1 passed (1.7s)

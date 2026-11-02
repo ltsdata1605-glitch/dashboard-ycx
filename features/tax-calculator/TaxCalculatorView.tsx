@@ -1,0 +1,582 @@
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { toast } from '../../components/shared/ui/toast';
+import { usePageActions } from '../../components/shared/ui/PageActions';
+import { ConfirmDialog } from '../../components/shared/ui/ConfirmDialog';
+import { Button } from '../../components/shared/ui/Button';
+import { useActiveTab } from '../../contexts/LayoutContext';
+import { auth } from '../../services/firebase';
+import { TaxCalculationInput, SavedTaxRecord } from './types/tax.types';
+import {
+  calculateTax,
+  PERSONAL_DEDUCTION_2026,
+  DEPENDENT_DEDUCTION_2026,
+  formatVnd,
+  generateVietQrUrl,
+} from './services/taxCalculatorService';
+import { BANK_OPTIONS, normalizeBankCode } from './services/bankCatalog';
+import { SCREENSHOT_BOOKMARKLET } from './services/screenshotBookmarklet';
+import { TaxHistorySidebar } from './components/TaxHistorySidebar';
+import { taxSyncService } from './services/taxSyncService';
+import { TaxInputPanel } from './components/TaxInputPanel';
+import { TaxResultPanel } from './components/TaxResultPanel';
+import { TaxPaymentQrCard } from './components/TaxPaymentQrCard';
+import { TaxBracketModal } from './components/TaxBracketModal';
+import { TaxHistoryModal } from './components/TaxHistoryModal';
+import { ApiKeyConfigModal } from './components/ApiKeyConfigModal';
+
+const DEFAULT_INPUTS: TaxCalculationInput = {
+  name: '',
+  monthYear: '',
+  incomeDay5: 0,
+  insuranceSalary: 0,
+  insurance: 0,
+  dependents: 0,
+  personalDeduction: 15_500_000,
+  incomeDay20: 0,
+  bonusMain: 0,
+  bonusHot: 0,
+  actualTaxDay20: 0,
+  bonusItems: [],
+  selectedProxyItemIds: [],
+  customProxyAmount: 0,
+  totalIncome: 0,
+  proxyAmount: 0,
+  unionFee: 0,
+  bankAccount: '',
+  bankCode: '',
+  qrDescription: 'HOAN THUE NHAN THAY',
+  taxLawVersion: '2026_law',
+  hasDay5Slip: false,
+  hasDay20Slip: false,
+};
+
+const STORAGE_KEY = 'TAX_CALCULATOR_INPUTS_V4';
+
+export const TaxCalculatorView: React.FC = () => {
+  // 1. State input
+  const [input, setInput] = useState<TaxCalculationInput>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = { ...DEFAULT_INPUTS, ...JSON.parse(saved) } as TaxCalculationInput;
+        // Bản cũ lưu bankCode 'MB' — không khớp danh mục nên <select> trống và QR không dựng được.
+        parsed.bankCode = normalizeBankCode(parsed.bankCode);
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('Lỗi đọc tax inputs từ localStorage', e);
+    }
+    return DEFAULT_INPUTS;
+  });
+
+  // 2. Modals & Sidebar state
+  const [showBracketModal, setShowBracketModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [historyList, setHistoryList] = useState<SavedTaxRecord[]>([]);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isCloudUser, setIsCloudUser] = useState<boolean>(!!auth.currentUser);
+  const [selectedRecordId, setSelectedRecordId] = useState<number | string | null>(null);
+
+  // Mở rộng danh sách lịch sử ở bên phải (mặc định mở trên màn hình rộng)
+  const [showHistorySidebar, setShowHistorySidebar] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('tax_show_history_sidebar');
+      if (saved !== null) return saved === 'true';
+      return true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tax_show_history_sidebar', String(showHistorySidebar));
+    } catch {
+      // ignore
+    }
+  }, [showHistorySidebar]);
+
+  // iPhone / iPad (GĐ7): tiêu đề đã có ở thanh trên → 3 nút lên thanh trên của khung app (Lịch sử nhanh; Biểu thuế, API Key
+  // trong "⋯"). Nút bookmarklet "Chụp ảnh" (kéo thả lên thanh dấu trang) chỉ có nghĩa trên trình duyệt máy tính → chỉ laptop.
+  const { activeTab } = useActiveTab();
+  usePageActions(activeTab === 'tools-tax' ? {
+    scope: 'mobile',
+    quick: [{ id: 'lich-su', label: showHistorySidebar ? 'Ẩn lịch sử' : 'Lịch sử tính thuế', icon: 'history', onSelect: () => setShowHistorySidebar(prev => !prev) }],
+    items: [
+      { id: 'bieu-thue', label: 'Biểu thuế', icon: 'info', onSelect: () => setShowBracketModal(true) },
+      { id: 'api-key', label: 'API Key Gemini dự phòng', icon: 'apiKey', onSelect: () => setShowApiKeyModal(true) },
+    ],
+  } : null);
+
+  // Nút bookmarklet "Chụp ảnh": href là javascript: nên phải gắn bằng DOM, React chặn trong JSX
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    bookmarkletRef.current?.setAttribute('href', SCREENSHOT_BOOKMARKLET);
+  }, []);
+
+  // Lắng nghe trạng thái đăng nhập Firebase
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsCloudUser(!!user);
+      refreshHistory();
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(input));
+    } catch (e) {
+      console.warn('Lỗi lưu tax inputs vào localStorage', e);
+    }
+    setIsSaved(false);
+  }, [input]);
+
+  // Load history from IndexedDB + Firebase Firestore
+  const refreshHistory = useCallback(async () => {
+    try {
+      const records = await taxSyncService.getAllRecords();
+      setHistoryList(records);
+    } catch (e) {
+      console.warn('Không thể load tax history từ taxSyncService', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshHistory();
+  }, [refreshHistory]);
+
+  // 3. Calculation Result (Instant memoized)
+  const result = useMemo(() => {
+    return calculateTax(input);
+  }, [input]);
+
+  // Tổng tiền nhận thay (đã gồm phần thuế phát sinh) — dùng chung cho bảng kết quả và thẻ QR
+  const proxyTotal =
+    result.netRefundToFriend > 0
+      ? result.netRefundToFriend + result.taxOnProxyAmount
+      : input.proxyAmount;
+
+  // Các khoản nhận thay đang chọn — đưa vào ảnh xuất và lịch sử để thủ quỹ đối chiếu từng khoản
+  const proxyItems = useMemo(() => {
+    const selected = (input.bonusItems || [])
+      .filter(b => (input.selectedProxyItemIds || []).includes(b.id))
+      .map(b => ({ id: b.id, name: b.name, amount: b.amount }));
+    if ((input.customProxyAmount || 0) > 0) {
+      selected.push({ id: 'custom', name: 'Khoản nhập tay', amount: input.customProxyAmount });
+    }
+    return selected;
+  }, [input.bonusItems, input.selectedProxyItemIds, input.customProxyAmount]);
+
+  // Mã QR hoàn thuế: dựng ở đây để CẢ thẻ QR lẫn ảnh xuất ra dùng chung một mã
+  const qrUrl = generateVietQrUrl({
+    bankAccount: input.bankAccount,
+    bankCode: input.bankCode,
+    amount: result.taxOnProxyAmount,
+    description: input.qrDescription || 'Hoan tra thue TNCN nhan thay',
+  });
+  const qrBankLabel = BANK_OPTIONS.find(o => o.value === input.bankCode)?.label || '';
+
+  // Handlers
+  const handleInputChange = (updates: Partial<TaxCalculationInput>) => {
+    setInput((prev) => ({ ...prev, ...updates }));
+  };
+
+  // GĐ10 (2026-10-15): 2 câu hỏi xác nhận dùng ConfirmDialog dùng chung thay `window.confirm` của trình duyệt (CLAUDE.md mục 2).
+  // `mo` tách khỏi `loai`: đóng hộp chỉ tắt `mo`, nội dung giữ nguyên trong lúc modal mờ dần (không nháy sang câu hỏi kia).
+  const [hoiXacNhan, setHoiXacNhan] = useState<{ mo: boolean; loai: 'dat-lai' | 'xoa-lich-su' }>({ mo: false, loai: 'dat-lai' });
+  const dongHoiXacNhan = () => setHoiXacNhan((h) => ({ ...h, mo: false }));
+  const [dangXoaLichSu, setDangXoaLichSu] = useState(false);
+
+  const handleReset = () => setHoiXacNhan({ mo: true, loai: 'dat-lai' });
+  const datLaiBieuMau = () => {
+    setInput(DEFAULT_INPUTS);
+    toast.success('Đã đặt lại biểu mẫu');
+  };
+
+  const handleSaveHistory = async (opts?: { silent?: boolean }) => {
+    try {
+      const proxyItemsDetail = proxyItems.length > 0
+        ? proxyItems.map(p => `${p.name} (${p.amount.toLocaleString('vi-VN')} đ)`).join('; ')
+        : (result.netRefundToFriend > 0 || input.proxyAmount > 0)
+          ? `Khoản nhận thay (${(result.netRefundToFriend > 0 ? (result.netRefundToFriend + result.taxOnProxyAmount) : input.proxyAmount).toLocaleString('vi-VN')} đ)`
+          : undefined;
+
+      const daLuu = await taxSyncService.saveRecord({
+        name: input.name || 'Người kê khai',
+        monthYear: input.monthYear,
+        incomeDay5: input.incomeDay5,
+        incomeDay20: input.incomeDay20,
+        totalIncome: result.totalIncome || input.totalIncome,
+        dependents: input.dependents,
+        proxyAmount: result.netRefundToFriend > 0 ? (result.netRefundToFriend + result.taxOnProxyAmount) : input.proxyAmount,
+        taxOnProxyAmount: result.taxOnProxyAmount,
+        netRefundToFriend: result.netRefundToFriend,
+        insurance: input.insurance,
+        unionFee: input.unionFee,
+        taxLawVersion: input.taxLawVersion || '2026_law',
+        bankAccount: input.bankAccount,
+        bankCode: input.bankCode,
+        proxyItemsDetail,
+        proxyItemNames: proxyItems.map(p => p.name),
+        customProxyAmount: input.customProxyAmount,
+        vietQrUrl: qrUrl,
+        createdAt: new Date().toISOString(),
+      });
+      setIsSaved(true);
+      // Audit D11: cloud hỏng thì taxSyncService đã báo lỗi + xếp hàng gửi lại — không báo kèm "& Firebase Cloud".
+      toast.success(
+        opts?.silent
+          ? daLuu.overwritten
+            ? 'Đã tự động cập nhật (ghi đè) kết quả vào lịch sử'
+            : 'Đã tự động lưu kết quả vào lịch sử'
+          : daLuu.overwritten
+            ? 'Đã ghi đè dữ liệu trùng trong lịch sử'
+            : daLuu.cloud === 'ok'
+              ? 'Đã lưu vào lịch sử (IndexedDB & Firebase Cloud)'
+              : 'Đã lưu vào bộ nhớ máy (IndexedDB)'
+      );
+      await refreshHistory();
+    } catch (e) {
+      console.error('Lỗi khi lưu lịch sử:', e);
+      toast.error('Không thể lưu vào lịch sử');
+    }
+  };
+
+  const handleLoadRecord = (record: SavedTaxRecord) => {
+    setSelectedRecordId(record.id || record.createdAt);
+    setInput({
+      ...DEFAULT_INPUTS,
+      name: record.name,
+      monthYear: record.monthYear,
+      incomeDay5: record.incomeDay5 || 0,
+      incomeDay20: record.incomeDay20 || 0,
+      totalIncome: record.totalIncome,
+      dependents: record.dependents,
+      proxyAmount: record.proxyAmount,
+      insurance: record.insurance || 0,
+      unionFee: record.unionFee || 0,
+      taxLawVersion: record.taxLawVersion || '2026_law',
+      bankAccount: record.bankAccount || '',
+      bankCode: normalizeBankCode(record.bankCode),
+      qrDescription: `HOAN THUE CHO ${record.name}`.toUpperCase(),
+      hasDay5Slip: (record.incomeDay5 || 0) > 0,
+      hasDay20Slip: (record.incomeDay20 || 0) > 0,
+    });
+    setShowHistoryModal(false);
+    toast.success(`Đã khôi phục dữ liệu: ${record.name}`, { icon: <AppIcon name="quick" size="md" className="text-sky-600" /> });
+  };
+
+  const handleDeleteRecord = async (id: number) => {
+    try {
+      const target = historyList.find((r) => r.id === id);
+      await taxSyncService.deleteRecord(id, target?.createdAt);
+      toast.success('Đã xoá bản ghi');
+      await refreshHistory();
+    } catch (e) {
+      console.error('Lỗi khi xoá bản ghi:', e);
+      toast.error('Không thể xoá bản ghi');
+    }
+  };
+
+  const handleClearAllHistory = () => setHoiXacNhan({ mo: true, loai: 'xoa-lich-su' });
+  const xoaToanBoLichSu = async () => {
+    setDangXoaLichSu(true);
+    try {
+      await taxSyncService.clearAll();
+      toast.success('Đã xoá sạch lịch sử');
+      await refreshHistory();
+      dongHoiXacNhan();
+    } catch (e) {
+      console.error('[Tax] Lỗi xoá toàn bộ lịch sử:', e);
+      toast.error('Không thể xoá lịch sử, vui lòng thử lại');
+    } finally {
+      setDangXoaLichSu(false);
+    }
+  };
+
+  const handleUpdateRecordMonth = async (record: SavedTaxRecord, newMonthYear: string) => {
+    try {
+      const recordKey = record.id || record.createdAt;
+      await taxSyncService.updateRecordMonth(recordKey, newMonthYear);
+      if (selectedRecordId === recordKey) {
+        setInput(prev => ({ ...prev, monthYear: newMonthYear }));
+      }
+      toast.success(`Đã đổi tháng ${record.name} sang T${newMonthYear}`);
+      await refreshHistory();
+    } catch (e) {
+      console.error('Lỗi khi đổi tháng bản ghi:', e);
+      toast.error('Không thể đổi tháng bản ghi');
+    }
+  };
+
+  const handleUpdateGroupMonth = async (records: SavedTaxRecord[], newMonthYear: string) => {
+    try {
+      const keys = records.map(r => r.id || r.createdAt);
+      await taxSyncService.updateRecordsMonth(keys, newMonthYear);
+      const isViewingRecordInGroup = records.some(r => (r.id || r.createdAt) === selectedRecordId);
+      if (isViewingRecordInGroup) {
+        setInput(prev => ({ ...prev, monthYear: newMonthYear }));
+      }
+      toast.success(`Đã chuyển toàn bộ ${records.length} bản ghi sang Tháng ${newMonthYear}`);
+      await refreshHistory();
+    } catch (e) {
+      console.error('Lỗi khi đổi tháng cả nhóm:', e);
+      toast.error('Không thể đổi tháng cả nhóm');
+    }
+  };
+
+
+  const personalDeduction = PERSONAL_DEDUCTION_2026;
+  const dependentDeduction = DEPENDENT_DEDUCTION_2026;
+
+  return (
+    <div className={`mx-auto w-full flex-grow p-0 sm:px-4 sm:pb-4 lg:px-6 lg:pb-6 animate-fadeIn transition-all duration-300 ${
+      showHistorySidebar ? 'max-w-[1560px]' : 'max-w-[1100px]'
+    }`}>
+      {/* HEADER: Gọn gàng & Hiện đại */}
+      <div className="bg-white dark:bg-slate-800/90 border-b sm:border border-slate-200 dark:border-slate-700/60 sm:rounded-card p-3.5 sm:p-4 mb-3 sm:mb-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className="hidden lg:flex w-9 h-9 rounded-popup bg-gradient-to-br from-sky-500 to-sky-600 text-white items-center justify-center shadow-sm">
+              <AppIcon name="calculator" size="md" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="hidden lg:block text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-7">
+                  Tính thuế
+                </h1>
+                <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 px-1.5 py-0.5 rounded-md">
+                  <AppIcon name="sparkles" size="xs" className="text-sky-500" />
+                  Biểu 5 bậc (2026)
+                </span>
+
+                {/* Cloud sync status badge */}
+                <span
+                  title={isCloudUser ? 'Đồng bộ Firebase Cloud' : 'Lưu trữ cục bộ'}
+                  className={`inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded-md border ${
+                    isCloudUser
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800'
+                      : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                  }`}
+                >
+                  {isCloudUser ? <AppIcon name="cloud" size="xs" className="text-emerald-500" /> : <AppIcon name="localStorage" size="xs" className="text-slate-400" />}
+                  <span>{isCloudUser ? 'Cloud' : 'Local'}</span>
+                </span>
+              </div>
+              <p className="text-[12px] lg:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 lg:mt-0">
+                Thuế TNCN 2 đợt & bóc tách nhận thay chuẩn MWG
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons — laptop; iPhone/iPad dùng thanh trên (usePageActions ở trên) */}
+          <div className="hidden lg:flex items-center gap-1.5 shrink-0">
+            {/* Kéo thả lên thanh dấu trang -> có nút "Chụp ảnh" dùng được ở mọi trang web */}
+            <div className="relative group">
+              <a
+                ref={bookmarkletRef}
+                href="#"
+                draggable
+                onClick={(e) => {
+                  e.preventDefault();
+                  toast(
+                    'Kéo thả nút này lên thanh Dấu trang của trình duyệt, rồi bấm vào dấu trang đó ở trang cần chụp.',
+                    { icon: <AppIcon name="exportImage" size="md" className="text-sky-600" />, duration: 6000 }
+                  );
+                }}
+                className="min-h-11 sm:min-h-0 px-2 py-1.5 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 rounded-control transition-colors flex items-center gap-1 cursor-grab active:cursor-grabbing select-none no-underline"
+              >
+                <AppIcon name="exportImage" size="md" className="text-sky-600" />
+                <span className="hidden sm:inline">Nút Chụp ảnh</span>
+              </a>
+
+              {/* Tooltip hướng dẫn */}
+              <div className="pointer-events-none absolute left-0 top-full mt-1.5 z-50 w-64 opacity-0 group-hover:opacity-100 transition-opacity duration-150 rounded-md bg-slate-800 text-white p-2.5 shadow-lg text-[11px] leading-relaxed">
+                <div className="font-bold mb-1 flex items-center gap-1">
+                  <AppIcon name="click" size="xs" />
+                  Kéo thả nút này lên thanh Dấu trang
+                </div>
+                <div className="text-slate-200">
+                  Sau đó mở trang cần chụp (HRM, phiếu lương…) và bấm vào dấu trang “Nút Chụp ảnh” —
+                  ảnh PNG full trang, siêu nét sẽ tự tải về.
+                </div>
+                <div className="mt-1 text-slate-400">
+                  Chưa thấy thanh dấu trang? Nhấn Ctrl+Shift+B (Windows) hoặc ⌘+Shift+B (Mac).
+                </div>
+              </div>
+            </div>
+
+            {/* GĐ10 bước 2 (2026-10-20): 3 nút đầu trang dùng Button chung — cỡ sm (32px, vùng chạm 44 trên điện thoại), kiểu secondary;
+                "Lịch sử" đang mở là primary. Icon giữ màu nhấn để nhận ra nhanh. */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowApiKeyModal(true)}
+              title="API Key Gemini dự phòng"
+              aria-label="API Key Gemini dự phòng"
+              className="gap-1.5 px-2.5"
+            >
+              <AppIcon name="apiKey" size="md" className="text-amber-600" />
+              <span className="hidden sm:inline">API Key</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowBracketModal(true)}
+              className="gap-1.5 px-2.5"
+            >
+              <AppIcon name="info" size="md" className="text-sky-500" />
+              <span>Biểu thuế</span>
+            </Button>
+
+            <Button
+              variant={showHistorySidebar ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setShowHistorySidebar((prev) => !prev)}
+              className="relative gap-1.5 px-2.5"
+              aria-pressed={showHistorySidebar}
+              title={showHistorySidebar ? 'Thu gọn danh sách lịch sử bên phải' : 'Mở danh sách lịch sử bên phải'}
+            >
+              <AppIcon name="history" size="md" className={showHistorySidebar ? 'text-white' : 'text-sky-500'} />
+              <span>Lịch sử</span>
+              {historyList.length > 0 && (
+                <span className={`ml-0.5 px-1.5 py-0.2 text-[11px] font-bold rounded-full ${
+                  showHistorySidebar ? 'bg-sky-800 text-white' : 'bg-sky-500 text-white'
+                }`}>
+                  {historyList.length}
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* BODY LAYOUT: 2 cột chính (Nhập & Kết quả) + Cột 3 Lịch sử mở rộng bên phải */}
+      <div className="flex flex-col xl:flex-row gap-3 sm:gap-4 items-start">
+        {/* 2 Cột Chính: Nhập liệu & Kết quả */}
+        <div className="flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 w-full">
+          {/* Cột trái: Panel nhập liệu & danh sách nhận thay (6/12 cột) */}
+          <div className="lg:col-span-6">
+            <TaxInputPanel
+              input={input}
+              onChange={handleInputChange}
+              onReset={handleReset}
+              onSave={() => handleSaveHistory()}
+              isSaved={isSaved}
+              onOpenApiKeyConfig={() => setShowApiKeyModal(true)}
+            />
+          </div>
+
+          {/* Cột phải: Panel kết quả & VietQR (6/12 cột) */}
+          <div className="lg:col-span-6 space-y-3 sm:space-y-4">
+            <TaxResultPanel
+              result={result}
+              proxyAmount={proxyTotal}
+              totalIncome={result.totalIncome || input.totalIncome}
+              name={input.name}
+              monthYear={input.monthYear}
+              proxyItems={proxyItems}
+              qrUrl={qrUrl}
+              qrBankLabel={qrBankLabel}
+              qrBankAccount={input.bankAccount}
+              // Xuất ảnh lại mà chưa sửa gì thì không tạo thêm bản ghi trùng
+              onExported={() => (isSaved ? undefined : handleSaveHistory({ silent: true }))}
+              onOpenBracketModal={() => setShowBracketModal(true)}
+              onNameChange={(name) => handleInputChange({ name })}
+              onMonthYearChange={(monthYear) => {
+                handleInputChange({ monthYear });
+                if (selectedRecordId) {
+                  taxSyncService.updateRecordMonth(selectedRecordId, monthYear).then(() => {
+                    refreshHistory();
+                  }).catch(console.error);
+                }
+              }}
+            />
+
+            {(result.taxOnProxyAmount > 0 || result.netRefundToFriend > 0) && (
+              <TaxPaymentQrCard
+                amount={result.taxOnProxyAmount}
+                proxyAmount={proxyTotal}
+                netRefundAmount={result.netRefundToFriend}
+                name={input.name}
+                bankAccount={input.bankAccount || ''}
+                setBankAccount={(v) => handleInputChange({ bankAccount: v })}
+                bankCode={input.bankCode || ''}
+                setBankCode={(v) => handleInputChange({ bankCode: v })}
+                qrDescription={input.qrDescription || ''}
+                setQrDescription={(v) => handleInputChange({ qrDescription: v })}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Cột 3: Danh sách lịch sử mở rộng nằm ở bên phải */}
+        {showHistorySidebar && (
+          <aside className="w-full xl:w-[350px] 2xl:w-[380px] shrink-0 sticky top-3 animate-fadeIn">
+            <TaxHistorySidebar
+              records={historyList}
+              selectedRecordId={selectedRecordId}
+              onSelectRecord={handleLoadRecord}
+              onDeleteRecord={handleDeleteRecord}
+              onUpdateMonth={handleUpdateRecordMonth}
+              onUpdateGroupMonth={handleUpdateGroupMonth}
+              onClearAll={handleClearAllHistory}
+              onClose={() => setShowHistorySidebar(false)}
+            />
+          </aside>
+        )}
+      </div>
+
+      {/* MODALS */}
+      <TaxBracketModal
+        isOpen={showBracketModal}
+        onClose={() => setShowBracketModal(false)}
+        activeBracketsWithProxy={result.bracketsWithProxy}
+        activeBracketsWithoutProxy={result.bracketsWithoutProxy}
+      />
+
+      <TaxHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        records={historyList}
+        onLoadRecord={handleLoadRecord}
+        onDeleteRecord={handleDeleteRecord}
+        onUpdateMonth={handleUpdateRecordMonth}
+        onUpdateGroupMonth={handleUpdateGroupMonth}
+        onClearAll={handleClearAllHistory}
+      />
+
+      <ApiKeyConfigModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onSaveKey={() => {}}
+      />
+
+      {/* Mở được từ trong modal Lịch sử (z-50) → đặt cao hơn để hộp hỏi nằm TRÊN modal đó. */}
+      <ConfirmDialog
+        isOpen={hoiXacNhan.mo}
+        onClose={() => { if (!dangXoaLichSu) dongHoiXacNhan(); }}
+        zIndex="z-[60]"
+        variant={hoiXacNhan.loai === 'dat-lai' ? 'warning' : 'danger'}
+        title={hoiXacNhan.loai === 'dat-lai' ? 'Đặt lại biểu mẫu?' : 'Xoá toàn bộ lịch sử tính thuế?'}
+        message={hoiXacNhan.loai === 'dat-lai'
+          ? 'Dữ liệu đang nhập sẽ bị xoá để tính lại từ đầu. Các bản đã lưu trong lịch sử không bị ảnh hưởng.'
+          : 'Mọi bản tính thuế đã lưu — trên máy này và trên cloud — sẽ bị xoá. Không hoàn tác được.'}
+        confirmText={hoiXacNhan.loai === 'dat-lai' ? 'Đặt lại' : 'Xoá toàn bộ'}
+        isLoading={dangXoaLichSu}
+        onConfirm={() => {
+          if (hoiXacNhan.loai === 'dat-lai') { dongHoiXacNhan(); datLaiBieuMau(); }
+          else void xoaToanBoLichSu();
+        }}
+      />
+    </div>
+  );
+};
+
+
+export default TaxCalculatorView;

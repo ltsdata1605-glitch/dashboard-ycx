@@ -1,0 +1,6147 @@
+{
+  "@google/genai": {
+    "group": "dependencies",
+    "declared": "^1.48.0",
+    "graph_references": [
+      {
+        "source": "features/tax-calculator/components/ApiKeyConfigModal.tsx",
+        "line": "47",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "@google/genai"
+      },
+      {
+        "source": "features/tax-calculator/services/salarySlipOcrService.ts",
+        "line": "238",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "@google/genai"
+      },
+      {
+        "source": "functions/src/gemini.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "@google/genai"
+      }
+    ]
+  },
+  "@types/papaparse": {
+    "group": "dependencies",
+    "declared": "^5.5.2",
+    "graph_references": []
+  },
+  "clsx": {
+    "group": "dependencies",
+    "declared": "^2.1.1",
+    "graph_references": [
+      {
+        "source": "components/shared/ui/utils.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "clsx"
+      }
+    ]
+  },
+  "dompurify": {
+    "group": "dependencies",
+    "declared": "^3.4.11",
+    "graph_references": [
+      {
+        "source": "features/sticker-event/stickerprinter/ticketSanitize.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "dompurify"
+      }
+    ]
+  },
+  "firebase": {
+    "group": "dependencies",
+    "declared": "^12.11.0",
+    "graph_references": [
+      {
+        "source": "components/layout/NotificationDropdown.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "components/modals/AdminAnnouncementModal.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "components/views/CheckThuongView.tsx",
+        "line": "14",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "components/views/UserManagementView.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "contexts/AuthContext.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "contexts/AuthContext.tsx",
+        "line": "3",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "contexts/AuthContext.tsx",
+        "line": "4",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "contexts/AuthContext.tsx",
+        "line": "205",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "contexts/AuthContext.tsx",
+        "line": "280",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/bi-dashboard/components/DataUpdater.tsx",
+        "line": "778",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/bi-dashboard/services/analysisEmployeeSyncService.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/bi-dashboard/services/biCloudSyncService.ts",
+        "line": "12",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/bi-dashboard/services/biCloudSyncService.ts",
+        "line": "13",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/bi-dashboard/services/biDataService.ts",
+        "line": "23",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/bi-dashboard/services/biDataService.ts",
+        "line": "26",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/bi-dashboard/services/biSupermarketMapService.ts",
+        "line": "9",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/bi-dashboard/services/tileLinkService.ts",
+        "line": "8",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/line-bot/services/botMediaService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/line-bot/services/botMediaService.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/line-bot/services/lineBotFirestoreService.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/line-bot/services/lineBotFirestoreService.ts",
+        "line": "19",
+        "kind": "IMPORT",
+        "specifier": "firebase/app"
+      },
+      {
+        "source": "features/line-bot/services/lineBotFirestoreService.ts",
+        "line": "20",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "features/line-bot/services/lineMessagingService.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/phan-ca/services/firebase.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/app"
+      },
+      {
+        "source": "features/phan-ca/services/firebase.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/phan-ca/services/firestoreSync.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/phan-ca/services/firestoreSync.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/phan-ca/services/geminiService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/sticker-event/ChangePasswordModal.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/ChangePasswordModal.tsx",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "firebase/app"
+      },
+      {
+        "source": "features/sticker-event/Login.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/SuperAdminModal.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/sticker-event/UserManagementModal.tsx",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/firebase.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/app"
+      },
+      {
+        "source": "features/sticker-event/firebase.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/firebase.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/sticker-event/firebase.ts",
+        "line": "9",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventAuth.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventDb.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventDb.ts",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventFile.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventState.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "features/sticker-event/services/adminUserService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "features/sticker-event/services/firebaseService.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "features/sticker-event/services/sessionService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "features/tax-calculator/services/salarySlipOcrService.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "features/tax-calculator/services/taxSyncService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "hooks/useCloudSync.ts",
+        "line": "8",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "hooks/useDataManagement.ts",
+        "line": "13",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "hooks/useFileUploadLogic.ts",
+        "line": "5",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "hooks/useSystemTraffic.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "hooks/useSystemTraffic.ts",
+        "line": "161",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/analytics"
+      },
+      {
+        "source": "services/adminUserService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "services/approvalSettingsService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "services/autoReportExportService.ts",
+        "line": "14",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/cloudDataService.ts",
+        "line": "13",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/cloudDataService.ts",
+        "line": "14",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "services/firebase.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/app"
+      },
+      {
+        "source": "services/firebase.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "services/firebase.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firebase.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "services/firebase.ts",
+        "line": "51",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/analytics"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "4",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "63",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "102",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "121",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "157",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "287",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "321",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "454",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "513",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/firestoreService.ts",
+        "line": "550",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/khoDataService.ts",
+        "line": "20",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/khoDataService.ts",
+        "line": "23",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "services/lightSync.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/lightSync.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      },
+      {
+        "source": "services/lineReportDelivery.ts",
+        "line": "13",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/notificationService.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/sessionService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/functions"
+      },
+      {
+        "source": "services/syncService.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/systemAnnouncementService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/tnbDataService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "firebase/firestore"
+      },
+      {
+        "source": "services/tnbDataService.ts",
+        "line": "3",
+        "kind": "IMPORT_TYPE",
+        "specifier": "firebase/auth"
+      }
+    ]
+  },
+  "html-to-image": {
+    "group": "dependencies",
+    "declared": "^1.11.13",
+    "graph_references": [
+      {
+        "source": "components/shared/export/captureEngine.ts",
+        "line": "178",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "html-to-image"
+      },
+      {
+        "source": "components/shared/export/captureEngine.ts",
+        "line": "1420",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "html-to-image"
+      },
+      {
+        "source": "components/shared/export/presetBi.ts",
+        "line": "1745",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "html-to-image"
+      }
+    ]
+  },
+  "html2canvas": {
+    "group": "dependencies",
+    "declared": "^1.4.1",
+    "graph_references": [
+      {
+        "source": "features/sticker-event/services/printService.ts",
+        "line": "1319",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "html2canvas"
+      }
+    ]
+  },
+  "html5-qrcode": {
+    "group": "dependencies",
+    "declared": "^2.3.8",
+    "graph_references": [
+      {
+        "source": "features/sticker-event/Scanner.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "html5-qrcode"
+      }
+    ]
+  },
+  "jspdf": {
+    "group": "dependencies",
+    "declared": "^4.2.1",
+    "graph_references": [
+      {
+        "source": "features/sticker-event/services/printService.ts",
+        "line": "1318",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "jspdf"
+      }
+    ]
+  },
+  "lucide-react": {
+    "group": "dependencies",
+    "declared": "^0.577.0",
+    "graph_references": [
+      {
+        "source": "components/shared/ui/icon/iconRegistry.ts",
+        "line": "21",
+        "kind": "IMPORT",
+        "specifier": "lucide-react"
+      }
+    ]
+  },
+  "lunar-javascript": {
+    "group": "dependencies",
+    "declared": "^1.7.7",
+    "graph_references": [
+      {
+        "source": "components/charts/RevenueCalendar.tsx",
+        "line": "16",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "lunar-javascript"
+      }
+    ]
+  },
+  "papaparse": {
+    "group": "dependencies",
+    "declared": "^5.5.3",
+    "graph_references": []
+  },
+  "qrcode": {
+    "group": "dependencies",
+    "declared": "^1.5.4",
+    "graph_references": [
+      {
+        "source": "features/sticker-event/services/printService.ts",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "qrcode"
+      }
+    ]
+  },
+  "react": {
+    "group": "dependencies",
+    "declared": "^19.2.3",
+    "graph_references": [
+      {
+        "source": "App.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/analysis/ExportDestinationButton.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/charts/IndustryGrid.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/charts/RevenueCalendar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/charts/SavedCalendarCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/charts/TrendChart.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/common/DebugPanel.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/common/ExportLoader.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/common/LoadingOverlay.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/common/ProcessingLoader.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/common/SkeletonLoader.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/ContestTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/EmployeeAnalysis.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/EmployeeAnalysisContent.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/EmployeeAnalysisFilters.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/EmployeeAnalysisModals.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/EmployeeAnalysisTabs.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/HeadToHeadTab.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/IndustryAnalysisTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/PerformanceTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/TopSellerList.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/head-to-head/HeadToHeadConfigModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/head-to-head/HeadToHeadTable.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/industry/IndustryTableUtils.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/industry/useIndustryAnalysisLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/ColumnConfigModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/CustomExploitationTabModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/StructureModals.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/column-config/CalculatedColumnForm.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/column-config/DataColumnForm.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/column-config/FormattingRulesForm.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/modals/column-config/TargetColumnForm.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/performance/PerformanceSingleTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/employees/performance/PerformanceTableUtils.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/filters/FilterBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/filters/FilterSection.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/kpis/KpiCards.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/kpis/modals/KpiCardConfigModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/AppFooter.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/AutoSyncScheduleButton.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/FontSelector.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/Footer.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/GlobalAutoSyncDock.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/Header.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/HeaderSystemGroup.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/InstallAppHint.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/MobileBottomNav.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/MobileMoreSheet.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/MobileNavBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/NotificationBell.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/NotificationDropdown.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/PageActionsBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/PendingApprovalBanner.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/layout/Sidebar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/AdminAnnouncementModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/ChangelogModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/CrossSellingBuilderModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/EmployeeCategoryTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/EmployeeManagerModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/FileHistoryModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/FileNamingModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/GtdhTargetModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/PerformanceModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/ShiftWarehouseInputModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/TnbDataConfigModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/UncollectedOrdersModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/UnconfiguredGroupsModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/UnshippedOrdersModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/UploadConflictModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/UploadTypeSelectionModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/modals/YcxLuyKePickerModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/DrillDownModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/export/AreaAutoExportButton.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/export/ExportOptionsModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/export/ExportProgressHost.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/ActionMenu.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Badge.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Banner.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/BusyBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Button.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/CapsuleBar.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/CapsuleBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Card.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Checkbox.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/ConfirmDialog.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/DataTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Dropdown.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/EmptyState.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/ErrorBoundary.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/FeatureLandingLayout.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Input.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Input.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/KpiCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/ListGroup.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Modal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/MultiSelectDropdown.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Overlay.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Overlay.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/PageActions.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/ProgressBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/SearchableSelect.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/SectionCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Select.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Select.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Skeleton.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/StatCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/StringMultiSelect.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Switch.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Tabs.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Textarea.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/TextareaCheckbox.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/Tooltip.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/TopBarActions.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/TouchTitleHint.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/icon/AppIcon.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/icon/brandIcons.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/icon/iconRegistry.ts",
+        "line": "20",
+        "kind": "IMPORT_TYPE",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/icon/renderIcon.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/toast/AppToaster.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/useCenterActiveInStrip.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/useModalBehavior.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/usePresence.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/shared/ui/utils.ts",
+        "line": "3",
+        "kind": "IMPORT_TYPE",
+        "specifier": "react"
+      },
+      {
+        "source": "components/summary/WarehouseSettingsModal.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/summary/WarehouseSummary.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/MonthlyTrendTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/MonthlyTrendTableRow.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/SummaryTable.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/SummaryTableRow.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/CrossSellingTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/FilterPopover.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/SummaryTableComparisonBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/SummaryTableFilterBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/SummaryTableHeader.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/hooks/useSummaryComparison.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/hooks/useSummaryExpand.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/hooks/useSummaryFilters.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/tables/summary/useSummaryTableLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/upload/FileHistoryManager.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/upload/KhoFileManager.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/upload/StatusDisplay.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/upload/UploadSection.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/AboutView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/CheckThuongView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/CouponConverterView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/DashboardView.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/ExternalToolView.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/LandingPageView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/LoginView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/PendingApprovalView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/PriceComparisonView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/SettingsView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/UserManagementView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/settings/ApprovalSettingsTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "components/views/settings/SettingsAccountTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "contexts/AuthContext.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "contexts/DashboardContext.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "contexts/LayoutContext.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "contexts/SyncContext.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/AutoClickGuideModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/BiAutoSyncModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/BiWrapper.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/Card.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/Dashboard.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/DataUpdater.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/ExportButton.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/LuyKeMonthPickerModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/NhanVien.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/Slider.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/SupermarketConfig.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/TargetHero.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/TileLinkModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/common/TampermonkeyInstallGuideContent.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/common/TampermonkeyInstallGuideModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/DashboardHeader.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/DashboardWidgets.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/KpiOverview.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/SafeHeaderText.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/SummaryTableView.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/competition/CompetitionKpiCards.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/industryKpi/AddIndustryKpiModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/industryKpi/IndustryKpiCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/industryKpi/IndustryKpiGrid.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/BonusTab.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/CompetitionCompareView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/CompetitionGroupView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/IndividualCompetitionView.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/AutoBonusErrorDetailModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/AutoBonusInstallGuideModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/AutoBonusPanel.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/AutoBonusRangePickerModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/BonusDataModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/BonusDesktopRow.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/BonusGroupListTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/GlobalAutoBonusManager.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/MultiMonthResultDetailModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/bonusTableHelpers.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/useBonusViewData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/revenue/ColorSettingsModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/revenue/ImportPrevMonthModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/revenue/RevenueDesktopRow.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/shared/AvatarDisplay.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/shared/AvatarPickerModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/shared/TieuDeBaoCao.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/components/shared/Pill.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/contexts/ExportOptionsContext.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useBiAutoSync.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useBonusAutoBridge.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useBonusCompareData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useCheckThuongBonus.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useCompetitionData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useDashboardLogic.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useDepartments.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useEmployeeAvatar.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useExportOptions.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useIndexedDBState.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useIndustryViewLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useMonthlyBonusArchive.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useMultiMonthBonusRun.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useNhanVienData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useProgressiveCount.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useRevenueData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useRevenueMatching.test.ts",
+        "line": "7",
+        "kind": "IMPORT_TYPE",
+        "specifier": "react"
+      },
+      {
+        "source": "features/bi-dashboard/utils/avatarIndex.ts",
+        "line": "9",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongAnalysisCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongCategoryCards.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongCategoryTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongChannelTopGrid.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongComparisonView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongEmptyDropzone.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongFilterBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongHeroBanner.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongLeaderboardView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongRankingModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongSearchView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongStatusSummary.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongSummaryCards.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/check-thuong/components/CheckThuongTopTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/KhaiThacView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/CounterRow.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/CustomFieldModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/DashboardTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/GroupSection.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/HistoryTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/LeadsTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/khai-thac/components/ReportEntryTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/LineBotView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/AdminDeclarationTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/CouponBatchEditModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/CouponImportModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/CouponManagerTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/FilteredCouponsTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/GroupFeaturesTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/IPhoneChatPreview.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/KeywordEditModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/KeywordLibraryTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/LineBotOnboardingModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/LineBotSettingsTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/LineBotStatusCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/ScheduleEditModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/ScheduleManagerTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/SelectFilterUserModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/SelectInteractedUserModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/components/SyntaxConfigTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/hooks/useAdminDeclaration.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/hooks/useBotScope.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/hooks/useCouponManager.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/hooks/useKeywordLibrary.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/hooks/useLineBotConfig.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/line-bot/hooks/useScheduleManager.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/PhanCaView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/AiSuggestPatternModal.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/BusyReportModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/ConflictListModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/Controls.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/DailyStatsTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/EditPatternModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/EditRulesModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/EditShiftModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/GoogleSheetExportModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/HistoryModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/ImportStaffModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/Legend.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/PhanCaToolbar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/ScheduleRow.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/ScheduleTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/SuggestionModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/components/VerticalIndividualSchedule.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/hooks/usePhanCaData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/phan-ca/utils/exportUtils.ts",
+        "line": "1",
+        "kind": "IMPORT_TYPE",
+        "specifier": "react"
+      },
+      {
+        "source": "features/product-config/components/ConfigTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/product-config/components/HtxConfigTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/product-config/components/ProductCodeConfigTable.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/product-config/components/ProductConfigManagerTab.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/product-config/components/ProductConfigTemplateHub.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/AlertModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/BottomNavigation.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/ChangePasswordModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/ConfirmModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/ControlPanel.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/ErrorBoundary.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/FileUpload.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/FilterModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/InventoryToolbar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/LayoutSelectionModal.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/Login.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/ManualInputModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/PdfPreviewModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/PrintSettingsModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/ResultsDisplay.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/SaveListModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/SavedListsModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/Scanner.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/SearchBar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/StickerEventApp.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/StickerPrinterView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/SuperAdminModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/UserGuideModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/UserManagementModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventAuth.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventDb.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventFile.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventPrint.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventState.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerPrinterData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/BarcodeCanvas.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/DrawTicketBlock.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/FloatingFormatToolbar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/StickerModeToolbar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/discountHelpers.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/useContentEditable.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/TaxCalculatorView.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/ApiKeyConfigModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/HrmCopyGuideModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/TaxBracketModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/TaxHistoryModal.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/TaxHistorySidebar.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/TaxInputPanel.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/TaxPaymentQrCard.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "features/tax-calculator/components/TaxResultPanel.tsx",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useCloudSync.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useDashboardLogic.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useDataManagement.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useEmployeeAnalysisData.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useEmployeeAnalysisLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useEmployeeAnalysisTabs.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useExportLogic.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useFileUploadLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useFilterState.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useHeadToHeadLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useIndustryGridLogic.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/usePendingApprovalCount.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useStableCallback.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useSystemTraffic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useTrendChartLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useWarehouseLogic.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "hooks/useWarehouseTargets.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "index.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/appleUiHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/biAutoSyncHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/biVersionHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/busyBarHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/couponHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/couponTableHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/gd10Harness.tsx",
+        "line": "10",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/industryTileHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/inputHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/lazyWithRetryHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/modalDaChuyenHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/modalHarness.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/modalSizeHarness.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/priceHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/sheetHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/tabsHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/tuDungModalHarness.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/e2e/helpers/uiHarness.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/unit/icon-registry.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "tests/unit/lazy-with-retry.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react"
+      },
+      {
+        "source": "utils/lazyWithRetry.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react"
+      }
+    ]
+  },
+  "react-dom": {
+    "group": "dependencies",
+    "declared": "^19.2.3",
+    "graph_references": [
+      {
+        "source": "components/layout/FontSelector.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/layout/Header.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/modals/UncollectedOrdersModal.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/modals/UnshippedOrdersModal.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/export/ExportProgressHost.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "components/shared/ui/ActionMenu.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/ui/CapsuleBar.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      },
+      {
+        "source": "components/shared/ui/CapsuleBar.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/ui/Input.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      },
+      {
+        "source": "components/shared/ui/Modal.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/ui/MultiSelectDropdown.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/ui/Overlay.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      },
+      {
+        "source": "components/shared/ui/Select.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      },
+      {
+        "source": "components/shared/ui/StringMultiSelect.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/ui/TextareaCheckbox.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      },
+      {
+        "source": "components/shared/ui/TopBarActions.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/shared/ui/toast/AppToaster.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/tables/summary/FilterPopover.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/views/CheckThuongView.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "components/views/settings/SettingsAccountTab.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/BiWrapper.tsx",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/ExportButton.tsx",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/SupermarketConfig.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/SummaryTableView.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/IndividualCompetitionView.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/sticker-event/BottomNavigation.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/sticker-event/ControlPanel.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "features/sticker-event/Scanner.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom"
+      },
+      {
+        "source": "hooks/useExportLogic.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "index.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/appleUiHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/biAutoSyncHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/biVersionHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/busyBarHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/couponHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/couponTableHarness.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/gd10Harness.tsx",
+        "line": "11",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/industryTileHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/inputHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/lazyWithRetryHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/modalDaChuyenHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/modalHarness.tsx",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/modalSizeHarness.tsx",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/priceHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/sheetHarness.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/tabsHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/tuDungModalHarness.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/e2e/helpers/uiHarness.tsx",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "react-dom/client"
+      },
+      {
+        "source": "tests/unit/icon-registry.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      },
+      {
+        "source": "tests/unit/lazy-with-retry.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-dom/server"
+      }
+    ]
+  },
+  "react-hot-toast": {
+    "group": "dependencies",
+    "declared": "^2.6.0",
+    "graph_references": [
+      {
+        "source": "components/shared/ui/toast/AppToaster.tsx",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "react-hot-toast"
+      },
+      {
+        "source": "components/shared/ui/toast/toast.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "react-hot-toast"
+      },
+      {
+        "source": "components/shared/ui/toast/toast.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "react-hot-toast"
+      },
+      {
+        "source": "components/shared/ui/toast/toast.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "react-hot-toast"
+      }
+    ]
+  },
+  "recharts": {
+    "group": "dependencies",
+    "declared": "^3.8.0",
+    "graph_references": [
+      {
+        "source": "components/charts/IndustryGrid.tsx",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "recharts"
+      },
+      {
+        "source": "components/charts/IndustryGrid.tsx",
+        "line": "5",
+        "kind": "IMPORT_TYPE",
+        "specifier": "recharts"
+      },
+      {
+        "source": "components/charts/TrendChart.tsx",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "recharts"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/IndividualCompetitionView.tsx",
+        "line": "27",
+        "kind": "IMPORT",
+        "specifier": "recharts"
+      }
+    ]
+  },
+  "sortablejs": {
+    "group": "dependencies",
+    "declared": "^1.15.7",
+    "graph_references": [
+      {
+        "source": "components/tables/SummaryTable.tsx",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "sortablejs"
+      }
+    ]
+  },
+  "tailwind-merge": {
+    "group": "dependencies",
+    "declared": "^3.5.0",
+    "graph_references": [
+      {
+        "source": "components/shared/ui/utils.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "tailwind-merge"
+      }
+    ]
+  },
+  "xlsx": {
+    "group": "dependencies",
+    "declared": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "graph_references": [
+      {
+        "source": "components/modals/UncollectedOrdersModal.tsx",
+        "line": "429",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "components/modals/UnshippedOrdersModal.tsx",
+        "line": "165",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "components/views/PriceComparisonView.tsx",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/check-thuong/services/checkThuongParser.ts",
+        "line": "29",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/line-bot/hooks/useCouponManager.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/line-bot/services/couponTemplateService.ts",
+        "line": "49",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/line-bot/services/couponTemplateService.ts",
+        "line": "115",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/phan-ca/PhanCaView.tsx",
+        "line": "366",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/phan-ca/utils/excelImport.ts",
+        "line": "4",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/phan-ca/utils/exportUtils.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/phan-ca/utils/exportUtils.ts",
+        "line": "10",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.test.ts",
+        "line": "206",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.test.ts",
+        "line": "242",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.test.ts",
+        "line": "280",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.test.ts",
+        "line": "336",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "159",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "179",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "278",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "334",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "388",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "493",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "530",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.ts",
+        "line": "554",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerEventFile.ts",
+        "line": "212",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerPrinterData.ts",
+        "line": "885",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerPrinterData.ts",
+        "line": "964",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/hooks/useStickerPrinterData.ts",
+        "line": "1003",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/services/fileParser.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/services/fileParser.ts",
+        "line": "58",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/services/fileParser.ts",
+        "line": "175",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/sticker-event/stickerprinter/excelParsers.ts",
+        "line": "81",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "features/tax-calculator/services/taxExportExcelService.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "services/dataService.ts",
+        "line": "333",
+        "kind": "DYNAMIC_IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "services/worker.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/bench/gen-sales-xlsx.mjs",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/check-thuong-xuat-anh-toan-dien.spec.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/gd7-mini-app.spec.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/helpers/checkThuongNative.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/helpers/salesFixture.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/line-gui-anh-va-hen-gio.spec.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/luu-du-lieu-ngoai-luong-chinh.spec.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/registry-luu-hong-khong-mat-du-lieu.spec.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/xuat-hang-loat-dien-thoai-chia-se-mot-lan.spec.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      },
+      {
+        "source": "tests/e2e/ycx-tu-dong-phan-tich.spec.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "xlsx"
+      }
+    ]
+  },
+  "@firebase/rules-unit-testing": {
+    "group": "devDependencies",
+    "declared": "^5.0.1",
+    "graph_references": [
+      {
+        "source": "tests/firestore.rules.test.mjs",
+        "line": "19",
+        "kind": "IMPORT",
+        "specifier": "@firebase/rules-unit-testing"
+      }
+    ]
+  },
+  "@playwright/test": {
+    "group": "devDependencies",
+    "declared": "^1.63.0",
+    "graph_references": [
+      {
+        "source": "audit/tools/investigate-webkit-focus.mjs",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "audit/tools/playwright-baseline.config.mjs",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "playwright.config.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "scripts/e2e-auth-setup.mjs",
+        "line": "11",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "scripts/pwa/tao-icon-splash.mjs",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/analysis-employees-sync.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/analysis-only-all-in-one.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/analysis-only-all-in-one.spec.ts",
+        "line": "10",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/anh-bi-mat-do-a20.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/anh-man-chao-a22.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/anh-modal-a13.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/anh-truoc-sau-apple.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/apple-tuong-thich.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/audit-iphone-toan-du-an.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/audit-xuat-anh-phan-tich-mobile-laptop.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/auth-fresh-login-no-flash.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/auth-fresh-login-no-flash.spec.ts",
+        "line": "52",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bang-iphone-ghim-cot-vien-mo.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-auto-luy-ke-dashboard.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-auto-sync-modal-tien-trinh.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-auto-sync-xong-dong-modal.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-bo-loc-trong-trang-iphone.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-bonus-compare.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-chuyen-che-do-khong-sap.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-competition-bonus-col.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-competition-export-fit.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-competition.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-deep-link-khong-vong-lap.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-du-lieu-khong-lan-giua-tai-khoan.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-import-employees-button.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-mobile-iphone.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-cap-nhat-xong-tu-chay-tiep.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-chi-tab-lam-viec.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-chi-tab-lam-viec.spec.ts",
+        "line": "13",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-khong-phat-lai-ket-qua-cu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-kiem-phien-ban.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-luy-ke.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-luy-ke.spec.ts",
+        "line": "29",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/bi-sync-realtime-ngay.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-analysis-filter-reset.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-export-icons-standard.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-iphone-khong-cat.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-luu-du-lieu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-mobile-topbar.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-native.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-ranking-modal-export.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-top-feature.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-top-feature.spec.ts",
+        "line": "53",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-xuat-anh-ten-dac-biet.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/check-thuong-xuat-anh-toan-dien.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/chi-tiet-kho-cau-hinh-cot-hong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/chuan-thiet-ke-b.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/click-plus-auto-toggle.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/cloud-sync-notice-line.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/column-settings-auto-sync.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/coupon-bang-iphone.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/csp-sweep.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/css-pham-vi-va-vung-cham.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/css-pham-vi-va-vung-cham.spec.ts",
+        "line": "9",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/dang-nhap-cung-tab-no-popup.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/dang-nhap-ho-so-tinh-san.spec.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/dang-nhap-thiet-bi-moi.spec.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/dem-luot-truy-cap.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/desktop-menu-toggle.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/dock-position-alignment.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/doi-tai-khoan-don-du-lieu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/dong-bo-hai-may-du-lieu-that.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/du-lieu-that-tour.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/duong-ke-doc-mong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/employee-revenue-config-tiles.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/gd10-xac-nhan-va-bang.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/gd7-mini-app.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/gd8-cong-tac-chung.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/h2h-crud-action-menu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ham-may-chu-singapore.spec.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/he-so-so-luong-quy-doi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/header-consistency-all-views.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/header-group.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/checkThuongNative.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/customTokenLogin.ts",
+        "line": "1",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/iconAudit.ts",
+        "line": "1",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/modalExplorer.ts",
+        "line": "1",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/realDataContext.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/seed.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/helpers/tableSnapshot.ts",
+        "line": "1",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/hen-gio-bi-va-bo-lo.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/icon-audit-bi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/icon-audit-man-goc.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/icon-audit-modal.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/icon-dieu-huong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/icon-thanh-cong-cu-bi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/iframe-tabs-csp.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/iframe-tabs-csp.spec.ts",
+        "line": "20",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/indexeddb-rieng-theo-tai-khoan.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/industry-kpi-size.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ios-du-lieu-that.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ios-pwa-dang-nhap.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ios-report-bi-check-thuong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ios-xuat-anh-chia-se.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/iphone-gapi-treo-dang-nhap.spec.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/keo-tai-lai-trang.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/khai-thac-giu-du-lieu-theo-tai-khoan.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/khai-thac-luu-cam-ket.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/khai-thac-luu-hong-bao-loi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/khai-thac.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/khoang-trong-thua-fix.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/khung-app-gd4.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/kpi-export-border-radius.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/kpi-style-real-user.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/lazy-tai-truoc.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/line-bot-han-muc.spec.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/line-bot-han-muc.spec.ts",
+        "line": "9",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/line-gui-anh-va-hen-gio.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/login-view-redesign.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/lop-apple-gd3.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/luu-du-lieu-ngoai-luong-chinh.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/man-khoi-dong-dong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/mau-nganh-modal.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/menu-khac-xoay-ngang.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/mo-lai-app-dung-cho-cu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/mobile-bonus-competition-header.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/mobile-iphone-6-module.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/mobile-settings-compact.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/mobile-settings-compact.spec.ts",
+        "line": "47",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/modal-da-chuyen-modal-chung.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/modal-ngan-xep.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/modal-sheet-vuot-dong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/modal-tu-dung-hanh-vi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/more-sheet-bao-cao.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/nhan-giu-xem-chu-thich.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/nho-tai-khoan-dang-nhap.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/nho-tai-khoan-dang-nhap.spec.ts",
+        "line": "9",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/nho-tai-khoan-dang-nhap.spec.ts",
+        "line": "9",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/o-nhap-a17.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/o-nhap-va-dai-chon-iphone.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/offline-app-shell.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/pending-approvals-poll-rate.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/perf-apple.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/perf-nap-du-lieu-lon.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-quyen-3-tab.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-quyen-tab-cau-hinh.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-quyen-tai-danh-sach.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-tich-gd5.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-tich-gd5b.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-tich-mat-mang-cau-hinh.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-tich-mo-lanh-khong-cho-cau-hinh.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/phan-tich-performance-modal.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/product-config-real-user.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/pwa-iphone.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/pwa-login-khong-gapi.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/quy-thoi-gian-redesign.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/real-data-config.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/real-data.spec.ts",
+        "line": "11",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/registry-luu-hong-khong-mat-du-lieu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/report-bi-auto-export.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/report-bi-gd6.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sidebar-hover-flyout.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/smoke.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/so-gia-dien-thoai-va-huy.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-am-thanh-quet.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-camera-tat-khi-dong.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-firestore-write-rate.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-nut-va-quet-ma.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-pdf-dien-thoai.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-ticket-persistence.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/sticker-toc-do-quet-ma.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/super-admin-kho-dung-chung.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/super-admin-kho-dung-chung.spec.ts",
+        "line": "33",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/super-admin-kho-dung-chung.spec.ts",
+        "line": "85",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/system-traffic-stats.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/table-rules.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tang-toc-gd2.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/taste-apple-style-real-user.spec.ts",
+        "line": "2",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tax-api-key-fallback.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tax-iphone-khong-cat-chu.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tax-paste-hrm.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tax-paste-hrm.spec.ts",
+        "line": "15",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tax-qr-and-export.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tax-qr-and-export.spec.ts",
+        "line": "62",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/test-kpi-auto-save.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/test-warehouse-auto-save.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/the-nguoi-dung-compact.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tnb-data-userscript.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/tnb-pmh-userscript.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/toast-thong-nhat.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ui-baseline.spec.ts",
+        "line": "3",
+        "kind": "IMPORT_TYPE",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ui-dung-chung-dot-2.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/worker-phan-tich-tu-khoi-phuc.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/xss-header-sanitization.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/xuat-anh-chung.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/xuat-anh-giao-anh-chung.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/xuat-anh-hang-loat-ket-qua.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/xuat-hang-loat-dien-thoai-chia-se-mot-lan.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ycx-tu-dong-phan-tich.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      },
+      {
+        "source": "tests/e2e/ycx-tu-dong-report-mwg.spec.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "@playwright/test"
+      }
+    ]
+  },
+  "@tailwindcss/vite": {
+    "group": "devDependencies",
+    "declared": "^4.2.1",
+    "graph_references": [
+      {
+        "source": "vite.config.ts",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "@tailwindcss/vite"
+      }
+    ]
+  },
+  "@types/node": {
+    "group": "devDependencies",
+    "declared": "^22.14.0",
+    "graph_references": []
+  },
+  "@types/qrcode": {
+    "group": "devDependencies",
+    "declared": "^1.5.6",
+    "graph_references": []
+  },
+  "@types/react": {
+    "group": "devDependencies",
+    "declared": "^19.2.14",
+    "graph_references": []
+  },
+  "@types/react-dom": {
+    "group": "devDependencies",
+    "declared": "^19.2.3",
+    "graph_references": []
+  },
+  "@vitejs/plugin-react": {
+    "group": "devDependencies",
+    "declared": "^5.0.0",
+    "graph_references": [
+      {
+        "source": "vite.config.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "@vitejs/plugin-react"
+      }
+    ]
+  },
+  "@vitest/coverage-v8": {
+    "group": "devDependencies",
+    "declared": "^4.1.11",
+    "graph_references": []
+  },
+  "autoprefixer": {
+    "group": "devDependencies",
+    "declared": "^10.4.27",
+    "graph_references": []
+  },
+  "eslint": {
+    "group": "devDependencies",
+    "declared": "^9.39.4",
+    "graph_references": [
+      {
+        "source": "tests/unit/eslint-cam-hop-thoai-trinh-duyet.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "eslint"
+      },
+      {
+        "source": "tests/unit/eslint-cam-nut-tho.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "eslint"
+      },
+      {
+        "source": "tests/unit/eslint-ngoai-le-cach-ly.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "eslint"
+      },
+      {
+        "source": "tests/unit/userscript-khong-bien-chua-khai-bao.test.ts",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "eslint"
+      }
+    ]
+  },
+  "eslint-import-resolver-typescript": {
+    "group": "devDependencies",
+    "declared": "^3.10.1",
+    "graph_references": []
+  },
+  "eslint-plugin-import": {
+    "group": "devDependencies",
+    "declared": "^2.32.0",
+    "graph_references": [
+      {
+        "source": "eslint.config.js",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "eslint-plugin-import"
+      }
+    ]
+  },
+  "eslint-plugin-react-hooks": {
+    "group": "devDependencies",
+    "declared": "^5.2.0",
+    "graph_references": [
+      {
+        "source": "eslint.config.js",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "eslint-plugin-react-hooks"
+      }
+    ]
+  },
+  "firebase-tools": {
+    "group": "devDependencies",
+    "declared": "^15.24.0",
+    "graph_references": []
+  },
+  "gh-pages": {
+    "group": "devDependencies",
+    "declared": "^6.3.0",
+    "graph_references": []
+  },
+  "postcss": {
+    "group": "devDependencies",
+    "declared": "^8.5.28",
+    "graph_references": [
+      {
+        "source": "vite.config.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "postcss"
+      }
+    ]
+  },
+  "tailwindcss": {
+    "group": "devDependencies",
+    "declared": "^4.2.1",
+    "graph_references": [
+      {
+        "source": "styles.css",
+        "line": "1",
+        "kind": "ASSET_REF",
+        "specifier": "tailwindcss"
+      }
+    ]
+  },
+  "typescript": {
+    "group": "devDependencies",
+    "declared": "~5.8.2",
+    "graph_references": [
+      {
+        "source": "audit/tools/dependencies.mjs",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "typescript"
+      }
+    ]
+  },
+  "typescript-eslint": {
+    "group": "devDependencies",
+    "declared": "^8.62.1",
+    "graph_references": [
+      {
+        "source": "eslint.config.js",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "typescript-eslint"
+      }
+    ]
+  },
+  "vite": {
+    "group": "devDependencies",
+    "declared": "^6.2.0",
+    "graph_references": [
+      {
+        "source": "vite.config.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "vite"
+      }
+    ]
+  },
+  "vitest": {
+    "group": "devDependencies",
+    "declared": "^4.1.11",
+    "graph_references": [
+      {
+        "source": "components/shared/export/khongBanSao.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/export/truncateExport.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/CapsuleBar.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/Input.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/Overlay.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/Select.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/TextareaCheckbox.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/cnBoGoc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/khongCongTacTuVe.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/modalBleed.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/taiLaiKhiLoiChunk.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/toast/khongToastTuVe.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "components/shared/ui/toast/toast.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/components/dataValidationAndSafety.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/bonus/bonusRevenueMatching.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/components/nhanvien/revenue/colorSettings.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/competitionLuyKeMerge.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/hooks/useRevenueMatching.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/autoNavigationService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/biAutoSyncService.version.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/biCloudSyncService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/biSupermarketMapService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/checkThuongBonus.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/competitionCommentaryCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/competitionGroupCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/competitionSortAndCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/competitionSummaryCalc.parity.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/competitionSummaryCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/competitionViewCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/employeeParser.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/employeeTargetKeys.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/globalBonusService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/individualCompetitionCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/industryKpiCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/kpiOverviewCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/metricService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/summaryTableCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/thangLuyKe.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/services/tileLinkService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/bonusDateRange.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/cartoonAvatars.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/danhSachSieuThi.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/dashboardHelpers.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/directApiSerializer.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/nhanVienHelpers.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/thiDuaNhanVienApi.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/bi-dashboard/utils/traChamApi.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/check-thuong/services/checkThuongCalc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/product-config/services/firebaseProductConfigService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/sticker-event/services/batchImageExportService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/sticker-event/services/fileParser.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/tax-calculator/services/bankCatalog.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/tax-calculator/services/hrmSlipTextParser.test.ts",
+        "line": "2",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/tax-calculator/services/taxExportExcelService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "features/tax-calculator/services/taxHistoryGrouping.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/analysisExportDestinations.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/autoSyncSchedule.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/filterService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/managedUsersCache.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/periodService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/summaryService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "services/ycxAutoSyncService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/bench/filter-100k.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/analysis-employees-from-dept-map.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/analysis-employees-khong-vong-lap.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/analytics-worker-set-data-khuc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/approval-settings.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-d11-tax-hang-cho.test.ts",
+        "line": "7",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-d16-summary-kpi-fallback.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd0-xac-thuc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd1a-claims.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd1c-liff-ticket.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd1c-webhook.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd1d-sticker-html.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd2a-kho-sync.test.ts",
+        "line": "8",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd2b-cloud-chunks.test.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd2c-tax-identity.test.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd2e-pmh-relay.test.ts",
+        "line": "4",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd2e-sticker-quantity.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd3-kho-concurrency.test.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-gd3-phanca-load.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/audit-s13-line-secrets.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/autoReportExportService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/batch-export-result.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/bi-industry-sync-robustness.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/bi-worker-phuc-hoi.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/bonus-date-range.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/bot-media-upload.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/cau-noi-dto-a29.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/center-active-strip.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/check-thuong-analysis-filter-reset.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/check-thuong-search.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/check-thuong-table-sort.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/cho-the-nhan-vien.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/cloud-sync-banner.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/column-settings-firebase-sync.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/competition-filter-default.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/coupon-auto-revoke.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/coupon-parser.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/coupon-template.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/csp-frame-src-va-cdn-pin.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/eslint-cam-hop-thoai-trinh-duyet.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/eslint-cam-nut-tho.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/eslint-ngoai-le-cach-ly.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/expired-coupon-auto-cleanup.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/getLocalDateString.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/heavy-sync-chunk-cleanup.test.ts",
+        "line": "9",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/heavy-sync-policy.test.ts",
+        "line": "9",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/icon-registry.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/industry-colors.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/install-hint.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/interacted-users.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/ios-xuat-anh.test.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/khai-thac.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/lazy-with-retry.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/light-sync-hai-may.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/light-sync-keys.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/light-sync-plan.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/light-sync-policy.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-coupon-lookup.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-group-features.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-loi-han-muc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-notify-may-chu.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-pmh-form-strict.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-pmh-sequence-theo-loai.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-pmh-sequence.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-relist-unused.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-schedule-due.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-signature.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-tin-co-gach-cheo.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-used-confirm-text.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-user-name.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-uu-tien-notify.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-bot-webhook-chu-ky.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/line-flex-gia-tri-hop-le.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/lint-ratchet-patterns.test.ts",
+        "line": "12",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/no-hardcoded-api-keys.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/pending-approvals-store.test.ts",
+        "line": "10",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/phan-ca-can-bang-thieu-gioi-tinh.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/phan-ca-google-sheet-mau-o.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/phan-ca-nap-du-bo-phan.test.ts",
+        "line": "3",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/phan-ca-realtime.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/pkce-handoff-concurrency.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/presence-policy.test.ts",
+        "line": "5",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/product-config-serialization.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/pwa-standalone-auth.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/report-bi-analysis-employee-only.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/reset-du-lieu-bao-cao-chung.test.ts",
+        "line": "9",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sales-json-chunks.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/session-ownership-claim.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sticker-background-helpers.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sticker-draw-ticket-persistence.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sticker-firestore-quota.test.ts",
+        "line": "11",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sticker-roles-and-cross-device.test.ts",
+        "line": "12",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sticker-session-sync-policy.test.ts",
+        "line": "8",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/sticker-upload-timeout.test.ts",
+        "line": "10",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/super-admin-kho.test.ts",
+        "line": "6",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/system-announcement.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/target-employee-supermarket-filter.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/tax-calculator.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/tax-sync-giao-dich.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/tnbDataService.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/userscript-khong-bien-chua-khai-bao.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/userscript-probe.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/worker-timeout.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "tests/unit/ycx-realtime-luyke-isolation.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "utils/dataUtils.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "utils/departmentFilter.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "utils/localDbScope.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "utils/moTaBoLoc.test.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest"
+      },
+      {
+        "source": "vitest.config.ts",
+        "line": "1",
+        "kind": "IMPORT",
+        "specifier": "vitest/config"
+      }
+    ]
+  }
+}

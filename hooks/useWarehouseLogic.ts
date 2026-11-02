@@ -1,0 +1,452 @@
+import { useMemo, useState, useEffect, useRef, startTransition } from 'react';
+import type { WarehouseColumnConfig, WarehouseSummaryRow, DataRow, ProductConfig, MetricValues } from '../types';
+import { COL, HINH_THUC_XUAT_TRA_GOP } from '../constants';
+import { getRowValue, calculateRowMetrics, getParentGroup, cleanAndNormalize, getSubgroup, normalizedThuHoSet, getRowPrice } from '../utils/dataUtils';
+
+interface UseWarehouseLogicProps {
+    data: WarehouseSummaryRow[];
+    columns: WarehouseColumnConfig[];
+    originalData: DataRow[];
+    productConfig: ProductConfig | null;
+    sortConfig: { key: string; direction: 'asc' | 'desc' };
+}
+
+export const useWarehouseLogic = ({
+    data,
+    columns,
+    originalData,
+    productConfig,
+    sortConfig
+}: UseWarehouseLogicProps) => {
+
+    const dataColumnsHash = useMemo(() => {
+        const dataCols = columns.filter(c => c.isCustom && (c.type === 'data' || (!c.type && c.productCodes)));
+        return JSON.stringify(dataCols.map(c => ({ id: c.id, filters: c.filters, productCodes: c.productCodes, metricType: c.metricType })));
+    }, [columns]);
+
+    // Deferred custom column computation — runs async to avoid blocking table render
+    const [baseCustomData, setBaseCustomData] = useState<Map<string, Map<string, number>>>(new Map());
+    const computeVersionRef = useRef(0);
+
+    useEffect(() => {
+        const dataRows = originalData as DataRow[];
+        if (!dataRows || !dataRows.length || !productConfig) {
+            setBaseCustomData(new Map());
+            return;
+        }
+
+        const customColumns = columns.filter(c => c.isCustom && (c.type === 'data' || (!c.type && c.productCodes)));
+        if (customColumns.length === 0) {
+            setBaseCustomData(new Map());
+            return;
+        }
+
+        // Increment version to invalidate any in-flight computation
+        const thisVersion = ++computeVersionRef.current;
+
+        // Yield to main thread, then compute in a startTransition
+        const timer = setTimeout(() => {
+            if (computeVersionRef.current !== thisVersion) return; // stale
+
+            const results = new Map<string, Map<string, number>>();
+            const dataColumns = customColumns;
+
+            customColumns.forEach(c => results.set(c.id, new Map<string, number>()));
+
+            const colFilterCache = dataColumns.map(col => {
+                const industrySet = col.filters?.selectedIndustries?.length ? new Set(col.filters.selectedIndustries) : null;
+                const subgroupSet = col.filters?.selectedSubgroups?.length ? new Set(col.filters.selectedSubgroups) : null;
+                const manufacturerSet = col.filters?.selectedManufacturers?.length ? new Set(col.filters.selectedManufacturers) : null;
+                const productCodes = col.filters?.productCodes || col.productCodes;
+                const productSet = productCodes?.length ? new Set(productCodes) : null;
+                const hasAnyFilter = !!(industrySet || subgroupSet || manufacturerSet || productSet || col.filters?.priceCondition);
+                return { col, industrySet, subgroupSet, manufacturerSet, productSet, hasAnyFilter };
+            });
+
+            const colCount = colFilterCache.length;
+            for (let ri = 0, rLen = dataRows.length; ri < rLen; ri++) {
+                const row = dataRows[ri];
+                const rawKhoName = getRowValue(row, COL.KHO);
+                if (!rawKhoName) continue;
+                const khoName = String(rawKhoName);
+
+                const nhomHang = getRowValue(row, COL.MA_NHOM_HANG);
+                const parentGroup = getParentGroup(nhomHang, productConfig);
+                if (parentGroup === 'Không tính doanh thu') continue;
+
+                const hinhThucXuat = getRowValue(row, COL.HINH_THUC_XUAT) || '';
+                const isRevenue = productConfig && productConfig.revenueEligibleHTX && productConfig.revenueEligibleHTX.size > 0
+                    ? productConfig.revenueEligibleHTX.has(cleanAndNormalize(hinhThucXuat))
+                    : !normalizedThuHoSet.has(cleanAndNormalize(hinhThucXuat));
+                if (!isRevenue) continue;
+
+
+                const productName = getRowValue(row, COL.PRODUCT);
+                const group = getSubgroup(nhomHang, productConfig) || 'Khác';
+                const rootIndustry = getParentGroup(nhomHang, productConfig) || 'Khác';
+                const manufacturer = getRowValue(row, COL.MANUFACTURER);
+                const productNameStr = String(productName || '');
+
+                let metrics: { revenue: number, revenueQD: number, weightedQuantity: number } | null = null;
+
+                for (let ci = 0; ci < colCount; ci++) {
+                    const { col, industrySet, subgroupSet, manufacturerSet, productSet, hasAnyFilter } = colFilterCache[ci];
+
+                    let isMatch = true;
+
+                    if (hasAnyFilter) {
+                        if (industrySet && !industrySet.has(rootIndustry)) continue;
+                        if (subgroupSet && !subgroupSet.has(group)) continue;
+                        if (manufacturerSet && !manufacturerSet.has(manufacturer)) continue;
+
+                        if (productSet) {
+                            let pMatch = false;
+                            for (const code of productSet) {
+                                if (productNameStr.includes(code)) {
+                                    pMatch = true;
+                                    break;
+                                }
+                            }
+                            if (!pMatch) continue;
+                        }
+
+                        // Chỉ áp bộ lọc giá khi priceValue1 đã nhập số hợp lệ — priceValue1 rỗng nghĩa là
+                        // bỏ qua bộ lọc (khớp hành vi ContestTable.tsx), tránh mặc định về 0 gây loại
+                        // nhầm gần hết dữ liệu với điều kiện "nhỏ hơn"/"bằng"/"giữa".
+                        if (col.filters?.priceCondition && typeof col.filters.priceValue1 === 'number') {
+                            const priceVal = getRowPrice(row, col.filters.priceType === 'original' ? 'original' : 'discounted');
+                            const v1 = col.filters.priceValue1;
+                            switch (col.filters.priceCondition) {
+                                case 'greater': if (priceVal <= v1) isMatch = false; break;
+                                case 'less': if (priceVal >= v1) isMatch = false; break;
+                                case 'equal': if (priceVal !== v1) isMatch = false; break;
+                                case 'between': {
+                                    const v2 = col.filters.priceValue2;
+                                    if (typeof v2 !== 'number' || priceVal < v1 || priceVal > v2) isMatch = false;
+                                    break;
+                                }
+                            }
+                            if (!isMatch) continue;
+                        }
+                    }
+
+                    if (metrics === null) {
+                        metrics = calculateRowMetrics(row, productConfig);
+                    }
+
+                    const { revenue, revenueQD, weightedQuantity } = metrics;
+                    const metricType = col.metricType || 'quantity';
+
+                    let value = 0;
+                    if (metricType === 'quantity') {
+                        value = weightedQuantity;
+                    } else if (metricType === 'revenue') {
+                        value = revenue / 1000000;
+                    } else if (metricType === 'revenueQD') {
+                        value = revenueQD / 1000000;
+                    }
+
+                    const khoMap = results.get(col.id)!;
+                    khoMap.set(khoName, (khoMap.get(khoName) || 0) + value);
+                }
+            }
+
+            // Only apply if still the latest computation
+            if (computeVersionRef.current === thisVersion) {
+                startTransition(() => {
+                    setBaseCustomData(results);
+                });
+            }
+        }, 16); // One frame delay to let table render first
+
+        return () => clearTimeout(timer);
+     
+    }, [originalData, productConfig, dataColumnsHash]);
+
+    const customProductColumnValues = useMemo(() => {
+        const results = new Map<string, Map<string, number>>();
+        const customColumns = columns.filter(c => c.isCustom && (c.type || c.productCodes));
+        
+        for (const [key, mapVals] of baseCustomData.entries()) {
+             results.set(key, new Map(mapVals));
+        }
+
+        const allKhoNames = data.map(d => String(d.khoName));
+
+        // Process "target" columns
+        customColumns.forEach(col => {
+            if (col.type !== 'target') return;
+            const validCount = allKhoNames.length;
+            const valuePerKho = validCount > 0 ? (col.targetValue || 0) / validCount : 0;
+            allKhoNames.forEach(khoName => {
+                const khoMap = results.get(col.id);
+                if (khoMap) khoMap.set(khoName, valuePerKho);
+            });
+        });
+
+        const getFallbackMetric = (khoName: string, colId: string) => {
+             const row = data.find(d => String(d.khoName) === khoName);
+             if (!row) return 0;
+             const targetCol = columns.find(c => c.id === colId);
+             if (!targetCol) return 0;
+             if (targetCol.metric) return row[targetCol.metric] || 0;
+
+             if (targetCol.categoryType && (targetCol.categoryName || targetCol.productCodes) && targetCol.metricType) {
+                const metrics = row.metrics;
+                if (!metrics) return 0;
+                if (targetCol.productCodes && targetCol.productCodes.length > 0) {
+                    if (!metrics.byProduct) return 0;
+                    let total = 0;
+                    targetCol.productCodes.forEach(code => {
+                        total += metrics.byProduct?.[code]?.[targetCol.metricType!] || 0;
+                    });
+                    return total;
+                }
+                if (targetCol.manufacturerName) {
+                    const primaryKey = targetCol.categoryType === 'industry' ? 'byIndustryAndManufacturer' : 'byGroupAndManufacturer';
+                    if (targetCol.categoryName && targetCol.categoryName.includes(',')) {
+                        const names = targetCol.categoryName.split(',').map(n => n.trim());
+                        let total = 0;
+                        names.forEach(name => {
+                            total += metrics[primaryKey]?.[name]?.[targetCol.manufacturerName!]?.[targetCol.metricType!] || 0;
+                        });
+                        return total;
+                    }
+                    return metrics[primaryKey]?.[targetCol.categoryName!]?.[targetCol.manufacturerName]?.[targetCol.metricType] || 0;
+                } else {
+                    const primaryKey = targetCol.categoryType === 'industry' ? 'byIndustry' : targetCol.categoryType === 'group' ? 'byGroup' : 'byManufacturer';
+                    if (targetCol.categoryName && targetCol.categoryName.includes(',')) {
+                        const names = targetCol.categoryName.split(',').map(n => n.trim());
+                        let total = 0;
+                        names.forEach(name => {
+                            total += metrics[primaryKey]?.[name]?.[targetCol.metricType!] || 0;
+                        });
+                        return total;
+                    }
+                    return metrics[primaryKey]?.[targetCol.categoryName!]?.[targetCol.metricType] || 0;
+                }
+             }
+             return 0;
+        };
+
+        // Process "calculated" columns
+        allKhoNames.forEach(khoName => {
+            customColumns.forEach(col => {
+                if (col.type === 'calculated' && col.operand1_columnId && col.operand2_columnId) {
+                    let op1 = results.get(col.operand1_columnId)?.get(khoName);
+                    if (op1 === undefined) op1 = getFallbackMetric(khoName, col.operand1_columnId);
+                    
+                    let op2 = results.get(col.operand2_columnId)?.get(khoName);
+                    if (op2 === undefined) op2 = getFallbackMetric(khoName, col.operand2_columnId);
+
+                    let result = 0;
+                    switch (col.operation) {
+                        case '+': result = op1 + op2; break;
+                        case '-': result = op1 - op2; break;
+                        case '*': result = op1 * op2; break;
+                        case '/': result = op2 !== 0 ? op1 / op2 : 0; break;
+                    }
+                    const khoMap = results.get(col.id);
+                    if (khoMap) khoMap.set(khoName, result);
+                }
+            });
+        });
+
+        return results;
+    }, [data, columns, baseCustomData]);
+
+    const getColumnValue = (row: WarehouseSummaryRow | Partial<WarehouseSummaryRow>, column: WarehouseColumnConfig): number | undefined => {
+        if (column.metric) return row[column.metric];
+
+        if (column.isCustom && row.khoName) {
+            const mappedVal = customProductColumnValues.get(column.id)?.get(String(row.khoName));
+            if (mappedVal !== undefined) return mappedVal;
+        }
+
+        if (column.categoryType && (column.categoryName || column.productCodes) && column.metricType) {
+            const metrics = row.metrics;
+            if (!metrics) return 0;
+
+            if (column.productCodes && column.productCodes.length > 0) {
+                if (!metrics.byProduct) return 0;
+                let total = 0;
+                column.productCodes.forEach(code => {
+                    let val = metrics.byProduct?.[code]?.[column.metricType!];
+                    if (val !== undefined) {
+                        if (column.metricType === 'revenue' || column.metricType === 'revenueQD') {
+                            val = val / 1000000;
+                        }
+                        total += val;
+                    }
+                });
+                return total;
+            }
+
+            if (column.manufacturerName) {
+                const primaryKey = column.categoryType === 'industry' ? 'byIndustryAndManufacturer' : 'byGroupAndManufacturer';
+                if (column.categoryName && column.categoryName.includes(',')) {
+                    const names = column.categoryName.split(',').map(n => n.trim());
+                    let total = 0;
+                    names.forEach(name => {
+                        let val = metrics[primaryKey]?.[name]?.[column.manufacturerName!]?.[column.metricType!];
+                        if (val !== undefined) {
+                            if (column.metricType === 'revenue' || column.metricType === 'revenueQD') {
+                                val = val / 1000000;
+                            }
+                            total += val;
+                        }
+                    });
+                    return total;
+                }
+                let val = metrics[primaryKey]?.[column.categoryName!]?.[column.manufacturerName]?.[column.metricType];
+                if (val !== undefined && (column.metricType === 'revenue' || column.metricType === 'revenueQD')) {
+                    val = val / 1000000;
+                }
+                return val;
+            } else {
+                const primaryKey = column.categoryType === 'industry' ? 'byIndustry' : column.categoryType === 'group' ? 'byGroup' : 'byManufacturer';
+                if (column.categoryName && column.categoryName.includes(',')) {
+                    const names = column.categoryName.split(',').map(n => n.trim());
+                    let total = 0;
+                    names.forEach(name => {
+                        let val = metrics[primaryKey]?.[name]?.[column.metricType!];
+                        if (val !== undefined) {
+                            if (column.metricType === 'revenue' || column.metricType === 'revenueQD') {
+                                val = val / 1000000;
+                            }
+                            total += val;
+                        }
+                    });
+                    return total;
+                }
+                let val = metrics[primaryKey]?.[column.categoryName!]?.[column.metricType];
+                if (val !== undefined && (column.metricType === 'revenue' || column.metricType === 'revenueQD')) {
+                    val = val / 1000000;
+                }
+                return val;
+            }
+        }
+        return 0;
+    };
+
+    const sortedData = useMemo(() => {
+        return [...data].sort((a, b) => {
+            let valA: string | number = 0;
+            let valB: string | number = 0;
+            
+            if (sortConfig.key === 'khoName') {
+                valA = a.khoName;
+                valB = b.khoName;
+            } else {
+                const column = columns.find(c => c.id === sortConfig.key);
+                if (column) {
+                    if (column.isCustom && customProductColumnValues.has(column.id)) {
+                        valA = customProductColumnValues.get(column.id)?.get(a.khoName) || 0;
+                        valB = customProductColumnValues.get(column.id)?.get(b.khoName) || 0;
+                    } else {
+                        valA = getColumnValue(a, column) || 0;
+                        valB = getColumnValue(b, column) || 0;
+                    }
+                }
+            }
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            } else {
+                return sortConfig.direction === 'asc' ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+            }
+            return 0;
+        });
+    }, [data, sortConfig, columns, customProductColumnValues]);
+
+    const { totals, customTotals } = useMemo(() => {
+        const initialTotals: Partial<WarehouseSummaryRow> & { metrics: WarehouseSummaryRow['metrics']; doanhThuTraCham: number; } = {
+            metrics: {
+                byIndustry: {},
+                byGroup: {},
+                byManufacturer: {},
+                byIndustryAndManufacturer: {},
+                byGroupAndManufacturer: {},
+            },
+            doanhThuTraCham: 0
+        };
+        const customTotalsMap = new Map<string, number>();
+
+        const visibleColumns = columns.filter(c => c.isVisible);
+
+        visibleColumns.forEach(col => {
+            if (col.isCustom && customProductColumnValues.has(col.id)) {
+                const colId = col.id;
+                const columnMap = customProductColumnValues.get(colId);
+                let total = 0;
+                if (columnMap) {
+                    for (const val of columnMap.values()) {
+                        total += val;
+                    }
+                }
+                // For target columns, the "total" shouldn't be sum of targets if it's "targetValue"
+                // Actually, if it's Target, total = targetValue! Which is exactly targetValue/kho * kho = targetValue
+                if (col.type === 'target') {
+                    customTotalsMap.set(colId, col.targetValue || 0);
+                } else if (col.type !== 'calculated') {
+                    customTotalsMap.set(colId, total);
+                }
+            }
+        });
+        const coreTotals = data.reduce((acc, row) => {
+            acc.doanhThuThuc = (acc.doanhThuThuc || 0) + row.doanhThuThuc;
+            acc.doanhThuQD = (acc.doanhThuQD || 0) + row.doanhThuQD;
+            acc.slTiepCan = (acc.slTiepCan || 0) + row.slTiepCan;
+            acc.slThuHo = (acc.slThuHo || 0) + row.slThuHo;
+            acc.doanhThuTraCham = (acc.doanhThuTraCham || 0) + row.doanhThuTraCham;
+            visibleColumns.forEach(col => {
+                if (!col.isCustom && col.metric !== 'traChamPercent') {
+                    const val = getColumnValue(row, col) || 0;
+                    customTotalsMap.set(col.id, (customTotalsMap.get(col.id) || 0) + val);
+                }
+            });
+            return acc;
+        }, initialTotals);
+
+        // Không bọc trong `if (coreTotals.doanhThuThuc)` — doanhThuThuc = 0 (đúng, không phải
+        // thiếu dữ liệu) là falsy nên trước đây bỏ qua set hieuQuaQD/traChamPercent, để lại
+        // undefined thay vì 0 đúng (2 ternary bên trong đã tự xử lý đúng trường hợp <=0 rồi).
+        coreTotals.hieuQuaQD = (coreTotals.doanhThuThuc || 0) > 0 ? (((coreTotals.doanhThuQD || 0) - (coreTotals.doanhThuThuc || 0)) / (coreTotals.doanhThuThuc || 1)) * 100 : 0;
+        coreTotals.traChamPercent = (coreTotals.doanhThuThuc || 0) > 0 ? (((coreTotals.doanhThuTraCham || 0)) / (coreTotals.doanhThuThuc || 1)) * 100 : 0;
+
+        // Second pass: Calculate dynamically for 'calculated' columns
+        const getDynamicTotal = (colId: string): number => {
+            if (customTotalsMap.has(colId)) return customTotalsMap.get(colId)!;
+            const targetCol = columns.find(c => c.id === colId);
+            if (targetCol && targetCol.metric) return coreTotals[targetCol.metric] || 0;
+            return 0;
+        };
+
+        visibleColumns.forEach(col => {
+            if (col.isCustom && col.type === 'calculated' && col.operand1_columnId && col.operand2_columnId) {
+                const totalOp1 = getDynamicTotal(col.operand1_columnId);
+                const totalOp2 = getDynamicTotal(col.operand2_columnId);
+
+                let result = 0;
+                switch (col.operation) {
+                    case '+': result = totalOp1 + totalOp2; break;
+                    case '-': result = totalOp1 - totalOp2; break;
+                    case '*': result = totalOp1 * totalOp2; break;
+                    case '/': result = totalOp2 !== 0 ? totalOp1 / totalOp2 : 0; break;
+                }
+                customTotalsMap.set(col.id, result);
+            }
+        });
+
+        return { totals: coreTotals, customTotals: customTotalsMap };
+    }, [data, columns, customProductColumnValues]);
+
+    return {
+        sortedData,
+        totals,
+        customTotals,
+        customProductColumnValues,
+        getColumnValue
+    };
+};

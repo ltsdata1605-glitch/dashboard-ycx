@@ -1,0 +1,466 @@
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { FieldValue } from 'firebase-admin/firestore';
+import { auth, stickerDb } from './firebaseAdmin';
+import { mergeCustomClaims } from './claims';
+import { CLIENT_REGIONS } from './region';
+
+// Username dành riêng cho Super Admin — CHỈ còn là nhãn hiển thị/khoá tên, KHÔNG còn quyết định
+// quyền (audit 2026-10-07, S02: trước đây ai đăng ký username '21707'/'admin' là nhận ngay claim
+// superadmin, vì username do client tự gửi lên).
+const RESERVED_USERNAMES = ['admin', '21707'];
+
+// Quyền Super Admin quyết định bằng EMAIL TRONG ID TOKEN (Firebase Auth cấp, client không sửa được).
+// - Email đã xác minh (tài khoản Google của chủ dự án): tin ngay.
+// - Email @example.com (tài khoản mật khẩu cũ của In Sticker, không xác minh được): chỉ tin nếu tài
+//   khoản đã tồn tại TRƯỚC mốc vá. Không có mốc này, ai cũng có thể tự tạo tài khoản
+//   '21707@example.com' (nếu chưa có) bằng client SDK rồi nhận superadmin.
+const SUPERADMIN_EMAILS = [
+  'lts.truongson@gmail.com',
+  'lts.truongson@example.com',
+  'admin@example.com',
+  '21707@example.com',
+];
+const LEGACY_SUPERADMIN_CREATED_BEFORE = Date.parse('2026-10-07T00:00:00Z');
+
+type StickerRole = 'admin' | 'staff';
+type StickerClaimRole = StickerRole | 'superadmin';
+
+interface CallerToken {
+  email?: string;
+  email_verified?: boolean;
+}
+
+export async function isSuperAdminCaller(uid: string, token: CallerToken | undefined): Promise<boolean> {
+  const email = (token?.email ?? '').toLowerCase();
+  if (!email || !SUPERADMIN_EMAILS.includes(email)) return false;
+  if (token?.email_verified === true) return true;
+  const record = await auth.getUser(uid);
+  const createdAt = Date.parse(record.metadata.creationTime ?? '');
+  return Number.isFinite(createdAt) && createdAt < LEGACY_SUPERADMIN_CREATED_BEFORE;
+}
+
+// Custom claims dùng namespace riêng `stickerRole`/`stickerStoreId` — KHÔNG
+// dùng lại `role`/`departmentId` của root, vì setCustomUserClaims() ghi đè
+// toàn bộ claims (không merge). Cùng 1 Auth user pool (project chung) nên
+// tránh khả năng 2 hệ thống đè claim của nhau nếu có ngày trùng UID.
+async function setStickerClaims(uid: string, role: StickerClaimRole, storeId: string | null) {
+  // Gộp vào claims sẵn có — không xoá role/departmentId của app gốc (audit S05).
+  await mergeCustomClaims(uid, { stickerRole: role, stickerStoreId: storeId });
+}
+
+// Thay Login.tsx tự setDoc(role, storeId) do client chọn — server tự kiểm tra
+// điều kiện "kho đã có admin chưa" thay vì tin client đã kiểm tra đúng.
+export const stickerRegister = onCall({ region: CLIENT_REGIONS }, async (request) => withQuotaMessage(async () => {
+  const uid = request.auth?.uid;
+  const email = request.auth?.token.email ?? null;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'Cần đăng nhập trước khi đăng ký.');
+  }
+
+  const { username, storeId, requestedRole } = (request.data ?? {}) as {
+    username?: string;
+    storeId?: string;
+    requestedRole?: StickerRole;
+  };
+
+  if (!username || (requestedRole !== 'admin' && requestedRole !== 'staff')) {
+    throw new HttpsError('invalid-argument', 'Thiếu username hoặc vai trò không hợp lệ.');
+  }
+
+  const callerIsSuperAdmin = await isSuperAdminCaller(uid, request.auth?.token);
+  if (RESERVED_USERNAMES.includes(username.trim().toLowerCase()) && !callerIsSuperAdmin) {
+    throw new HttpsError('permission-denied', `Tên đăng nhập "${username}" đã được dành riêng. Vui lòng chọn tên khác.`);
+  }
+
+  let cleanStoreId = (storeId ?? '').trim().toUpperCase();
+  if (!cleanStoreId && callerIsSuperAdmin) {
+    cleanStoreId = 'SUPERADMIN';
+  }
+  if (!cleanStoreId) {
+    throw new HttpsError('invalid-argument', 'Vui lòng nhập mã kho siêu thị.');
+  }
+
+  const usersRef = stickerDb.collection('stickerUsers');
+  const adminSnap = await usersRef
+    .where('storeId', '==', cleanStoreId)
+    .where('role', '==', 'admin')
+    .limit(1)
+    .get();
+
+  if (requestedRole === 'admin') {
+    if (!adminSnap.empty) {
+      throw new HttpsError(
+        'already-exists',
+        `Mã kho "${cleanStoreId}" đã có quản trị viên. Mỗi mã kho chỉ được có 1 tài khoản Admin duy nhất.`
+      );
+    }
+  } else if (adminSnap.empty) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Mã kho chưa được khởi tạo. Cần Admin đăng ký cho kho này trước khi Nhân viên đăng ký vào.'
+    );
+  }
+
+  await usersRef.doc(uid).set(
+    {
+      uid,
+      username,
+      email,
+      role: requestedRole,
+      storeId: cleanStoreId,
+      createdAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  const claimRole: StickerClaimRole = callerIsSuperAdmin ? 'superadmin' : requestedRole;
+  await setStickerClaims(uid, claimRole, cleanStoreId);
+
+  // storeHasAdmin: đăng ký admin vừa tạo ra admin (true); đăng ký staff chỉ tới được đây khi
+  // adminSnap đã KHÔNG rỗng ở trên (else throw failed-precondition) — nên cũng luôn là true.
+  return { role: requestedRole, storeId: cleanStoreId, username, storeHasAdmin: true };
+}));
+
+// Thay việc Login.tsx đọc thẳng users/{uid} trong onAuthStateChanged — gọi mỗi
+// lần đăng nhập để đồng bộ lại custom claims theo dữ liệu Firestore mới nhất
+// (vd: admin vừa đổi role cho user này trong lúc họ không online).
+/**
+ * Đổi lỗi HẾT HẠN MỨC của Firestore thành `HttpsError('resource-exhausted')` có thông điệp tiếng
+ * Việt rõ ràng.
+ *
+ * Vì sao cần (bài học từ sự cố 17/09/2026, xem implementation_plan.md mục "Biểu đồ Usage thật"):
+ * lỗi Firestore ném từ trong Cloud Function KHÔNG phải HttpsError, nên Cloud Functions bọc lại
+ * thành `internal` — client chỉ nhận đúng chữ **"Lỗi kết nối (functions/internal): INTERNAL"**.
+ * Người dùng không thể đoán đó là hết hạn mức nên sẽ **bấm lại nhiều lần**, mà mỗi lần bấm lại đốt
+ * thêm hạn mức — đúng vòng lặp đã làm cạn hạn mức ngày và khoá cả hệ thống suốt nhiều giờ.
+ *
+ * Lỗi phải NÓI ĐÚNG SỰ THẬT thì người dùng mới biết ngừng thử lại.
+ */
+const QUOTA_MESSAGE =
+  'Hệ thống đã dùng hết hạn mức truy cập miễn phí trong ngày. ' +
+  'Bấm đăng nhập lại lúc này cũng không vào được và còn tốn thêm hạn mức. ' +
+  'Vui lòng quay lại sau (hạn mức được cấp lại vào khoảng 14 giờ mỗi ngày).';
+
+const isQuotaError = (err: unknown): boolean => {
+  // gRPC code 8 = RESOURCE_EXHAUSTED. Kiểm cả chuỗi để phòng trường hợp lỗi đi qua lớp bọc khác.
+  const code = (err as { code?: unknown })?.code;
+  if (code === 8) return true;
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return /RESOURCE_EXHAUSTED|Quota limit exceeded|Quota exceeded/i.test(msg);
+};
+
+/**
+ * Lỗi THIẾU QUYỀN KÝ TOKEN của chính máy chủ — cùng họ với lỗi hết hạn mức: người dùng không thể tự
+ * sửa, và bấm lại chỉ tốn thêm lượt gọi.
+ *
+ * Phát hiện 2026-09-19 khi soi `functions:log`: `stickerStaffAuth` đổ ở `auth.createCustomToken()`
+ * với `auth/insufficient-permission: Permission 'iam.serviceAccounts.signBlob' denied` — LIÊN TỤC
+ * từ ít nhất 10/09, hơn 100 lượt thử thất bại. Cloud Functions thế hệ 2 chạy bằng service account
+ * mặc định của Compute, và ký custom token cần vai trò **Service Account Token Creator** trên chính
+ * account đó — vai trò này không có sẵn. Cách sửa THẬT là cấp IAM (Console → IAM), không phải sửa
+ * code; đoạn này chỉ để log và màn hình nói đúng sự thật thay vì "INTERNAL".
+ *
+ * ⚠️ MÃ LỖI PHẢI LÀ `unavailable`, KHÔNG được là `failed-precondition`/`permission-denied`/
+ * `not-found`: `features/sticker-event/Login.tsx` bắt riêng 3 mã đó để hiện thông điệp nghiệp vụ
+ * ("kho chưa có Admin", "đây là tài khoản Quản lý"…) rồi DỪNG — còn mọi mã khác thì nó chuyển sang
+ * ĐƯỜNG DỰ PHÒNG đăng nhập trực tiếp bằng mật khẩu mặc định. Đường dự phòng đó hiện đang CỨU cả
+ * luồng: hàm này kịp `updateUser(password)` trước khi đổ ở bước ký token, nên đăng nhập trực tiếp
+ * thành công (log 19/09 08:45: `stickerResolveSession auth: VALID` ngay sau lượt đổ). Bản nháp đầu
+ * dùng `failed-precondition` — sẽ hiện sai thông điệp "kho chưa có Admin" VÀ chặn luôn đường dự
+ * phòng, biến lỗi đang tự vá được thành lỗi cứng. Suýt deploy.
+ */
+const SIGN_PERMISSION_MESSAGE =
+  'Máy chủ chưa được cấp quyền tạo phiên đăng nhập cho nhân viên (thiếu vai trò ' +
+  '"Service Account Token Creator" trên service account của Cloud Functions). ' +
+  'Đây là lỗi cấu hình phía quản trị — bấm đăng nhập lại không giúp gì. Vui lòng báo quản lý hệ thống.';
+
+const isSignPermissionError = (err: unknown): boolean => {
+  const code = (err as { code?: unknown })?.code;
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return code === 'auth/insufficient-permission' || /iam\.serviceAccounts\.signBlob/i.test(msg);
+};
+
+/**
+ * Bọc phần thân của 1 callable: giữ nguyên HttpsError, dịch 2 loại lỗi hạ tầng (hết hạn mức, thiếu
+ * quyền ký token) thành thông điệp tiếng Việt nói rõ "đừng thử lại". Mọi lỗi khác ném nguyên.
+ */
+const withQuotaMessage = async <T>(fn: () => Promise<T>): Promise<T> => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+
+    // LUÔN ghi lỗi gốc trước khi dịch. Bài học 2026-09-19: bản trước nuốt mất lỗi gốc, nên khi
+    // stickerStaffAuth trả "hết hạn mức trong ngày" mà Firestore vẫn đọc được bình thường (lỗi
+    // đảo chiều trong 25 giây → thực ra là giới hạn TỐC ĐỘ ở một bước khác), không có cách nào
+    // biết bước nào ném và Google nói gì. Dịch lỗi cho người dùng là đúng, nhưng log phải giữ
+    // nguyên văn — nếu không thì bản dịch sai sẽ dẫn cả người chẩn đoán đi lạc.
+    const e = err as { code?: unknown; message?: unknown; details?: unknown; errorInfo?: unknown };
+    console.warn('[withQuotaMessage] lỗi gốc trước khi dịch:', JSON.stringify({
+      code: e?.code,
+      message: typeof e?.message === 'string' ? e.message.slice(0, 500) : e?.message,
+      details: e?.details,
+      errorInfo: e?.errorInfo,
+    }));
+
+    if (isQuotaError(err)) throw new HttpsError('resource-exhausted', QUOTA_MESSAGE);
+    if (isSignPermissionError(err)) throw new HttpsError('unavailable', SIGN_PERMISSION_MESSAGE);
+    throw err;
+  }
+};
+
+export const stickerResolveSession = onCall({ region: CLIENT_REGIONS }, async (request) => withQuotaMessage(async () => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'Cần đăng nhập.');
+  }
+
+  const snap = await stickerDb.collection('stickerUsers').doc(uid).get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'Chưa có hồ sơ người dùng. Vui lòng đăng ký trước.');
+  }
+
+  const data = snap.data() ?? {};
+  const username = data.username as string | undefined;
+  const role = (data.role as StickerRole) ?? 'staff';
+  const storeId = (data.storeId as string) ?? null;
+
+  const claimRole: StickerClaimRole = (await isSuperAdminCaller(uid, request.auth?.token)) ? 'superadmin' : role;
+  await setStickerClaims(uid, claimRole, storeId);
+
+  // storeHasAdmin: trước đây client (useStickerEventDb.ts) tự query trực tiếp
+  // collection('users') để kiểm tra "kho này đã có admin chưa" cho tài khoản staff — nhưng
+  // firestore.stickerevent.rules chỉ cho phép admin/superadmin `list` trên users, nên staff
+  // gọi thẳng luôn bị chặn "Missing or insufficient permissions". Tính sẵn ở đây (Admin SDK,
+  // không qua Rules) và trả về cùng lúc đăng nhập, client không cần tự query nữa.
+  let storeHasAdmin = true;
+  if (role === 'staff' && storeId) {
+    const adminSnap = await stickerDb.collection('stickerUsers')
+      .where('storeId', '==', storeId)
+      .where('role', '==', 'admin')
+      .limit(1)
+      .get();
+    storeHasAdmin = !adminSnap.empty;
+  }
+
+  return { role, storeId, username: username ?? null, storeHasAdmin };
+}));
+
+interface StickerAdminUpdateInput {
+  action: 'setRole' | 'delete' | 'clearStore';
+  targetUid?: string;
+  role?: StickerRole;
+  storeId?: string;
+}
+
+// Thay updateUserRole/deleteUserDoc/clearAllUsers (firebaseService.ts) — ghi
+// trực tiếp từ client trước đây không hề kiểm tra target có cùng storeId với
+// admin gọi hay không (lỗ hổng cross-tenant). superadmin (claim, không phải
+// tự nhận ở client) mới được bỏ qua ràng buộc storeId.
+export const stickerAdminUpdateUser = onCall({ region: CLIENT_REGIONS }, async (request) => withQuotaMessage(async () => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Cần đăng nhập.');
+  }
+  const callerRole = request.auth.token.stickerRole as StickerClaimRole | undefined;
+  const callerStoreId = request.auth.token.stickerStoreId as string | null | undefined;
+  if (callerRole !== 'admin' && callerRole !== 'superadmin') {
+    throw new HttpsError('permission-denied', 'Chỉ Admin/Super Admin được thực hiện thao tác này.');
+  }
+
+  const { action, targetUid, role, storeId } = (request.data ?? {}) as StickerAdminUpdateInput;
+  const usersRef = stickerDb.collection('stickerUsers');
+
+  if (action === 'clearStore') {
+    const targetStoreId = (storeId ?? '').trim().toUpperCase();
+    if (!targetStoreId) {
+      throw new HttpsError('invalid-argument', 'Thiếu storeId.');
+    }
+    if (callerRole !== 'superadmin' && targetStoreId !== callerStoreId) {
+      throw new HttpsError('permission-denied', 'Chỉ được xoá dữ liệu người dùng của chính kho mình.');
+    }
+
+    const snap = await usersRef.where('storeId', '==', targetStoreId).limit(300).get();
+    const batch = stickerDb.batch();
+    let count = 0;
+    for (const docSnap of snap.docs) {
+      if (docSnap.get('username') === 'admin') continue;
+      batch.delete(docSnap.ref);
+      count++;
+    }
+    if (count > 0) {
+      await batch.commit();
+    }
+    return { success: true, deletedCount: count };
+  }
+
+  if (!targetUid) {
+    throw new HttpsError('invalid-argument', 'Thiếu targetUid.');
+  }
+  if (targetUid === request.auth.uid) {
+    throw new HttpsError('permission-denied', 'Không thể tự thay đổi/xoá chính mình.');
+  }
+
+  const targetSnap = await usersRef.doc(targetUid).get();
+  if (!targetSnap.exists) {
+    throw new HttpsError('not-found', 'Không tìm thấy người dùng.');
+  }
+  const targetData = targetSnap.data()!;
+  if (targetData.username === 'admin') {
+    throw new HttpsError('permission-denied', 'Không thể thao tác trên tài khoản Super Admin.');
+  }
+  if (callerRole !== 'superadmin' && targetData.storeId !== callerStoreId) {
+    throw new HttpsError('permission-denied', 'Chỉ được thao tác trên người dùng cùng kho.');
+  }
+
+  if (action === 'setRole') {
+    if (role !== 'admin' && role !== 'staff') {
+      throw new HttpsError('invalid-argument', 'role không hợp lệ.');
+    }
+    await usersRef.doc(targetUid).update({ role });
+    await setStickerClaims(targetUid, role, (targetData.storeId as string) ?? null);
+    return { success: true };
+  }
+
+  if (action === 'delete') {
+    // Chỉ xoá doc Firestore, giữ nguyên hạn chế đã có từ trước (không xoá
+    // Firebase Auth account — UserManagementModal.tsx đã ghi rõ điều này).
+    await usersRef.doc(targetUid).delete();
+    return { success: true };
+  }
+
+  throw new HttpsError('invalid-argument', 'action không hợp lệ.');
+}));
+
+interface StaffAuthInput {
+  username?: string;
+  storeId?: string;
+  isLogin?: boolean;
+}
+
+/**
+ * Chặn luồng nhân viên (không mật khẩu — chủ dự án chốt GIỮ NGUYÊN 2026-10-07 vì dữ liệu In Sticker
+ * không cần bảo mật) đụng vào bất kỳ tài khoản nào KHÔNG PHẢI nhân viên In Sticker.
+ *
+ * Lỗ đã vá (audit 2026-10-07, S01/B1): hàm này đặt lại mật khẩu cho tài khoản sẵn có chỉ dựa vào
+ * username; username có '@' thì dùng nguyên làm email → đặt được mật khẩu đoán trước cho tài khoản
+ * Google của admin app gốc (cùng Auth pool) rồi đăng nhập app gốc bằng email đó.
+ * Tài khoản nhân viên In Sticker luôn là `<tên>@example.com`, chỉ có provider "password".
+ */
+export function assertStaffOnlyAccount(
+  userRecord: { email?: string; providerData?: Array<{ providerId: string }> } | null,
+  stickerRole: unknown,
+): void {
+  if (!userRecord) return;
+  const email = (userRecord.email ?? '').toLowerCase();
+  const providers = (userRecord.providerData ?? []).map((p) => p.providerId);
+  const isPlainStaffLogin = email.endsWith('@example.com') && providers.every((p) => p === 'password');
+  if (!isPlainStaffLogin || SUPERADMIN_EMAILS.includes(email)) {
+    throw new HttpsError('permission-denied', 'Tài khoản này không phải tài khoản Nhân viên In Sticker. Vui lòng chọn vai trò Admin và nhập mật khẩu.');
+  }
+  if (stickerRole === 'admin' || stickerRole === 'superadmin') {
+    throw new HttpsError('permission-denied', 'Tài khoản này là Quản lý (Admin). Vui lòng chọn vai trò Admin và nhập mật khẩu.');
+  }
+}
+
+export const stickerStaffAuth = onCall({ region: CLIENT_REGIONS }, async (request) => withQuotaMessage(async () => {
+  const { username, storeId, isLogin } = (request.data ?? {}) as StaffAuthInput;
+
+  const cleanUsername = (username ?? '').trim();
+  if (!cleanUsername) {
+    throw new HttpsError('invalid-argument', 'Vui lòng nhập tên đăng nhập.');
+  }
+  if (cleanUsername.includes('@')) {
+    throw new HttpsError('invalid-argument', 'Tên đăng nhập Nhân viên không được chứa ký tự "@".');
+  }
+  if (RESERVED_USERNAMES.includes(cleanUsername.toLowerCase())) {
+    throw new HttpsError('permission-denied', 'Tài khoản này là Quản lý (Admin). Vui lòng chọn vai trò Admin và nhập mật khẩu.');
+  }
+
+  const email = `${cleanUsername}@example.com`;
+  const usersRef = stickerDb.collection('stickerUsers');
+
+  let userRecord;
+  try {
+    userRecord = await auth.getUserByEmail(email);
+  } catch (e: any) {
+    if (e.code === 'auth/user-not-found') {
+      userRecord = null;
+    } else {
+      throw e;
+    }
+  }
+
+  if (isLogin) {
+    if (!userRecord) {
+      throw new HttpsError('not-found', 'Tên đăng nhập chưa tồn tại. Vui lòng chọn "Đăng ký" bên dưới.');
+    }
+    const userDoc = await usersRef.doc(userRecord.uid).get();
+    if (!userDoc.exists) {
+      throw new HttpsError('not-found', 'Tên đăng nhập chưa có tài khoản. Vui lòng chọn "Đăng ký" bên dưới.');
+    }
+    const userData = userDoc.data();
+    assertStaffOnlyAccount(userRecord, userData?.role);
+
+    const defaultStaffPassword = `staff_${cleanUsername.toLowerCase()}_123456`;
+    await auth.updateUser(userRecord.uid, { password: defaultStaffPassword });
+    await setStickerClaims(userRecord.uid, 'staff', userData?.storeId ?? null);
+
+    const customToken = await auth.createCustomToken(userRecord.uid);
+    return { customToken, username: cleanUsername, storeId: userData?.storeId ?? null, role: 'staff' };
+  } else {
+    // Staff Register
+    let cleanStoreId = (storeId ?? '').trim().toUpperCase();
+    if (!cleanStoreId) {
+      throw new HttpsError('invalid-argument', 'Vui lòng nhập mã kho siêu thị.');
+    }
+
+    // Verify store has an admin
+    const adminSnap = await usersRef
+      .where('storeId', '==', cleanStoreId)
+      .where('role', '==', 'admin')
+      .limit(1)
+      .get();
+
+    if (adminSnap.empty) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Lưu ý: Nhân viên chỉ có thể đăng ký vào mã kho sau khi Quản lý (Admin) của kho đó đã đăng ký tài khoản trước. Vui lòng liên hệ Quản lý tạo tài khoản Admin trước.'
+      );
+    }
+
+    // Kiểm TRƯỚC mọi thao tác ghi (đổi mật khẩu/hồ sơ/claims): tài khoản đã tồn tại phải đúng là
+    // tài khoản nhân viên — không được "đăng ký lại" đè lên Admin kho hay tài khoản khác.
+    if (userRecord) {
+      const existing = await usersRef.doc(userRecord.uid).get();
+      assertStaffOnlyAccount(userRecord, existing.exists ? existing.get('role') : undefined);
+    }
+
+    const defaultStaffPassword = `staff_${cleanUsername.toLowerCase()}_123456`;
+    if (!userRecord) {
+      userRecord = await auth.createUser({
+        email,
+        password: defaultStaffPassword,
+        displayName: cleanUsername,
+      });
+    } else {
+      await auth.updateUser(userRecord.uid, { password: defaultStaffPassword });
+    }
+
+    await usersRef.doc(userRecord.uid).set(
+      {
+        uid: userRecord.uid,
+        username: cleanUsername,
+        email,
+        role: 'staff',
+        storeId: cleanStoreId,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    await setStickerClaims(userRecord.uid, 'staff', cleanStoreId);
+
+    const customToken = await auth.createCustomToken(userRecord.uid);
+    return { customToken, username: cleanUsername, storeId: cleanStoreId, role: 'staff' };
+  }
+}));

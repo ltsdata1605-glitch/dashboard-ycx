@@ -1,0 +1,1217 @@
+[
+  {
+    "path": "public/Tuts/Coupon.png",
+    "url": "/Tuts/Coupon.png",
+    "sha256": "38edac0fbf5f52f07a2429d144802c5e7b633f76b144001a4b0e6e05da2d4d54",
+    "bytes": 1713899,
+    "dimensions": [
+      2742,
+      1769
+    ],
+    "references": [
+      {
+        "file": "components/views/CouponConverterView.tsx",
+        "line": 169,
+        "match": "src=\"/Tuts/Coupon.png\""
+      },
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3363,
+        "match": "\"file\": \"public/Tuts/Coupon.png\","
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/exports-audit/phan-tich-khai-thac-chi-tiet-mobile.png",
+    "url": "/exports-audit/phan-tich-khai-thac-chi-tiet-mobile.png",
+    "sha256": "78afcfadba5810c9084f356b70e7c4fe01096791549a7fb81c2642b0bc6182d8",
+    "bytes": 214865,
+    "dimensions": [
+      780,
+      1095
+    ],
+    "references": [],
+    "classification": "UNKNOWN",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "No included-source reference; historical screenshot purpose inferred from path, owner/external URL consumers unverified."
+  },
+  {
+    "path": "public/exports-audit/phan-tich-khai-thac-hieu-qua-mobile.png",
+    "url": "/exports-audit/phan-tich-khai-thac-hieu-qua-mobile.png",
+    "sha256": "f4ef1764223ebea5d2a18ad4bc180a7638b9b511c086034f2c57d86046505eec",
+    "bytes": 163035,
+    "dimensions": [
+      406,
+      1079
+    ],
+    "references": [],
+    "classification": "UNKNOWN",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "No included-source reference; historical screenshot purpose inferred from path, owner/external URL consumers unverified."
+  },
+  {
+    "path": "public/exports-audit/phan-tich-tab-hieu-suat-mobile.png",
+    "url": "/exports-audit/phan-tich-tab-hieu-suat-mobile.png",
+    "sha256": "c64a9995a352a79218fd141dafc98c366f7d554c04a6db590cce8e9c3e8aba80",
+    "bytes": 230885,
+    "dimensions": [
+      501,
+      1029
+    ],
+    "references": [],
+    "classification": "UNKNOWN",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "No included-source reference; historical screenshot purpose inferred from path, owner/external URL consumers unverified."
+  },
+  {
+    "path": "public/exports-audit/phan-tich-tab-top-mobile.png",
+    "url": "/exports-audit/phan-tich-tab-top-mobile.png",
+    "sha256": "4facf4db84f0e40541a07f1e0d887066b86cb18ada8cf94391dd74878f90feea",
+    "bytes": 10908,
+    "dimensions": [
+      688,
+      423
+    ],
+    "references": [],
+    "classification": "UNKNOWN",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "No included-source reference; historical screenshot purpose inferred from path, owner/external URL consumers unverified."
+  },
+  {
+    "path": "public/exports-audit/report-bi-nhan-vien-doanh-thu-mobile.png",
+    "url": "/exports-audit/report-bi-nhan-vien-doanh-thu-mobile.png",
+    "sha256": "21e9f672aefd0b5834c19dcc5b2c6d2703daf46d9c92fa085b74eb151ed9837d",
+    "bytes": 22798,
+    "dimensions": [
+      688,
+      117
+    ],
+    "references": [],
+    "classification": "DUPLICATED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "IdenticalSHA256 among3audit screenshot URLs; retained until URL/evidence-retention review."
+  },
+  {
+    "path": "public/exports-audit/report-bi-nhan-vien-thi-dua-mobile.png",
+    "url": "/exports-audit/report-bi-nhan-vien-thi-dua-mobile.png",
+    "sha256": "b84d52a8583a961c67b53efc0b3310e07d0adc7389caa254cf6683dea7d7e9b5",
+    "bytes": 157638,
+    "dimensions": [
+      688,
+      976
+    ],
+    "references": [],
+    "classification": "UNKNOWN",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "No included-source reference; historical screenshot purpose inferred from path, owner/external URL consumers unverified."
+  },
+  {
+    "path": "public/exports-audit/report-bi-nhan-vien-thuong-mobile.png",
+    "url": "/exports-audit/report-bi-nhan-vien-thuong-mobile.png",
+    "sha256": "21e9f672aefd0b5834c19dcc5b2c6d2703daf46d9c92fa085b74eb151ed9837d",
+    "bytes": 22798,
+    "dimensions": [
+      688,
+      117
+    ],
+    "references": [],
+    "classification": "DUPLICATED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "IdenticalSHA256 among3audit screenshot URLs; retained until URL/evidence-retention review."
+  },
+  {
+    "path": "public/exports-audit/report-bi-nhan-vien-tra-cham-mobile.png",
+    "url": "/exports-audit/report-bi-nhan-vien-tra-cham-mobile.png",
+    "sha256": "21e9f672aefd0b5834c19dcc5b2c6d2703daf46d9c92fa085b74eb151ed9837d",
+    "bytes": 22798,
+    "dimensions": [
+      688,
+      117
+    ],
+    "references": [],
+    "classification": "DUPLICATED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "IdenticalSHA256 among3audit screenshot URLs; retained until URL/evidence-retention review."
+  },
+  {
+    "path": "public/favicon.svg",
+    "url": "/favicon.svg",
+    "sha256": "57025df21d1983ec337082624d8a3e09c0a764b7138299c8fcd6fc3883834446",
+    "bytes": 604,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 363,
+        "match": "\"file\": \"public/favicon.svg\","
+      },
+      {
+        "file": "implementation_plan.md",
+        "line": 6954,
+        "match": "| `public/icons/*.png`, `public/splash/*.png` | MỚI. 7 icon + 12 splash (SE → 16 Pro Max), sinh bằng `scripts/pwa/tao-icon-splash.mjs` từ `favicon.svg` |"
+      },
+      {
+        "file": "index.html",
+        "line": 75,
+        "match": "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\">"
+      },
+      {
+        "file": "index.html",
+        "line": 148,
+        "match": "<div id=\"ycx-splash\" aria-hidden=\"true\"><div class=\"nhom\"><div class=\"logo\"><img src=\"/favicon.svg\" alt=\"\"></div><div class=\"ten\">Dashboard YCX</div><div class=\"cho\"></div></div></div>"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 1,
+        "match": "// Sinh bộ icon + màn khởi động (splash) iOS từ logo public/favicon.svg — chạy lại khi đổi logo:"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 9,
+        "match": "const svg = readFileSync('public/favicon.svg', 'utf8');"
+      },
+      {
+        "file": "tests/e2e/perf-apple.spec.ts",
+        "line": 40,
+        "match": "await page.goto('/favicon.svg');"
+      },
+      {
+        "file": "vite.config.ts",
+        "line": 68,
+        "match": ".filter((f) => (f.startsWith('assets/') && emitted.includes(f)) || f.startsWith('icons/') || f === 'favicon.svg' || f === 'manifest.webmanifest'"
+      },
+      {
+        "file": "vite.config.ts",
+        "line": 76,
+        "match": ".concat(['/prevent-pull-to-refresh.js', '/reload-on-chunk-error.js', '/man-cho-khoi-dong.js', '/fonts/UTM AvoBold.ttf', '/favicon.svg', '/manifest.webmanifest'])"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/Alata-Regular.ttf",
+    "url": "/fonts/Alata-Regular.ttf",
+    "sha256": "a46713843951da4e320ccbbbe0c3ac26eef4200ef4445c2abb795ad42245c08f",
+    "bytes": 348308,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3319,
+        "match": "\"file\": \"public/fonts/Alata-Regular.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 765,
+        "match": "src: url('/fonts/Alata-Regular.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/FVHShopeeText-Bold.otf",
+    "url": "/fonts/FVHShopeeText-Bold.otf",
+    "sha256": "dea8b88e2169f856203f3532ee6711983e5f9ab94de3369f336d9f42637e4c25",
+    "bytes": 20424,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3295,
+        "match": "\"file\": \"public/fonts/FVHShopeeText-Bold.otf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 773,
+        "match": "src: url('/fonts/FVHShopeeText-Bold.otf') format('opentype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/Roboto-VariableFont_wdth,wght.ttf",
+    "url": "/fonts/Roboto-VariableFont_wdth,wght.ttf",
+    "sha256": "0fe599aba604c33d7ac9bb5f642dd15198bf7fbf037b0bbb78b4dcb89d340fc5",
+    "bytes": 487768,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3307,
+        "match": "\"file\": \"public/fonts/Roboto-VariableFont_wdth,wght.ttf\","
+      }
+    ],
+    "classification": "POSSIBLE_DEAD",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Only historical inventory reference; no current font-face/direct consumer; dynamic URL and removal regression pending."
+  },
+  {
+    "path": "public/fonts/SF-Pro-Display-Thin.otf",
+    "url": "/fonts/SF-Pro-Display-Thin.otf",
+    "sha256": "721d46cc698ca5b7f19b47f2d8b4085915129d31630a8deb09c25681fe368b71",
+    "bytes": 2253252,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3323,
+        "match": "\"file\": \"public/fonts/SF-Pro-Display-Thin.otf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 781,
+        "match": "src: url('/fonts/SF-Pro-Display-Thin.otf') format('opentype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/SamsungSharpSans-Bold_SMCPS.ttf",
+    "url": "/fonts/SamsungSharpSans-Bold_SMCPS.ttf",
+    "sha256": "7461ff3132488c5de3313ef1402e8c2326e46320a54abf8338eb0e646e52c3dd",
+    "bytes": 448812,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3279,
+        "match": "\"file\": \"public/fonts/SamsungSharpSans-Bold_SMCPS.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 797,
+        "match": "src: url('/fonts/SamsungSharpSans-Bold_SMCPS.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/SamsungSharpSans-Medium_SMCP.ttf",
+    "url": "/fonts/SamsungSharpSans-Medium_SMCP.ttf",
+    "sha256": "d5a737e7fcc42a5eb60af466da3f80ba23008121d5bfcd737877f113db60cb9e",
+    "bytes": 420656,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3291,
+        "match": "\"file\": \"public/fonts/SamsungSharpSans-Medium_SMCP.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 789,
+        "match": "src: url('/fonts/SamsungSharpSans-Medium_SMCP.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/ShopeeDisplay-Black.ttf",
+    "url": "/fonts/ShopeeDisplay-Black.ttf",
+    "sha256": "f190d25d915169043e020229ca62f1c02bb882ada1dfdcba8423dac3909849b8",
+    "bytes": 286140,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3299,
+        "match": "\"file\": \"public/fonts/ShopeeDisplay-Black.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 829,
+        "match": "src: url('/fonts/ShopeeDisplay-Black.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/ShopeeDisplay-Bold.ttf",
+    "url": "/fonts/ShopeeDisplay-Bold.ttf",
+    "sha256": "3a63adbdd1a200075f4ac43f734817c24d25a744fd950aebed5285d9d28d3a25",
+    "bytes": 302104,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3327,
+        "match": "\"file\": \"public/fonts/ShopeeDisplay-Bold.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 813,
+        "match": "src: url('/fonts/ShopeeDisplay-Bold.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/ShopeeDisplay-ExtraBold.ttf",
+    "url": "/fonts/ShopeeDisplay-ExtraBold.ttf",
+    "sha256": "2c02a485ef55b517d07216a9bf5409ad6f6f98110cb065ec02e1b4b572d97301",
+    "bytes": 292020,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3303,
+        "match": "\"file\": \"public/fonts/ShopeeDisplay-ExtraBold.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 821,
+        "match": "src: url('/fonts/ShopeeDisplay-ExtraBold.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/ShopeeDisplay-Light.ttf",
+    "url": "/fonts/ShopeeDisplay-Light.ttf",
+    "sha256": "4362116c84866efbbdd092c67e2bfc3929954a1ab359461fb70e03ee8a3a4c94",
+    "bytes": 306200,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3315,
+        "match": "\"file\": \"public/fonts/ShopeeDisplay-Light.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 805,
+        "match": "src: url('/fonts/ShopeeDisplay-Light.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/UTM Avo.ttf",
+    "url": "/fonts/UTM Avo.ttf",
+    "sha256": "7b277458036e6680e115ee58317da527ed2319b1d2c65d7a71c01b320a2bbadc",
+    "bytes": 39308,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "DESIGN_SYSTEM.md",
+        "line": 83,
+        "match": "`UTM Avo` tự host tại `public/fonts/UTM Avo.ttf` + `UTM AvoBold.ttf`, có ánh xạ trọng lượng thủ công"
+      },
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3283,
+        "match": "\"file\": \"public/fonts/UTM Avo.ttf\","
+      },
+      {
+        "file": "implementation_plan.md",
+        "line": 3045,
+        "match": "- tự host tại `public/fonts/UTM Avo.ttf` + `UTM AvoBold.ttf`,"
+      },
+      {
+        "file": "styles.css",
+        "line": 838,
+        "match": "src: url('/fonts/UTM Avo.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/UTM AvoBold.ttf",
+    "url": "/fonts/UTM AvoBold.ttf",
+    "sha256": "e43f88561ceb65fb298094c9ee36b8063c05ff0e7b61599ffc301a2042881583",
+    "bytes": 39364,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "DESIGN_SYSTEM.md",
+        "line": 83,
+        "match": "`UTM Avo` tự host tại `public/fonts/UTM Avo.ttf` + `UTM AvoBold.ttf`, có ánh xạ trọng lượng thủ công"
+      },
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3287,
+        "match": "\"file\": \"public/fonts/UTM AvoBold.ttf\","
+      },
+      {
+        "file": "implementation_plan.md",
+        "line": 3045,
+        "match": "- tự host tại `public/fonts/UTM Avo.ttf` + `UTM AvoBold.ttf`,"
+      },
+      {
+        "file": "index.html",
+        "line": 113,
+        "match": "<link rel=\"preload\" href=\"/fonts/UTM%20AvoBold.ttf\" as=\"font\" type=\"font/ttf\" crossorigin>"
+      },
+      {
+        "file": "index.html",
+        "line": 116,
+        "match": "@font-face{font-family:'YCX Splash';src:url('/fonts/UTM%20AvoBold.ttf') format('truetype');font-weight:700;font-display:block}"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 55,
+        "match": "const phongAvo = 'data:font/ttf;base64,' + readFileSync('public/fonts/UTM AvoBold.ttf').toString('base64');"
+      },
+      {
+        "file": "styles.css",
+        "line": 846,
+        "match": "src: url('/fonts/UTM AvoBold.ttf') format('truetype');"
+      },
+      {
+        "file": "vite.config.ts",
+        "line": 69,
+        "match": "|| f === 'prevent-pull-to-refresh.js' || f === 'reload-on-chunk-error.js' || f === 'man-cho-khoi-dong.js' || f === 'fonts/UTM AvoBold.ttf')"
+      },
+      {
+        "file": "vite.config.ts",
+        "line": 76,
+        "match": ".concat(['/prevent-pull-to-refresh.js', '/reload-on-chunk-error.js', '/man-cho-khoi-dong.js', '/fonts/UTM AvoBold.ttf', '/favicon.svg', '/manifest.webmanifest'])"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/fonts/UTM Colossalis.ttf",
+    "url": "/fonts/UTM Colossalis.ttf",
+    "sha256": "f4090c9e8831bf61a58d39f514dce0baa5859706cf44b7b4dfa37f964568c7e2",
+    "bytes": 40016,
+    "dimensions": null,
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3311,
+        "match": "\"file\": \"public/fonts/UTM Colossalis.ttf\","
+      },
+      {
+        "file": "styles.css",
+        "line": 854,
+        "match": "src: url('/fonts/UTM Colossalis.ttf') format('truetype');"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/frame/GVO2-scaled.png",
+    "url": "/frame/GVO2-scaled.png",
+    "sha256": "c58265ed88eabe630fbfb178e0ff344c00e9038eb21b5701e8a7fed7e8226ae0",
+    "bytes": 65767,
+    "dimensions": [
+      1771,
+      2560
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3207,
+        "match": "\"file\": \"public/frame/GVO2-scaled.png\","
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts",
+        "line": 8,
+        "match": "export const GIO_VANG_DEFAULT_BG = '/frame/GVO2-scaled.png';"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/frame/X24.png",
+    "url": "/frame/X24.png",
+    "sha256": "1f5ff6948ec9c66a86241a9e3e04525aad4c273358deeffc614d0e9910845c5c",
+    "bytes": 31222,
+    "dimensions": [
+      1810,
+      2560
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/audit-feature-proofs.cjs",
+        "line": 43,
+        "match": "const generated=htmlContext.gen({label:marker,header:'safe',footer:'safe',newPrice:'1',oldPrice:'2',percent:'-50%'},'sale','gia_soc','/frame/X24.png');"
+      },
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3219,
+        "match": "\"file\": \"public/frame/X24.png\","
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts",
+        "line": 10,
+        "match": "export const GIA_SOC_ALT_BG = '/frame/X24.png';"
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/stickerPreviewStyles.ts",
+        "line": 71,
+        "match": "display: ${bgImage === '/frame/X24.png' ? 'none' : 'flex'};"
+      },
+      {
+        "file": "tests/unit/sticker-background-helpers.test.ts",
+        "line": 36,
+        "match": "expect(isValidBgImageForType('gia_soc', '/frame/X24.png')).toBe(true);"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/frame/X24_NEW.png",
+    "url": "/frame/X24_NEW.png",
+    "sha256": "bfc14cd20408a5e35273f988c3ad9afdbf2862f70b53ae8b6a76f57e9068cdf0",
+    "bytes": 29569,
+    "dimensions": [
+      1811,
+      2561
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3211,
+        "match": "\"file\": \"public/frame/X24_NEW.png\","
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts",
+        "line": 9,
+        "match": "export const GIA_SOC_DEFAULT_BG = '/frame/X24_NEW.png';"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/frame/bg_phieu.png",
+    "url": "/frame/bg_phieu.png",
+    "sha256": "4baff5cdb5cf64ec3669e65cecef89bb5c3b1ee9bd76d14475d6a0b815e28f09",
+    "bytes": 190161,
+    "dimensions": [
+      2365,
+      3202
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3203,
+        "match": "\"file\": \"public/frame/bg_phieu.png\","
+      },
+      {
+        "file": "features/sticker-event/hooks/useStickerPrinterData.ts",
+        "line": 60,
+        "match": "bgImage: '/frame/bg_phieu.png',"
+      },
+      {
+        "file": "features/sticker-event/hooks/useStickerPrinterData.ts",
+        "line": 97,
+        "match": "const [bgImage, setBgImage] = useState('/frame/bg_phieu.png');"
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+        "line": 267,
+        "match": "{ id: '/frame/bg_phieu.png', label: 'ĐMX' },"
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts",
+        "line": 11,
+        "match": "export const DRAW_DMX_DEFAULT_BG = '/frame/bg_phieu.png';"
+      },
+      {
+        "file": "tests/unit/sticker-draw-ticket-persistence.test.ts",
+        "line": 52,
+        "match": "bgImage: '/frame/bg_phieu.png',"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/frame/bg_phieutgd.png",
+    "url": "/frame/bg_phieutgd.png",
+    "sha256": "06e91ba34442f621d7d7bbf309bb662790488fa365eaa1bdc2784d90f10cea2a",
+    "bytes": 332788,
+    "dimensions": [
+      2365,
+      3202
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3215,
+        "match": "\"file\": \"public/frame/bg_phieutgd.png\","
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+        "line": 268,
+        "match": "{ id: '/frame/bg_phieutgd.png', label: 'TGĐ' },"
+      },
+      {
+        "file": "features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts",
+        "line": 12,
+        "match": "export const DRAW_TGDD_DEFAULT_BG = '/frame/bg_phieutgd.png';"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/apple-touch-icon-120.png",
+    "url": "/icons/apple-touch-icon-120.png",
+    "sha256": "6dbee69b5bc373679da293e18406fc481273299f82a4691b4615c49f7fe6f715",
+    "bytes": 4202,
+    "dimensions": [
+      120,
+      120
+    ],
+    "references": [
+      {
+        "file": "components/layout/InstallAppHint.tsx",
+        "line": 50,
+        "match": "<img src=\"/icons/apple-touch-icon-120.png\" alt=\"\" className=\"w-9 h-9 rounded-control shrink-0\" />"
+      },
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3343,
+        "match": "\"file\": \"public/icons/apple-touch-icon-120.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 91,
+        "match": "<link rel=\"apple-touch-icon\" sizes=\"120x120\" href=\"/icons/apple-touch-icon-120.png\">"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 17,
+        "match": "['apple-touch-icon-152.png', 152], ['apple-touch-icon-120.png', 120],"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/apple-touch-icon-152.png",
+    "url": "/icons/apple-touch-icon-152.png",
+    "sha256": "b9769d19d04733e80b58445a6e64376abdddc33be129fbec311603f9056cb07d",
+    "bytes": 7046,
+    "dimensions": [
+      152,
+      152
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3339,
+        "match": "\"file\": \"public/icons/apple-touch-icon-152.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 90,
+        "match": "<link rel=\"apple-touch-icon\" sizes=\"152x152\" href=\"/icons/apple-touch-icon-152.png\">"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 17,
+        "match": "['apple-touch-icon-152.png', 152], ['apple-touch-icon-120.png', 120],"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/apple-touch-icon-167.png",
+    "url": "/icons/apple-touch-icon-167.png",
+    "sha256": "91a9882e2c8658cf74eab622beb3917cc75740b9d45d97d418e7acf99b802a23",
+    "bytes": 7581,
+    "dimensions": [
+      167,
+      167
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3335,
+        "match": "\"file\": \"public/icons/apple-touch-icon-167.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 89,
+        "match": "<link rel=\"apple-touch-icon\" sizes=\"167x167\" href=\"/icons/apple-touch-icon-167.png\">"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 16,
+        "match": "['apple-touch-icon-180.png', 180], ['apple-touch-icon-167.png', 167],"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/apple-touch-icon-180.png",
+    "url": "/icons/apple-touch-icon-180.png",
+    "sha256": "f0bbab0d75880496b7fb527a4a0fd6af9ac91a64beb376f526c5e7ea53ad1cef",
+    "bytes": 9431,
+    "dimensions": [
+      180,
+      180
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3351,
+        "match": "\"file\": \"public/icons/apple-touch-icon-180.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 87,
+        "match": "<link rel=\"apple-touch-icon\" href=\"/icons/apple-touch-icon-180.png\">"
+      },
+      {
+        "file": "index.html",
+        "line": 88,
+        "match": "<link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/icons/apple-touch-icon-180.png\">"
+      },
+      {
+        "file": "public/manifest.webmanifest",
+        "line": 17,
+        "match": "{ \"src\": \"/icons/apple-touch-icon-180.png\", \"sizes\": \"180x180\", \"type\": \"image/png\", \"purpose\": \"any\" }"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 16,
+        "match": "['apple-touch-icon-180.png', 180], ['apple-touch-icon-167.png', 167],"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/icon-192.png",
+    "url": "/icons/icon-192.png",
+    "sha256": "1997b5aff655e4857377a52e0c5d5c280debf81a4a14f32c6b75dc82ade31dba",
+    "bytes": 8302,
+    "dimensions": [
+      192,
+      192
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3355,
+        "match": "\"file\": \"public/icons/icon-192.png\","
+      },
+      {
+        "file": "public/manifest.webmanifest",
+        "line": 14,
+        "match": "{ \"src\": \"/icons/icon-192.png\", \"sizes\": \"192x192\", \"type\": \"image/png\", \"purpose\": \"any\" },"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 18,
+        "match": "['icon-192.png', 192], ['icon-512.png', 512],"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/icon-512.png",
+    "url": "/icons/icon-512.png",
+    "sha256": "8549acf2754aca2d72b8d93d026a17c51e498b3b6cb4c879b9ef8f6cacf92606",
+    "bytes": 92739,
+    "dimensions": [
+      512,
+      512
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3347,
+        "match": "\"file\": \"public/icons/icon-512.png\","
+      },
+      {
+        "file": "public/manifest.webmanifest",
+        "line": 15,
+        "match": "{ \"src\": \"/icons/icon-512.png\", \"sizes\": \"512x512\", \"type\": \"image/png\", \"purpose\": \"any\" },"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 18,
+        "match": "['icon-192.png', 192], ['icon-512.png', 512],"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/icons/icon-maskable-512.png",
+    "url": "/icons/icon-maskable-512.png",
+    "sha256": "2a03c66163cf9c29b292951866403fe00c577f8d25f7cd250d78faa1f00f054d",
+    "bytes": 43029,
+    "dimensions": [
+      512,
+      512
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3359,
+        "match": "\"file\": \"public/icons/icon-maskable-512.png\","
+      },
+      {
+        "file": "public/manifest.webmanifest",
+        "line": 16,
+        "match": "{ \"src\": \"/icons/icon-maskable-512.png\", \"sizes\": \"512x512\", \"type\": \"image/png\", \"purpose\": \"maskable\" },"
+      },
+      {
+        "file": "scripts/pwa/tao-icon-splash.mjs",
+        "line": 50,
+        "match": "await page.screenshot({ path: 'public/icons/icon-maskable-512.png' });"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1125x2436.png",
+    "url": "/splash/iphone-1125x2436.png",
+    "sha256": "4e59820a5118d0f8677fae8cbf42c7fdbce1a135fb70d6e3e66d05c941196c5c",
+    "bytes": 47262,
+    "dimensions": [
+      1125,
+      2436
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3235,
+        "match": "\"file\": \"public/splash/iphone-1125x2436.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 95,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1125x2436.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1170x2532.png",
+    "url": "/splash/iphone-1170x2532.png",
+    "sha256": "887d85ecfdaa9a943b79f564d8befe2cd9593bcab201e75a967316810aa65221",
+    "bytes": 47704,
+    "dimensions": [
+      1170,
+      2532
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3231,
+        "match": "\"file\": \"public/splash/iphone-1170x2532.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 98,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1170x2532.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1179x2556.png",
+    "url": "/splash/iphone-1179x2556.png",
+    "sha256": "cc7b86f7c04ddbbfdd1789bda45e9cd80cd25ddd9263c355b2060b067e673e60",
+    "bytes": 47842,
+    "dimensions": [
+      1179,
+      2556
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3223,
+        "match": "\"file\": \"public/splash/iphone-1179x2556.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 100,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1179x2556.png\">"
+      },
+      {
+        "file": "tests/e2e/man-khoi-dong-dong.spec.ts",
+        "line": 26,
+        "match": "const [a, b] = await Promise.all([nap('/splash/iphone-1179x2556.png'), nap('data:image/png;base64,' + chupB64)]);"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1206x2622.png",
+    "url": "/splash/iphone-1206x2622.png",
+    "sha256": "1f3d855a94729ec3dca189712f31c738d6bce665fc10c87d08b526d79ac5f9bf",
+    "bytes": 48208,
+    "dimensions": [
+      1206,
+      2622
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3239,
+        "match": "\"file\": \"public/splash/iphone-1206x2622.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 102,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1206x2622.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1242x2208.png",
+    "url": "/splash/iphone-1242x2208.png",
+    "sha256": "0e51e921cbc6f48fe3cd0222f3a48f5036fda22acaf20afc0f2f9251094b6e16",
+    "bytes": 46534,
+    "dimensions": [
+      1242,
+      2208
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3267,
+        "match": "\"file\": \"public/splash/iphone-1242x2208.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 94,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1242x2208.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1242x2688.png",
+    "url": "/splash/iphone-1242x2688.png",
+    "sha256": "e770936472f36a87dd5d04dd2494e50da16ae88684619558fd1a6ca3da5b3329",
+    "bytes": 49685,
+    "dimensions": [
+      1242,
+      2688
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3251,
+        "match": "\"file\": \"public/splash/iphone-1242x2688.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 97,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1242x2688.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1284x2778.png",
+    "url": "/splash/iphone-1284x2778.png",
+    "sha256": "ca80b0711ee0688b1950e2e2ac939c875f634da8fec4d07f20bb46cebabf013f",
+    "bytes": 49850,
+    "dimensions": [
+      1284,
+      2778
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3243,
+        "match": "\"file\": \"public/splash/iphone-1284x2778.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 99,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1284x2778.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1290x2796.png",
+    "url": "/splash/iphone-1290x2796.png",
+    "sha256": "a085ec19245dcf79f6071461f0066e0b4e7bb078bfcc0f619a39b92f07b545c8",
+    "bytes": 48799,
+    "dimensions": [
+      1290,
+      2796
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3259,
+        "match": "\"file\": \"public/splash/iphone-1290x2796.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 101,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1290x2796.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-1320x2868.png",
+    "url": "/splash/iphone-1320x2868.png",
+    "sha256": "e6cf6efa3d7b33fa1b59524e9e0477477acb620dbd41d1bbae3a6f4952b80793",
+    "bytes": 50650,
+    "dimensions": [
+      1320,
+      2868
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3255,
+        "match": "\"file\": \"public/splash/iphone-1320x2868.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 103,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)\" href=\"/splash/iphone-1320x2868.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-640x1136.png",
+    "url": "/splash/iphone-640x1136.png",
+    "sha256": "a2007b78e0e97a0fefaaac258c825998680ff419fa4e6e8a9e3c7282814e4654",
+    "bytes": 23743,
+    "dimensions": [
+      640,
+      1136
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3263,
+        "match": "\"file\": \"public/splash/iphone-640x1136.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 92,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\" href=\"/splash/iphone-640x1136.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-750x1334.png",
+    "url": "/splash/iphone-750x1334.png",
+    "sha256": "a04fc6fec74b1999e551fde352b85b765c49043227c74ac0807533d7b3ef888f",
+    "bytes": 24997,
+    "dimensions": [
+      750,
+      1334
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3227,
+        "match": "\"file\": \"public/splash/iphone-750x1334.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 93,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\" href=\"/splash/iphone-750x1334.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  },
+  {
+    "path": "public/splash/iphone-828x1792.png",
+    "url": "/splash/iphone-828x1792.png",
+    "sha256": "0b3d11306e3d4f11d9b772be038308d79b972e0db69887adaf73a68e8e8eae89",
+    "bytes": 27562,
+    "dimensions": [
+      828,
+      1792
+    ],
+    "references": [
+      {
+        "file": "docs/audit-2026-10-07/evidence/source-inventory.json",
+        "line": 3247,
+        "match": "\"file\": \"public/splash/iphone-828x1792.png\","
+      },
+      {
+        "file": "index.html",
+        "line": 96,
+        "match": "<link rel=\"apple-touch-startup-image\" media=\"(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)\" href=\"/splash/iphone-828x1792.png\">"
+      }
+    ],
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "metadata/reference only; no visual acceptance",
+    "reason": "Manifest/index/CSS/template/guide reference; keep valid public asset contract, not proof every asset loaded in production."
+  }
+]

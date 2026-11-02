@@ -1,0 +1,102 @@
+components/employees/EmployeeAnalysisTabs.tsx:3:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/employees/EmployeeAnalysisTabs.tsx:62:                                <AppIcon name={resolveIconName(tab.icon) ?? 'help'} size="md" />
+components/employees/EmployeeAnalysisTabs.tsx:83:                                    <AppIcon name={resolveIconName(tab.icon) ?? 'help'} size="md" />
+components/employees/performance/PerformanceSingleTable.tsx:2:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/employees/performance/PerformanceSingleTable.tsx:305:                                    <AppIcon name={resolveIconName(tabIcon) ?? 'help'} size="md" />
+components/employees/performance/PerformanceSingleTable.tsx:368:                                        <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/employees/performance/PerformanceSingleTable.tsx:385:                                            <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/employees/performance/PerformanceSingleTable.tsx:443:                                                    <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/employees/industry/IndustryTableUtils.tsx:2:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/employees/industry/IndustryTableUtils.tsx:70:                {isActive && <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>}
+components/employees/EmployeeAnalysis.tsx:3:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/employees/EmployeeAnalysis.tsx:237:                                                    <AppIcon name={resolveIconName(tab.icon) ?? 'help'} size="sm" />
+components/employees/ContestTable.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/employees/ContestTable.tsx:435:                                            <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/employees/ContestTable.tsx:468:                                                    <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/employees/ContestTable.tsx:496:                                                    <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/employees/head-to-head/HeadToHeadTable.tsx:3:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/employees/head-to-head/HeadToHeadTable.tsx:172:                                {sortConfig.key === 'total' && <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" className="inline ml-1 text-sky-500" /></span>}
+components/employees/head-to-head/HeadToHeadTable.tsx:176:                                {sortConfig.key === 'daysWithNoSales' && <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" className="inline ml-1 text-rose-500" /></span>}
+components/employees/IndustryAnalysisTab.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/employees/IndustryAnalysisTab.tsx:411:                                                <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+components/views/UserManagementView.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/views/UserManagementView.tsx:999:                                                        <AppIcon name={resolveIconName(req.role === 'admin' ? 'shield' : req.role === 'manager' ? 'briefcase' : 'users') ?? 'help'} size="xs" />
+components/summary/WarehouseSummary.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/summary/WarehouseSummary.tsx:792:                            <AppIcon name={resolveIconName(viewMode === 'horizontal' ? 'layout-list' : 'table-2') ?? 'help'} size="sm" className="lg:hidden" />
+components/summary/WarehouseSummary.tsx:793:                            <AppIcon name={resolveIconName(viewMode === 'horizontal' ? 'layout-list' : 'table-2') ?? 'help'} size="md" className="hidden lg:block" />
+components/summary/WarehouseSummary.tsx:944:                                            <AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />
+components/summary/WarehouseSummary.tsx:958:                                                            <AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />
+components/summary/WarehouseSummary.tsx:986:                                                    <AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />
+components/views/settings/SettingsAccountTab.tsx:2:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/views/settings/SettingsAccountTab.tsx:221:                                        <AppIcon name={resolveIconName(userRole === 'manager' ? 'briefcase' : userRole === 'admin' ? 'shield' : 'users') ?? 'help'} size="xs" />
+components/views/settings/SettingsAccountTab.tsx:375:                                <AppIcon name={resolveIconName((userRole === 'admin' || (userRole === 'manager' && autoApproveManagersEnabled)) ? 'check-circle' : 'alert-triangle') ?? 'help'} size="md" />
+features/khai-thac/catalog.ts:8: * `icon` là tên icon (tên cũ kebab-case hoặc tên chức năng) — vẽ qua `<AppIcon name={resolveIconName(icon)}>`.
+components/views/PendingApprovalView.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+features/khai-thac/components/GroupSection.tsx:2:import { resolveIconName } from '../../../components/shared/ui/icon/legacyIconNames';
+features/khai-thac/components/GroupSection.tsx:29:            {icon && <AppIcon name={resolveIconName(icon) ?? 'help'} size="sm" />}
+features/khai-thac/components/GroupSection.tsx:46:                <span className={`hidden sm:inline-flex shrink-0 ${active ? 'text-emerald-700' : 'text-slate-400'}`}><AppIcon name={resolveIconName(icon) ?? 'help'} size="md" /></span>
+features/khai-thac/components/CounterRow.tsx:2:import { resolveIconName } from '../../../components/shared/ui/icon/legacyIconNames';
+features/khai-thac/components/CounterRow.tsx:35:                    <AppIcon name={resolveIconName(icon) ?? 'help'} size="md" />
+features/bi-dashboard/components/BiWrapper.tsx:2:import { resolveIconName } from '../../../components/shared/ui/icon/legacyIconNames';
+features/bi-dashboard/components/BiWrapper.tsx:333:                                <AppIcon name={resolveIconName(tab.icon) ?? 'help'} size="md" />
+features/bi-dashboard/components/BiWrapper.tsx:452:                    icon: resolveIconName(tab.icon) ?? 'help',
+components/tables/summary/SummaryTableHeader.tsx:2:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/tables/summary/SummaryTableHeader.tsx:175:                                                                <AppIcon name={resolveIconName(col.icon || 'columns') ?? 'help'} size="sm" />
+features/bi-dashboard/components/ExportButton.tsx:4:import { renderIcon, type IconProp } from '../../../components/shared/ui/icon/renderIcon';
+features/bi-dashboard/components/ExportButton.tsx:146:              {icon ? renderIcon(icon, 'md') : <AppIcon name="exportImage" size="md" />}
+features/bi-dashboard/components/ExportButton.tsx:179:                    {opt.icon ? renderIcon(opt.icon, 'md') : <AppIcon name="exportImage" size="md" className="text-slate-500" />}
+components/shared/ui/Input.tsx:5:import { resolveIconName } from './icon/legacyIconNames';
+components/shared/ui/Input.tsx:29:    const left = resolveIconName(leftIcon) ?? (leftIcon ? 'help' : undefined);
+components/shared/ui/Input.tsx:30:    const right = resolveIconName(rightIcon) ?? (rightIcon ? 'help' : undefined);
+components/charts/IndustryGrid.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/charts/IndustryGrid.tsx:367:                                                <AppIcon name={resolveIconName(icon) ?? 'help'} size="xs" />
+components/charts/IndustryGrid.tsx:388:                                                    <AppIcon name={resolveIconName(icon) ?? 'help'} size="sm" />
+components/charts/IndustryGrid.tsx:405:                                                    <AppIcon name={resolveIconName(metricToDisplay === 'revenue' ? 'package' : 'dollar-sign') ?? 'help'} size="xs" className="text-slate-400" />
+components/tables/summary/SummaryTableFilterBar.tsx:2:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/tables/summary/SummaryTableFilterBar.tsx:48:                                <AppIcon name={resolveIconName(iconName) ?? 'help'} size="xs" className="mr-1 opacity-80 shrink-0" />
+components/tables/SummaryTable.tsx:3:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/tables/SummaryTable.tsx:340:                                                        <AppIcon name={resolveIconName(compSortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />
+components/tables/SummaryTable.tsx:351:                                                        <AppIcon name={resolveIconName(compSortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />
+components/tables/SummaryTable.tsx:401:                                                                {activeSortConfig.column === h.key && <AppIcon name={resolveIconName(activeSortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />}
+components/tables/SummaryTable.tsx:432:                                                {activeSortConfig.column === h.key && <AppIcon name={resolveIconName(activeSortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" />}
+components/filters/FilterSection.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/filters/FilterSection.tsx:364:                                    icon={resolveIconName(opt.icon) ?? 'help'}
+components/shared/ui/Tabs.tsx:5:import { renderIcon, type IconProp } from './icon/renderIcon';
+components/shared/ui/Tabs.tsx:88:              {item.icon && <span className="shrink-0 inline-flex">{renderIcon(item.icon, size)}</span>}
+components/shared/ui/Tabs.tsx:141:              {item.icon && <span className="shrink-0 inline-flex">{renderIcon(item.icon, size)}</span>}
+components/shared/ui/Tabs.tsx:195:              {item.icon && <span className="shrink-0 inline-flex">{renderIcon(item.icon, size)}</span>}
+components/shared/ui/Tabs.tsx:286:            {item.icon && <span className="shrink-0 inline-flex">{renderIcon(item.icon, 'md')}</span>}
+components/modals/UncollectedOrdersModal.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/modals/UncollectedOrdersModal.tsx:547:                                                <AppIcon name={resolveIconName(icon) ?? 'help'} size="md" />
+components/kpis/modals/KpiCardConfigModal.tsx:2:import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+components/kpis/modals/KpiCardConfigModal.tsx:237:            <AppIcon name={resolveIconName(config.icon) ?? 'help'} size="md" />
+components/kpis/modals/KpiCardConfigModal.tsx:422:                                <AppIcon name={resolveIconName(icon) ?? 'help'} size="md" />
+components/modals/PerformanceModal.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/modals/PerformanceModal.tsx:69:                            <AppIcon name={resolveIconName(icon) ?? 'help'} size="xs" />
+components/modals/UnshippedOrdersModal.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/modals/UnshippedOrdersModal.tsx:533:                                                <AppIcon name={resolveIconName(icon) ?? 'help'} size="md" />
+components/shared/ui/KpiCard.tsx:4:import { resolveIconName } from './icon/legacyIconNames';
+components/shared/ui/KpiCard.tsx:177:                            <AppIcon name={resolveIconName(icon) ?? 'help'} size="sm" />
+components/shared/ui/KpiCard.tsx:215:                        <AppIcon name={resolveIconName(icon) ?? 'help'} px={9.5} />
+components/shared/ui/Select.tsx:5:import { resolveIconName } from './icon/legacyIconNames';
+components/shared/ui/Select.tsx:29:    const left = resolveIconName(leftIcon) ?? (leftIcon ? 'help' : undefined);
+components/modals/EmployeeManagerModal.tsx:2:import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+components/modals/EmployeeManagerModal.tsx:175:        return <AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'chevron-up' : 'chevron-down') ?? 'help'} size="sm" className="text-sky-700" />;
+components/shared/ui/toast/toast.ts:3:import { ICON_REGISTRY, type IconName } from '../icon/iconRegistry';
+components/shared/ui/toast/toast.ts:87:    return typeof value === 'string' && Object.prototype.hasOwnProperty.call(ICON_REGISTRY, value);
+components/shared/ui/StringMultiSelect.tsx:3:import { resolveIconName } from './icon/legacyIconNames';
+components/shared/ui/StringMultiSelect.tsx:144:                            <AppIcon name={resolveIconName(iconName) ?? 'help'} size={mobileIconSize} className="lg:hidden" />
+components/shared/ui/StringMultiSelect.tsx:145:                            <AppIcon name={resolveIconName(iconName) ?? 'help'} size={iconSize} className="hidden lg:block" />
+components/shared/ui/StringMultiSelect.tsx:148:                        <AppIcon name={resolveIconName(iconName) ?? 'help'} size={iconSize} />
+components/shared/ui/SectionHeader.tsx:5:import { resolveIconName } from './icon/legacyIconNames';
+components/shared/ui/SectionHeader.tsx:59:                        <AppIcon name={resolveIconName(icon) ?? 'help'} size="md" />
+components/shared/ui/index.ts:10:export { AppIcon, ICON_REGISTRY, ICON_SIZES, ICON_STROKE_WIDTH, ICON_TEXT_GAP_CLASS, LineIcon } from './icon';
+components/shared/ui/icon/AppIcon.tsx:3:import { ICON_REGISTRY, FILLED_BRAND_ICONS, type IconName } from './iconRegistry';
+components/shared/ui/icon/AppIcon.tsx:34:  const Component = ICON_REGISTRY[name] || ICON_REGISTRY.alert;
+components/shared/ui/icon/renderIcon.tsx:3:import { ICON_REGISTRY, type IconName } from './iconRegistry';
+components/shared/ui/icon/renderIcon.tsx:13:export function renderIcon(icon: IconProp, size: IconSize, className?: string): React.ReactNode {
+components/shared/ui/icon/renderIcon.tsx:14:  if (typeof icon === 'string' && icon in ICON_REGISTRY) {
+components/shared/ui/icon/index.ts:3:export { ICON_REGISTRY, FILLED_BRAND_ICONS } from './iconRegistry';
+components/shared/ui/icon/index.ts:8:export { LEGACY_ICON_NAMES, resolveIconName } from './legacyIconNames';
+components/shared/ui/icon/index.ts:9:export { renderIcon } from './renderIcon';
+components/shared/ui/icon/index.ts:10:export type { IconProp } from './renderIcon';

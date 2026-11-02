@@ -1,0 +1,16 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+════════ BENCHMARK 100.000 DÒNG ════════
+RBAC (lọc theo Kho/NV)      : 8 ms → 40.000 dòng
+Lọc chính (ngày/kho/xuất...): 41 ms → 100.000 dòng
+Tính doanh thu toàn bộ      : 125 ms  (tổng 124.5 tỷ)
+TỔNG 1 lượt lọc+tính        : 174 ms
+Mục tiêu kế hoạch Đợt 7     : < 200 ms
+══════════════════════════════════════
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:28:41
+   Duration  441ms (transform 106ms, setup 0ms, import 137ms, tests 203ms, environment 0ms)
+

@@ -1,0 +1,73 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Cấu hình Playwright dùng để AGENT TỰ KIỂM CHỨNG thay đổi trên UI thật trước khi báo cáo
+ * (CLAUDE.md mục 0.8), chưa phải bộ test hồi quy đầy đủ.
+ *
+ * - `webServer` tự khởi động `npm run dev` và tự tắt khi chạy xong, nên không cần tự quản lý PID
+ *   dev server (tránh hẳn việc tra PID theo port để kill).
+ * - `reuseExistingServer` bật ở máy local: nếu người dùng đang mở sẵn dev server thì dùng lại,
+ *   KHÔNG khởi động thêm và cũng không tắt server của họ.
+ * - Chỉ cài/chạy Chromium để nhẹ máy; thêm trình duyệt khác khi thực sự cần.
+ */
+const DEV_URL = 'http://127.0.0.1:5173';
+/** Đặt E2E_BASE_URL để chạy test trên một server có sẵn (vd bản build `vite preview`) thay vì dev
+ *  server. Hữu ích khi cần loại trừ nhiễu HMR của dev server đang mở sẵn trên máy. */
+const BASE_URL = process.env.E2E_BASE_URL || DEV_URL;
+/** Máy cloud (Claude Code trên web): Chromium cài sẵn ở /opt/pw-browsers/chromium lệch phiên bản với Playwright, và
+ *  proxy mạng dùng chứng chỉ riêng mà Chromium không tin (CDN như cdn.sheetjs.com báo ERR_CERT_AUTHORITY_INVALID).
+ *  Ở đó luôn đặt E2E_CHROMIUM_PATH=/opt/pw-browsers/chromium. CHỈ thêm E2E_IGNORE_HTTPS_ERRORS=1 khi chạy test cần tải
+ *  CDN (iframe-tabs-csp): bật nó là trình duyệt ra được mạng thật → test giả định "không có mạng" đổi kết quả
+ *  (đo 2026-10-02: sticker-nut-va-quet-ma tra mã sản phẩm ra dịch vụ thật, không còn thấy "THÀNH CÔNG").
+ *  Không đặt (máy chủ dự án, CI) → không đổi gì. Spec tự khai `launchOptions` phải trải `E2E_LAUNCH` vào. */
+export const E2E_LAUNCH = process.env.E2E_CHROMIUM_PATH ? { executablePath: process.env.E2E_CHROMIUM_PATH } : {};
+
+export default defineConfig({
+    testDir: './tests/e2e',
+    timeout: 60_000,
+    expect: { timeout: 10_000 },
+    fullyParallel: false,
+    workers: 1,
+    // Trên CI thêm reporter 'github': nó phát ra lệnh `::error file=…,line=…::<thông điệp>`, và
+    // GitHub biến thứ đó thành ANNOTATION — mà annotation ĐỌC ĐƯỢC qua API công khai
+    // (`/check-runs/{id}/annotations`), trong khi nội dung log và artifact thì đòi xác thực.
+    // Nhờ vậy lượt chạy đỏ tự nói ra test nào hỏng, ở file/dòng nào, không cần ai dán log.
+    // Đo ngày 2026-09-18: thiếu reporter này, annotation duy nhất của một job đỏ là
+    // "Process completed with exit code 1" — vô dụng để lần lỗi.
+    reporter: process.env.CI ? [['github'], ['list']] : [['list']],
+    use: {
+        baseURL: BASE_URL,
+        ignoreHTTPSErrors: !!process.env.E2E_IGNORE_HTTPS_ERRORS,
+        trace: 'retain-on-failure',
+        screenshot: 'only-on-failure',
+        video: 'off',
+    },
+    projects: [
+        // Audit A36 (2026-09-30): trước đây CHỈ Chromium — test "iPhone" chỉ đổi UA/viewport/cảm ứng
+        // trên Chromium, không chứng minh gì về Safari. Project `webkit` chạy ĐÚNG ENGINE của Safari
+        // (vẫn không thay thế được iPhone thật: share sheet, camera, đăng nhập Google, bàn phím ảo).
+        // Chỉ bật khi đặt E2E_WEBKIT=1; CI có job `e2e-webkit` riêng. Container cloud: hook SessionStart tự cài nền
+        // (scripts/cai-webkit.sh) → `npm run test:e2e:webkit -- <spec>` (2026-10-30).
+        // Spec tự khai báo giả lập điện thoại bằng test.use({ isMobile, hasTouch, viewport, userAgent }).
+        ...(process.env.E2E_WEBKIT ? [{
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
+        }] : []),
+        {
+            name: 'chromium',
+            use: {
+                ...devices['Desktop Chrome'],
+                // Locale UTF-8 cho trình duyệt: máy chạy locale POSIX (container cloud) thì Chromium bỏ tên
+                // file tải về có dấu tiếng Việt → "download" (đo 2026-09-28: "Bang_Tinh_Thue_TRƯƠNG…png").
+                // Máy người dùng / GitHub Actions vốn UTF-8 nên không đổi gì ở đó.
+                launchOptions: { ...E2E_LAUNCH, env: { ...process.env, LC_ALL: process.env.LC_ALL || 'C.UTF-8' } },
+            },
+        },
+    ],
+    webServer: process.env.E2E_BASE_URL ? undefined : {
+        command: 'npm run dev',
+        url: DEV_URL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+    },
+});

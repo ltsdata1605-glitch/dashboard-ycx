@@ -1,0 +1,436 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * Ratchet script cho các quy tắc của Shared Core Contract (RULES.md §2.5)
+ * mà ESLint không kiểm được đáng tin cậy bằng AST: màu hardcode ngoài palette
+ * semantic, và view thiếu toolbar mobile tương ứng.
+ *
+ * Lưu ý: rule "thiếu cặp dark:" (RULES.md §2.5.4) đã bị loại khỏi script này —
+ * dự án đã tắt Dark Mode hoàn toàn (commit d2397d4, LayoutContext ép Sáng) và
+ * DESIGN_SYSTEM_MODERN.md quy định KHÔNG tạo class dark: mới (không tốn công
+ * cho thứ không bao giờ hiển thị). Class dark: cũ trong code để yên (vô hiệu).
+ *
+ * Cơ chế: đếm vi phạm theo file, so với baseline đã commit (violations-baseline.json).
+ * Fail nếu 1 file bất kỳ có số vi phạm TĂNG so với baseline. Tự hạ baseline khi giảm.
+ * Baseline chưa tồn tại → tạo mới từ hiện trạng (không fail lần đầu).
+ *
+ * `--check-only` (audit A37, 2026-09-30 — dùng trên CI): CHỈ KIỂM, không bao giờ ghi file. Thiếu
+ * baseline thì FAIL (thay vì tự tạo rồi báo xanh), cải thiện thì chỉ nhắc chạy lại không cờ ở máy dev
+ * để hạ baseline. Công cụ kiểm tự sửa chuẩn của chính nó là kiểu "xanh" không chứng minh được gì.
+ */
+const CHECK_ONLY = process.argv.includes('--check-only');
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..');
+const BASELINE_PATH = path.join(ROOT, 'violations-baseline.json');
+
+const SCAN_EXTENSIONS = new Set(['.ts', '.tsx']);
+
+/**
+ * BỎ QUA file test (thêm 2026-09-18). Quy chuẩn thiết kế áp cho code ứng dụng, không áp cho dữ
+ * liệu mẫu trong test — mà test của chính ratchet thì BẮT BUỘC phải chứa các chuỗi màu sai chuẩn
+ * để kiểm tra bộ mẫu. Không loại ra thì công cụ tự báo động vì chính bài kiểm tra của nó.
+ */
+const IS_TEST_FILE = /\.(test|spec)\.tsx?$/;
+const IGNORE_DIRS = new Set([
+  'node_modules', 'dist', 'archive', 'scratch', '.git',
+  'design-system', 'worktrees',
+]);
+
+/**
+ * Tiền tố tiện ích màu của Tailwind.
+ *
+ * SỬA 2026-09-18 — LỖ HỔNG THẬT: bản cũ chỉ liệt kê `border` và `divide` trần, nên **bỏ sót mọi
+ * biến thể CÓ HƯỚNG**: `border-l-purple-400`, `border-t-red-500`, `divide-y-gray-200`,
+ * `ring-offset-teal-200`… Hậu quả không phải lý thuyết: `CompetitionListView.tsx` còn 2 chỗ
+ * `border-l-purple-400/500` trong khi ratchet báo file đó SẠCH — công cụ nói dối một cách im lặng,
+ * và một báo cáo "nonSemanticColor đã về 0" đã được đưa ra dựa trên con số sai đó.
+ *
+ * Thứ tự nhánh quan trọng: `border(?:-(?:t|r|b|l|x|y|s|e))?` để phần tuỳ chọn khớp TRƯỚC (regex
+ * tham lam), nếu đảo lại thì `border-l-purple-400` vẫn trượt.
+ */
+const COLOR_UTILITY_PREFIX =
+  '(?:bg|text|ring(?:-offset)?|fill|stroke|from|via|to|outline|accent|caret|decoration|shadow' +
+  '|border(?:-(?:t|r|b|l|x|y|s|e))?' +
+  '|divide(?:-(?:x|y))?)';
+const COLOR_SHADE = '(?:50|100|200|300|400|500|600|700|800|900|950)';
+
+/**
+ * Đợt 6 (2026-09-09) — TÁCH LÀM 2 CHỈ SỐ, trước đây gộp làm 1 nên số liệu gây hiểu nhầm.
+ *
+ * Lý do tách: `indigo` chiếm 1.390/1.480 (94%) tổng số "vi phạm" của chỉ số cũ, nhưng CLAUDE.md
+ * lại LIỆT KÊ indigo là màu HỢP LỆ ("6 họ semantic x 2 tầng sắc độ: 5 màu chuẩn + indigo"), và
+ * `styles.css` cố tình override `--color-indigo-*` thành đúng hex của `sky` để indigo hoạt động
+ * như alias của "primary". Gộp chung khiến 2 chuyện rất khác nhau bị trộn:
+ *   - dùng màu NGOÀI bảng đã duyệt (blue/purple/gray/teal...) = sai quy chuẩn, phải về 0;
+ *   - dùng indigo = hợp lệ theo CLAUDE.md, nhưng là nợ kỹ thuật cần giảm dần (xem RULES.md §2.5
+ *     mục 2: có nơi dùng indigo làm alias "primary" — đúng ý; có nơi dùng indigo như 1 màu RIÊNG
+ *     trong dải xoay vòng cạnh sky — 2 màu này đang vô tình render y hệt nhau, là bug thật).
+ * Hậu quả của việc gộp: đổi `purple` (sai chuẩn) → `indigo` (đúng chuẩn) là một CẢI THIỆN thật
+ * nhưng chỉ số cũ không đổi, nên công cụ không phản ánh được tiến bộ.
+ */
+const OFF_PALETTE_COLOR_PATTERN = new RegExp(
+  `\\b${COLOR_UTILITY_PREFIX}-(?:blue|purple|violet|teal|cyan|orange|yellow|red|green|pink|fuchsia|lime|gray|zinc|neutral|stone)-${COLOR_SHADE}\\b`,
+  'g'
+);
+
+/** Nợ kỹ thuật indigo — hợp lệ theo CLAUDE.md nhưng cần giảm dần, KHÔNG được tăng thêm. */
+const INDIGO_ALIAS_PATTERN = new RegExp(
+  `\\b${COLOR_UTILITY_PREFIX}-indigo-${COLOR_SHADE}\\b`,
+  'g'
+);
+
+/**
+ * Bỏ qua các DÒNG mà chuỗi "kiểu-Tailwind" trong đó KHÔNG phải class Tailwind của app này,
+ * nên bảng màu semantic không có thẩm quyền (Đợt 6 — sửa dương tính giả, không phải nới lỏng):
+ *
+ * 1. Dòng CSS tự viết tay dạng `.text-gray-600 { color: #4b5563; }` — gặp ở
+ *    features/sticker-event/services/printService.ts, là stylesheet cho BẢN IN, không nạp
+ *    Tailwind. Đổi tên class ở đó chỉ khiến tên nói "slate" trong khi giá trị vẫn là hex gray.
+ * 2. Dòng chứa chuỗi mã hoá URL (`%20`, `%28`...) — gặp ở SupermarketConfig.tsx, là code
+ *    bookmarklet chèn vào WEBSITE KHÁC (baocao.dienmayxanh.com), phải dùng class của site đó.
+ *
+ * 3. Dòng mã bookmarklet dạng template literal `javascript:...` (2026-09-28) — cùng lý do mục 2
+ *    nhưng không mã hoá URL: AutoClickGuideModal.tsx so khớp class `border-gray-200`, `bg-blue-50`…
+ *    của TRANG MWG để biết nút đang bật/tắt. Lượt dọn màu Đợt 4 từng đổi chúng sang slate/sky →
+ *    bookmarklet không còn nhận ra đúng trạng thái nút trên site đó.
+ *
+ * Lọc theo DÒNG chứ không loại cả file, để phần còn lại của các file này vẫn được kiểm tra.
+ */
+function isNotOurTailwindClass(line) {
+  if (/%[0-9A-Fa-f]{2}/.test(line)) return true;              // chuỗi mã hoá URL
+  if (/`javascript:/.test(line)) return true;                 // mã bookmarklet chạy trên site khác
+  if (/^\s*\.[\w-]+\s*(,\s*\.[\w-]+\s*)*\{/.test(line)) return true; // định nghĩa CSS tự viết
+  return false;
+}
+
+function countMatchesSkippingFalsePositives(content, pattern) {
+  let total = 0;
+  for (const line of content.split('\n')) {
+    if (isNotOurTailwindClass(line)) continue;
+    const m = line.match(pattern);
+    if (m) total += m.length;
+  }
+  return total;
+}
+
+function walk(dir, files) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (IGNORE_DIRS.has(entry.name)) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walk(full, files);
+    } else if (SCAN_EXTENSIONS.has(path.extname(entry.name)) && !IS_TEST_FILE.test(entry.name)) {
+      files.push(full);
+    }
+  }
+  return files;
+}
+
+function relPath(p) {
+  return path.relative(ROOT, p).split(path.sep).join('/');
+}
+
+function countOffPaletteColors(content) {
+  return countMatchesSkippingFalsePositives(content, OFF_PALETTE_COLOR_PATTERN);
+}
+
+function countIndigoAlias(content) {
+  return countMatchesSkippingFalsePositives(content, INDIGO_ALIAS_PATTERN);
+}
+
+function countMissingMobileToolbar(content) {
+  const hasDesktopPortal = content.includes('global-header-actions');
+  // 2 pattern mobile toolbar hợp lệ trong dự án: div inline 'lg:hidden', hoặc
+  // portal riêng vào mount point 'mobile-topbar-actions' (Header/SettingsView/
+  // BiWrapper/CheckThuongView dùng pattern này — ratchet trước đây không nhận
+  // diện được, gây false-positive).
+  // GĐ4 (2026-10-12): thêm 2 dấu hiệu hợp lệ — khung app vẽ thanh trên iPhone bằng `MobileNavBar` (App.tsx chỉ còn khe laptop),
+  // và màn khai báo nút bằng `usePageActions` (khung app tự vẽ cho CẢ iPhone lẫn laptop).
+  const hasMobileToolbar = content.includes('lg:hidden') || content.includes('mobile-topbar-actions')
+    || content.includes('<MobileNavBar') || content.includes('usePageActions(');
+  return hasDesktopPortal && !hasMobileToolbar ? 1 : 0;
+}
+
+/**
+ * CHUẨN HOÁ ICON (thêm 2026-10-02) — 3 chỉ số, chỉ được GIẢM. Chuẩn: mọi icon đi qua
+ * `components/shared/ui/icon` (`<AppIcon name="…" size="…" />`), xem DESIGN_SYSTEM.md mục "Icon".
+ *
+ * - iconDirectImport: số icon import thẳng từ 'lucide-react' (đếm theo TÊN được import, không theo
+ *   dòng, để thấy tiến độ từng icon). Riêng thư mục registry được phép → không đếm.
+ * - iconNumericSize: số `size={<số>}` — size viết tay. Đếm MỌI prop `size` dạng số vì đó đúng là
+ *   chỗ 2 đơn vị lẫn nhau (`<Icon size={4}>` = 16px, lucide `size={16}` = 16px).
+ * - iconLegacyCall: số lần gọi icon kiểu cũ — `<Icon name=` (components/common/Icon.tsx) và tên
+ *   import từ 2 file SVG tự vẽ `…/Icons` (bi-dashboard, sticker-event).
+ */
+const ICON_REGISTRY_DIR = 'components/shared/ui/icon/';
+const LUCIDE_IMPORT_PATTERN = /import\s+(type\s+)?\{([^}]*)\}\s*from\s*['"]lucide-react['"]/g;
+const NUMERIC_SIZE_PATTERN = /\bsize=\{\s*\d+(?:\.\d+)?\s*\}/g;
+const LEGACY_ICON_CALL_PATTERN = /<Icon\s+name=/g;
+const LOCAL_SVG_ICONS_IMPORT_PATTERN = /import\s*\{([^}]*)\}\s*from\s*['"][^'"]*\/Icons['"]/g;
+
+function countImportedNames(list) {
+  return list.split(',').map((x) => x.trim()).filter((x) => x && !x.startsWith('type ')).length;
+}
+
+function countIconDirectImport(content, file = '') {
+  if (file.startsWith(ICON_REGISTRY_DIR)) return 0;
+  let total = 0;
+  for (const m of content.matchAll(LUCIDE_IMPORT_PATTERN)) {
+    if (m[1]) continue; // `import type { LucideIcon }` không kéo icon nào vào bundle
+    total += countImportedNames(m[2]);
+  }
+  return total;
+}
+
+function countIconNumericSize(content) {
+  return (content.match(NUMERIC_SIZE_PATTERN) || []).length;
+}
+
+function countIconLegacyCall(content) {
+  let total = (content.match(LEGACY_ICON_CALL_PATTERN) || []).length;
+  for (const m of content.matchAll(LOCAL_SVG_ICONS_IMPORT_PATTERN)) total += countImportedNames(m[1]);
+  return total;
+}
+
+/**
+ * iconRawSvg (thêm 2026-10-07): icon SVG VIẾT THẲNG trong JSX (thẻ <svg> có viewBox icon 24×24 hoặc 20×20).
+ * Icon phải đi qua AppIcon. Ngoại lệ: thư mục registry (logo thương hiệu), và logo nhiều màu (Google ở LoginView,
+ * nằm trong baseline). Không đếm SVG biểu đồ/minh hoạ có viewBox khác.
+ */
+const RAW_SVG_ICON_PATTERN = /<svg\b[^>]*viewBox=["']0 0 (?:24 24|20 20)["']/g;
+function countIconRawSvg(content, file = '') {
+  if (file.startsWith(ICON_REGISTRY_DIR)) return 0;
+  return (content.match(RAW_SVG_ICON_PATTERN) || []).length;
+}
+
+/**
+ * iconEmoji (thêm 2026-10-07): emoji / ký tự ✓ ✕ ⚠ ★ dùng LÀM ICON giao diện. Icon phải là AppIcon (đúng thang
+ * size, đúng màu ngữ nghĩa, hiển thị như nhau trên mọi máy — emoji thì mỗi hệ điều hành vẽ một kiểu).
+ * Đếm: trong .tsx mọi emoji ngoài dòng comment; trong .ts chỉ option toast `icon: '<emoji>'`. Emoji là NỘI DUNG
+ * (tin nhắn LINE mẫu, văn bản copy ra ngoài, tên ngày lễ…) nằm sẵn trong baseline — thêm mới thì chỉnh baseline
+ * thủ công kèm lý do. Mũi tên kiểu chữ ➔ không tính.
+ */
+const EMOJI_PATTERN = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{2793}\u{2795}-\u{27BF}\u{2B50}]/gu;
+const TOAST_EMOJI_ICON_PATTERN = /\bicon:\s*['"`][\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/gu;
+function countIconEmoji(content, file = '') {
+  if (file.startsWith(ICON_REGISTRY_DIR)) return 0;
+  if (!file.endsWith('.tsx')) return (content.match(TOAST_EMOJI_ICON_PATTERN) || []).length;
+  let total = 0;
+  for (const line of content.split('\n')) {
+    const t = line.trim();
+    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || t.startsWith('{/*')) continue;
+    total += (line.match(EMOJI_PATTERN) || []).length;
+  }
+  return total;
+}
+
+/**
+ * GĐ4 audit 2026-10-07 — chuẩn thiết kế (B), DESIGN_SYSTEM.md mục 3/4 (chỉ được GIẢM):
+ *  - rawOverlay: tự dựng modal/lớp phủ bằng `fixed inset-0` NGOÀI components/shared/ui — phải dùng <Modal>.
+ *  - tinyText: chữ nhỏ hơn 11px (`text-[8px]`/`[9px]`/`[10px]`) — màn siêu thị là laptop cũ.
+ *  - offScaleRadius: `rounded-3xl` hoặc bo tự đặt số `rounded-[12px]` — dùng thang rounded-control/card/popup/overlay.
+ */
+const SHARED_UI_DIR = 'components/shared/ui/';
+function countRawOverlay(content, file = '') {
+  if (!file.endsWith('.tsx') || file.startsWith(SHARED_UI_DIR)) return 0;
+  return (content.match(/\bfixed inset-0\b/g) || []).length;
+}
+function countTinyText(content, file = '') {
+  if (!file.endsWith('.tsx')) return 0;
+  return (content.match(/\btext-\[(?:[0-9]|10)(?:\.\d+)?px\]/g) || []).length;
+}
+function countOffScaleRadius(content, file = '') {
+  if (!file.endsWith('.tsx')) return 0;
+  return (content.match(/\brounded(?:-[trbl]{1,2})?-(?:3xl|\[(?!var\()[^\]]+\])/g) || []).length;
+}
+/**
+ * legacyRadius (GĐ10 bước 4, 2026-10-21): lớp bo góc KIỂU CŨ `rounded-lg` / `rounded-xl` / `rounded-2xl` (kể cả cạnh `rounded-t-xl`,
+ * biến thể `sm:rounded-lg`, `!rounded-2xl`). 905 chỗ đã đổi sang token CÙNG GIÁ TRỊ — lg 8px → `rounded-control`, xl 12px →
+ * `rounded-popup`, 2xl 16px → `rounded-card` (hoặc `rounded-overlay`) — giao diện không đổi. Mốc 0: lớp cũ mới là đỏ ngay.
+ */
+function countLegacyRadius(content, file = '') {
+  if (!/\.tsx?$/.test(file)) return 0;
+  return (content.match(/(?<![\w-])rounded(?:-(?:t|r|b|l|tl|tr|br|bl|s|e|ss|se|es|ee))?-(?:lg|xl|2xl)(?![\w-])/g) || []).length;
+}
+
+/**
+ * offScaleText (GĐ3 2026-10-11, KE_HOACH_GIAO_DIEN_APPLE.md mục 2.3): cỡ chữ NGOÀI thang 10 bậc của lớp Apple. Thang (px):
+ * 11 caption · 12 footnote · 13 subhead · 15/14 body · 17/16 headline · 20 title · 25 kpi · 28/26 large-title · 34 kpi-lg ·
+ * 44 kpi-xl (số KPI chính ở màn ≥ xl — chủ dự án chọn phương án B 2026-10-21)
+ * (số sau "/" là bản laptop). Đếm `text-[Npx]` với N ≥ 11 không thuộc thang (N < 11 đã có `tinyText`) và cỡ có tên ngoài thang
+ * `text-lg`(18) `text-2xl`(24) `text-3xl`(30) `text-4xl`(36)… — `text-xs/sm/base/xl` = 12/14/16/20 nằm trong thang.
+ * Ghi chú: ~30 cỡ chữ khác nhau là một trong 3 nguyên nhân gốc của cảm giác "rối" — chỉ số này chỉ được GIẢM.
+ */
+const TYPE_SCALE_PX = new Set([11, 12, 13, 14, 15, 16, 17, 20, 25, 26, 28, 34, 44]);
+function countOffScaleText(content, file = '') {
+  if (!file.endsWith('.tsx')) return 0;
+  let n = 0;
+  for (const m of content.matchAll(/\btext-\[(\d+(?:\.\d+)?)px\]/g)) {
+    const px = Number(m[1]);
+    if (px >= 11 && !TYPE_SCALE_PX.has(px)) n++;
+  }
+  n += (content.match(/\btext-(?:lg|[2-9]xl)\b/g) || []).length;
+  return n;
+}
+
+/**
+ * backdropBlur (2026-10-28, AUD-007, DESIGN_SYSTEM.md mục 8): lớp `backdrop-blur-*` RỜI của Tailwind trong .tsx. Kính cho lớp điều khiển
+ * nổi phải đi qua `<GlassSurface>` / `.ycx-glass` (token --glass-*); lớp rời bị khối "MOBILE ENERGY SAVING" tắt trên điện thoại nên
+ * iPhone không thấy kính, và hay bị phủ nhầm lên bảng/KPI. 54 → 38 chỗ còn lại đã phân loại giữ có lý do
+ * (audit/backdrop-blur-classification.csv: lớp phủ/scrim, huy hiệu trên nền màu, khung mô phỏng LINE…). Chỉ được GIẢM.
+ */
+function countBackdropBlur(content, file = '') {
+  if (!file.endsWith('.tsx')) return 0;
+  let n = 0;
+  for (const line of content.split('\n')) {
+    const t = line.trim();
+    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || t.startsWith('{/*')) continue;
+    n += (line.match(/\bbackdrop-blur(?:-[\w[\].]+)?/g) || []).length;
+  }
+  return n;
+}
+
+/**
+ * unstyledButton (2026-10-28, audit V6 việc 3): `<Button variant="unstyled">` — nút tự vẽ toàn bộ kiểu, KHÔNG theo cỡ/màu chuẩn.
+ * GĐ10 đưa `<button>` thô về 0 bằng cách bọc thành unstyled (giữ nguyên giao diện) → 582/1.033 nút (56%) vẫn tự vẽ. Chỉ được GIẢM:
+ * nút mới dùng variant chuẩn (primary/secondary/tinted/ghost/destructive…) + size sm/md/lg/icon; nút trong ô bảng dày, mục tab tự
+ * vẽ có chủ đích (thanh tab kính, CapsuleBar) vẫn được dùng unstyled nhưng không tăng tổng của file.
+ */
+function countUnstyledButton(content, file = '') {
+  if (!file.endsWith('.tsx') || file === 'components/shared/ui/Button.tsx') return 0;
+  return (content.match(/variant=["']unstyled["']/g) || []).length;
+}
+
+const METRIC_KEYS = ['nonSemanticColor', 'indigoAlias', 'missingMobileToolbar', 'iconDirectImport', 'iconNumericSize', 'iconLegacyCall', 'iconRawSvg', 'iconEmoji', 'rawOverlay', 'tinyText', 'offScaleRadius', 'offScaleText', 'legacyRadius', 'backdropBlur', 'unstyledButton'];
+
+function computeViolations() {
+  const files = walk(ROOT, []);
+  const result = {};
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    const counts = {
+      nonSemanticColor: countOffPaletteColors(content),
+      indigoAlias: countIndigoAlias(content),
+      missingMobileToolbar: countMissingMobileToolbar(content),
+      iconDirectImport: countIconDirectImport(content, relPath(file)),
+      iconNumericSize: countIconNumericSize(content),
+      iconLegacyCall: countIconLegacyCall(content),
+      iconRawSvg: countIconRawSvg(content, relPath(file)),
+      iconEmoji: countIconEmoji(content, relPath(file)),
+      rawOverlay: countRawOverlay(content, relPath(file)),
+      tinyText: countTinyText(content, relPath(file)),
+      offScaleRadius: countOffScaleRadius(content, relPath(file)),
+      offScaleText: countOffScaleText(content, relPath(file)),
+      legacyRadius: countLegacyRadius(content, relPath(file)),
+      backdropBlur: countBackdropBlur(content, relPath(file)),
+      unstyledButton: countUnstyledButton(content, relPath(file)),
+    };
+    if (METRIC_KEYS.some((k) => counts[k])) {
+      result[relPath(file)] = counts;
+    }
+  }
+  return result;
+}
+
+function loadBaseline() {
+  if (!fs.existsSync(BASELINE_PATH)) return null;
+  return JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8'));
+}
+
+function saveBaseline(data) {
+  const sorted = Object.fromEntries(Object.entries(data).sort(([a], [b]) => a.localeCompare(b)));
+  fs.writeFileSync(BASELINE_PATH, JSON.stringify(sorted, null, 2) + '\n');
+}
+
+function main() {
+  const current = computeViolations();
+  const baseline = loadBaseline();
+
+  // `--seed-metric=<tên>`: GIEO baseline cho một chỉ số MỚI (mốc = hiện trạng của đúng chỉ số đó, chỉ số khác giữ nguyên).
+  // Chỉ dùng một lần lúc thêm chỉ số; từ lần chạy sau chỉ số mới cũng chỉ được giảm như mọi chỉ số khác.
+  const seedArg = process.argv.find((a) => a.startsWith('--seed-metric='));
+  if (seedArg && baseline) {
+    const key = seedArg.split('=')[1];
+    if (!METRIC_KEYS.includes(key)) { console.error(`[lint-ratchet] Không có chỉ số "${key}".`); process.exit(1); }
+    const next = { ...baseline };
+    let tong = 0;
+    for (const [file, counts] of Object.entries(current)) {
+      if (!counts[key]) continue;
+      next[file] = { ...(next[file] || Object.fromEntries(METRIC_KEYS.map((k) => [k, 0]))), [key]: counts[key] };
+      tong += counts[key];
+    }
+    saveBaseline(next);
+    console.log(`[lint-ratchet] Đã gieo baseline cho "${key}": ${tong} vi phạm hiện có.`);
+    return;
+  }
+
+  if (!baseline) {
+    if (CHECK_ONLY) {
+      console.error('[lint-ratchet] Thiếu violations-baseline.json — --check-only không tự tạo baseline.');
+      process.exit(1);
+    }
+    saveBaseline(current);
+    console.log(`[lint-ratchet] Chưa có baseline — đã tạo mới tại violations-baseline.json (${Object.keys(current).length} file có vi phạm được ghi nhận).`);
+    console.log('[lint-ratchet] Từ lần chạy sau, script sẽ chặn nếu vi phạm ở bất kỳ file nào TĂNG so với baseline này.');
+    return;
+  }
+
+  const regressions = [];
+  const nextBaseline = { ...baseline };
+  let improved = false;
+
+  for (const [file, counts] of Object.entries(current)) {
+    const base = baseline[file] || Object.fromEntries(METRIC_KEYS.map((k) => [k, 0]));
+    const merged = { ...base };
+    for (const key of Object.keys(counts)) {
+      const baseVal = base[key] || 0;
+      if (counts[key] > baseVal) {
+        regressions.push(`${file}: ${key} tăng từ ${baseVal} → ${counts[key]}`);
+      } else if (counts[key] < baseVal) {
+        merged[key] = counts[key];
+        improved = true;
+      }
+    }
+    nextBaseline[file] = merged;
+  }
+
+  for (const file of Object.keys(baseline)) {
+    if (!current[file]) {
+      delete nextBaseline[file];
+      improved = true;
+    }
+  }
+
+  if (regressions.length > 0) {
+    console.error('[lint-ratchet] Phát hiện vi phạm MỚI so với baseline (RULES.md §2.5 Shared Core Contract):');
+    for (const r of regressions) console.error(`  - ${r}`);
+    console.error('\nSửa lại thay đổi, hoặc nếu đây là ngoại lệ có chủ đích, cập nhật thủ công violations-baseline.json.');
+    process.exit(1);
+  }
+
+  if (improved && CHECK_ONLY) {
+    console.log('[lint-ratchet] OK — có cải thiện so với baseline (chế độ --check-only: KHÔNG ghi; chạy `npm run lint:ratchet` ở máy dev rồi commit baseline mới).');
+  } else if (improved) {
+    saveBaseline(nextBaseline);
+    console.log('[lint-ratchet] OK — không có vi phạm mới. Baseline đã được hạ xuống theo cải thiện vừa có.');
+  } else {
+    console.log('[lint-ratchet] OK — không có vi phạm mới so với baseline.');
+  }
+}
+
+// Chỉ chạy khi gọi trực tiếp từ dòng lệnh. Có điều kiện này thì file mới `require` được trong test
+// mà không kích hoạt cả lượt quét (và `process.exit(1)` khi có vi phạm).
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  countOffPaletteColors, countIndigoAlias, countMissingMobileToolbar,
+  countIconDirectImport, countIconNumericSize, countIconLegacyCall, countIconRawSvg, countIconEmoji,
+  countRawOverlay, countTinyText, countOffScaleRadius, countOffScaleText, countLegacyRadius,
+  computeViolations, saveBaseline, METRIC_KEYS,
+};

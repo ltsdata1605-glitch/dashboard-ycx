@@ -1,0 +1,615 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c7-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c7-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c7-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "tax-merge-storage.spec.ts",
+          "tax-storage-atomicity.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c7-chromium.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "tax-merge-storage.spec.ts",
+      "file": "tax-merge-storage.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "local-newer: displayed and durable history keep the same latest record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1037,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:08.522Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "42e6031971f5678b1489-d5921dae8647c95599eb",
+          "file": "tax-merge-storage.spec.ts",
+          "line": 6,
+          "column": 5
+        },
+        {
+          "title": "cloud-newer: displayed and durable history keep the same latest record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 283,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:09.878Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "42e6031971f5678b1489-555ea5de6ed83150919f",
+          "file": "tax-merge-storage.spec.ts",
+          "line": 6,
+          "column": 5
+        },
+        {
+          "title": "cloud-ascending: displayed and durable history keep the same latest record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 264,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:10.167Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "42e6031971f5678b1489-add3252b6522236a359a",
+          "file": "tax-merge-storage.spec.ts",
+          "line": 6,
+          "column": 5
+        },
+        {
+          "title": "cloud-descending: displayed and durable history keep the same latest record",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 282,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:10.436Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "42e6031971f5678b1489-8d1acc2bdfa7baa5d74d",
+          "file": "tax-merge-storage.spec.ts",
+          "line": 6,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "tax-storage-atomicity.spec.ts",
+      "file": "tax-storage-atomicity.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "save rejects when native add transaction aborts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 216,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:10.734Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-ac281c2460872d858f18",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 5,
+          "column": 5
+        },
+        {
+          "title": "save rejects when native put transaction aborts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 216,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:10.957Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-8a4a589a5ead6917c453",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 5,
+          "column": 5
+        },
+        {
+          "title": "committed save retains overwrite behavior and stable local ID",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 218,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:11.186Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-01db33fce48cb0d3b87b",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "delete reports abort and preserves all rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 215,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:11.410Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-a38fa54714f411104b68",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "delete reports commit and persists changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 213,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:11.631Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-d095a93e3cf033d2f0ec",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "updateMonth reports abort and preserves all rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 231,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:11.848Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-6e6db04ced8379a18f2c",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "updateMonth reports commit and persists changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 211,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:12.084Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-d4299acfd5ec5a17e154",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "updateMonths reports abort and preserves all rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 212,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:12.302Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-911342423d48f455b507",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "updateMonths reports commit and persists changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 213,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:12.518Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-9b72bfa446af0935062d",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "clearAll reports abort and preserves all rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:12.735Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-6828428a88591f48bfca",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        },
+        {
+          "title": "clearAll reports commit and persists changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 209,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:12.950Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c96663411800f35ece4a-3e9af1fd5a6bfc3d0f39",
+          "file": "tax-storage-atomicity.spec.ts",
+          "line": 48,
+          "column": 9
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-25T14:17:06.338Z",
+    "duration": 6875.295,
+    "expected": 15,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

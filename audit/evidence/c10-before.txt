@@ -1,0 +1,90 @@
+[WebServer] (node:4507) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-form-states.spec.ts:67:9 › height tokens 390 › height tokens propagate without changing dense/icon/caller exceptions (11.0s)
+  ✘  2 [chromium] › tests/e2e/shared-form-states.spec.ts:67:9 › height tokens 1366 › height tokens propagate without changing dense/icon/caller exceptions (10.3s)
+
+
+  1) [chromium] › tests/e2e/shared-form-states.spec.ts:67:9 › height tokens 390 › height tokens propagate without changing dense/icon/caller exceptions 
+
+    Error: expect(locator).toHaveCSS(expected) failed
+
+    Locator:  getByRole('button', { name: 'Lưu', exact: true })
+    Expected: "50px"
+    Received: "44px"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCSS" getByRole('button', { name: 'Lưu', exact: true }) with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Lưu', exact: true })
+        24 × locator resolved to <button data-ui="shared" class="inline-flex items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-9 max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control gap-1.5">…</button>
+           - unexpected value "44px"
+
+
+      77 |                 document.documentElement.style.setProperty('--input-height', '52px');
+      78 |             });
+    > 79 |             await expect(save).toHaveCSS('height', '50px');
+         |                                ^
+      80 |             await expect(input).toHaveCSS('height', '52px');
+      81 |             await expect(select).toHaveCSS('height', '52px');
+      82 |             await expect(page.getByRole('textbox', { name: 'Ô dense' })).toHaveCSS('height', '28px');
+        at /Users/ltson/dashboardycx/tests/e2e/shared-form-states.spec.ts:79:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c10-before/shared-form-states-height--3214e-ense-icon-caller-exceptions-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c10-before/shared-form-states-height--3214e-ense-icon-caller-exceptions-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c10-before/shared-form-states-height--3214e-ense-icon-caller-exceptions-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c10-before/shared-form-states-height--3214e-ense-icon-caller-exceptions-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-form-states.spec.ts:67:9 › height tokens 1366 › height tokens propagate without changing dense/icon/caller exceptions 
+
+    Error: expect(locator).toHaveCSS(expected) failed
+
+    Locator:  getByRole('button', { name: 'Lưu', exact: true })
+    Expected: "50px"
+    Received: "36px"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCSS" getByRole('button', { name: 'Lưu', exact: true }) with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Lưu', exact: true })
+        24 × locator resolved to <button data-ui="shared" class="inline-flex items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-9 max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control gap-1.5">…</button>
+           - unexpected value "36px"
+
+
+      77 |                 document.documentElement.style.setProperty('--input-height', '52px');
+      78 |             });
+    > 79 |             await expect(save).toHaveCSS('height', '50px');
+         |                                ^
+      80 |             await expect(input).toHaveCSS('height', '52px');
+      81 |             await expect(select).toHaveCSS('height', '52px');
+      82 |             await expect(page.getByRole('textbox', { name: 'Ô dense' })).toHaveCSS('height', '28px');
+        at /Users/ltson/dashboardycx/tests/e2e/shared-form-states.spec.ts:79:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c10-before/shared-form-states-height--7bce7-ense-icon-caller-exceptions-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c10-before/shared-form-states-height--7bce7-ense-icon-caller-exceptions-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c10-before/shared-form-states-height--7bce7-ense-icon-caller-exceptions-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c10-before/shared-form-states-height--7bce7-ense-icon-caller-exceptions-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/shared-form-states.spec.ts:67:9 › height tokens 390 › height tokens propagate without changing dense/icon/caller exceptions 
+    [chromium] › tests/e2e/shared-form-states.spec.ts:67:9 › height tokens 1366 › height tokens propagate without changing dense/icon/caller exceptions 

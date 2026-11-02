@@ -1,0 +1,113 @@
+[
+  {
+    "startTime": 35121.353,
+    "method": "goto",
+    "params": {
+      "url": "/?tab=employees",
+      "waitUntil": "load"
+    }
+  },
+  {
+    "time": 35158.262,
+    "text": "[vite] connecting..."
+  },
+  {
+    "time": 35178.309,
+    "text": "[vite] connected."
+  },
+  {
+    "startTime": 35353.519,
+    "method": "click",
+    "params": {
+      "selector": "internal:role=button[name=/Kích hoạt Chế độ Dùng Thử/i]",
+      "strict": true
+    }
+  },
+  {
+    "startTime": 38394.624,
+    "method": "reload",
+    "params": {
+      "waitUntil": "load"
+    }
+  },
+  {
+    "time": 38443.319,
+    "text": "[vite] connecting..."
+  },
+  {
+    "time": 38458.233,
+    "text": "[vite] connected."
+  },
+  {
+    "time": 40221.693,
+    "text": "[vite] connecting..."
+  },
+  {
+    "time": 40295.717,
+    "text": "[vite] connected."
+  },
+  {
+    "startTime": 43381.964,
+    "method": "click",
+    "params": {
+      "selector": "internal:role=button[name=\"Cập nhật\"s] >> nth=0",
+      "strict": true
+    }
+  },
+  {
+    "startTime": 45987.901,
+    "method": "click",
+    "params": {
+      "selector": "internal:text=\"Target Doanh thu\"i >> nth=0",
+      "strict": true
+    }
+  },
+  {
+    "startTime": 46905.489,
+    "method": "click",
+    "params": {
+      "selector": "internal:role=button[name=\"Tân Hiệp\"s] >> nth=0",
+      "strict": true
+    }
+  },
+  {
+    "startTime": 48173.681,
+    "method": "innerText",
+    "params": {
+      "selector": "internal:text=/^\\d+ NV$/ >> nth=0",
+      "strict": true
+    }
+  },
+  {
+    "startTime": 48184.877,
+    "method": "click",
+    "params": {
+      "selector": "internal:role=button[name=\"Thạnh An\"s] >> nth=0",
+      "strict": true
+    }
+  },
+  {
+    "time": 49173.785,
+    "text": "[vite] connecting..."
+  },
+  {
+    "time": 49216.078,
+    "text": "[vite] connected."
+  },
+  {
+    "startTime": 49654.272,
+    "method": "innerText",
+    "params": {
+      "selector": "internal:text=/^\\d+ NV$/ >> nth=0",
+      "strict": true
+    }
+  },
+  {
+    "time": 80799.386,
+    "text": "[vite] connecting..."
+  },
+  {
+    "time": 80869.421,
+    "text": "[vite] connected."
+  }
+]

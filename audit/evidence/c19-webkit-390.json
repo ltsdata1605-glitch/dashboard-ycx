@@ -1,0 +1,470 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c19-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c19-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c19-webkit-390",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "liff-dung-coupon-khong-gui-tin.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c19-webkit-390.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "liff-dung-coupon-khong-gui-tin.spec.ts",
+      "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "dùng coupon: ghi nhận đã dùng trên máy chủ, KHÔNG gửi tin vào nhóm, tự đóng",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5481,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:11:48.784Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-d5d29487c36f73e6a96c",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "máy chủ chậm > 4 giây: vẫn đóng, KHÔNG gửi tin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6242,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:11:57.129Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-3254f2a8fa5b2400bff0",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "mã đã có người dùng: báo rõ, KHÔNG gửi tin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:03.455Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-d26e195b5a49d41599ca",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "API từ chối: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2601,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:06.374Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-11e54061768657db510b",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 70,
+          "column": 5
+        },
+        {
+          "title": "vé không hợp lệ: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2936,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:09.014Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-4deb49ea3f96c48123fc",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 70,
+          "column": 5
+        },
+        {
+          "title": "mất mạng: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2331,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:12.128Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-2391c6715b22f13d6066",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 70,
+          "column": 5
+        },
+        {
+          "title": "không có coupon khớp: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2699,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:14.536Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-d7ad92358475c43d09ec",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 70,
+          "column": 5
+        },
+        {
+          "title": "thử lại sau lỗi: chỉ lưu cờ sau phản hồi ghi nhận thành công, không gửi tin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2597,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:17.317Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-edb9c4f6a753bac2fc6a",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 80,
+          "column": 1
+        },
+        {
+          "title": "phản hồi chậm: lúc đóng chưa xác nhận; phản hồi muộn mới lưu cờ",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6497,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:20.005Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-5eb3b8defeb44f905dfe",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "mã hoàn kho: không lưu cờ đã dùng và không gửi tin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2215,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:26.576Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-a6f98df58f482caddbde",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 105,
+          "column": 1
+        },
+        {
+          "title": "có tên cache và mạng lỗi: không có rejection bỏ sót, cho thử lại",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2248,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:12:28.860Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-2876e28295ef49ee552f",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 112,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T06:11:38.244Z",
+    "duration": 53324.407,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

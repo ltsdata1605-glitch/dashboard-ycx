@@ -1,0 +1,13 @@
+[WebServer] (node:26430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+STORE_TAB_STATE Tân Hiệp { tab: 'revenueTarget', store: 'Tân Hiệp' }
+(node:26449) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+STORE_TAB_STATE Thạnh An { tab: 'revenueTarget', store: 'Thạnh An' }
+SỐ NV — Tân Hiệp: 2 NV | Thạnh An: 1 NV
+  ✓  1 [chromium] › tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:36:1 › số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị (14.3s)
+
+  1 passed (17.3s)

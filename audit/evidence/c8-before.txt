@@ -1,0 +1,124 @@
+[WebServer] (node:99842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:38:1 › unrelated same-origin frame cannot claim an installed version (1.0s)
+  ✘  2 [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:50:1 › opaque-origin message from the owned frame is rejected (330ms)
+  ✓  3 [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:68:1 › current probe after reload still reports version once (294ms)
+  ✘  4 [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:81:1 › probe accepts parent ping and rejects a sibling ping (301ms)
+
+
+  1) [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:38:1 › unrelated same-origin frame cannot claim an installed version 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 4
+
+      Object {
+    -   "callbacks": Array [],
+    -   "stored": null,
+    +   "callbacks": Array [
+    +     "2.0.0",
+    +   ],
+    +   "stored": "2.0.0",
+      }
+
+      45 |     await frame!.waitForLoadState();
+      46 |     await sendVersion(frame!);
+    > 47 |     expect(await versions(page)).toEqual({ callbacks: [], stored: null });
+         |                                  ^
+      48 | });
+      49 |
+      50 | test('opaque-origin message from the owned frame is rejected', async ({ page }) => {
+        at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:47:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:50:1 › opaque-origin message from the owned frame is rejected 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 4
+
+      Object {
+    -   "callbacks": Array [],
+    -   "stored": null,
+    +   "callbacks": Array [
+    +     "2.0.0",
+    +   ],
+    +   "stored": "2.0.0",
+      }
+
+      63 |     });
+      64 |     await received;
+    > 65 |     expect(await versions(page)).toEqual({ callbacks: [], stored: null });
+         |                                  ^
+      66 | });
+      67 |
+      68 | test('current probe after reload still reports version once', async ({ page }) => {
+        at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:65:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:81:1 › probe accepts parent ping and rejects a sibling ping 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      106 |         });
+      107 |     });
+    > 108 |     expect(await probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings)).toBe(before);
+          |                                                                                                  ^
+      109 |     await page.evaluate(() => (document.getElementById('__ycx_userscript_probe_frame__') as HTMLIFrameElement).contentWindow!.postMessage({ type: 'ycx-probe-ping' }, location.origin));
+      110 |     await expect.poll(() => probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings)).toBeGreaterThan(before);
+      111 | });
+        at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:108:98
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:38:1 › unrelated same-origin frame cannot claim an installed version 
+    [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:50:1 › opaque-origin message from the owned frame is rejected 
+    [chromium] › tests/e2e/userscript-probe-boundary.spec.ts:81:1 › probe accepts parent ping and rejects a sibling ping 
+  1 passed (5.1s)

@@ -1,0 +1,97 @@
+[WebServer] (node:46075) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/navigation-material.spec.ts:15:5 › navigation material › real app dock and navbar respect reduced transparency (13.7s)
+focus clipping ancestors [
+  {
+    className: 'flex items-center rounded-full overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative z-[150] shrink-0 ',
+    overflow: 'hidden'
+  }
+]
+(node:46134) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › tests/e2e/navigation-material.spec.ts:33:5 › system group › keyboard focus ring is not clipped by the system group (2.9s)
+
+
+  1) [chromium] › tests/e2e/navigation-material.spec.ts:15:5 › navigation material › real app dock and navbar respect reduced transparency 
+
+    Error: expect(locator).toHaveCSS(expected) failed
+
+    Locator:  getByRole('navigation', { name: 'Điều hướng chính' })
+    Expected: "none"
+    Received: "blur(24px) saturate(1.8)"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCSS" getByRole('navigation', { name: 'Điều hướng chính' }) with timeout 10000ms
+      - waiting for getByRole('navigation', { name: 'Điều hướng chính' })
+        22 × locator resolved to <nav data-app-chrome="tabbar" aria-label="Điều hướng chính" class="mobile-chrome ycx-floating-dock lg:hidden fixed bottom-[max(0.5rem,env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[310px] z-[190] rounded-full p-1 border border-white/85 dark:border-white/10 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.1),0_2px_8px_-1px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.95)]">…</nav>
+           - unexpected value "blur(24px) saturate(1.8)"
+
+
+      21 |         const cdp = await context.newCDPSession(page);
+      22 |         await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }] });
+    > 23 |         await expect(dock).toHaveCSS('backdrop-filter', 'none');
+         |                            ^
+      24 |         await expect(dock).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+      25 |         await expect(capsule).toHaveCSS('backdrop-filter', 'none');
+      26 |         await expect(capsule).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+        at /Users/ltson/dashboardycx/tests/e2e/navigation-material.spec.ts:23:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c4-before/navigation-material-naviga-9aa34-espect-reduced-transparency-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c4-before/navigation-material-naviga-9aa34-espect-reduced-transparency-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c4-before/navigation-material-naviga-9aa34-espect-reduced-transparency-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c4-before/navigation-material-naviga-9aa34-espect-reduced-transparency-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/navigation-material.spec.ts:33:5 › system group › keyboard focus ring is not clipped by the system group 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "className": "flex items-center rounded-full overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm relative z-[150] shrink-0 ",
+    +     "overflow": "hidden",
+    +   },
+    + ]
+
+      54 |         });
+      55 |         console.log('focus clipping ancestors', clipping);
+    > 56 |         expect(clipping).toEqual([]);
+         |                          ^
+      57 |         await page.screenshot({ path: 'audit/evidence/c4-system-focus.png', animations: 'disabled' });
+      58 |     });
+      59 | });
+        at /Users/ltson/dashboardycx/tests/e2e/navigation-material.spec.ts:56:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c4-before/navigation-material-system-b8208-clipped-by-the-system-group-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c4-before/navigation-material-system-b8208-clipped-by-the-system-group-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c4-before/navigation-material-system-b8208-clipped-by-the-system-group-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c4-before/navigation-material-system-b8208-clipped-by-the-system-group-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/navigation-material.spec.ts:15:5 › navigation material › real app dock and navbar respect reduced transparency 
+    [chromium] › tests/e2e/navigation-material.spec.ts:33:5 › system group › keyboard focus ring is not clipped by the system group 

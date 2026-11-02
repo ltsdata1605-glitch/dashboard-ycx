@@ -1,0 +1,50 @@
+[WebServer] (node:59186) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/toast-visible-duration.spec.ts:3:1 › queued toast retains duration until its first visible slot (12.7s)
+  ✓  2 [chromium] › tests/e2e/toast-visible-duration.spec.ts:12:1 › visible toast hover pauses and resumes its duration (4.3s)
+  ✓  3 [chromium] › tests/e2e/toast-visible-duration.spec.ts:18:1 › loading replacement expires and same-id resurrection cancels removal (4.1s)
+
+
+  1) [chromium] › tests/e2e/toast-visible-duration.spec.ts:3:1 › queued toast retains duration until its first visible slot 
+
+    Error: expect(locator).toHaveCSS(expected) failed
+
+    Locator: locator('[data-app-toast]').filter({ hasText: 'Queued finite' })
+    Expected: "1"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveCSS" locator('[data-app-toast]').filter({ hasText: 'Queued finite' }) with timeout 10000ms
+      - waiting for locator('[data-app-toast]').filter({ hasText: 'Queued finite' })
+
+
+       7 |   await page.getByRole('button',{name:'Release',exact:true}).click();
+       8 |   const queued=page.locator('[data-app-toast]').filter({hasText:'Queued finite'});
+    >  9 |   await expect(queued).toHaveCSS('opacity','1');
+         |                        ^
+      10 |   await expect(queued).toHaveCount(0,{timeout:4000});
+      11 | });
+      12 | test('visible toast hover pauses and resumes its duration',async({page})=>{
+        at /Users/ltson/dashboardycx/tests/e2e/toast-visible-duration.spec.ts:9:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c42-before/toast-visible-duration-que-64088-ntil-its-first-visible-slot-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c42-before/toast-visible-duration-que-64088-ntil-its-first-visible-slot-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c42-before/toast-visible-duration-que-64088-ntil-its-first-visible-slot-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c42-before/toast-visible-duration-que-64088-ntil-its-first-visible-slot-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/toast-visible-duration.spec.ts:3:1 › queued toast retains duration until its first visible slot 
+  2 passed (23.6s)

@@ -1,0 +1,325 @@
+/**
+ * Hook quản lý kho mã Coupon PMH
+ */
+
+import { useState, useEffect, useCallback, useMemo, createElement } from 'react';
+import { toast } from '../../../components/shared/ui/toast';
+import * as XLSX from 'xlsx';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { useAuth } from '../../../contexts/AuthContext';
+import { lineBotFirestoreService } from '../services/lineBotFirestoreService';
+import { Coupon, CouponStatus, StockSummaryItem, ParsedImportItem } from '../types/lineBot.types';
+import { isDateExpired, getVietnamTodayString } from '../services/couponParser';
+
+function removeVietnameseTones(str: string): string {
+    if (!str) return '';
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .toLowerCase()
+        .trim();
+}
+
+export function useCouponManager(overrideUserId?: string) {
+    const { user } = useAuth();
+    const userId = overrideUserId || user?.uid || '';
+
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | CouponStatus>('ALL');
+    const [typeFilter, setTypeFilter] = useState<string>('ALL');
+
+    const loadCoupons = useCallback(async () => {
+        if (!userId) {
+            setCoupons([]);
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        try {
+            // Tự động kiểm tra và xoá các mã UNUSED đã hết hạn khỏi kho
+            const cleanupRes = await lineBotFirestoreService.cleanupExpiredCoupons(userId);
+            if (cleanupRes.deleted > 0) {
+                toast.success(`Đã tự động xoá ${cleanupRes.deleted} mã PMH hết hạn khỏi kho (${cleanupRes.products.slice(0, 2).join(', ')}${cleanupRes.products.length > 2 ? '...' : ''})`, {
+                    icon: createElement(AppIcon, { name: 'delete', size: 'md', className: 'text-sky-600' })
+                });
+            }
+
+            const data = await lineBotFirestoreService.getCoupons(userId);
+            const todayVN = getVietnamTodayString();
+            // PMH HẾT HẠN SẼ ĐƯỢC TỰ ĐỘNG XOÁ KHỎI KHO (không hiển thị trên giao diện)
+            const activeData = data.filter(c => !(c.expiryDate && isDateExpired(c.expiryDate, todayVN)));
+            setCoupons(activeData);
+        } catch (error) {
+            console.error('Lỗi tải danh sách coupon:', error);
+            toast.error('Không thể tải danh sách mã coupon');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [userId]);
+
+    useEffect(() => {
+        loadCoupons();
+    }, [loadCoupons]);
+
+    // Danh sách các loại PMH có trong kho
+    const availableTypes = useMemo(() => {
+        const set = new Set<string>();
+        coupons.forEach(c => {
+            if (c.type) set.add(c.type.trim());
+        });
+        return Array.from(set).sort();
+    }, [coupons]);
+
+    // Thống kê tồn kho tổng và theo từng loại
+    const stockSummary = useMemo(() => {
+        let totalUnused = 0;
+        let totalSent = 0;
+        let totalRevoked = 0;
+        const byType = new Map<string, StockSummaryItem>();
+
+        coupons.forEach(c => {
+            const t = c.type?.trim() || 'PMH';
+            if (!byType.has(t)) {
+                byType.set(t, { type: t, total: 0, unused: 0, sent: 0, revoked: 0 });
+            }
+            const item = byType.get(t)!;
+            item.total++;
+
+            if (c.status === 'UNUSED' || !c.status) {
+                totalUnused++;
+                item.unused++;
+            } else if (c.status === 'SENT') {
+                totalSent++;
+                item.sent++;
+            } else if (c.status === 'REVOKED') {
+                totalRevoked++;
+                item.revoked++;
+            }
+        });
+
+        return {
+            total: coupons.length,
+            unused: totalUnused,
+            sent: totalSent,
+            revoked: totalRevoked,
+            breakdown: Array.from(byType.values())
+        };
+    }, [coupons]);
+
+    // Danh sách sau khi lọc
+    const filteredCoupons = useMemo(() => {
+        const rawQuery = searchQuery.trim();
+        const queryLower = rawQuery.toLowerCase();
+        const queryNoTone = removeVietnameseTones(rawQuery);
+        const queryWords = queryNoTone.split(/\s+/).filter(Boolean);
+
+        const todayVN = getVietnamTodayString();
+
+        return coupons.filter(c => {
+            // PMH HẾT HẠN SẼ ĐƯỢC TỰ ĐỘNG XOÁ KHỎI KHO
+            if (c.expiryDate && isDateExpired(c.expiryDate, todayVN)) {
+                return false;
+            }
+
+            if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
+            if (typeFilter !== 'ALL' && c.type?.trim() !== typeFilter) return false;
+
+            if (rawQuery) {
+                const fields = [
+                    c.code,
+                    c.orderId || '',
+                    c.warehouse || '',
+                    c.recipient || '',
+                    c.recipientId || '',
+                    c.productName || '',
+                    c.syntax || '',
+                    c.revokeReason || ''
+                ];
+
+                // 1. So khớp trực tiếp (có dấu / chính xác chuỗi con)
+                const directMatch = fields.some(f => f.toLowerCase().includes(queryLower));
+                if (directMatch) return true;
+
+                // 2. So khớp không dấu theo từng từ khoá độc lập
+                const fieldsNoTone = fields.map(f => removeVietnameseTones(f)).join(' ');
+                const allWordsMatch = queryWords.every(word => fieldsNoTone.includes(word));
+                if (!allWordsMatch) return false;
+            }
+
+            return true;
+        });
+    }, [coupons, searchQuery, statusFilter, typeFilter]);
+
+    // Nạp mã hàng loạt
+    const importCoupons = useCallback(async (items: ParsedImportItem[]) => {
+        if (!userId) return { added: 0, skipped: 0 };
+        const res = await lineBotFirestoreService.addCouponsBatch(userId, items);
+        await loadCoupons();
+        return res;
+    }, [userId, loadCoupons]);
+
+    // Thu hồi mã về kho
+    const revokeCoupon = useCallback(async (couponId: string, reason?: string) => {
+        if (!userId) return;
+        await lineBotFirestoreService.revokeCoupon(userId, couponId, reason);
+        toast.success('Đã thu hồi mã về kho (trạng thái Chưa dùng)!');
+        await loadCoupons();
+    }, [userId, loadCoupons]);
+
+    // Khôi phục toàn bộ mã REVOKED về UNUSED
+    const restoreRevokedCoupons = useCallback(async () => {
+        if (!userId) return 0;
+        const count = await lineBotFirestoreService.restoreRevokedCoupons(userId);
+        if (count > 0) {
+            toast.success(`Đã khôi phục thành công ${count} mã về trạng thái Chưa dùng!`);
+        } else {
+            toast.info('Không có mã nào cần khôi phục.');
+        }
+        await loadCoupons();
+        return count;
+    }, [userId, loadCoupons]);
+
+    // Xóa mã
+    const deleteCoupon = useCallback(async (couponId: string) => {
+        if (!userId) return;
+        await lineBotFirestoreService.deleteCoupon(userId, couponId);
+        toast.success('Đã xoá mã khỏi kho');
+        await loadCoupons();
+    }, [userId, loadCoupons]);
+
+    // Xóa tất cả mã trong kho
+    const deleteAllCoupons = useCallback(async () => {
+        if (!userId) return 0;
+        const count = await lineBotFirestoreService.deleteAllCoupons(userId);
+        await loadCoupons();
+        return count;
+    }, [userId, loadCoupons]);
+
+    // Xoá danh sách mã theo đợt nạp
+    const deleteCouponsBatch = useCallback(async (couponIds: string[]) => {
+        if (!userId || !couponIds || couponIds.length === 0) return 0;
+        const res = await lineBotFirestoreService.deleteCouponsBatch(userId, couponIds);
+        toast.success(`Đã xoá thành công đợt nạp (${res.deleted} mã)!`);
+        await loadCoupons();
+        return res.deleted;
+    }, [userId, loadCoupons]);
+
+    // Cập nhật hàng loạt mã theo đợt nạp
+    const updateCouponsBatch = useCallback(async (
+        couponIds: string[],
+        updates: Partial<Pick<Coupon, 'productName' | 'syntax' | 'type' | 'expiryDate' | 'status'>>
+    ) => {
+        if (!userId || !couponIds || couponIds.length === 0) return 0;
+        const res = await lineBotFirestoreService.updateCouponsBatch(userId, couponIds, updates);
+        toast.success(`Đã cập nhật thành công ${res.updated} mã trong đợt!`);
+        await loadCoupons();
+        return res.updated;
+    }, [userId, loadCoupons]);
+
+    // Cập nhật chi tiết từng mã trong đợt
+    const updateCouponsDetailed = useCallback(async (
+        items: Array<{ id: string; changes: Partial<Pick<Coupon, 'code' | 'productName' | 'syntax' | 'type' | 'expiryDate' | 'status'>> }>
+    ) => {
+        if (!userId || !items || items.length === 0) return 0;
+        const res = await lineBotFirestoreService.updateCouponsDetailed(userId, items);
+        toast.success(`Đã cập nhật chi tiết ${res.updated} mã!`);
+        await loadCoupons();
+        return res.updated;
+    }, [userId, loadCoupons]);
+
+    // Ghi nhận thời gian copy mã coupon
+    const recordCouponCopied = useCallback(async (couponId: string) => {
+        if (!couponId) return;
+        const now = new Date().toISOString();
+        // Optimistic update state để hiển thị thời gian ngay lập tức
+        setCoupons(prev => prev.map(c => (c.id === couponId ? { ...c, copiedAt: now } : c)));
+        if (userId) {
+            try {
+                await lineBotFirestoreService.recordCouponCopied(userId, couponId, now);
+            } catch (err) {
+                console.error('Lỗi lưu thời gian copy mã:', err);
+            }
+        }
+    }, [userId]);
+
+    // Xuất kho ra file Excel
+    const exportToExcel = useCallback(() => {
+        if (coupons.length === 0) {
+            toast.error('Kho chưa có mã nào để xuất!');
+            return;
+        }
+
+        const listToExport = filteredCoupons.length > 0 ? filteredCoupons : coupons;
+        const data = listToExport.map((c, idx) => ({
+            'STT': idx + 1,
+            'Mã Coupon': c.code,
+            'Tên Sản Phẩm': c.productName || '',
+            'Cú Pháp PMH': c.syntax || '',
+            'Loại PMH': c.type,
+            'Trạng Thái': c.status === 'UNUSED' ? 'Chưa dùng' : (c.status === 'SENT' ? 'Đã phát' : 'Thu hồi'),
+            'Mã Đơn Hàng': c.orderId || '',
+            'Mã Kho': c.warehouse || '',
+            'Người Nhận': c.recipient || '',
+            'LINE ID': c.recipientId || '',
+            'Lý Do Thu Hồi': c.revokeReason || '',
+            'Thời Gian Copy': c.copiedAt ? new Date(c.copiedAt).toLocaleString('vi-VN') : '',
+            'Thời Gian Cập Nhật': c.updatedAt ? new Date(c.updatedAt).toLocaleString('vi-VN') : ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Kho Coupon PMH');
+        XLSX.writeFile(wb, `Kho_Coupon_PMH_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        toast.success(`Đã xuất ${data.length} mã coupon ra file Excel!`);
+    }, [coupons, filteredCoupons]);
+
+    // Tự động phân loại tách biệt các thương hiệu (VIVO, HONOR, SAMSUNG...)
+    const reclassifyCoupons = useCallback(async () => {
+        if (!userId) return 0;
+        const count = await lineBotFirestoreService.reclassifyBrandCoupons(userId);
+        if (count > 0) {
+            toast.success(`Đã tự động phân loại tách biệt thành công ${count} mã PMH theo thương hiệu!`);
+        } else {
+            toast.info('Toàn bộ mã đã được phân loại chuẩn xác.');
+        }
+        await loadCoupons();
+        return count;
+    }, [userId, loadCoupons]);
+
+    const updateCouponType = useCallback(async (couponId: string, newType: string) => {
+        if (!userId) return;
+        await lineBotFirestoreService.updateCouponType(userId, couponId, newType);
+        toast.success(`Đã cập nhật loại PMH thành "${newType}"`);
+        await loadCoupons();
+    }, [userId, loadCoupons]);
+
+    return {
+        coupons,
+        filteredCoupons,
+        isLoading,
+        searchQuery,
+        setSearchQuery,
+        statusFilter,
+        setStatusFilter,
+        typeFilter,
+        setTypeFilter,
+        availableTypes,
+        stockSummary,
+        loadCoupons,
+        importCoupons,
+        revokeCoupon,
+        restoreRevokedCoupons,
+        deleteCoupon,
+        deleteCouponsBatch,
+        updateCouponsBatch,
+        updateCouponsDetailed,
+        deleteAllCoupons,
+        exportToExcel,
+        recordCouponCopied,
+        reclassifyCoupons,
+        updateCouponType
+    };
+}

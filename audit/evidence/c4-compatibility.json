@@ -1,0 +1,196 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c4-playwright.config.mjs",
+      "apple-tuong-thich.spec.ts"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c4-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 240000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c4-compatibility",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "navigation-material.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c4-compatibility.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5195 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5195",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "apple-tuong-thich.spec.ts",
+      "file": "apple-tuong-thich.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "cảm ứng (iPhone, iPad)",
+          "file": "apple-tuong-thich.spec.ts",
+          "line": 139,
+          "column": 6,
+          "specs": [
+            {
+              "title": "khung app: không tràn, không đè, vùng chạm ≥ 44px, chữ ≥ 11px",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 600000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 90161,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n── 0 vi phạm ──\n\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:47467) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:28:19.047Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cf28760e4718059309b8-dc4999b271ab4b347396",
+              "file": "apple-tuong-thich.spec.ts",
+              "line": 145,
+              "column": 5
+            }
+          ]
+        },
+        {
+          "title": "laptop",
+          "file": "apple-tuong-thich.spec.ts",
+          "line": 153,
+          "column": 6,
+          "specs": [
+            {
+              "title": "khung app: không tràn, không đè",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 47730,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "\n── 0 vi phạm ──\n\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:29:49.365Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "cf28760e4718059309b8-b448141bae250fe5cc36",
+              "file": "apple-tuong-thich.spec.ts",
+              "line": 155,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-25T05:28:17.236Z",
+    "duration": 140003.09,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "node": "v22.11.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "versions": {
+    "react": "19.2.4",
+    "typescript": "5.8.3",
+    "vite": "6.4.3",
+    "tailwindcss": "4.2.1",
+    "firebase": "12.11.0",
+    "vitest": "4.1.11",
+    "@playwright/test": "1.63.0"
+  },
+  "browsers": {
+    "chromium": {
+      "executableExists": true,
+      "runtimeTested": false
+    },
+    "webkit": {
+      "executableExists": false,
+      "runtimeTested": false
+    }
+  }
+}

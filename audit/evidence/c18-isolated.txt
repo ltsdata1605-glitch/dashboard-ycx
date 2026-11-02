@@ -1,0 +1,25 @@
+[WebServer] (node:27215) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/audit-network-isolation.spec.ts:6:1 › audit server rejects LINE proxy requests before forwarding and renders the app (16.8s)
+CỘT MẶC ĐỊNH: ["#","NHÓM THI ĐUA","LUỸ KẾ","TAR V.TRỘI","%HT V.TRỘI","%DKHT V.TRỘI","C.LẠI"]
+(node:27221) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [chromium] › tests/e2e/bi-competition.spec.ts:23:5 › Report BI — bảng Thi đua Luỹ kế › bộ cột mặc định: đủ số cột, có nhóm Vượt trội và cột Còn Lại (19.1s)
+  ✓   3 [chromium] › tests/e2e/bi-competition.spec.ts:47:5 › Report BI — bảng Thi đua Luỹ kế › 2 cột vượt trội có số liệu (không còn "-") (16.0s)
+  ✓   4 [chromium] › tests/e2e/bi-competition.spec.ts:58:5 › Report BI — bảng Thi đua Luỹ kế › mặc định sắp xếp giảm dần theo %DKHT (17.7s)
+SỐ NÚT GẠT: 13
+  ✓   5 [chromium] › tests/e2e/bi-competition.spec.ts:73:5 › Report BI — bảng Thi đua Luỹ kế › popup Bộ lọc thi đua mở được và có nút gạt cột (17.6s)
+SỐ NV — Tân Hiệp: 2 NV | Thạnh An: 1 NV
+  ✓   6 [chromium] › tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:36:1 › số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị (19.8s)
+844×390 — khung menu: top 20, cao 351 (màn 390)
+  ✓   7 [chromium] › tests/e2e/menu-khac-xoay-ngang.spec.ts:8:5 › iPhone ngang 844×390: thấy nút đóng, cuộn tới được mục đầu và cuối, Esc đóng (10.4s)
+667×375 — khung menu: top 19, cao 338 (màn 375)
+  ✓   8 [chromium] › tests/e2e/menu-khac-xoay-ngang.spec.ts:8:5 › iPhone ngang 667×375: thấy nút đóng, cuộn tới được mục đầu và cuối, Esc đóng (6.1s)
+  ✓   9 [chromium] › tests/e2e/sidebar-hover-flyout.spec.ts:3:1 › laptop: hover vào menu Công cụ và rê chuột sang submenu không bị mất (13.4s)
+  ✓  10 [chromium] › tests/e2e/sidebar-hover-flyout.spec.ts:43:1 › laptop: hover vào User Profile avatar và rê chuột sang flyout card không bị mất (9.5s)
+  ✓  11 [chromium] › tests/e2e/sidebar-hover-flyout.spec.ts:72:1 › laptop: bấm vào nút Công cụ chỉ mở menu phụ, không chuyển sang trang trống (9.1s)
+
+  11 passed (2.7m)

@@ -1,0 +1,70 @@
+{
+  ".agents/skills/design-taste-frontend/assets/base.js": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; packaged skill reference/optional asset, not app runtime module. base.js explicitly linked SKILL.md413; waiting example linked condition-based-waiting.md82; utility-types declares copy/use reference purpose. Retain skill package resources; examples not production tested."
+  },
+  ".agents/skills/systematic-debugging/condition-based-waiting-example.ts": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; packaged skill reference/optional asset, not app runtime module. base.js explicitly linked SKILL.md413; waiting example linked condition-based-waiting.md82; utility-types declares copy/use reference purpose. Retain skill package resources; examples not production tested."
+  },
+  ".agents/skills/typescript-expert/references/utility-types.ts": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; packaged skill reference/optional asset, not app runtime module. base.js explicitly linked SKILL.md413; waiting example linked condition-based-waiting.md82; utility-types declares copy/use reference purpose. Retain skill package resources; examples not production tested."
+  },
+  "audit/tools/dependencies.mjs": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full161-line read; explicit census CLI writes inventories resetting reviewed NO; DO NOT rerun over correction checkpoints. AST limitations dynamic expression/local constant shadowing retained. Tool has external CLI entry, not app import."
+  },
+  "audit/tools/investigate-webkit-focus.mjs": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full160-line read; historical browser diagnostic referenced webkit-focus-investigation.md and phase2report. Does not inherit closed proxy; focus() is not genuine entry Tab proof; spawn npm cleanup may leave child. Retain evidence tool, NOT_RUN."
+  },
+  "docs/audit-2026-10-07/evidence/data-repro.mjs": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; historical audit reproducer documented README_GUI_CLAUDE.md28-35. VM stubs/TS parsing not live E2E or current correctness proof; do not run outdated assertions and call them current tests."
+  },
+  "docs/audit-2026-10-07/evidence/parse-typescript.mjs": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; historical audit reproducer documented README_GUI_CLAUDE.md28-35. VM stubs/TS parsing not live E2E or current correctness proof; do not run outdated assertions and call them current tests."
+  },
+  "docs/audit-2026-10-07/evidence/tax-offline-repro.mjs": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; historical audit reproducer documented README_GUI_CLAUDE.md28-35. VM stubs/TS parsing not live E2E or current correctness proof; do not run outdated assertions and call them current tests."
+  },
+  "features/line-bot/index.ts": {
+    "classification": "POSSIBLE_DEAD",
+    "review": "Full barrel read; exports expose feature API, no incoming edge in checkpoint graph. No import != deletion proof; deep feature imports/public API consumers still pending."
+  },
+  "features/product-config/components/index.ts": {
+    "classification": "POSSIBLE_DEAD",
+    "review": "Full barrel read; exports expose feature API, no incoming edge in checkpoint graph. No import != deletion proof; deep feature imports/public API consumers still pending."
+  },
+  "features/tax-calculator/index.ts": {
+    "classification": "POSSIBLE_DEAD",
+    "review": "Full barrel read; exports expose feature API, no incoming edge in checkpoint graph. No import != deletion proof; deep feature imports/public API consumers still pending."
+  },
+  "price-scraper-server/debug-all-sites.js": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; manually invoked top-level Puppeteer diagnostic entrypoint. Navigates external retailer sites and writes /tmp screenshots; outside local regression; NOT_RUN. Retain tooling pending explicit retirement evidence, no runtime import expected."
+  },
+  "price-scraper-server/debug-scraper.js": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; manually invoked top-level Puppeteer diagnostic entrypoint. Navigates external retailer sites and writes /tmp screenshots; outside local regression; NOT_RUN. Retain tooling pending explicit retirement evidence, no runtime import expected."
+  },
+  "price-scraper-server/quick_debug.js": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full source read; manually invoked top-level Puppeteer diagnostic entrypoint. Navigates external retailer sites and writes /tmp screenshots; outside local regression; NOT_RUN. Retain tooling pending explicit retirement evidence, no runtime import expected."
+  },
+  "public/check-thuong.html": {
+    "classification": "LEGACY_ACTIVE",
+    "review": "Entry/reference review only, NOT full3458-line read. App no longer prefetches/mounts this HTML, but public URL and direct E2E consumers remain: check-thuong-xuat-anh-toan-dien/o-nhap-a17/iframe-tabs-csp. Retain compatibility/test surface; production visits unknown."
+  },
+  "public/liff-copy.html": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full291-line source review; standalone LIFF contract used by mocked E2E and backend mark-used endpoint; external LIFF dashboard URL mapping unverified. Source sets sent flag before server result, network/error/timeout can show false success; follow-up CORR-021."
+  },
+  "scratch/inspect-targets.mjs": {
+    "classification": "INTENTIONALLY_RETAINED",
+    "review": "Full87-line source read; manual persistent-profile IDB diagnostic. Logs data values, not safe for current isolated audit. Retain diagnostic history; BLOCKED execution, no profile opened."
+  }
+}

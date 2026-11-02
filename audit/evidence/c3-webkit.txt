@@ -1,0 +1,25 @@
+[WebServer] (node:42908) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 13 tests using 1 worker
+
+overflow candidates []
+(node:42925) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [webkit] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 320px and keeps cancel in viewport (2.5s)
+overflow candidates []
+  ✓   2 [webkit] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 390px and keeps cancel in viewport (1.3s)
+overflow candidates []
+  ✓   3 [webkit] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 440px and keeps cancel in viewport (1.2s)
+  ✓   4 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:19:5 › iPhone 16 Pro Max › Switch: role=switch, bấm/Space bật tắt, 44×26, vùng chạm ≥ 44 (790ms)
+  ✓   5 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:40:5 › iPhone 16 Pro Max › SegmentedControl: nhóm nút aria-pressed, núm trắng trượt theo mục chọn, cao 44px trên cảm ứng (1.1s)
+  ✓   6 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:57:5 › iPhone 16 Pro Max › Banner: chữ đứng yên tối đa 2 dòng, "Xem thêm" mở đủ, × đóng (684ms)
+  ✓   7 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:72:5 › iPhone 16 Pro Max › ListGroup: hàng ≥ 48px cảm ứng, có đường kẻ thụt lề, hàng bấm được (630ms)
+  ✓   8 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:83:5 › iPhone 16 Pro Max › ActionMenu trên iPhone là action sheet: nhóm nguy hiểm riêng, nút Huỷ, chọn mục chạy ngay (2.1s)
+  ✓   9 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:100:5 › iPhone 16 Pro Max › Modal sheet: đầu kiểu iOS [Huỷ — Tiêu đề — Lưu], thân chỉ cuộn dọc, kéo thanh nắm để đóng (1.6s)
+  ✓  10 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:128:5 › iPhone 16 Pro Max › SectionHeader v2 viết thường 17px; EmptyState có icon (588ms)
+  ✓  11 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:141:5 › laptop 1366×900 › ActionMenu là menu thả: ↓ di chuyển, Esc đóng và trả focus, mục nguy hiểm cuối sau vạch ngăn (1.1s)
+  ✓  12 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:160:5 › laptop 1366×900 › PageActions: khung app vẽ tiêu đề/nút từ màn đang khai báo, luôn gọi hàm MỚI nhất, màn ẩn thì gỡ (1.0s)
+  ✓  13 [webkit] › tests/e2e/lop-apple-gd3.spec.ts:177:5 › laptop 1366×900 › Modal giữa màn: primaryAction thành cặp nút ở chân, có nút × ở đầu (913ms)
+
+  13 passed (18.5s)

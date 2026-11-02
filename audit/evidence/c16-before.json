@@ -1,0 +1,201 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c16-playwright.config.mjs",
+      "bi-bonus-compare.spec.ts",
+      "-g",
+      "bấm nút chế độ xem"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c16-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c16-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "ui-dung-chung-dot-2.spec.ts",
+          "shared-dropdown.spec.ts",
+          "bi-bonus-compare.spec.ts",
+          "shared-tooltip.spec.ts",
+          "shared-form-states.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c16-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "bi-bonus-compare.spec.ts",
+      "file": "bi-bonus-compare.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Report BI › Thưởng — menu chế độ xem + So sánh cùng kỳ",
+          "file": "bi-bonus-compare.spec.ts",
+          "line": 75,
+          "column": 6,
+          "specs": [
+            {
+              "title": "bấm nút chế độ xem mở MENU liệt kê đủ 4 chế độ, mục đang chọn được tô",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8342,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Array [\u001b[22m\n\u001b[2m    true,\u001b[22m\n\u001b[2m    true,\u001b[22m\n\u001b[32m-   true,\u001b[39m\n\u001b[32m-   true,\u001b[39m\n\u001b[31m+   false,\u001b[39m\n\u001b[31m+   false,\u001b[39m\n\u001b[2m  ]\u001b[22m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Array [\u001b[22m\n\u001b[2m    true,\u001b[22m\n\u001b[2m    true,\u001b[22m\n\u001b[32m-   true,\u001b[39m\n\u001b[32m-   true,\u001b[39m\n\u001b[31m+   false,\u001b[39m\n\u001b[31m+   false,\u001b[39m\n\u001b[2m  ]\u001b[22m\n    at /Users/ltson/dashboardycx/tests/e2e/bi-bonus-compare.spec.ts:123:31",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/bi-bonus-compare.spec.ts",
+                          "column": 31,
+                          "line": 123
+                        },
+                        "snippet": "  121 |         console.log('DROPDOWN_CLIPPING',JSON.stringify(clipping));\n  122 |         await test.info().attach('dropdown-clipping.json',{body:JSON.stringify(clipping,null,2),contentType:'application/json'});\n> 123 |         expect(clipping.hits).toEqual([true,true,true,true]);\n      |                               ^\n  124 |         await page.screenshot({ path: 'test-results/bonus-period-menu.png' });\n  125 |\n  126 |         // Chọn thẳng \"Luỹ kế tháng\" — không phải xoay vòng qua \"Xem theo ngày\" như nút cũ."
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/bi-bonus-compare.spec.ts",
+                            "column": 31,
+                            "line": 123
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Array [\u001b[22m\n\u001b[2m    true,\u001b[22m\n\u001b[2m    true,\u001b[22m\n\u001b[32m-   true,\u001b[39m\n\u001b[32m-   true,\u001b[39m\n\u001b[31m+   false,\u001b[39m\n\u001b[31m+   false,\u001b[39m\n\u001b[2m  ]\u001b[22m\n\n  121 |         console.log('DROPDOWN_CLIPPING',JSON.stringify(clipping));\n  122 |         await test.info().attach('dropdown-clipping.json',{body:JSON.stringify(clipping,null,2),contentType:'application/json'});\n> 123 |         expect(clipping.hits).toEqual([true,true,true,true]);\n      |                               ^\n  124 |         await page.screenshot({ path: 'test-results/bonus-period-menu.png' });\n  125 |\n  126 |         // Chọn thẳng \"Luỹ kế tháng\" — không phải xoay vòng qua \"Xem theo ngày\" như nút cũ.\n    at /Users/ltson/dashboardycx/tests/e2e/bi-bonus-compare.spec.ts:123:31"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "DROPDOWN_CLIPPING {\"hits\":[true,true,false,false],\"top\":304.875,\"bottom\":530.875,\"ancestors\":[{\"tag\":\"DIV\",\"classes\":\"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 overflow-hidden rounded-none lg:rounded-card shadow-sm\",\"overflowX\":\"hidden\",\"overflowY\":\"hidden\",\"transform\":\"none\",\"top\":137.5,\"bottom\":506.625},{\"tag\":\"BODY\",\"classes\":\"bg-slate-50 dark:bg-slate-950 transition-colors duration-500 relative min-h-dvh antialiased text-slate-900 dark:text-slate-100 overflow-x-hidden\",\"overflowX\":\"hidden\",\"overflowY\":\"auto\",\"transform\":\"none\",\"top\":0,\"bottom\":868}]}\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:22438) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:33:52.028Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "dropdown-clipping.json",
+                          "contentType": "application/json",
+                          "body": "ewogICJoaXRzIjogWwogICAgdHJ1ZSwKICAgIHRydWUsCiAgICBmYWxzZSwKICAgIGZhbHNlCiAgXSwKICAidG9wIjogMzA0Ljg3NSwKICAiYm90dG9tIjogNTMwLjg3NSwKICAiYW5jZXN0b3JzIjogWwogICAgewogICAgICAidGFnIjogIkRJViIsCiAgICAgICJjbGFzc2VzIjogImJnLXdoaXRlIGRhcms6Ymctc2xhdGUtODAwIGJvcmRlciBib3JkZXItc2xhdGUtMjAwIGRhcms6Ym9yZGVyLXNsYXRlLTcwMC82MCBvdmVyZmxvdy1oaWRkZW4gcm91bmRlZC1ub25lIGxnOnJvdW5kZWQtY2FyZCBzaGFkb3ctc20iLAogICAgICAib3ZlcmZsb3dYIjogImhpZGRlbiIsCiAgICAgICJvdmVyZmxvd1kiOiAiaGlkZGVuIiwKICAgICAgInRyYW5zZm9ybSI6ICJub25lIiwKICAgICAgInRvcCI6IDEzNy41LAogICAgICAiYm90dG9tIjogNTA2LjYyNQogICAgfSwKICAgIHsKICAgICAgInRhZyI6ICJCT0RZIiwKICAgICAgImNsYXNzZXMiOiAiYmctc2xhdGUtNTAgZGFyazpiZy1zbGF0ZS05NTAgdHJhbnNpdGlvbi1jb2xvcnMgZHVyYXRpb24tNTAwIHJlbGF0aXZlIG1pbi1oLWR2aCBhbnRpYWxpYXNlZCB0ZXh0LXNsYXRlLTkwMCBkYXJrOnRleHQtc2xhdGUtMTAwIG92ZXJmbG93LXgtaGlkZGVuIiwKICAgICAgIm92ZXJmbG93WCI6ICJoaWRkZW4iLAogICAgICAib3ZlcmZsb3dZIjogImF1dG8iLAogICAgICAidHJhbnNmb3JtIjogIm5vbmUiLAogICAgICAidG9wIjogMCwKICAgICAgImJvdHRvbSI6IDg2OAogICAgfQogIF0KfQ=="
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c16-before/bi-bonus-compare-Report-BI-0f5e2-hế-độ-mục-đang-chọn-được-tô-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c16-before/bi-bonus-compare-Report-BI-0f5e2-hế-độ-mục-đang-chọn-được-tô-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c16-before/bi-bonus-compare-Report-BI-0f5e2-hế-độ-mục-đang-chọn-được-tô-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/bi-bonus-compare.spec.ts",
+                        "column": 31,
+                        "line": 123
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "568a07d42490e81aaa54-5a1edb42dcbbae59b892",
+              "file": "bi-bonus-compare.spec.ts",
+              "line": 97,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:33:49.569Z",
+    "duration": 11352.372,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

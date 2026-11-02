@@ -1,0 +1,5 @@
+{
+  "features/bi-dashboard/components/dashboard/CompetitionView.tsx": "a84c664dc0ccf6ecc0045ae434c98b67bc9d6cfb85e84fef4a740c0af6d5ee52",
+  "features/bi-dashboard/components/dashboard/DashboardWidgets.tsx": "a7249704fe19151f6c4cf182a72d924b36cc46d709890d86e1b99f7a5cef42ac",
+  "tests/e2e/helpers/materialHarness.html": "f41dbccc801924e66c280889614f98af1fe9df5aeebfd3966fd6186f1c21fdf6"
+}

@@ -1,0 +1,8 @@
+{
+  "components/shared/ui/googleFonts.ts": "Full source/read+fix: request pending/success Sets; cleanup on error; dedup normalized families. Actualbrowser CSS abort/retry boundary; font glyph failure/timeout remain pending.",
+  "tests/e2e/helpers/materialHarness.html": "Existing harness read in prior batches; added actual React Button calling real font loader. No synthetic completion events.",
+  "tests/e2e/google-font-retry.spec.ts": "Full authored safety review: CSS requests intercepted abort/fulfill, gate controls concurrent request, native link.sheet readiness; no external request.",
+  "components/layout/FontSelector.tsx": "Full source read: font menu/sheet/apDungPhong use loader; native saved-font API unchanged. Popup Escape/focus/overflow, persistence errors and interpolation still pending.",
+  "features/sticker-event/StickerPrinterView.tsx": "Source read with initial output truncation recovered lines1-45 incl effect: preload all7families on mount. Source props/wiring review only; no print/cloud/device run.",
+  "index.tsx": "PARTIAL: import and startup RobotoCondensed loader call atlines6/9 read only; not fullentryreview."
+}

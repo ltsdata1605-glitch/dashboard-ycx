@@ -1,0 +1,13 @@
+
+> reportycx_11.2.2026_new@0.0.0 test:unit
+> vitest run components/shared/ui/CapsuleBar.test.ts
+
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  12:07:01
+   Duration  262ms (transform 66ms, setup 0ms, import 145ms, tests 19ms, environment 0ms)
+

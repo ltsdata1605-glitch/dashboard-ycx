@@ -1,0 +1,487 @@
+import type { DataRow, ProductConfig, Employee, EmployeeData, ExploitationData, FilterState } from '../types';
+import { COL } from '../constants';
+import { getRowValue, getHeSoQuyDoi, getDisplayParentGroup, getHinhThucThanhToan, cleanAndNormalize, getParentGroup, calculateRowMetrics, getSubgroup, normalizedThuHoSet, toLocalISOString } from '../utils/dataUtils';
+import { DepartmentMap } from './dataService';
+import { calculateHieuQuaQDPercent, calculatePercentage, calculateAOV } from './metricService';
+
+function _buildFullEmployeeData(
+    employeeStats: { [key: string]: Partial<Employee> & { name: string, customerSet: Set<string>, totalOrders: number, doanhThuTraCham: number, slCE_ICT: number, slTraCham_CE_ICT: number, doanhThu_CE_ICT: number, doanhThuTraCham_CE_ICT: number } },
+    exploitationStats: { [creator: string]: Partial<ExploitationData> & { name: string } },
+    periodData: DataRow[],
+    employeeIndustryStats: { [creator: string]: { [industry: string]: number } },
+    employeeDailyTrend: { [creator: string]: { [date: string]: number } },
+    departmentMap: DepartmentMap | null,
+    productConfig?: ProductConfig | null
+): EmployeeData {
+
+    // Pre-aggregate ThuHo counts in O(M) instead of O(N×M)
+    const thuHoCountByCreator = new Map<string, number>();
+    for (let i = 0; i < periodData.length; i++) {
+        const row = periodData[i];
+        const htx = getRowValue(row, COL.HINH_THUC_XUAT);
+        const isThuHo = productConfig && productConfig.htxClassification && Object.keys(productConfig.htxClassification).length > 0
+            ? productConfig.htxClassification[cleanAndNormalize(htx)] === 'thu_ho'
+            : normalizedThuHoSet.has(cleanAndNormalize(htx));
+        if (isThuHo) {
+            const creator = getRowValue(row, COL.NGUOI_TAO);
+            if (creator && !creator.trim().startsWith('Yêu cầu xuất')) {
+                thuHoCountByCreator.set(creator, (thuHoCountByCreator.get(creator) || 0) + 1);
+            }
+        }
+    }
+
+    const allCreatorsInPeriod = new Set<string>();
+    for (let i = 0, len = periodData.length; i < len; i++) {
+        const creator = getRowValue(periodData[i], COL.NGUOI_TAO);
+        if (creator && !creator.trim().startsWith('Yêu cầu xuất')) {
+            allCreatorsInPeriod.add(creator);
+        }
+    }
+
+    for (const creator of allCreatorsInPeriod) {
+        const creatorThuHoCount = thuHoCountByCreator.get(creator) || 0;
+        
+        if (employeeStats[creator]) {
+             employeeStats[creator].slThuHo = (employeeStats[creator].slThuHo || 0) + creatorThuHoCount;
+        } else if (creatorThuHoCount > 0) {
+             employeeStats[creator] = { name: creator, doanhThuThuc: 0, doanhThuQD: 0, slTraCham: 0, doanhThuTraCham: 0, slThuHo: creatorThuHoCount, customerSet: new Set(), totalOrders: 0, slCE_ICT: 0, slTraCham_CE_ICT: 0, doanhThu_CE_ICT: 0, doanhThuTraCham_CE_ICT: 0 };
+        }
+
+        if (exploitationStats[creator] === undefined && employeeStats[creator] !== undefined) {
+             exploitationStats[creator] = { name: creator };
+        }
+
+        if (departmentMap && (employeeStats[creator] || exploitationStats[creator])) {
+            const creatorId = creator.split(' - ')[0].trim();
+            const rawDept = departmentMap[creatorId];
+            if (rawDept) {
+                // Split to handle encoded "Dept;;Name" values
+                const dept = rawDept.split(';;')[0];
+                if (employeeStats[creator]) employeeStats[creator].department = dept;
+                if (exploitationStats[creator]) exploitationStats[creator].department = dept;
+            }
+        }
+    }
+
+    let finalEmployeeStats = employeeStats;
+    let finalExploitationStats = exploitationStats;
+    let finalIndustryStats = employeeIndustryStats;
+    let finalDailyTrend = employeeDailyTrend;
+
+    if (departmentMap && Object.keys(departmentMap).length > 0) {
+        // Logic kept compatible with previous updates
+    }
+
+    // Deduplicate finalEmployeeStats by `name` — multiple dict keys can map to the same display name
+    // (e.g., "51118 - T.Anh" from sales data and "51118" from dept map merge both have name "51118 - T.Anh")
+    const deduplicatedStats: typeof finalEmployeeStats = {};
+    for (const [key, emp] of Object.entries(finalEmployeeStats)) {
+        const name = emp.name;
+        if (deduplicatedStats[name]) {
+            // Merge into existing entry
+            const existing = deduplicatedStats[name];
+            existing.doanhThuThuc = (existing.doanhThuThuc || 0) + (emp.doanhThuThuc || 0);
+            existing.doanhThuQD = (existing.doanhThuQD || 0) + (emp.doanhThuQD || 0);
+            existing.slTraCham = (existing.slTraCham || 0) + (emp.slTraCham || 0);
+            existing.doanhThuTraCham = (existing.doanhThuTraCham || 0) + (emp.doanhThuTraCham || 0);
+            existing.totalOrders = (existing.totalOrders || 0) + (emp.totalOrders || 0);
+            existing.slThuHo = (existing.slThuHo || 0) + (emp.slThuHo || 0);
+            existing.slCE_ICT = (existing.slCE_ICT || 0) + (emp.slCE_ICT || 0);
+            existing.slTraCham_CE_ICT = (existing.slTraCham_CE_ICT || 0) + (emp.slTraCham_CE_ICT || 0);
+            existing.doanhThu_CE_ICT = (existing.doanhThu_CE_ICT || 0) + (emp.doanhThu_CE_ICT || 0);
+            existing.doanhThuTraCham_CE_ICT = (existing.doanhThuTraCham_CE_ICT || 0) + (emp.doanhThuTraCham_CE_ICT || 0);
+            emp.customerSet.forEach(c => existing.customerSet.add(c));
+            // Keep dept from whichever has it
+            if (!existing.department && emp.department) existing.department = emp.department;
+        } else {
+            deduplicatedStats[name] = { ...emp };
+        }
+    }
+    finalEmployeeStats = deduplicatedStats;
+
+    const fullSellerArray: Employee[] = Object.values(finalEmployeeStats)
+        .filter(emp => !emp.name.toLowerCase().includes('online'))
+        .map(emp => {
+        const doanhThuThuc = emp.doanhThuThuc || 0;
+        const doanhThuQD = emp.doanhThuQD || 0;
+        const slTraCham = emp.slTraCham || 0;
+        const doanhThuTraCham = emp.doanhThuTraCham || 0;
+        const slTiepCan = emp.customerSet ? emp.customerSet.size : 0;
+        const totalOrders = emp.totalOrders || 0;
+        const slCE_ICT = emp.slCE_ICT || 0;
+        const slICT = finalExploitationStats[emp.name]?.slICT || 0;
+        const slCE_main = finalExploitationStats[emp.name]?.slCE_main || 0;
+        const slTraCham_CE_ICT = emp.slTraCham_CE_ICT || 0;
+        const doanhThu_CE_ICT = emp.doanhThu_CE_ICT || 0;
+        const doanhThuTraCham_CE_ICT = emp.doanhThuTraCham_CE_ICT || 0;
+
+        return {
+            name: emp.name,
+            department: emp.department || 'Không Phân Ca',
+            doanhThuThuc,
+            doanhThuQD,
+            doanhThuTraCham,
+            hieuQuaValue: calculateHieuQuaQDPercent(doanhThuQD, doanhThuThuc),
+            slTiepCan,
+            aov: calculateAOV(doanhThuThuc, slTiepCan),
+            slThuHo: emp.slThuHo || 0,
+            slTraCham,
+            totalOrders: totalOrders,
+            traChamPercent: calculatePercentage(doanhThuTraCham, doanhThuThuc),
+            slCE_ICT,
+            slICT,
+            slCE_main,
+            slTraCham_CE_ICT,
+            traChamPercent_CE_ICT: calculatePercentage(slTraCham_CE_ICT, slCE_ICT),
+            doanhThu_CE_ICT,
+            doanhThuTraCham_CE_ICT,
+            dtTraChamPercent_CE_ICT: calculatePercentage(doanhThuTraCham_CE_ICT, doanhThu_CE_ICT),
+            weakPointsRevenue: 0,
+            weakPointsExploitation: 0,
+        };
+    });
+
+    const exploitationData: ExploitationData[] = Object.values(finalExploitationStats)
+        .filter(ex => ex.name && !ex.name.toLowerCase().includes('online'))
+        .map(ex => {
+            const doanhThuThuc = ex.doanhThuThuc || 0;
+            const doanhThuQD = ex.doanhThuQD || 0;
+            const slBaoHiem = ex.slBaoHiem || 0;
+            const slSPChinh_Tong = (ex.slICT || 0) + (ex.slCE_main || 0) + (ex.slGiaDung_main || 0);
+            return {
+                name: ex.name!,
+                department: ex.department || 'Không Phân Ca',
+                doanhThuThuc,
+                doanhThuQD,
+                hieuQuaQD: calculateHieuQuaQDPercent(doanhThuQD, doanhThuThuc),
+                
+                slICT: ex.slICT || 0,
+                doanhThuICT: ex.doanhThuICT || 0,
+                slCE_main: ex.slCE_main || 0,
+                doanhThuCE_main: ex.doanhThuCE_main || 0,
+                slGiaDung_main: ex.slGiaDung_main || 0,
+
+                slBaoHiem,
+                doanhThuBaoHiem: ex.doanhThuBaoHiem || 0,
+                percentBaoHiem: calculatePercentage(slBaoHiem, slSPChinh_Tong),
+                slSim: ex.slSim || 0,
+                doanhThuSim: ex.doanhThuSim || 0,
+                slDongHo: ex.slDongHo || 0,
+                doanhThuDongHo: ex.doanhThuDongHo || 0,
+                doanhThuPhuKien: ex.doanhThuPhuKien || 0,
+                slPhuKien: ex.slPhuKien || 0,
+                slCamera: ex.slCamera || 0,
+                slLoa: ex.slLoa || 0,
+                slPinSDP: ex.slPinSDP || 0,
+                slTaiNgheBLT: ex.slTaiNgheBLT || 0,
+                doanhThuGiaDung: ex.doanhThuGiaDung || 0,
+                slGiaDung: ex.slGiaDung || 0,
+                slMayLocNuoc: ex.slMayLocNuoc || 0,
+                slNoiCom: ex.slNoiCom || 0,
+                slNoiChien: ex.slNoiChien || 0,
+                slQuatDien: ex.slQuatDien || 0,
+            };
+    });
+
+    const sellersWithSales = fullSellerArray.filter(s => s.doanhThuThuc > 0);
+    const totalSellersWithSales = sellersWithSales.length;
+
+    return {
+        fullSellerArray,
+        exploitationData,
+        byIndustry: finalIndustryStats,
+        dailyTrend: finalDailyTrend,
+        averages: {
+            doanhThuThuc: sellersWithSales.reduce((sum, s) => sum + s.doanhThuThuc, 0) / (totalSellersWithSales || 1),
+            doanhThuQD: sellersWithSales.reduce((sum, s) => sum + s.doanhThuQD, 0) / (totalSellersWithSales || 1),
+            hieuQuaValue: sellersWithSales.reduce((sum, s) => sum + s.hieuQuaValue, 0) / (totalSellersWithSales || 1),
+        },
+        maxValues: {
+            doanhThuThuc: Math.max(0, ...sellersWithSales.map(s => s.doanhThuThuc)),
+            doanhThuQD: Math.max(0, ...sellersWithSales.map(s => s.doanhThuQD)),
+        },
+    };
+}
+
+
+export function processEmployeeData(
+    salesData: DataRow[],
+    periodData: DataRow[],
+    productConfig: ProductConfig,
+    departmentMap: DepartmentMap | null,
+    filters?: FilterState
+): EmployeeData {
+
+    const employeeStats: { [creator: string]: Partial<Employee> & { name: string, customerSet: Set<string>, totalOrders: number, doanhThuTraCham: number, slCE_ICT: number, slTraCham_CE_ICT: number, doanhThu_CE_ICT: number, doanhThuTraCham_CE_ICT: number } } = {};
+    const exploitationStats: { [creator: string]: Partial<ExploitationData> & { name: string } } = {};
+    const employeeIndustryStats: { [creator: string]: { [industry: string]: number } } = {};
+    const employeeDailyTrend: { [creator: string]: { [date: string]: number } } = {};
+
+    for (let i = 0, len = salesData.length; i < len; i++) {
+        const row = salesData[i];
+        const creator = getRowValue(row, COL.NGUOI_TAO);
+        if (!creator || creator.trim().startsWith('Yêu cầu xuất')) continue;
+
+        // Lọc đơn hàng bị HỦY hoặc bị TRẢ
+        const trangThaiHuy = cleanAndNormalize(getRowValue(row, COL.TRANG_THAI_HUY));
+        const nhapTra = cleanAndNormalize(getRowValue(row, COL.TINH_TRANG_NHAP_TRA));
+        const isValid = (trangThaiHuy === 'chưa hủy' || trangThaiHuy === 'chưa huỷ') && nhapTra === 'chưa trả';
+        if (!isValid) continue;
+
+        // Lọc hình thức xuất tính doanh thu
+        const htx = getRowValue(row, COL.HINH_THUC_XUAT);
+        const isRevenue = productConfig && productConfig.revenueEligibleHTX && productConfig.revenueEligibleHTX.size > 0
+            ? productConfig.revenueEligibleHTX.has(cleanAndNormalize(htx))
+            : !normalizedThuHoSet.has(cleanAndNormalize(htx));
+        if (!isRevenue) continue;
+
+        // Bỏ qua nhóm hàng "Không tính doanh thu" — Mục 65c (nhóm 3): đọc row._parentGroup đã tính
+        // sẵn ở applyFiltersAndProcess() thay vì gọi lại getParentGroup() từ đầu.
+        const maNhomHangCheck = getRowValue(row, COL.MA_NHOM_HANG);
+        const parentGroupCheck = row._parentGroup || getParentGroup(maNhomHangCheck, productConfig);
+        if (!parentGroupCheck || parentGroupCheck === 'Không tính doanh thu') continue;
+
+        // Nguồn duy nhất cho revenue/revenueQD/weightedQuantity/isTraCham của dòng này — trước đây
+        // hàm này tính lại calculateRowMetrics 1 lần nữa bên dưới (dùng cho số liệu) trong khi vẫn
+        // đọc isTraCham từ row._metrics (do filterService gán) cho phần cộng dồn trả góp, tạo 2
+        // nguồn song song dư thừa. Gộp về 1 lần gọi duy nhất để tránh lệch nếu 2 nguồn từng khác nhau.
+        // Mục 65c (nhóm 3): đọc thẳng row._metrics đã tính sẵn thay vì gọi lại calculateRowMetrics().
+        const { revenue, revenueQD, weightedQuantity, isTraCham } = row._metrics || calculateRowMetrics(row, productConfig);
+        const maNganhHang = getRowValue(row, COL.MA_NGANH_HANG);
+        const maNhomHang = getRowValue(row, COL.MA_NHOM_HANG);
+        const customer = getRowValue(row, COL.CUSTOMER_NAME);
+        const dateCreated: Date = row.parsedDate;
+        // toLocalISOString (local time), KHÔNG phải .toISOString() (UTC) — đơn tạo sáng sớm giờ
+        // VN (UTC+7) bị lệch sang ngày hôm trước nếu dùng UTC, lệch với trendService.ts (local).
+        const dateKey = toLocalISOString(dateCreated);
+
+        // --- Initialize stats objects ---
+        if (!employeeStats[creator]) {
+            let nameToUse = creator;
+            if (departmentMap) {
+                const id = creator.split(' - ')[0].trim();
+                const rawDept = departmentMap[id];
+                if (rawDept && rawDept.includes(';;')) {
+                    const fullName = rawDept.split(';;')[1];
+                    if (fullName && fullName.trim() !== '' && fullName !== id) {
+                        nameToUse = fullName.includes(' - ') ? fullName : `${id} - ${fullName.trim()}`;
+                    }
+                }
+            }
+            employeeStats[creator] = { name: nameToUse, doanhThuThuc: 0, doanhThuQD: 0, slTraCham: 0, doanhThuTraCham: 0, customerSet: new Set(), totalOrders: 0, slCE_ICT: 0, slTraCham_CE_ICT: 0, doanhThu_CE_ICT: 0, doanhThuTraCham_CE_ICT: 0 };
+        }
+        if (!exploitationStats[creator]) {
+            exploitationStats[creator] = { name: employeeStats[creator].name, slICT: 0, doanhThuICT: 0, slCE_main: 0, doanhThuCE_main: 0, slGiaDung_main: 0, slBaoHiem: 0, doanhThuBaoHiem: 0, slSim: 0, doanhThuSim: 0, slDongHo: 0, doanhThuDongHo: 0, doanhThuPhuKien: 0, slPhuKien: 0, slCamera: 0, slLoa: 0, slPinSDP: 0, slTaiNgheBLT: 0, doanhThuGiaDung: 0, slGiaDung: 0, slMayLocNuoc: 0, slNoiCom: 0, slNoiChien: 0, slQuatDien: 0 };
+        }
+        if (!employeeIndustryStats[creator]) employeeIndustryStats[creator] = {};
+        if (!employeeDailyTrend[creator]) employeeDailyTrend[creator] = {};
+        if (!employeeDailyTrend[creator][dateKey]) employeeDailyTrend[creator][dateKey] = 0;
+
+        // --- Aggregate general stats ---
+        const emp = employeeStats[creator];
+        emp.doanhThuThuc! += revenue;
+        emp.doanhThuQD! += revenueQD;
+        emp.totalOrders! += 1;
+        if (customer) emp.customerSet.add(customer);
+        if (isTraCham) {
+            emp.slTraCham! += weightedQuantity; // Cập nhật số lượng trọng số
+            emp.doanhThuTraCham! += revenue;
+        }
+
+        // Mục 65c (nhóm 3): dùng lại parentGroupCheck đã tính ở trên (cùng input maNhomHang/
+        // maNhomHangCheck — cùng 1 lệnh getRowValue trên cùng row) thay vì gọi lại getParentGroup()
+        // y hệt lần thứ 2. Bỏ được fallback 'Không xác định' vì tại đây parentGroupCheck LUÔN
+        // non-empty (đã continue sớm ở trên nếu rỗng/"Không tính doanh thu").
+        const parentGroupForPerf = parentGroupCheck;
+        if (parentGroupForPerf === 'CE' || parentGroupForPerf === 'ICT') {
+            emp.slCE_ICT! += weightedQuantity; // Cập nhật số lượng trọng số
+            emp.doanhThu_CE_ICT! += revenue;
+            if (isTraCham) {
+                emp.slTraCham_CE_ICT! += weightedQuantity; // Cập nhật số lượng trọng số
+                emp.doanhThuTraCham_CE_ICT! += revenue;
+            }
+        }
+
+        // --- Aggregate industry stats ---
+        const displayGroup = getDisplayParentGroup(maNhomHang, productConfig);
+        employeeIndustryStats[creator][displayGroup] = (employeeIndustryStats[creator][displayGroup] || 0) + revenue;
+        employeeDailyTrend[creator][dateKey] += revenueQD;
+
+        // --- Aggregate exploitation stats ---
+        const stats = exploitationStats[creator];
+        stats.doanhThuThuc = (stats.doanhThuThuc || 0) + revenue;
+        stats.doanhThuQD = (stats.doanhThuQD || 0) + revenueQD;
+
+        // Mục 65c (nhóm 3): tương tự parentGroupForPerf ở trên — dùng lại parentGroupCheck.
+        const parentGroup = parentGroupCheck;
+        const childGroup = getSubgroup(maNhomHang, productConfig) || 'Không xác định';
+
+        // SP Chính
+        if (parentGroup === 'ICT') {
+            stats.slICT! += weightedQuantity;
+            stats.doanhThuICT! += revenue;
+        } else if (parentGroup === 'CE') {
+            stats.slCE_main! += weightedQuantity;
+            stats.doanhThuCE_main! += revenue;
+        } else if (parentGroup === 'Gia dụng') {
+            stats.slGiaDung_main! += weightedQuantity;
+        }
+
+        // Bán Kèm & Các nhóm khác
+        if (parentGroup === 'Bảo hiểm') {
+            stats.slBaoHiem! += weightedQuantity;
+            stats.doanhThuBaoHiem! += revenue;
+        } else if (parentGroup === 'Sim') {
+            stats.slSim! += weightedQuantity;
+            stats.doanhThuSim! += revenue;
+        } else if (parentGroup === 'Đồng hồ') {
+            stats.slDongHo! += weightedQuantity;
+            stats.doanhThuDongHo! += revenue;
+        } else if (parentGroup === 'Phụ kiện') {
+            stats.doanhThuPhuKien! += revenue;
+            stats.slPhuKien! += weightedQuantity;
+            if (childGroup === 'Camera') stats.slCamera! += weightedQuantity;
+            else if (childGroup === 'Loa') stats.slLoa! += weightedQuantity;
+            else if (childGroup === 'Pin SDP') stats.slPinSDP! += weightedQuantity;
+            else if (childGroup === 'Tai nghe BLT') stats.slTaiNgheBLT! += weightedQuantity;
+        } else if (parentGroup === 'Gia dụng') {
+            stats.doanhThuGiaDung! += revenue;
+            stats.slGiaDung! += weightedQuantity;
+            if (childGroup === 'Máy lọc nước') stats.slMayLocNuoc! += weightedQuantity;
+            else if (childGroup === 'Nồi cơm') stats.slNoiCom! += weightedQuantity;
+            else if (childGroup === 'Nồi chiên') stats.slNoiChien! += weightedQuantity;
+            else if (childGroup === 'Quạt điện') stats.slQuatDien! += weightedQuantity;
+        }
+    }
+
+    // --- Merge employees from DepartmentMap (Shift File) who have NO SALES ---
+    if (departmentMap) {
+        // Create a set of IDs that already exist in the sales data (to avoid duplicates)
+        // Sales data usually has format "ID - Name", so we extract ID
+        const existingIds = new Set<string>();
+        Object.keys(employeeStats).forEach(key => {
+            const id = key.split(' - ')[0].trim();
+            existingIds.add(id);
+        });
+
+        for (const [empId, rawVal] of Object.entries(departmentMap)) {
+            // Trim ID just in case
+            const cleanId = empId.trim();
+            const parts = rawVal.split(';;');
+            const dept = parts[0];
+            const fullNameFromShift = parts.length > 1 ? parts[1] : cleanId;
+            const finalDisplayName = fullNameFromShift.includes(' - ') 
+                ? fullNameFromShift 
+                : (fullNameFromShift === cleanId ? cleanId : `${cleanId} - ${fullNameFromShift}`);
+
+            // Exclude system accounts/lines
+            const lowerId = cleanId.toLowerCase();
+            const lowerName = finalDisplayName.toLowerCase();
+            if (
+                lowerId.startsWith('yêu cầu xuất') ||
+                lowerId.startsWith('mwg') ||
+                lowerId.startsWith('bp ') ||
+                lowerId.startsWith('hỗ trợ bi') ||
+                lowerId.startsWith('nnh ') ||
+                lowerId.startsWith('đml_str_str') ||
+                lowerId.includes('online') ||
+                lowerName.startsWith('yêu cầu xuất') ||
+                lowerName.startsWith('mwg') ||
+                lowerName.startsWith('bp ') ||
+                lowerName.startsWith('hỗ trợ bi') ||
+                lowerName.startsWith('nnh ') ||
+                lowerName.startsWith('đml_str_str') ||
+                lowerName.includes('online')
+            ) {
+                continue;
+            }
+            
+            if (!existingIds.has(cleanId)) {
+                // Block 1: Apply global filters for zero-sale employees
+                if (filters && filters.department && filters.department.length > 0) {
+                    if (!filters.department.includes(dept)) continue;
+                }
+                
+                if (filters && filters.nguoiTao && filters.nguoiTao.length > 0) {
+                    const idMatch = filters.nguoiTao.some(str => str.startsWith(`${cleanId} -`) || str === cleanId);
+                    if (!idMatch) continue;
+                }
+
+                // This employee is in the shift file but has no sales data
+                // We add them with 0 performance so they show up in the "Outstanding" table
+                employeeStats[cleanId] = {
+                    name: finalDisplayName,
+                    department: dept,
+                    doanhThuThuc: 0,
+                    doanhThuQD: 0,
+                    slTraCham: 0,
+                    doanhThuTraCham: 0,
+                    customerSet: new Set(),
+                    totalOrders: 0,
+                    slCE_ICT: 0,
+                    slTraCham_CE_ICT: 0,
+                    doanhThu_CE_ICT: 0,
+                    doanhThuTraCham_CE_ICT: 0,
+                    slThuHo: 0,
+                };
+                
+                // Initialize empty exploitation stats for safety (though not strictly needed for Outstanding table)
+                exploitationStats[cleanId] = {
+                    name: finalDisplayName,
+                    department: dept,
+                    slICT: 0, doanhThuICT: 0, slCE_main: 0, doanhThuCE_main: 0, slGiaDung_main: 0,
+                    slBaoHiem: 0, doanhThuBaoHiem: 0, slSim: 0, doanhThuSim: 0, slDongHo: 0, doanhThuDongHo: 0,
+                    doanhThuPhuKien: 0, slPhuKien: 0, slCamera: 0, slLoa: 0, slPinSDP: 0, slTaiNgheBLT: 0,
+                    doanhThuGiaDung: 0, slGiaDung: 0, slMayLocNuoc: 0, slNoiCom: 0, slNoiChien: 0, slQuatDien: 0
+                };
+                
+                employeeIndustryStats[cleanId] = {};
+                employeeDailyTrend[cleanId] = {};
+            }
+        }
+    }
+
+    const initialEmployeeData = _buildFullEmployeeData(employeeStats, exploitationStats, periodData, employeeIndustryStats, employeeDailyTrend, departmentMap, productConfig);
+
+    // --- Calculate Weakness Points ---
+    const employeesByDept: { [key: string]: Employee[] } = {};
+    initialEmployeeData.fullSellerArray.forEach(emp => {
+        if (!employeesByDept[emp.department]) {
+            employeesByDept[emp.department] = [];
+        }
+        employeesByDept[emp.department].push(emp);
+    });
+
+    const deptThresholds: { [key: string]: { dtqd_40p?: number; slCE_ICT_30p?: number; slTraCham_CE_ICT_30p?: number } } = {};
+    for (const dept in employeesByDept) {
+        const deptEmployees = employeesByDept[dept];
+        const count = deptEmployees.length;
+        if (count > 0) {
+            deptThresholds[dept] = {
+                dtqd_40p: [...deptEmployees].sort((a, b) => a.doanhThuQD - b.doanhThuQD)[Math.floor(count * 0.4)]?.doanhThuQD,
+                slCE_ICT_30p: [...deptEmployees].sort((a, b) => a.slCE_ICT - b.slCE_ICT)[Math.floor(count * 0.3)]?.slCE_ICT,
+                slTraCham_CE_ICT_30p: [...deptEmployees].sort((a, b) => a.slTraCham_CE_ICT - b.slTraCham_CE_ICT)[Math.floor(count * 0.3)]?.slTraCham_CE_ICT,
+            };
+        }
+    }
+
+    const finalFullSellerArray = initialEmployeeData.fullSellerArray.map(emp => {
+        const thresholds = deptThresholds[emp.department];
+        let weakPointsRevenue = 0;
+        let weakPointsExploitation = 0;
+
+        if (thresholds) {
+            if (thresholds.dtqd_40p !== undefined && emp.doanhThuQD <= thresholds.dtqd_40p) weakPointsRevenue++;
+            if (emp.hieuQuaValue < 35) weakPointsRevenue++;
+            if (emp.dtTraChamPercent_CE_ICT < 45) weakPointsRevenue++;
+            
+            if (thresholds.slCE_ICT_30p !== undefined && emp.slCE_ICT <= thresholds.slCE_ICT_30p) weakPointsExploitation++;
+            if (thresholds.slTraCham_CE_ICT_30p !== undefined && emp.slTraCham_CE_ICT <= thresholds.slTraCham_CE_ICT_30p) weakPointsExploitation++;
+            if (emp.traChamPercent_CE_ICT < 50) weakPointsExploitation++;
+        }
+        
+        return { ...emp, weakPointsRevenue, weakPointsExploitation };
+    });
+
+    return { ...initialEmployeeData, fullSellerArray: finalFullSellerArray };
+}

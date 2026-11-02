@@ -1,0 +1,3 @@
+path,before_sha256,after_sha256,evidence
+tests/e2e/helpers/materialHarness.html,0393486206a67a61fde4871186e6f63b89e5a2e910597cc1712d7a4ec0f92a3d,8d52fa7e77d05b2925d149b11fe0b769c35776212e7a6b4a7785a075c361d3cc,audit/correction-batch-c39.md
+tests/e2e/page-actions-registry.spec.ts,NEW,63026141a863204df88ba5371482dc05aa7973eca12eb2242eddd35f0932af38,audit/correction-batch-c39.md

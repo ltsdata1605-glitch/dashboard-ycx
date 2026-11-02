@@ -1,0 +1,52 @@
+[WebServer] (node:30545) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-selection-controls.spec.ts:8:3 › Nhỏ: vùng chạm 44 giữ nguyên kích thước nhìn thấy (21.9s)
+  ✓  2 [chromium] › tests/e2e/shared-selection-controls.spec.ts:8:3 › Vừa: vùng chạm 44 giữ nguyên kích thước nhìn thấy (2.9s)
+  ✓  3 [chromium] › tests/e2e/shared-selection-controls.spec.ts:23:1 › bàn phím, focus visible, disabled và reduced motion (2.8s)
+
+
+  1) [chromium] › tests/e2e/shared-selection-controls.spec.ts:8:3 › Nhỏ: vùng chạm 44 giữ nguyên kích thước nhìn thấy 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('switch', { name: 'Nhỏ', exact: true })
+    Expected: "true"
+    Received: "false"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('switch', { name: 'Nhỏ', exact: true }) with timeout 10000ms
+      - waiting for getByRole('switch', { name: 'Nhỏ', exact: true })
+        24 × locator resolved to <button type="button" role="switch" aria-label="Nhỏ" data-state="off" aria-checked="false" class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed ycx-switch relative inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer h-5 w-9 bg-slate-300">…</button>
+           - unexpected value "false"
+
+
+      15 |     // Click within 44px target, outside the visible track; real React state must toggle.
+      16 |     await page.mouse.click(box.x + width / 2, box.y + height / 2 - 21);
+    > 17 |     await expect(control).toHaveAttribute('aria-checked', 'true');
+         |                           ^
+      18 |     await page.mouse.click(box.x + width / 2, box.y + height / 2 + 21);
+      19 |     await expect(control).toHaveAttribute('aria-checked', 'false');
+      20 |   });
+        at /Users/ltson/dashboardycx/tests/e2e/shared-selection-controls.spec.ts:17:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c20-before/shared-selection-controls--77c60-nguyên-kích-thước-nhìn-thấy-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c20-before/shared-selection-controls--77c60-nguyên-kích-thước-nhìn-thấy-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c20-before/shared-selection-controls--77c60-nguyên-kích-thước-nhìn-thấy-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c20-before/shared-selection-controls--77c60-nguyên-kích-thước-nhìn-thấy-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/shared-selection-controls.spec.ts:8:3 › Nhỏ: vùng chạm 44 giữ nguyên kích thước nhìn thấy 
+  2 passed (45.6s)

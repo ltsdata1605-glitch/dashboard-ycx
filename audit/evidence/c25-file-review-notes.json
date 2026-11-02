@@ -1,0 +1,8 @@
+{
+  "components/shared/ui/Tabs.tsx": "Full source incl4variants/SegmentTrack: add pressed for underline/pills; coarse min44 for sm/md; buttonrole retained. Consumer snippets c25-tabs-context.txt not fullfile review.",
+  "components/shared/ui/useCenterActiveInStrip.ts": "Full source: bounds center target, horizontal smooth/auto reducedmotion; dependency onlyactive key, resize/dynamicfont/RTL pending.",
+  "components/shared/ui/icon/renderIcon.tsx": "Full source: recognized registry string rendersAppIcon token; customReactNode preserved. No new icon migration.",
+  "tests/unit/center-active-strip.test.ts": "Full safety read:3pure calculationcases executedPASS; not browser scroll proof.",
+  "tests/e2e/helpers/materialHarness.html": "New actualReact Tabs controlledstate fixture, existing branches unchanged.",
+  "tests/e2e/shared-tabs-states.spec.ts": "Full authored safetyreview:4variants nativekeyboard+pressed+disabled and4coarse landscape targetcases, no services."
+}

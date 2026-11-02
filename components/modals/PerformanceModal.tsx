@@ -1,0 +1,591 @@
+import React, { useMemo, useRef, useState } from 'react';
+import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import type { Employee, DataRow, ProductConfig } from '../../types';
+import { Modal } from '../shared/ui/Modal';
+import { getRowValue, formatCurrency, calculateRowMetrics, formatQuantity, getHinhThucThanhToan, cleanAndNormalize, getRowPrice } from '../../utils/dataUtils';
+import { COL, HINH_THUC_XUAT_TIEN_MAT, HINH_THUC_XUAT_TRA_GOP, HINH_THUC_XUAT_THU_HO, getCategoryExportWidth } from '../../constants';
+import { DashboardContext } from '../../contexts/DashboardContext';
+import { Button } from '../shared/ui/Button';
+import type { ExportImageOptions } from '../../hooks/useExportLogic';
+import EmployeeCategoryTable, { useCategoryColumns } from './EmployeeCategoryTable';
+import { saoChep } from '../shared/ui/saoChep';
+
+
+
+interface PerformanceModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    employeeName: string;
+    onExport: (element: HTMLElement, filename: string, options?: ExportImageOptions) => Promise<Blob | null | void>;
+    isBatchExporting?: boolean;
+    fullSellerArray?: Employee[];
+    validSalesData?: DataRow[];
+    productConfig?: ProductConfig;
+}
+
+const MODAL_KPI_COLORS: Record<string, { top: string; iconBg: string; iconText: string; valText: string }> = {
+    indigo: {
+        top: 'bg-gradient-to-r from-indigo-400 to-indigo-700',
+        iconBg: 'bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/40',
+        iconText: 'text-indigo-600 dark:text-indigo-400',
+        valText: 'text-indigo-700 dark:text-indigo-300',
+    },
+    emerald: {
+        top: 'bg-gradient-to-r from-emerald-400 to-emerald-700',
+        iconBg: 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/40',
+        iconText: 'text-emerald-600 dark:text-emerald-400',
+        valText: 'text-emerald-700 dark:text-emerald-300',
+    },
+    rose: {
+        top: 'bg-gradient-to-r from-rose-400 to-rose-700',
+        iconBg: 'bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900/40',
+        iconText: 'text-rose-600 dark:text-rose-400',
+        valText: 'text-rose-700 dark:text-rose-300',
+    },
+    amber: {
+        top: 'bg-gradient-to-r from-amber-400 to-amber-700',
+        iconBg: 'bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900/40',
+        iconText: 'text-amber-600 dark:text-amber-400',
+        valText: 'text-amber-700 dark:text-amber-300',
+    },
+    cyan: {
+        top: 'bg-gradient-to-r from-sky-400 to-sky-700',
+        iconBg: 'bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900/40',
+        iconText: 'text-sky-600 dark:text-sky-400',
+        valText: 'text-sky-700 dark:text-sky-300',
+    },
+};
+
+const KpiCard: React.FC<{ icon: string, label: string, value: string, color: string, children?: React.ReactNode }> = ({ icon, label, value, color, children }) => {
+    const c = MODAL_KPI_COLORS[color] || MODAL_KPI_COLORS.indigo;
+    return (
+        <div className="flex-1 bg-white dark:bg-slate-900/95 rounded-card border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+            <div className={`h-[3.5px] w-full shrink-0 ${c.top}`} />
+            <div className="p-2 sm:p-2.5 flex flex-col justify-between flex-1 gap-1">
+                <div className="flex items-center justify-between gap-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-popup flex items-center justify-center shrink-0 ${c.iconBg} ${c.iconText}`}>
+                            <AppIcon name={resolveIconName(icon) ?? 'help'} size="xs" />
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate" title={label}>{label}</p>
+                    </div>
+                </div>
+                <div className={`w-full text-center flex items-center justify-center my-1 text-sm sm:text-base lg:text-xl font-black ${c.valText} leading-none tabular-nums truncate`}>
+                    {value}
+                </div>
+                {children ? (
+                    <div className="mt-auto text-[11px] leading-none border-t border-slate-100 dark:border-slate-800/70 pt-1.5 w-full flex items-center justify-center">
+                        {children}
+                    </div>
+                ) : (
+                    <div className="mt-auto border-t border-transparent pt-1.5 h-[17px]" />
+                )}
+            </div>
+        </div>
+    );
+};
+
+/** Số ký tự tối đa của tên sản phẩm trong ẢNH XUẤT, theo bề rộng ảnh (`forcedWidth` ở
+ *  handleExport / handleBatchExport). Ô "Sản phẩm" nằm ở cột đầu trên các dòng bán kèm (dòng
+ *  có ô "Mã ĐH" gộp rowSpan ở trên) nên bị uiService ép `white-space: nowrap` lúc clone —
+ *  tên quá dài kéo bảng bung ngang vượt khung chụp và mất cột Doanh Thu bên phải. */
+const EXPORT_PRODUCT_NAME_MAX_LENGTH = 55;      // ảnh 800px (desktop + xuất hàng loạt)
+const EXPORT_PRODUCT_NAME_MAX_LENGTH_NARROW = 40; // ảnh 640px (xuất lẻ từ điện thoại)
+
+/** Cắt tên sản phẩm tại ranh giới từ gần nhất rồi thêm dấu "…" — chỉ dùng cho ảnh xuất,
+ *  giao diện vẫn hiển thị tên đầy đủ. */
+const truncateProductNameForExport = (name: string, maxLength: number): string => {
+    if (name.length <= maxLength) return name;
+    const cut = name.slice(0, maxLength);
+    const lastSpace = cut.lastIndexOf(' ');
+    const kept = lastSpace > maxLength * 0.6 ? cut.slice(0, lastSpace) : cut;
+    return `${kept.trimEnd()}…`;
+};
+
+const PerformanceModal: React.FC<PerformanceModalProps> = ({ 
+    isOpen, 
+    onClose, 
+    employeeName, 
+    onExport, 
+    isBatchExporting = false,
+    fullSellerArray: fullSellerArrayFromProps,
+    validSalesData: validSalesDataFromProps,
+    productConfig: productConfigFromProps
+}) => {
+    const context = React.useContext(DashboardContext);
+
+    const fullSellerArray = fullSellerArrayFromProps ?? context?.employeeAnalysisData?.fullSellerArray ?? [];
+    const validSalesData = validSalesDataFromProps ?? context?.processedData?.filteredValidSalesData ?? [];
+    const productConfig = productConfigFromProps ?? context?.productConfig;
+
+    const modalBodyRef = React.useRef<HTMLDivElement>(null);
+
+    const [isExporting, setIsExporting] = useState(false);
+
+    // Bật cho cả xuất lẻ (nút camera) lẫn xuất hàng loạt — dùng để rút gọn tên sản phẩm trong ảnh.
+    const isExportingView = isExporting || isBatchExporting;
+    // Xuất hàng loạt luôn chụp ở 800px nên giữ ngưỡng rộng, xuất lẻ theo bề rộng đã chọn ở handleExport.
+    const exportProductNameMaxLength = !isBatchExporting && typeof window !== 'undefined' && window.innerWidth < 768
+        ? EXPORT_PRODUCT_NAME_MAX_LENGTH_NARROW
+        : EXPORT_PRODUCT_NAME_MAX_LENGTH;
+
+    const [isAllCustomersExpanded, setIsAllCustomersExpanded] = useState(false);
+    const customerDetailsContainerRef = useRef<HTMLDivElement>(null);
+
+    const employeeData = useMemo(() => {
+        return fullSellerArray.find(emp => emp.name === employeeName);
+    }, [fullSellerArray, employeeName]);
+
+    const employeeSalesData = useMemo(() => {
+        return validSalesData.filter(row => {
+            const hinhThucXuat = getRowValue(row, COL.HINH_THUC_XUAT) || '';
+            const isRevenueEligible = productConfig && productConfig.revenueEligibleHTX && productConfig.revenueEligibleHTX.size > 0
+                ? productConfig.revenueEligibleHTX.has(cleanAndNormalize(hinhThucXuat))
+                : (HINH_THUC_XUAT_TIEN_MAT.has(hinhThucXuat) || HINH_THUC_XUAT_TRA_GOP.has(hinhThucXuat));
+            return getRowValue(row, COL.NGUOI_TAO) === employeeName 
+                && isRevenueEligible 
+                && getRowPrice(row) > 0;
+        });
+    }, [validSalesData, employeeName, productConfig]);
+
+    // Bảng Phụ kiện/ĐGD cần TẤT CẢ dòng hợp lệ của nhân viên, kể cả dòng giá 0 (dịch vụ, quà tặng
+    // kèm) — employeeSalesData ở trên đã lọc price > 0 nên không dùng lại được cho số lượng.
+    const employeeRevenueRows = useMemo(() => {
+        return validSalesData.filter(row => getRowValue(row, COL.NGUOI_TAO) === employeeName);
+    }, [validSalesData, employeeName]);
+
+    const categoryColumns = useCategoryColumns();
+
+    const attachOrdersMetrics = useMemo(() => {
+        const revenueEligibleRows = employeeSalesData.filter(row => getRowPrice(row) > 0);
+        const orderCounts: { [id: string]: number } = {};
+        
+        revenueEligibleRows.forEach(row => {
+            const id = getRowValue(row, COL.ID);
+            if (id) {
+                orderCounts[id] = (orderCounts[id] || 0) + 1;
+            }
+        });
+
+        const uniqueOrderIds = Object.keys(orderCounts);
+        const totalOrders = uniqueOrderIds.length;
+        const attachedOrders = Object.values(orderCounts).filter(count => count >= 2).length;
+        const percent = totalOrders > 0 ? (attachedOrders / totalOrders) * 100 : 0;
+
+        return { 
+            count: attachedOrders, 
+            total: totalOrders, 
+            percent 
+        };
+    }, [employeeSalesData]);
+
+    const { topProducts, customerBreakdown } = useMemo(() => {
+        if (!productConfig) return { topProducts: [], customerBreakdown: [] };
+
+        const productSummary = employeeSalesData.reduce((acc, row) => {
+            const productName = getRowValue(row, COL.PRODUCT) || 'N/A';
+            const price = getRowPrice(row);
+            const quantity = Number(getRowValue(row, COL.QUANTITY)) || 0;
+            if (!acc[productName]) acc[productName] = { revenue: 0, quantity: 0 };
+            acc[productName].revenue += price;
+            acc[productName].quantity += quantity;
+            return acc;
+        }, {} as { [key: string]: { revenue: number, quantity: number } });
+
+        const topProducts = Object.entries(productSummary)
+            .map(([name, data]: [string, { revenue: number, quantity: number }]) => ({ name, ...data }))
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
+
+        const groupedByCustomer = employeeSalesData.reduce((acc, order) => {
+            const customer = getRowValue(order, COL.CUSTOMER_NAME) || 'Khách lẻ';
+            if (!acc[customer]) acc[customer] = [];
+            acc[customer].push(order);
+            return acc;
+        }, {} as { [key: string]: DataRow[] });
+
+        const customerBreakdown = Object.entries(groupedByCustomer).map(([customerName, orders]: [string, DataRow[]]) => {
+            const { totalRevenue, totalRevenueQD } = orders.reduce((acc, o) => {
+                const { revenue, revenueQD } = calculateRowMetrics(o, productConfig);
+                acc.totalRevenue += revenue;
+                acc.totalRevenueQD += revenueQD;
+                return acc;
+            }, { totalRevenue: 0, totalRevenueQD: 0 });
+
+            const hieuQuaQD = totalRevenue !== 0 ? ((totalRevenueQD - totalRevenue) / Math.abs(totalRevenue)) * 100 : 0;
+            // any: giá trị ô Excel thô (Date | number serial | string) từ nhiều tên cột khả dĩ
+            let scheduledDateRaw: any = undefined;
+            for (const order of orders) {
+                const raw = getRowValue(order, ['Thời gian hẹn giao', 'Thoi gian hen giao', 'TG Hẹn Giao', '__EMPTY_24', 'Column25']) || (() => {
+                    const keys = Object.keys(order).filter(k => k !== 'parsedDate' && k !== 'rowIndex');
+                    return keys.length > 24 ? order[keys[24]] : undefined;
+                })();
+                if (raw !== undefined && raw !== null && raw !== '') {
+                    scheduledDateRaw = raw;
+                    break;
+                }
+            }
+            
+            let formattedScheduledDate = 'N/A';
+            if (scheduledDateRaw) {
+                if (scheduledDateRaw instanceof Date && !isNaN(scheduledDateRaw.getTime())) {
+                    formattedScheduledDate = scheduledDateRaw.toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}).replace(/\./g, '/');
+                } else if (typeof scheduledDateRaw === 'number') {
+                    const dt = new Date((scheduledDateRaw - 25569) * 86400 * 1000);
+                    formattedScheduledDate = !isNaN(dt.getTime()) ? dt.toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}).replace(/\./g, '/') : String(scheduledDateRaw);
+                } else {
+                    const strDate = String(scheduledDateRaw);
+                    if (strDate.includes('T')) {
+                       const dt = new Date(strDate);
+                       if (!isNaN(dt.getTime())) formattedScheduledDate = dt.toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}).replace(/\./g, '/');
+                       else formattedScheduledDate = strDate;
+                    } else {
+                       formattedScheduledDate = strDate.substring(0, 5);
+                    }
+                }
+            }
+
+            const orderGroups: { [id: string]: DataRow[] } = {};
+            orders.filter(o => getRowPrice(o) > 0).forEach(o => {
+                const id = getRowValue(o, COL.ID) || 'no-id';
+                if (!orderGroups[id]) orderGroups[id] = [];
+                orderGroups[id].push(o);
+            });
+
+            const sortedOrderGroups = Object.entries(orderGroups).map(([id, groupLines]) => ({
+                id,
+                lines: groupLines,
+                isAttached: id !== 'no-id' && groupLines.length >= 2,
+                status: getRowValue(groupLines[0], COL.XUAT)
+            })).sort((a, b) => b.lines.reduce((s, l) => s + getRowPrice(l), 0) - a.lines.reduce((s, l) => s + getRowPrice(l), 0));
+
+            // Get the created date from the first order
+            let createdDateKey = '';
+            let createdDateFormatted = '';
+            const firstOrderDateRaw = getRowValue(orders[0], COL.DATE_CREATED);
+            if (firstOrderDateRaw) {
+                const d = firstOrderDateRaw instanceof Date ? firstOrderDateRaw : new Date(firstOrderDateRaw as string);
+                if (!isNaN(d.getTime())) {
+                    createdDateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    createdDateFormatted = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                }
+            }
+
+            return { 
+                name: customerName, 
+                orderGroups: sortedOrderGroups,
+                totalRevenue,
+                totalRevenueQD,
+                hieuQuaQD,
+                scheduledDate: formattedScheduledDate,
+                createdDateKey,
+                createdDateFormatted
+            };
+        }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+        
+        return { topProducts, customerBreakdown };
+
+    }, [employeeSalesData, productConfig]);
+
+
+
+    const handleExport = async () => {
+        const elementToExport = modalBodyRef.current;
+        if (elementToExport) {
+            setIsExporting(true);
+            // Bề rộng ảnh bám theo nội dung: 800px (640px trên điện thoại) là vừa đủ cho bảng
+            // "Chi Tiết Theo Khách Hàng" sau khi tên sản phẩm được rút gọn (xem
+            // EXPORT_PRODUCT_NAME_MAX_LENGTH), nhưng bảng Phụ kiện/ĐGD nhiều cột có thể cần rộng
+            // hơn — getCategoryExportWidth() nới đúng phần thiếu để không cắt cột.
+            const isMobileViewport = window.innerWidth < 768;
+            const forcedWidth = getCategoryExportWidth(categoryColumns.length, isMobileViewport ? 640 : 800);
+            await onExport(elementToExport, `Phân Tích Hiệu Quả - ${employeeName}.png`, { forceOpenDetails: true, forcedWidth });
+            setIsExporting(false);
+        }
+    };
+
+    const toggleAllCustomers = () => {
+        const nextState = !isAllCustomersExpanded;
+        if (customerDetailsContainerRef.current) {
+            const detailsElements = customerDetailsContainerRef.current.querySelectorAll('details');
+            detailsElements.forEach(detail => {
+                detail.open = nextState;
+            });
+        }
+        setIsAllCustomersExpanded(nextState);
+    };
+    
+    const controls = (
+        <div className="flex items-center gap-1 sm:gap-1.5 hide-on-export">
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleAllCustomers}
+                title={isAllCustomersExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
+                aria-label={isAllCustomersExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
+                className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            >
+                <AppIcon name={isAllCustomersExpanded ? 'collapseAll' : 'expandAll'} size="md" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleExport}
+                disabled={isExporting}
+                title="Xuất Ảnh Phân Tích"
+                aria-label="Xuất Ảnh Phân Tích"
+                className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 shrink-0"
+            >
+                <AppIcon name={isExporting ? 'loading' : 'exportImage'} size="md" spin={isExporting} />
+            </Button>
+        </div>
+    );
+    
+    const modalContent = !employeeData ? (
+        <p>Không tìm thấy dữ liệu cho nhân viên này.</p>
+    ) : (
+        <div className="space-y-3 sm:space-y-6">
+            {/* Header chỉ xuất hiện trong ảnh (class .export-always-show được uiService ép hiển thị
+                lúc clone) — trên giao diện đã có header của <Modal />, còn nhánh xuất hàng loạt
+                tự dựng header riêng nên bỏ qua để tránh lặp 2 tiêu đề. */}
+            {!isBatchExporting && (
+                <div className="hidden export-always-show items-center justify-between border-b border-slate-200 pb-2">
+                    <div>
+                        <p className="text-xs text-slate-500">Phân Tích Hiệu Quả Cá Nhân</p>
+                        <h3 className="text-xl font-bold text-sky-700 leading-tight">{employeeName}</h3>
+                    </div>
+                </div>
+            )}
+            {/* KPIs */}
+            <div className="grid grid-cols-5 gap-1 sm:gap-2.5">
+                <KpiCard icon="dollar-sign" label="Tổng DTQĐ" value={formatCurrency(employeeData.doanhThuQD)} color="indigo">
+                    <div className="flex flex-col min-[370px]:flex-row justify-between items-center w-full gap-0.5 text-slate-500 dark:text-slate-400">
+                        <span className="shrink-0">Thực:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{formatCurrency(employeeData.doanhThuThuc)}</span>
+                    </div>
+                </KpiCard>
+                <KpiCard icon="trending-up" label="Hiệu Quả QĐ" value={`${employeeData.hieuQuaValue.toFixed(0)}%`} color={employeeData.hieuQuaValue >= 40 ? 'emerald' : 'rose'} />
+                <KpiCard icon="clock" label="% T.Chậm" value={`${employeeData.traChamPercent.toFixed(0)}%`} color="amber">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-y-0.5 gap-x-1 text-slate-500 dark:text-slate-400 w-full text-center leading-tight">
+                        <div className="whitespace-nowrap">CE+ICT: <span className="font-extrabold text-amber-700 dark:text-amber-400">{employeeData.traChamPercent_CE_ICT.toFixed(0)}%</span></div>
+                        <span className="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
+                        <div className="whitespace-nowrap">Tổng: <span className="font-bold text-slate-700 dark:text-slate-200">{formatQuantity(employeeData.slTraCham_CE_ICT)}/{formatQuantity(employeeData.slCE_ICT)}</span></div>
+                    </div>
+                </KpiCard>
+                <KpiCard icon="shopping-bag" label="ĐH B.Kèm" value={formatQuantity(attachOrdersMetrics.count)} color="cyan">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-y-0.5 gap-x-1 text-slate-500 dark:text-slate-400 w-full text-center leading-tight">
+                        <div className="whitespace-nowrap">%BK: <span className="font-extrabold text-sky-700 dark:text-sky-400">{attachOrdersMetrics.percent.toFixed(0)}%</span></div>
+                        <span className="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
+                        <div className="whitespace-nowrap">Tổng: <span className="font-bold text-slate-700 dark:text-slate-200">{attachOrdersMetrics.total} ĐH</span></div>
+                    </div>
+                </KpiCard>
+                <KpiCard icon="users" label="Tiếp Cận" value={formatQuantity(employeeData.slTiepCan)} color="emerald">
+                     <div className="flex flex-col min-[370px]:flex-row justify-between items-center w-full gap-0.5 text-slate-500 dark:text-slate-400">
+                        <span className="shrink-0">Thu Hộ:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200 truncate">{formatQuantity(employeeData.slThuHo)}</span>
+                    </div>
+                </KpiCard>
+            </div>
+            
+            {/* Bảng SL Phụ kiện / Dịch vụ / Gia dụng — cùng bộ cột và cùng cách tính với bảng
+                "Chi Tiết Theo Kho", nhưng lọc riêng theo nhân viên (thay cho biểu đồ Tỷ Trọng
+                Doanh Thu Ngành Hàng trước đây). */}
+            <EmployeeCategoryTable
+                rows={employeeRevenueRows}
+                productConfig={productConfig}
+                columns={categoryColumns}
+            />
+
+             {/* Customer Breakdown */}
+            <div className="bg-white dark:bg-slate-800 rounded-control sm:rounded-popup shadow p-3 sm:p-4">
+                 <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 mb-2 sm:mb-3 flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                        <AppIcon name="contact" size="lg" className="text-sky-500" /> Chi Tiết Theo Khách Hàng
+                    </span>
+                 </h4>
+                 <div ref={customerDetailsContainerRef} className={`space-y-0 pr-1 sm:pr-2 mt-2 sm:mt-4 ${(isBatchExporting || isExporting) ? '' : 'max-h-[500px] overflow-y-auto'}`}>
+                    {(() => {
+                        // Sort customers by createdDateKey (newest first), then by revenue
+                        const sorted = [...customerBreakdown].sort((a, b) => {
+                            if (a.createdDateKey !== b.createdDateKey) return b.createdDateKey.localeCompare(a.createdDateKey);
+                            return b.totalRevenue - a.totalRevenue;
+                        });
+                        let lastDateKey = '';
+                        return sorted.map(customer => {
+                            const showDateHeader = customer.createdDateKey && customer.createdDateKey !== lastDateKey;
+                            lastDateKey = customer.createdDateKey || lastDateKey;
+                            return (
+                                <React.Fragment key={customer.name}>
+                                    {showDateHeader && (
+                                        <div className="flex items-center gap-2 mt-3 mb-1 px-1">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 px-2.5 py-1 rounded-md">
+                                                <AppIcon name="calendar" size="xs" />
+                                                <span>Ngày tạo: {customer.createdDateFormatted}</span>
+                                            </div>
+                                            <div className="flex-1 h-px bg-sky-200 dark:bg-sky-800"></div>
+                                        </div>
+                                    )}
+                        <details className="bg-white dark:bg-slate-900 overflow-hidden" open={customerBreakdown.length === 1 || isBatchExporting || isExporting || isAllCustomersExpanded}>
+                             <summary className="py-1.5 px-2 sm:px-3 cursor-pointer flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 list-none bg-sky-50/80 hover:bg-sky-100/80 dark:bg-sky-900/30 dark:hover:bg-sky-900/50 transition-colors rounded-r-control mb-1.5 mt-2 shadow-sm border-l-4 border-sky-400">
+                                <div className="flex items-center justify-between w-full sm:w-auto">
+                                    <p className="font-extrabold text-[11px] sm:text-sm text-sky-950 dark:text-sky-100 pl-1 whitespace-nowrap">{customer.name.toUpperCase()}</p>
+                                    <div className="accordion-icon text-slate-400 transition-transform duration-300 hide-on-export ml-2 sm:hidden">
+                                        <AppIcon name="chevronDown" size="md" />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-x-2 sm:gap-x-3 gap-y-0.5 sm:gap-y-1 flex-wrap justify-start sm:justify-end text-[11px] font-semibold w-full sm:w-auto">
+                                    <span className="text-slate-600 dark:text-slate-300">Hẹn giao: <span className="font-bold text-slate-800 dark:text-slate-100">{customer.scheduledDate}</span></span>
+                                    <span className="text-slate-600 dark:text-slate-300">DT Thực: <span className="font-bold text-rose-700 dark:text-rose-400">{formatCurrency(customer.totalRevenue)}</span></span>
+                                    <span className="text-slate-600 dark:text-slate-300">DTQĐ: <span className="font-bold text-amber-700 dark:text-amber-400">{formatCurrency(customer.totalRevenueQD)}</span></span>
+                                    <span className="text-slate-600 dark:text-slate-300">HQQĐ: <span className={`font-bold ${customer.hieuQuaQD < 40 ? 'text-rose-500' : 'text-emerald-500'}`}>{customer.hieuQuaQD.toFixed(0)}%</span></span>
+                                    <div className="accordion-icon text-slate-400 transition-transform duration-300 hide-on-export ml-2 hidden sm:block">
+                                        <AppIcon name="chevronDown" size="md" />
+                                    </div>
+                                </div>
+                             </summary>
+                               
+                               <div className="pb-3 px-1 sm:px-2 overflow-x-hidden">
+                                  <div className="ml-1 pl-1 sm:ml-4 sm:pl-4 border-l-2 border-slate-100 dark:border-slate-800">
+                                      {(() => {
+                                          const totals = customer.orderGroups.reduce((acc, group) => {
+                                              group.lines.forEach(line => {
+                                                  acc.quantity += Number(getRowValue(line, COL.QUANTITY)) || 0;
+                                                  acc.revenue += getRowPrice(line);
+                                                  acc.revenueQD += productConfig ? calculateRowMetrics(line, productConfig).revenueQD : 0;
+                                              });
+                                              return acc;
+                                          }, { quantity: 0, revenue: 0, revenueQD: 0 });
+
+                                          return (
+                                              <table className="w-full text-[11px] sm:text-sm table-fixed compact-export-table border-collapse">
+                                          <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[11px] border-b border-t border-slate-100 dark:border-slate-800">
+                                              <tr>
+                                                  <th className="py-1 px-1 text-left font-semibold w-[95px] min-[360px]:w-[105px] min-[390px]:w-[115px] sm:w-[145px]">Mã ĐH</th>
+                                                  <th className="py-1 px-1 text-left font-semibold">Sản phẩm</th>
+                                                  <th className="py-1 px-1 text-center font-semibold w-[22px] min-[360px]:w-[25px] sm:w-[28px]">SL</th>
+                                                  <th className="py-1 px-1 text-right font-semibold w-[58px] min-[360px]:w-[65px] sm:w-[85px] whitespace-nowrap">Doanh Thu</th>
+                                                  <th className="py-1 px-1 text-right font-semibold w-[58px] min-[360px]:w-[65px] sm:w-[85px] whitespace-nowrap">DTQĐ</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody>
+                                              {customer.orderGroups.map((group) => {
+                                                 return group.lines.map((order, lineIndex) => {
+                                                     const orderId = group.id === 'no-id' ? '-' : group.id;
+                                                     const isUnshipped = group.status === 'Chưa xuất';
+                                                     const price = getRowPrice(order);
+                                                     const priceQD = productConfig ? calculateRowMetrics(order, productConfig).revenueQD : 0;
+                                                     const isInstallment = getHinhThucThanhToan(order, productConfig) === 'tra_gop';
+                                                     
+                                                     return (
+                                                         <tr key={`${group.id}-${lineIndex}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                             {lineIndex === 0 && (
+                                                             <td rowSpan={group.lines.length} className="py-1 px-1 text-left text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 align-middle border-b border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:text-sky-700 dark:hover:text-sky-400 transition-colors w-[95px] min-[360px]:w-[105px] min-[390px]:w-[115px] sm:w-[145px]"
+                                                                 onClick={() => {
+                                                                     if (orderId && orderId !== '-') {
+                                                                         void saoChep(orderId, { thanhCong: `Đã sao chép: ${orderId}` });
+                                                                     }
+                                                                 }}
+                                                                 title={orderId !== '-' ? `${isUnshipped ? 'Chưa xuất' : 'Đã xuất'} - Nhấn để sao chép` : ''}
+                                                             >
+                                                                     <div className="flex flex-col items-start justify-center gap-0.5">
+                                                                         <div className="flex items-center gap-1">
+                                                                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isUnshipped ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                                                                             <span className={`font-mono font-bold text-[11px] sm:text-xs whitespace-nowrap ${isUnshipped ? 'text-rose-700 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}`}>{orderId}</span>
+                                                                         </div>
+                                                                         {group.isAttached && (
+                                                                             <span className="inline-flex w-fit items-center px-1.5 py-0.5 rounded text-[11px] font-black uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100 shadow-sm leading-none ring-1 ring-emerald-300/30">
+                                                                                 Bán kèm
+                                                                             </span>
+                                                                         )}
+                                                                     </div>
+                                                                 </td>
+                                                             )}
+                                                             <td className="py-1 px-1 text-left text-[11px] sm:text-xs border-b border-dashed border-slate-300 dark:border-slate-700">
+                                                                 <div className="flex items-center gap-1.5 min-w-0 w-full">
+                                                                     <span className="text-slate-700 dark:text-slate-300 break-words leading-tight" title={getRowValue(order, COL.PRODUCT) as string}>
+                                                                         {isExportingView
+                                                                             ? truncateProductNameForExport(String(getRowValue(order, COL.PRODUCT) ?? ''), exportProductNameMaxLength)
+                                                                             : getRowValue(order, COL.PRODUCT)}
+                                                                     </span>
+                                                                     {isInstallment && (
+                                                                         <span className="inline-flex items-center px-1 py-0.5 rounded text-[11px] font-black uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 flex-shrink-0 whitespace-nowrap leading-none">
+                                                                             Trả chậm
+                                                                         </span>
+                                                                     )}
+                                                                 </div>
+                                                             </td>
+                                                             <td className="py-1 px-1 text-center text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 border-b border-dashed border-slate-300 dark:border-slate-700">{formatQuantity(getRowValue(order, COL.QUANTITY) as number)}</td>
+                                                             <td className="py-1 px-1 text-right font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap border-b border-dashed border-slate-300 dark:border-slate-700 text-[11px] sm:text-xs w-[58px] min-[360px]:w-[65px] sm:w-[85px]">{formatCurrency(price)}</td>
+                                                             <td className="py-1 px-1 text-right font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap border-b border-dashed border-slate-300 dark:border-slate-700 text-[11px] sm:text-xs w-[58px] min-[360px]:w-[65px] sm:w-[85px]">{formatCurrency(priceQD)}</td>
+
+                                                         </tr>
+                                                     );
+                                                 });
+                                              })}
+                                          </tbody>
+                                          <tfoot className="bg-slate-50/80 dark:bg-slate-800/60 font-bold border-t border-slate-200 dark:border-slate-700">
+                                              <tr>
+                                                  <td colSpan={2} className="py-1.5 px-1 text-left font-bold text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs">
+                                                      Tổng
+                                                  </td>
+                                                  <td className="py-1.5 px-1 text-center font-bold text-slate-800 dark:text-slate-200 text-[11px] sm:text-xs">
+                                                      {formatQuantity(totals.quantity)}
+                                                  </td>
+                                                  <td className="py-1.5 px-1 text-right font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap text-[11px] sm:text-xs w-[58px] min-[360px]:w-[65px] sm:w-[85px]">
+                                                      {formatCurrency(totals.revenue)}
+                                                  </td>
+                                                  <td className="py-1.5 px-1 text-right font-bold text-amber-700 dark:text-amber-400 whitespace-nowrap text-[11px] sm:text-xs w-[58px] min-[360px]:w-[65px] sm:w-[85px]">
+                                                      {formatCurrency(totals.revenueQD)}
+                                                  </td>
+                                              </tr>
+                                          </tfoot>
+                                      </table>
+                                          );
+                                      })()}
+                                  </div>
+                               </div>
+                        </details>
+                                </React.Fragment>
+                            );
+                        });
+                    })()}
+                 </div>
+            </div>
+        </div>
+    );
+    
+    if (isBatchExporting) {
+        return (
+            <div data-batch-employee={employeeName} className="modal-content bg-slate-50 dark:bg-slate-900 w-[640px] flex flex-col border border-slate-200 dark:border-slate-700">
+                <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0">
+                    <div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Phân Tích Hiệu Quả Cá Nhân</p>
+                        <h3 className="text-[25px] font-bold text-sky-700 dark:text-sky-400 leading-8">{employeeName}</h3>
+                    </div>
+                </div>
+                <div className="p-6 bg-slate-100 dark:bg-slate-950">
+                   {modalContent}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={employeeName}
+            subTitle="Phân Tích Hiệu Quả Cá Nhân"
+            titleColorClass="text-sky-700 dark:text-sky-400"
+            controls={controls}
+            maxWidth="xl"
+        >
+            <div className="modal-bleed p-3 sm:p-6 bg-slate-100 dark:bg-slate-950" ref={modalBodyRef}>
+                {modalContent}
+            </div>
+        </Modal>
+    );
+};
+
+export default PerformanceModal;

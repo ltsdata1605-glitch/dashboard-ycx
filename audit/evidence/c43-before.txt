@@ -1,0 +1,96 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+ ❯ tests/unit/icon-registry-boundaries.test.ts (6 tests | 4 failed) 19ms
+     × rejects inherited key constructor across resolution and rendering 3ms
+     × rejects inherited key toString across resolution and rendering 0ms
+     × rejects inherited key __proto__ across resolution and rendering 0ms
+     × rejects inherited key hasOwnProperty across resolution and rendering 0ms
+     ✓ all canonical and saved legacy mappings remain valid 7ms
+     ✓ unknown/empty names preserve fallback and React nodes are unchanged 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/icon-registry-boundaries.test.ts > icon names are own registry keys only > rejects inherited key constructor across resolution and rendering
+AssertionError: expected 'constructor' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"constructor"
+
+ ❯ tests/unit/icon-registry-boundaries.test.ts:11:35
+      9| describe('icon names are own registry keys only',()=>{
+     10|   it.each(['constructor','toString','__proto__','hasOwnProperty'])('re…
+     11|     expect(resolveIconName(name)).toBeUndefined();expect(isIconName(na…
+       |                                   ^
+     12|     expect(renderIcon(name,'md')).toBe(name);
+     13|     expect(renderToStaticMarkup(React.createElement(AppIcon,{name:name…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/unit/icon-registry-boundaries.test.ts > icon names are own registry keys only > rejects inherited key toString across resolution and rendering
+AssertionError: expected 'toString' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"toString"
+
+ ❯ tests/unit/icon-registry-boundaries.test.ts:11:35
+      9| describe('icon names are own registry keys only',()=>{
+     10|   it.each(['constructor','toString','__proto__','hasOwnProperty'])('re…
+     11|     expect(resolveIconName(name)).toBeUndefined();expect(isIconName(na…
+       |                                   ^
+     12|     expect(renderIcon(name,'md')).toBe(name);
+     13|     expect(renderToStaticMarkup(React.createElement(AppIcon,{name:name…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/unit/icon-registry-boundaries.test.ts > icon names are own registry keys only > rejects inherited key __proto__ across resolution and rendering
+AssertionError: expected '__proto__' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"__proto__"
+
+ ❯ tests/unit/icon-registry-boundaries.test.ts:11:35
+      9| describe('icon names are own registry keys only',()=>{
+     10|   it.each(['constructor','toString','__proto__','hasOwnProperty'])('re…
+     11|     expect(resolveIconName(name)).toBeUndefined();expect(isIconName(na…
+       |                                   ^
+     12|     expect(renderIcon(name,'md')).toBe(name);
+     13|     expect(renderToStaticMarkup(React.createElement(AppIcon,{name:name…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/unit/icon-registry-boundaries.test.ts > icon names are own registry keys only > rejects inherited key hasOwnProperty across resolution and rendering
+AssertionError: expected 'hasOwnProperty' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"hasOwnProperty"
+
+ ❯ tests/unit/icon-registry-boundaries.test.ts:11:35
+      9| describe('icon names are own registry keys only',()=>{
+     10|   it.each(['constructor','toString','__proto__','hasOwnProperty'])('re…
+     11|     expect(resolveIconName(name)).toBeUndefined();expect(isIconName(na…
+       |                                   ^
+     12|     expect(renderIcon(name,'md')).toBe(name);
+     13|     expect(renderToStaticMarkup(React.createElement(AppIcon,{name:name…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  18:11:22
+   Duration  276ms (transform 65ms, setup 0ms, import 147ms, tests 19ms, environment 0ms)
+
+JSON report written to /Users/ltson/dashboardycx/audit/evidence/c43-before.json

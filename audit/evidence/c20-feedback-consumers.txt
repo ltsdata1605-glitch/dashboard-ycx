@@ -1,0 +1,32 @@
+features/line-bot/LineBotView.tsx:224:                    <Banner
+features/phan-ca/PhanCaView.tsx:604:          <Banner
+components/employees/performance/PerformanceSingleTable.tsx:9:    getProgressBarColor, getPercentBadge, getTraChamBadge, getHieuQuaBadge, RankBadge, EmployeeWithTarget
+components/employees/performance/PerformanceSingleTable.tsx:562:                                                                        className={`h-full rounded-full bg-gradient-to-r ${getProgressBarColor(Number(emp.percentHT || 0))} transition-all duration-500`}
+features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx:4:import { ProgressBar } from '../DashboardWidgets';
+features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx:301:                                                        const isProgressBarColumn = header === '%HT' || header === '%HT V.Trội' || header === '%DKHT' || header === '%HTDK' || header === '%DKHT V.Trội' || header === '%HTDK V.Trội';
+features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx:310:                                                            if (isProgressBarColumn) {
+features/line-bot/components/ScheduleManagerTab.tsx:64:                <Banner tone="danger" title="Bot đã hết hạn mức tin nhắn LINE tháng này" maxLines={3}>
+features/line-bot/components/ScheduleManagerTab.tsx:73:                    <Banner tone="warning" title="Lịch Gửi Notify vượt hạn mức gói LINE" maxLines={3}>
+features/line-bot/components/ScheduleManagerTab.tsx:86:                <Banner tone="warning" title="Sắp hết hạn mức tin nhắn LINE tháng này">
+features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx:3:import { ProgressBar } from '../../../../../components/shared/ui/ProgressBar';
+features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx:6:interface TimeProgressBarProps {
+features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx:16:const TimeProgressBar: React.FC<TimeProgressBarProps> = ({
+features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx:116:            <ProgressBar value={progressData.percentage} variant="brand" size="xs" />
+features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx:121:export default TimeProgressBar;
+components/kpis/modals/KpiCardConfigModal.tsx:299:                    <Banner tone="info">Thẻ này lọc dữ liệu trên danh sách đơn hàng của Kho đang chọn.</Banner>
+components/views/DashboardView.tsx:479:                            <Banner tone="danger" title="Thông báo" data-testid="thong-bao-he-thong">{announcement.content}</Banner>
+components/employees/performance/PerformanceTableUtils.tsx:11:export const getProgressBarColor = (pct: number) => {
+features/bi-dashboard/components/dashboard/DashboardWidgets.tsx:12:export const ProgressBar: React.FC<{ value: number; customColorClass?: string }> = ({ value, customColorClass }) => {
+components/views/PriceComparisonView.tsx:441:        <Banner tone="info" title="Công cụ so giá chỉ chạy trên máy tính" data-testid="so-gia-chi-may-tinh">
+components/views/PriceComparisonView.tsx:448:        <Banner tone="warning" title="Chưa kết nối được máy chủ so giá" maxLines={3}>
+components/views/settings/SettingsAccountTab.tsx:171:                    <Banner
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:4:import TimeProgressBar from '../nhanvien/shared/TimeProgressBar';
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:144:                {/* Content Title + Inline Actions + Quote + TimeProgressBar */}
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:225:                    <TimeProgressBar
+components/layout/Header.tsx:110:                <Banner tone="danger" title="Đồng bộ dữ liệu thất bại" className="mb-2">
+components/shared/ui/Banner.tsx:16:const TONE: Record<BannerTone, { box: string; icon: string; defaultIcon: IconName }> = {
+components/shared/ui/Banner.tsx:38:export const Banner: React.FC<BannerProps> = ({
+components/shared/ui/ProgressBar.tsx:4:/* ─── ProgressBar ─── */
+components/shared/ui/ProgressBar.tsx:6:export interface ProgressBarProps {
+components/shared/ui/ProgressBar.tsx:47:export const ProgressBar = React.memo<ProgressBarProps>(({
+components/shared/ui/ProgressBar.tsx:108:ProgressBar.displayName = 'ProgressBar';

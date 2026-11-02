@@ -1,0 +1,43 @@
+{
+  "coverage-ledger.csv": {
+    "total": 1372,
+    "reviewed": {
+      "PREFLIGHT_ONLY": 12,
+      "NO": 1162,
+      "PARTIAL": 198
+    },
+    "verified": {
+      "NO": 1372
+    }
+  },
+  "module-inventory.csv": {
+    "total": 29,
+    "reviewed": {
+      "PARTIAL": 13,
+      "NO": 16
+    },
+    "verified": {
+      "NO": 29
+    }
+  },
+  "component-inventory.csv": {
+    "total": 467,
+    "reviewed": {
+      "NO": 425,
+      "PARTIAL": 42
+    },
+    "verified": {
+      "NO": 467
+    }
+  },
+  "screen-inventory.csv": {
+    "total": 171,
+    "reviewed": {
+      "NO": 166,
+      "PARTIAL": 5
+    },
+    "verified": {
+      "NO": 171
+    }
+  }
+}

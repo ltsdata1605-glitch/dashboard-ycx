@@ -1,0 +1,79 @@
+[WebServer] (node:55996) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/page-actions-registry.spec.ts:3:3 › PageActions latest callback and owner removal mobile (1.4s)
+  ✘  2 [chromium] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading mobile (1.0m)
+  ✓  3 [chromium] › tests/e2e/page-actions-registry.spec.ts:3:3 › PageActions latest callback and owner removal desktop (644ms)
+  ✘  4 [chromium] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading desktop (1.0m)
+
+
+  1) [chromium] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading mobile 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'A quick 3', exact: true })
+
+
+      22 |     await expect(bar.getByRole('button')).toHaveCount(variant==='mobile'?3:4);
+      23 |     await page.getByTestId('page-actions-more').click();
+    > 24 |     await page.getByRole('button',{name:'A quick 3',exact:true}).click();await expect(page.getByLabel('Action result')).toHaveText('A:1:q3');
+         |                                                                  ^
+      25 |     await page.getByRole('button',{name:'Update callback',exact:true}).click();await page.getByTestId('page-actions-more').click();
+      26 |     await page.getByRole('button',{name:'A item',exact:true}).click();await expect(page.getByLabel('Action result')).toHaveText('A:2:item');
+      27 |     await page.getByRole('button',{name:'Busy',exact:true}).click();await expect(bar.getByRole('button',{name:'A primary',exact:true})).toBeDisabled();
+        at /Users/ltson/dashboardycx/tests/e2e/page-actions-registry.spec.ts:24:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c39-chromium/page-actions-registry-Page-e97ce-ow-scope-and-loading-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c39-chromium/page-actions-registry-Page-e97ce-ow-scope-and-loading-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c39-chromium/page-actions-registry-Page-e97ce-ow-scope-and-loading-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c39-chromium/page-actions-registry-Page-e97ce-ow-scope-and-loading-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading desktop 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'A quick 3', exact: true })
+
+
+      22 |     await expect(bar.getByRole('button')).toHaveCount(variant==='mobile'?3:4);
+      23 |     await page.getByTestId('page-actions-more').click();
+    > 24 |     await page.getByRole('button',{name:'A quick 3',exact:true}).click();await expect(page.getByLabel('Action result')).toHaveText('A:1:q3');
+         |                                                                  ^
+      25 |     await page.getByRole('button',{name:'Update callback',exact:true}).click();await page.getByTestId('page-actions-more').click();
+      26 |     await page.getByRole('button',{name:'A item',exact:true}).click();await expect(page.getByLabel('Action result')).toHaveText('A:2:item');
+      27 |     await page.getByRole('button',{name:'Busy',exact:true}).click();await expect(bar.getByRole('button',{name:'A primary',exact:true})).toBeDisabled();
+        at /Users/ltson/dashboardycx/tests/e2e/page-actions-registry.spec.ts:24:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c39-chromium/page-actions-registry-Page-0dcde-w-scope-and-loading-desktop-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c39-chromium/page-actions-registry-Page-0dcde-w-scope-and-loading-desktop-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c39-chromium/page-actions-registry-Page-0dcde-w-scope-and-loading-desktop-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c39-chromium/page-actions-registry-Page-0dcde-w-scope-and-loading-desktop-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading mobile 
+    [chromium] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading desktop 
+  2 passed (2.1m)

@@ -1,0 +1,39 @@
+[WebServer] (node:49281) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+  ✘  1 [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group (1.3m)
+
+
+  1) [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: page.evaluate: Test timeout of 60000ms exceeded.
+
+      62 |         for (let step = 0; step < 80; step++) {
+      63 |             await page.keyboard.press(key);
+    > 64 |             focusTrace.push(await page.evaluate(() => ({ tag: document.activeElement?.tagName, id: document.activeElement?.id, title: document.activeElement?.getAttribute('title') })));
+         |                                        ^
+      65 |             if (await font.evaluate(el => el === document.activeElement)) break;
+      66 |         }
+      67 |         await testInfo.attach('keyboard-sequence', { body: JSON.stringify({ key, focusTrace }), contentType: 'application/json' });
+        at /Users/ltson/dashboardycx/tests/e2e/navigation-material.spec.ts:64:40
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c5-webkit-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c5-webkit-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c5-webkit-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c5-webkit-tab/navigation-material-system-b8208-clipped-by-the-system-group-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group 

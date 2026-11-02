@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+No test files found, exiting with code 1
+
+filter: tests/unit/icon-registry-boundaries.test.tsx
+include: **/*.test.ts
+exclude:  node_modules/**, dist/**, archive/**, _archive/**, functions/**, price-scraper-server/**, .claude/**
+
+JSON report written to /Users/ltson/dashboardycx/audit/evidence/c43-before.json

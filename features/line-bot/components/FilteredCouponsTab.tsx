@@ -1,0 +1,359 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+
+import { toast } from '../../../components/shared/ui/toast';
+import { Button } from '../../../components/shared/ui/Button';
+import { Input } from '../../../components/shared/ui/Input';
+import { ConfirmDialog } from '../../../components/shared/ui/ConfirmDialog';
+import { FilteredCouponRecord } from '../types/lineBot.types';
+import { lineBotFirestoreService } from '../services/lineBotFirestoreService';
+import { Tabs } from '../../../components/shared/ui/Tabs';
+
+interface FilteredCouponsTabProps {
+    userId: string;
+}
+
+export const FilteredCouponsTab: React.FC<FilteredCouponsTabProps> = ({ userId }) => {
+    const [coupons, setCoupons] = useState<FilteredCouponRecord[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNUSED' | 'USED'>('ALL');
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState<boolean>(false);
+    // GĐ10 (2026-10-15): hỏi bằng ConfirmDialog dùng chung thay `window.confirm` của trình duyệt (CLAUDE.md mục 2).
+    const [hoiXoaHet, setHoiXoaHet] = useState(false);
+
+    const loadData = async () => {
+        if (!userId) return;
+        setIsLoading(true);
+        try {
+            const data = await lineBotFirestoreService.getFilteredCoupons(userId);
+            setCoupons(data);
+        } catch (error) {
+            console.error('Lỗi tải coupon lọc được:', error);
+            toast.error('Không thể tải danh sách coupon lọc');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, [userId]);
+
+    const handleCopy = async (code: string) => {
+        try {
+            // Thử dùng Clipboard API (modern)
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(code);
+            } else {
+                // Fallback cho browser cũ hoặc context không hỗ trợ Clipboard API
+                const textarea = document.createElement('textarea');
+                textarea.value = code;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (!success) throw new Error('execCommand copy failed');
+            }
+            setCopiedCode(code);
+            toast.success(`Đã sao chép mã: ${code}`);
+            setTimeout(() => setCopiedCode(null), 2000);
+        } catch (error) {
+            console.error('Lỗi copy:', error);
+            toast.error(`Không thể copy mã. Vui lòng copy thủ công: ${code}`);
+        }
+    };
+
+    const handleClearAll = async () => {
+        setIsDeleting(true);
+        try {
+            await lineBotFirestoreService.deleteFilteredCoupons(userId);
+            setCoupons([]);
+            toast.success('Đã dọn dẹp danh sách coupon lọc được');
+            setHoiXoaHet(false);
+        } catch {
+            toast.error('Lỗi khi xóa danh sách');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Thống kê
+    const stats = useMemo(() => {
+        const total = coupons.length;
+        const used = coupons.filter(c => c.status === 'USED').length;
+        const unused = coupons.filter(c => c.status === 'UNUSED' || !c.status).length;
+        return { total, used, unused };
+    }, [coupons]);
+
+    // Lọc theo search & status
+    const filteredList = useMemo(() => {
+        return coupons.filter(item => {
+            if (statusFilter === 'USED' && item.status !== 'USED') return false;
+            if (statusFilter === 'UNUSED' && item.status === 'USED') return false;
+
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim();
+                const matchCode = item.code.toLowerCase().includes(q);
+                const matchName = (item.recipient || '').toLowerCase().includes(q);
+                const matchProd = (item.productName || '').toLowerCase().includes(q);
+                const matchUser = (item.usedBy || '').toLowerCase().includes(q);
+                return matchCode || matchName || matchProd || matchUser;
+            }
+            return true;
+        });
+    }, [coupons, statusFilter, searchQuery]);
+
+    return (
+        <div className="space-y-2.5 sm:space-y-3.5">
+            {/* Top Stats - 3 Thẻ trên 1 hàng siêu gọn gàng */}
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
+                <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-800/90 rounded-popup sm:rounded-card border border-slate-200/80 dark:border-slate-700/80 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 block font-semibold truncate">Tổng Mã Lọc</span>
+                        <span className="text-base sm:text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">{stats.total}</span>
+                    </div>
+                    <div className="p-1 sm:p-1.5 bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 rounded-control shrink-0">
+                        <AppIcon name="coupon" size="sm" />
+                    </div>
+                </div>
+
+                <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-800/90 rounded-popup sm:rounded-card border border-slate-200/80 dark:border-slate-700/80 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 block font-semibold truncate">Đã Sử Dụng</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-base sm:text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">{stats.used}</span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                                ({stats.total > 0 ? Math.round((stats.used / stats.total) * 100) : 0}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div className="p-1 sm:p-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-control shrink-0">
+                        <AppIcon name="success" size="sm" />
+                    </div>
+                </div>
+
+                <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-800/90 rounded-popup sm:rounded-card border border-slate-200/80 dark:border-slate-700/80 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400 block font-semibold truncate">Chưa Sử Dụng</span>
+                        <span className="text-base sm:text-xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">{stats.unused}</span>
+                    </div>
+                    <div className="p-1 sm:p-1.5 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-control shrink-0">
+                        <AppIcon name="clock" size="sm" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter & Action Toolbar */}
+            <div className="p-2 sm:p-2.5 bg-white dark:bg-slate-800/90 rounded-popup sm:rounded-card border border-slate-200/80 dark:border-slate-700/80 shadow-2xs flex flex-wrap lg:flex-nowrap items-center justify-between gap-2">
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-[220px] lg:w-[260px] shrink-0">
+                    {/* z-10: Input tự bọc <div relative> vẽ SAU icon nên sẽ che icon nếu không nâng lớp */}
+                    <AppIcon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 text-slate-400" />
+                    <Input
+                        dense
+                        aria-label="Tìm mã đã lọc"
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Tìm mã, NV, loại PMH, người dùng..."
+                        className="h-8 pl-7.5 pr-6 bg-slate-50 border-slate-200 rounded-control text-sm sm:text-xs text-slate-800 font-medium"
+                    />
+                    {searchQuery && (
+                        <Button
+                            variant="ghost"
+                            size="icon-inline"
+                            onClick={() => setSearchQuery('')}
+                            aria-label="Xoá tìm kiếm"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs after:absolute after:-inset-3.5 after:content-[''] sm:after:hidden"
+                        >
+                            <AppIcon name="close" size="sm" />
+                        </Button>
+                    )}
+                </div>
+
+                {/* Filter Pills & Actions */}
+                <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap ml-auto lg:ml-0 min-w-0 max-w-full">
+                    <Tabs
+                        variant="segment"
+                        size="sm"
+                        className="min-w-0"
+                        activeId={statusFilter}
+                        onChange={(id) => setStatusFilter(id as typeof statusFilter)}
+                        items={[
+                            { id: 'ALL', label: `Tất cả (${stats.total})` },
+                            { id: 'UNUSED', label: `Chưa dùng (${stats.unused})` },
+                            { id: 'USED', label: `Đã dùng (${stats.used})` },
+                        ]}
+                    />
+
+                    <Button
+                        variant="secondary"
+                        size="none"
+                        onClick={loadData}
+                        disabled={isLoading}
+                        className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 h-[var(--btn-height-icon)] w-[var(--btn-height-icon)] p-0 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-control border border-slate-200 dark:border-slate-700 active:scale-95 transition-all"
+                        title="Làm mới danh sách"
+                    >
+                        <AppIcon name="refresh" size="sm" className={isLoading ? 'animate-spin' : ''} />
+                    </Button>
+
+                    {coupons.length > 0 && (
+                        <Button
+                            variant="secondary"
+                            size="none"
+                            onClick={() => setHoiXoaHet(true)}
+                            disabled={isDeleting}
+                            className="h-[var(--btn-height-icon)] w-[var(--btn-height-icon)] p-0 flex items-center justify-center text-rose-600 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-control border border-rose-200/80 active:scale-95 transition-all"
+                            title="Xóa toàn bộ lịch sử lọc"
+                        >
+                            <AppIcon name="delete" size="sm" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            {/* List / Table */}
+            <div className="bg-white dark:bg-slate-800/90 rounded-popup sm:rounded-card border border-slate-200/80 dark:border-slate-700/80 shadow-2xs overflow-hidden">
+                {isLoading ? (
+                    <div className="p-8 text-center text-slate-400 flex flex-col items-center gap-2">
+                        <AppIcon name="refresh" size="lg" spin className="text-sky-500" />
+                        <span className="text-xs">Đang tải danh sách coupon lọc được...</span>
+                    </div>
+                ) : filteredList.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 flex flex-col items-center gap-2">
+                        <AppIcon name="alert" size="state" className="text-slate-300" />
+                        <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                            {searchQuery ? 'Không tìm thấy coupon nào khớp từ khóa' : 'Chưa có coupon nào được lọc'}
+                        </span>
+                        <span className="text-xs max-w-sm text-slate-500 dark:text-slate-400">
+                            Khi ai đó dán danh sách mã PMH vào nhóm LINE, Bot sẽ tự động lọc theo tên đã cấu hình và lưu tại đây.
+                        </span>
+                    </div>
+                ) : (
+                    <>
+                        {/* BẢNG ở MỌI cỡ màn — "Bảng luôn là bảng" (CLAUDE.md mục 2, chủ dự án chốt 2026-10-02). Trước đây điện thoại là danh sách
+                            thẻ md:hidden — trái quy tắc (GĐ10 2026-10-15 bỏ, như CouponManagerTab ở 36b51de). Điện thoại: GHIM cột Mã Coupon (bấm
+                            để copy) ở mép trái khi cuộn ngang, các cột còn lại cuộn ngang trong khung — trang không tràn. */}
+                        <div data-testid="filtered-coupon-table" className="overflow-x-auto md:max-h-[calc(100vh-270px)] md:min-h-[300px] [scrollbar-width:thin]">
+                            <table className="w-full text-left text-xs border-collapse">
+                                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200/90 dark:border-slate-700/90 uppercase tracking-wider text-[11px] shadow-2xs">
+                                    <tr>
+                                        <th className="py-2 pl-3 pr-2 w-16 text-center border-r border-slate-200/70 dark:border-slate-700/70">Thẻ</th>
+                                        <th className="max-md:sticky max-md:left-0 max-md:z-20 max-md:bg-slate-50 max-md:shadow-[inset_-2px_0_0_var(--color-slate-200)] py-2 px-2 w-32 text-center whitespace-nowrap border-r border-slate-200/70 dark:border-slate-700/70">Mã Coupon</th>
+                                        <th className="py-2 px-2.5 min-w-[180px] border-r border-slate-200/70 dark:border-slate-700/70">Loại PMH</th>
+                                        <th className="py-2 px-2 w-32 whitespace-nowrap border-r border-slate-200/70 dark:border-slate-700/70">Người được cấp</th>
+                                        <th className="py-2 px-2 w-28 text-center whitespace-nowrap border-r border-slate-200/70 dark:border-slate-700/70">Trạng thái</th>
+                                        <th className="py-2 px-2 w-32 whitespace-nowrap border-r border-slate-200/70 dark:border-slate-700/70">Người sử dụng</th>
+                                        <th className="py-2 pr-3 pl-2 w-36 text-center whitespace-nowrap">Thời gian dùng</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 font-medium">
+                                    {filteredList.map((item, idx) => {
+                                        const isUsed = item.status === 'USED';
+                                        const timeStr = item.usedAt ? (() => {
+                                            try {
+                                                return new Date(item.usedAt).toLocaleString('vi-VN', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    timeZone: 'Asia/Ho_Chi_Minh'
+                                                });
+                                            } catch {
+                                                return item.usedAt;
+                                            }
+                                        })() : '-';
+
+                                        return (
+                                            <tr key={item.id} className="odd:bg-white even:bg-slate-50/40 dark:odd:bg-slate-800/90 dark:even:bg-slate-800/50 hover:bg-sky-50/70 dark:hover:bg-sky-950/30 transition-colors border-b border-slate-100 dark:border-slate-800/70">
+                                                <td className="py-1.5 pl-3 pr-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-slate-800/60">
+                                                    <span className="inline-block whitespace-nowrap px-1.5 py-0.5 rounded font-bold text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono">
+                                                        PMH {item.cardIndex || idx + 1}
+                                                    </span>
+                                                </td>
+                                                <td className="max-md:sticky max-md:left-0 max-md:z-[1] max-md:bg-white max-md:shadow-[inset_-2px_0_0_var(--color-slate-200)] py-1.5 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-slate-800/60">
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="xs"
+                                                        type="button"
+                                                        onClick={() => handleCopy(item.code)}
+                                                        title={`Bấm để copy mã: ${item.code}`}
+                                                        className={`gap-1.5 font-mono active:scale-95 ${
+                                                            copiedCode === item.code
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-300 ring-1 ring-emerald-500/30'
+                                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-sky-50 hover:text-sky-600'
+                                                        }`}
+                                                    >
+                                                        {copiedCode === item.code ? (
+                                                            <>
+                                                                <AppIcon name="check" size="xs" className="text-emerald-600" />
+                                                                <span>Đã copy</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <AppIcon name="copy" size="xs" className="text-slate-400" />
+                                                                <span className="tracking-wide">{item.code}</span>
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </td>
+                                                <td className="py-1.5 px-2.5 border-r border-slate-100 dark:border-slate-800/60">
+                                                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate max-w-[240px] lg:max-w-[340px]">
+                                                        {item.productName || item.categoryLabel || 'PMH'}
+                                                    </span>
+                                                    {item.orderId && (
+                                                        <span className="text-[11px] text-slate-400 font-mono">MĐH: {item.orderId}</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-1.5 px-2 font-medium text-sky-600 dark:text-sky-400 whitespace-nowrap border-r border-slate-100 dark:border-slate-800/60">
+                                                    {item.recipient ? item.recipient.replace(/^@+/, '') : '-'}
+                                                </td>
+                                                <td className="py-1.5 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-slate-800/60">
+                                                    {isUsed ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200">
+                                                            <AppIcon name="success" size="xs" /> ĐÃ SỬ DỤNG
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200">
+                                                            <AppIcon name="clock" size="xs" /> CHƯA DÙNG
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="py-1.5 px-2 whitespace-nowrap border-r border-slate-100 dark:border-slate-800/60">
+                                                    {isUsed && item.usedBy ? (
+                                                        <span className="inline-flex items-center gap-1 font-bold text-slate-800 dark:text-slate-200">
+                                                            <AppIcon name="user" size="xs" />{item.usedBy}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400 italic text-[11px]">Chưa có</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-1.5 pr-3 pl-2 text-center text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                                                    {timeStr}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
+            </div>
+            <ConfirmDialog
+                isOpen={hoiXoaHet}
+                onClose={() => { if (!isDeleting) setHoiXoaHet(false); }}
+                variant="danger"
+                title="Xoá toàn bộ lịch sử coupon đã lọc?"
+                message="Mọi mã coupon Bot đã lọc từ nhóm LINE sẽ bị xoá khỏi danh sách này. Không hoàn tác được."
+                confirmText="Xoá toàn bộ"
+                isLoading={isDeleting}
+                onConfirm={handleClearAll}
+            />
+        </div>
+    );
+};

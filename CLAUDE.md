@@ -1,0 +1,369 @@
+# CLAUDE.md — Hướng dẫn phát triển & Quy tắc dự án Dashboard YCX
+
+> File này tổng hợp các quy tắc quan trọng nhất từ `RULES.md`, `AGENT_RULES.md` và `DESIGN_SYSTEM.md`.
+> **Quy tắc ưu tiên**: `AGENT_RULES.md` (an toàn) > `RULES.md` (kiến trúc) > `DESIGN_SYSTEM.md` (giao diện UI).
+>
+> *(Sửa 2026-09-10: bản cũ còn viện dẫn `DESIGN_SYSTEM_MODERN.md` và `AUDIT.md` — cả hai KHÔNG tồn
+> tại trong repo. `DESIGN_SYSTEM.md` cũng đã bị xoá nhầm ở commit `8675fd05` và vừa được khôi phục.
+> Trỏ tới file không có thật là nguy hiểm thật: agent đi tìm không thấy chuẩn thiết kế sẽ tự bịa
+> ra một chuẩn khác.)*
+
+---
+
+## 0.0. Quyền hạn của Agent trên project (chủ dự án cấp 2026-09-18)
+
+> Nguyên văn yêu cầu của chủ dự án: *"Tôi cho phép claude toàn quyền trên project và agent có thể
+> làm bất cứ điều gì để nâng cấp và cải thiện dự án."*
+
+**Agent ĐƯỢC tự làm, không cần hỏi trước:**
+- Chạy Firebase CLI cho mọi lệnh đọc (`firestore:databases:list`, `firestore:indexes`,
+  `projects:list`, `login:list`…). CLI đã đăng nhập sẵn bằng `lts.truongson@gmail.com` nhưng
+  **KHÔNG có trong PATH** — phải gọi `./node_modules/.bin/firebase`.
+- Chạy script khảo sát chỉ-đọc trên dữ liệu thật (vd `functions/scripts/audit-firestore-readonly.cjs`).
+- `npm run deploy:rules`, `npm run deploy:functions`, tạo/sửa Firestore index.
+- Tạo database/collection mới, chạy script di trú dữ liệu, sửa `firebase.json`.
+- Mọi thao tác Git thông thường: commit, tạo nhánh, push.
+
+**Vẫn BÁO TRƯỚC MỘT CÂU rồi mới làm** (không phải xin phép — chỉ để chủ dự án kịp dừng nếu đang giờ
+bán hàng), **chỉ với việc PHÁ HUỶ KHÔNG HOÀN TÁC ĐƯỢC trên dữ liệu production:**
+- Xoá collection/database/document thật (khác với ghi đè mà bản sao nguồn vẫn còn nguyên).
+- `git push --force`, xoá nhánh từ xa, viết lại lịch sử đã đẩy.
+- Xoá/thay `.env`, service account key, hoặc `firebase-applet-config.json` (không bí mật, nhưng sai một ký tự là In Sticker trỏ nhầm database).
+
+*Ba nhóm trên do agent tự thêm 2026-09-18, chủ dự án có thể bỏ nếu không muốn. Lý do: quyền đã cấp
+đủ rồi, nhưng ba nhóm này không có đường lùi — sai là mất dữ liệu thật của siêu thị đang chạy, mà
+một câu báo trước rẻ hơn nhiều so với khôi phục. Mọi việc khác agent cứ làm thẳng.*
+
+**Mục này thay thế các câu "không phải việc agent tự chạy" ở bản CLAUDE.md cũ** (mục 1.1, dòng Deploy).
+
+**Tự push + deploy sau MỖI lần thay đổi (chủ dự án yêu cầu 2026-10-01 — "Luôn ghi nhớ"):** xong một thay đổi/nâng cấp
+và đã kiểm (`npm run check` + test liên quan) thì agent TỰ làm luôn, không chờ được nhắc: commit → push nhánh làm việc →
+fast-forward/merge vào `main` và push → `npm run build` → `./node_modules/.bin/gh-pages -d dist -m "<mô tả>"` → curl
+`https://dashboard.pro.vn` xác nhận `assets/index-*.js` (và `@version` userscript nếu có đổi) đã là bản mới. Bản build còn sinh `dist/sw.js` (service worker offline, 2026-10-08) — kiểm `curl https://dashboard.pro.vn/sw.js` có `ycx-shell-<VERSION>` mới.
+🔴 **Chỉ build + deploy khi HEAD = `origin/main`** (2026-10-21): nhiều phiên cùng deploy `gh-pages` — nối các bước bằng `&&` (hoặc
+`git fetch origin main && [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]` ngay trước `gh-pages`). Bước đưa lên `main` hỏng
+(phiên khác vừa đẩy) mà vẫn deploy là ghi đè mất bản sửa của phiên kia — đã xảy ra 21/10 07:09 UTC (mất bản sửa đăng nhập iPhone 4 phút).
+
+**Đồng bộ cloud → máy Mac của chủ dự án (bổ sung 2026-09-29):** máy Mac chạy
+`scripts/dong-bo-may-tinh/` (launchd, mỗi 5 phút) tự `git pull --ff-only` nhánh `main` khi máy sạch. Nghĩa
+là mọi thứ agent đẩy lên `main` sẽ tự về máy chủ dự án — vẫn phải đưa lên `main` (không chỉ nhánh
+`claude/*`) thì máy mới nhận. Máy đang sửa dở / có commit chưa push thì script KHÔNG kéo, chỉ báo.
+
+---
+
+## 0. Quy trình bắt buộc trước khi sửa code
+
+1. **Yêu cầu bắt buộc trước khi sửa lớn**: Agent phải chủ động thực hiện commit trạng thái Git hiện tại trước khi bắt đầu sửa đổi mã nguồn (ví dụ chạy lệnh commit với tin nhắn mô tả rõ trạng thái "trước khi sửa X").
+2. **Yêu cầu Backup**: Khi người dùng yêu cầu "backup", "sao lưu", "sao luu"... Agent phải tự động chạy lệnh:
+   ```bash
+   node archive/backup.cjs
+   ```
+   Lệnh này tự động nén zip lưu trong `archive` và đồng bộ lên Github.
+3. **Lập kế hoạch trước khi sửa**: Luôn tạo hoặc cập nhật tệp `implementation_plan.md` mô tả các tệp thay đổi và thiết kế giải pháp trước khi thực hiện.
+4. **Phạm vi tác động**: Chỉ thực hiện đúng phạm vi yêu cầu của task. Không tự ý mở rộng, không tự ý refactor lớn khi task yêu cầu sửa nhỏ, không đổi tên biến/file/route/function nếu không cần thiết.
+5. **Bảo mật**: Không tự ý hard-code API key mới vào mã nguồn, không in nội dung token/key ra log hay báo cáo, không commit file bí mật (`.env`, service account key) vào Git. *(Sửa 2026-09-19: bản cũ liệt kê cả `firebase-applet-config.json` — không đúng, xem mục 1.1: đó là cấu hình web công khai, đang được commit và nên vậy.)* *(Sửa 2026-09-18 theo mục 0.0: agent ĐƯỢC đọc/dùng các file này để làm việc; chỉ XOÁ hoặc THAY chúng mới cần báo trước một câu.)*
+6. **Báo cáo hoàn tất**: Sau khi sửa xong, báo cáo rõ ràng: các file đã sửa, lý do sửa, rủi ro, cách kiểm tra.
+7. **Xác minh trước khi báo cáo**: Bắt buộc chạy lệnh kiểm tra tự động trước khi báo cáo hoàn thành:
+   ```bash
+   npm run check
+   ```
+   (Lệnh này chạy gộp typecheck, eslint, test đơn vị, build, **ngân sách gói tải đầu ≤ 330 KB gzip**
+   (`npm run check:budget`, 2026-10-14) và lint-ratchet). Ngân sách đỏ: chú thích đầu `scripts/kiem-goi-tai-dau.cjs` chỉ cách tìm
+   thủ phạm — hay gặp nhất là code khung app (App.tsx, contexts/, components/layout/, hooks/useCloudSync, services/firestoreService|
+   syncService) import barrel `services/dbService` hay `utils/dataUtils` (dùng `services/dbService/core` · `utils/basicHelpers`).
+   Phần khung app chỉ cần khi bấm/sau lượt vẽ đầu đã tách mảnh riêng (2026-10-20, 329,9 → 321,0 KB): chuông `NotificationBell`,
+   sheet "Khác" `MobileMoreSheet`, `InstallAppHint`, `TouchTitleHint` — đừng import thẳng `NotificationDropdown`/`Modal` vào khung app.
+8. **Luôn TỰ TEST rồi mới báo cáo**: `npm run check` chỉ chứng minh code biên dịch được, KHÔNG
+   chứng minh tính năng chạy đúng. Sau mỗi lần sửa/nâng cấp, agent phải tự kiểm chứng thay đổi ở
+   mức cao nhất có thể rồi **báo cáo kết quả thật** (đã chạy gì, thấy gì), không đẩy toàn bộ việc
+   kiểm tra cho người dùng:
+   - **UI: dùng Playwright** (đã cài sẵn, `npm run test:e2e`, thêm `--headed` để xem trực tiếp).
+     Cấu hình `playwright.config.ts` tự khởi động `npm run dev` và tự tắt khi xong; nếu người dùng
+     đang mở sẵn dev server thì dùng lại chứ không tắt server của họ. Test đặt trong `tests/e2e/`.
+     Viết test tạm cho đúng thay đổi vừa làm, chạy, xem kết quả/ảnh chụp rồi mới báo cáo.
+   - **WebKit (engine Safari) chạy được trên cloud** (2026-10-30): hook SessionStart tự cài nền (`scripts/cai-webkit.sh`, log
+     `/tmp/cai-webkit.log`) → `npm run test:e2e:webkit -- tests/e2e/<spec>.spec.ts`. Chưa xong thì `npm run e2e:webkit:cai`. Vẫn không
+     thay iPhone thật (share sheet, camera, bàn phím ảo, đăng nhập Google).
+   - Nếu cần chạy dev server thủ công (`npm run dev`), nhớ **lưu lại PID** — xem quy tắc không tra
+     PID theo port.
+   - Với logic thuần (parser, hàm tính toán, định dạng): viết script nhỏ trong thư mục scratchpad
+     chạy bằng `node`/`npx tsx` với dữ liệu mẫu, đối chiếu kết quả trước/sau.
+   - Với tính năng cần dữ liệu thật: dùng dữ liệu giả đã có sẵn cách dựng (xem memory
+     `reference_bi_dashboard_seed_data_testing`, `reference_sticker_event_test_accounts`).
+   - **Đăng nhập tài khoản thật trên cloud** (2026-10-10): environment có `FIREBASE_TEST_UID` +
+     `FIREBASE_TEST_SA_B64` → `tests/e2e/helpers/customTokenLogin.ts` tự ký custom token, spec dùng
+     `dangNhapBangToken()` + `chanGhiCloud()` (chặn mọi lượt ghi). Mẫu: `tests/e2e/ios-du-lieu-that.spec.ts`.
+     Hook SessionStart tự đặt `E2E_CHROMIUM_PATH`/`PW_CHROMIUM` và `GOOGLE_APPLICATION_CREDENTIALS`.
+   - Nếu thật sự không tự test được (thiếu dữ liệu thật/quyền/thiết bị), phải nói RÕ: đã thử cách
+     nào, vướng ở đâu, và hướng dẫn người dùng các bước kiểm tra cụ thể — không nói chung chung
+     "chưa test UI thật".
+
+---
+
+## 1. Kiến trúc — 4 khu vực song song (QUAN TRỌNG NHẤT)
+
+Dự án thực tế gồm 5 khu vực "mini-app" song song hoạt động độc lập, không phải 1 hệ thống duy nhất *(sửa 2026-10-02: bản cũ ghi 4 — `features/line-bot` chạy thật từ lâu nhưng thiếu trong bảng và nằm ngoài luật ESLint cách ly)*:
+
+| Khu vực | Thư mục chứa | Mount point (`App.tsx`) | Ghi chú / Cách ly |
+|---|---|---|---|
+| **Root** | `components/`, `hooks/`, `services/`, `contexts/`, `utils/` | Trực tiếp trong `TabContent` | `hooks/` và `services/` ở root chỉ dành cho tab `analysis` và `check-thuong`. |
+| **bi-dashboard** | `features/bi-dashboard/` | `<BiWrapper />` (tab `employees`) | Hoàn toàn tách biệt khỏi các khu vực còn lại. |
+| **phan-ca** | `features/phan-ca/` | `<PhanCaView />` (tab `tools-phanca`) | Hoàn toàn tách biệt khỏi các khu vực còn lại. |
+| **sticker-event** | `features/sticker-event/` | `<StickerPrinterView />` (tab `tools-print-sticker`) | Hoàn toàn tách biệt khỏi các khu vực còn lại. |
+| **line-bot** | `features/line-bot/` | `<LineBotView />` (tab `tools-line-bot`) | Tách biệt; được dùng `services/firebase.ts` (chỉ `db`) như ngoại lệ của bi-dashboard. **Có backend riêng**: `functions/src/lineBotWebhook.ts` (webhook + các lệnh `?action=`), `lineBotScheduler.ts` (lịch 6h/22h + `lineBotUserSchedules` 5 phút/lần), dữ liệu `line_bots/{uid}/…` trong database `(default)` → rules ở `firestore.rules`. 🔴 Webhook BẮT BUỘC kiểm chữ ký `x-line-signature` bằng `channelSecret` của bot (`functions/src/lineSignature.ts`) TRƯỚC mọi xử lý sự kiện — thiếu secret là từ chối. |
+
+**Quy tắc cách ly bắt buộc:**
+- ❌ Các thư mục `features/*` **không được import chéo lẫn nhau** và **không được import** `hooks/*` hoặc `services/*` ở thư mục gốc.
+- ✅ Cả 5 khu vực chỉ được dùng chung đúng 3 thứ: các UI component trong `components/shared/ui/*`, các hàm thuần tiện ích trong `utils/dataUtils.ts`, và `utils/localDbScope.ts` *(bổ sung 2026-09-23)*.
+- ✅ **Danh mục dùng chung: `components/shared/README.md`** *(GĐ8 2026-10-13)* — cần gì (nút, chọn nhiều, công tắc, menu ⋯, sheet,
+  banner, trống…) tra ở đó trước khi viết. Thiếu thì THÊM vào `components/shared` kèm test, cấm chép bản riêng trong khu vực (đó là
+  cách sinh ra 2 bản MultiSelect, 17 công tắc tự vẽ). ESLint chặn `features/*` import `components/common` (đồ riêng Phân tích),
+  `components/views`, `components/layout` — ngoại lệ duy nhất: Report BI dùng `components/layout/FontSelector` (lưu phông toàn app).
+- ✅ **Thứ dùng chung thứ 4 (bổ sung 2026-10-01): `components/shared/export/` — bộ xuất ảnh DUY NHẤT.** Mọi nơi xuất
+  ảnh (1 ảnh hay hàng loạt) dùng `exportElementAsImage` / `startExportJob` từ đây. 3 bộ quy tắc trình bày: `standard`
+  (Phân tích, Phân Ca, In Sticker, Thuế), `bi` (Report BI — `presetBi.ts`, thiết kế riêng có chủ đích), `raw` (giữ
+  nguyên bố cục: Check thưởng, Khai thác). Phần dùng chung tự có: co cột vừa nội dung, chân ảnh "Dashboard YCX · xuất
+  HH:mm dd/mm", tối thiểu 680px KHI ảnh có cụm thẻ KPI (bảng trơn thì vừa khít bảng — chủ dự án đổi ở f1c95973), bảng chờ/tiến trình (Huỷ + tổng kết), trần canvas iOS, giao ảnh. Hàng loạt trên máy
+  tính luôn tải TỪNG ảnh (không ZIP — chủ dự án chốt). CẤM import `html-to-image`/`html2canvas` ở nơi khác
+  (`components/shared/export/khongBanSao.test.ts` đỏ ngay; ngoại lệ duy nhất: `sticker-event/services/printService.ts`
+  dựng trang IN). Chi tiết: `implementation_plan.md` mục "Hợp nhất xuất ảnh".
+  `utils/localDbScope.ts` quyết định **tên IndexedDB theo tài khoản đang đăng nhập** (xem mục 1.2).
+  Nó BẮT BUỘC dùng chung chứ không được chép thành bản zone-local như `dbService.ts`: 3 khu vực
+  phải mở ĐÚNG CÙNG MỘT database, chỉ cần một bản tính tên lệch là Report BI ghi một nơi còn Phân
+  Tích đọc một nơi — hỏng âm thầm, không có lỗi nào hiện ra.
+- ✅ **Ngoại lệ thứ 3 (bổ sung 2026-08-31)**: `features/bi-dashboard/` được phép import `services/firebase.ts` ở gốc (chỉ instance `db`/`auth`, KHÔNG import các `services/*` khác) — cần thiết cho tính năng phân quyền theo siêu thị (đọc/ghi collection `biData/{maKho}` dùng chung, xem mục 1.1). Đây là truy cập trực tiếp instance Firebase đã khởi tạo sẵn (không phải import logic nghiệp vụ của root), nên không phá vỡ tinh thần cách ly — ngoại lệ này chỉ cần cho các khu vực dùng chung database `(default)` của project `dashboa-7e20b`. *(Sửa 2026-09-17: bản cũ ghi "chỉ 2 khu vực dùng chung 1 project Firebase" — thực tế cả 4 khu vực dùng chung project này; xem mục 1.1.)*
+- ✅ **Ngoại lệ thứ 4 (bổ sung 2026-09-09)**: DUY NHẤT file `features/bi-dashboard/services/analysisEmployeeSyncService.ts` được phép import `services/dbService` ở gốc. File này là **cầu nối có chủ đích** giữa 2 khu vực: đẩy danh sách nhân viên từ Phân Tích (gốc) sang Report BI, nên bắt buộc phải chạm cả 2 phía. Cụ thể nó cần `saveSetting()` của gốc vì hàm đó phát event `ycx-setting-changed` mà `hooks/useCloudSync` ở gốc đang lắng nghe — `saveSetting` riêng của bi-dashboard ghi sang IndexedDB khác (`BI_HUB_DATABASE_V2`) và KHÔNG phát event này. ⚠️ Ngoại lệ được khai trong `eslint.config.js` theo **đúng 1 đường dẫn file**, không phải mở cho cả thư mục: thêm file thứ 2 import `services/` gốc vẫn bị chặn (đã kiểm chứng bằng file dò).
+- ✅ **Ngoại lệ thứ 5 (bổ sung 2026-10-20)**: tính năng TỰ XUẤT BÁO CÁO của chủ dự án (fbb7779, 440f9e0) — `services/autoReportExportService.ts`
+  là cầu nối có chủ đích YCX ↔ Report BI ↔ Bot LINE. Report BI được import nó ở ĐÚNG 2 file (`components/Dashboard.tsx`,
+  `hooks/useBiAutoSync.tsx`); `components/BiWrapper.tsx` được import `hooks/useSystemTraffic` (hiện lượt truy cập · đang online). Khai trong
+  `eslint.config.js` theo đúng file + đúng đường dẫn (hàm `vungCam(feature, ngoaiLe)`), test `tests/unit/eslint-ngoai-le-cach-ly.test.ts`
+  khoá cả 2 chiều (file khác vẫn bị chặn). Thiếu khai báo này ESLint đỏ → CI `main` đỏ 16–20/10. Hướng sạch hơn về sau: cầu nối qua
+  `components/shared` thay vì import gốc.
+- ⚠️ Một hàm cùng tên ở 2 khu vực khác nhau (ví dụ: `formatCurrency` ở sticker-event dùng in nhãn, khác với rút gọn "1.2 Tr" ở dashboard) **không mặc nhiên là trùng lặp cần gộp**. Kiểm tra ngữ cảnh trước khi dedupe.
+- 🔴 **Logic tính toán — Nguồn chân lý duy nhất**: Mọi số liệu doanh thu, doanh thu quy đổi (DTQĐ) và số lượng quy đổi (weightedQuantity) bắt buộc phải tính toán qua hàm chuẩn `utils/dataUtils.ts → calculateRowMetrics()`. CẤM tự ý viết lại công thức tính cục bộ ở nơi khác gây sai số chênh lệch.
+
+---
+
+## 1.1. Backend — Cloud Functions & Firestore Rules (bổ sung 2026-07-17)
+
+Ngoài 4 khu vực frontend ở mục 1, dự án có 1 khu vực **backend thật sự** (không chỉ Firebase BaaS thuần client-to-Firestore):
+
+| Thành phần | Vị trí | Vai trò |
+|---|---|---|
+| Cloud Functions | `functions/` (project Node/TypeScript riêng, KHÔNG thuộc build Vite) | App gốc: `resolveSession`, `requestAccess`, `adminUpdateUser`, `listManagedUsers`, `generateWithGemini`, `demoteExpiredUsers`, `pwaHandoffStore`/`pwaHandoffClaim` (đăng nhập app Màn hình chính iPhone qua trang `auth-hosting/pwa-login.html` ở `auth.dashboard.pro.vn` — Firebase Hosting, `firebase deploy --only hosting`; iOS PWA KHÔNG dùng được `signInWithRedirect`). In Sticker: `stickerRegister`, `stickerResolveSession`, `stickerAdminUpdateUser`, `stickerStaffAuth`. Bot LINE: `lineBotWebhook`, `dailyMorningInventoryReport` (6h), `dailyEveningUsageSummary` (22h), `lineBotUserSchedules` (5 phút/lần — tự gửi lịch "Gửi Notify"), `pmhRelayPoll`, `pmhRelayComplete` |
+| Firestore Rules — database `(default)` | `firestore.rules` (repo root) | Chặn client (kể cả admin) ghi trực tiếp field nhạy cảm vào `users/{uid}` |
+| ~~Firestore Rules — database In Sticker CŨ~~ | ~~`firestore.stickerevent.rules`~~ | **ĐÃ BỎ 2026-10-08** (chủ dự án chốt xoá database cũ `ai-studio-16672ec9-…`): file rules và ánh xạ trong `firebase.json` đã xoá. In Sticker dùng `(default)`, rules trong `firestore.rules`. |
+
+**Vùng chạy (2026-10-14):** Firestore `(default)` ở `asia-southeast1` (Singapore). Hàm app gọi trực tiếp khai `region: CLIENT_REGIONS`
+(`functions/src/region.ts`), client gọi `getFunctions(app, 'asia-southeast1')`. Hàm MỚI app gọi cũng phải vậy — để mặc định là chạy ở Mỹ
+(đi vòng VN → Mỹ → Singapore). Bản `us-central1` tạm cho app bản cũ ĐÃ GỠ 2026-10-21 (log: lượt gọi cuối 15/10); chỉ còn
+`demoteExpiredUsers` (chạy theo lịch) ở Mỹ.
+
+**Bản đồ database → file rules** nằm ở mảng `firestore[]` trong `firebase.json` — nay chỉ còn `(default)` → `firestore.rules`.
+
+**Quy tắc bắt buộc:**
+- 🔴 Mọi thay đổi `role`, `status`, `departmentId`, `expiresAt`, `requestedRole` của user (kể cả tự sửa hay admin duyệt người khác) **bắt buộc đi qua Cloud Function** (`resolveSession`/`requestAccess`/`adminUpdateUser`). **Cấm** `updateDoc`/`setDoc` trực tiếp các field này từ client — `firestore.rules` đã chặn cứng, code client vi phạm sẽ nhận `permission-denied`.
+- ⚠️ Khi thêm **collection/subcollection Firestore mới**, **bắt buộc cập nhật `firestore.rules`** — cả 5 khu vực (kể cả `features/sticker-event` sau khi di trú) dùng database `(default)`. *(Sửa 2026-10-08: bản cũ bảo sticker-event sửa `firestore.stickerevent.rules` — sai từ khi di trú, rules thêm vào đó không có tác dụng gì với dữ liệu In Sticker đang chạy.)* *(Sửa 2026-09-17: bản cũ ghi "3 khu vực dùng chung project Firebase `dashboa-7e20b`" — thực tế **cả 4 khu vực** dùng chung project đó, sticker-event chỉ khác database. Nói "3 khu vực" dễ khiến người đọc tưởng sticker-event ở project khác nên không liên quan.)* Quên bước này gây lỗi "Missing or insufficient permissions" im lặng (đã xảy ra thật với `users/{uid}/salesData` và `_system/stats` — audit ban đầu bỏ sót vì dùng grep quá hẹp, chỉ bắt `collection(db, 'x')` 1 tham số, không bắt được `collection(db, 'users', uid, 'salesData')` nhiều tham số).
+- 🔴 **Bí mật Bot LINE KHÔNG nằm ở client (audit S13, 2026-10-08):** `channelAccessToken`/`channelSecret`/`pmhRelayToken` ở collection
+  `line_bot_secrets/{uid}` — `firestore.rules` khoá hẳn với MỌI client (kể cả admin/chủ bot); `line_bots/{uid}` chỉ có cờ `hasToken`/`hasSecret`
+  và rules CHẶN client ghi 3 field bí mật vào đó (tab giao diện cũ lưu lại sẽ nhận permission-denied thay vì làm lộ lại). Server đọc bằng
+  `functions/src/lineBotSecrets.ts → withSecrets()`. Client lưu Token/Secret qua `lineBotWebhook?action=saveSecrets` (chỉ chủ bot/admin) và gửi tin/kiểm tra
+  qua `?action=sendTestPush|pushImage|sendBroadcast|getProfile|verifyToken` với `botId` + ID token (quyền = chủ bot, admin, hoặc manager CÙNG Mã Kho;
+  token không bao giờ về client). Đừng thêm code client đọc/ghi 3 field này; muốn gửi LINE từ client thì thêm action theo `botId`.
+- 🔴 **Đăng nhập iPhone KHÔNG được phụ thuộc khung ẩn gapi (2026-10-21):** `getAuth()` trên iPhone chờ tải `apis.google.com` (tới
+  60 s) trước khi xong khởi tạo — máy nào treo là không đăng nhập được. `services/firebase.ts` dùng `initializeAuth` không gắn resolver
+  trên iOS (popup/redirect truyền `browserPopupRedirectResolver` tường minh); `auth-hosting/pwa-login.html` tự đọc kết quả handler
+  + REST `signInWithIdp`, KHÔNG `getRedirectResult`. Test: `pwa-login-khong-gapi`, `iphone-gapi-treo-dang-nhap`. Bản giả
+  `firebase/auth` trong test phải có `initializeAuth`. Log chẩn đoán: `[pwa-login diag]` của hàm `pwaHandoffStore`.
+  *(2026-10-21)* `resolveSession` đọc `users/{uid}` bằng `fieldMask` (tài liệu có thể gần 1 MB) — ĐỪNG đổi lại `get()` nguyên khối;
+  `pwaHandoffClaim` trả kèm phiên tính sẵn → app không gọi `resolveSession` sau đăng nhập iPhone. Đừng nhét dữ liệu lớn vào
+  `users/{uid}.settings` (`setDoc(merge)` giữ khoá mãi).
+- 🔵 **Lỗi tải mảnh code (2026-10-20):** tự tải lại khi lỗi chunk PHẢI qua `components/shared/ui/taiLaiKhiLoiChunk.ts` (chờ 800 ms, bỏ
+  qua khi trang đang rời đi) — CẤM `location.reload()` trần trong đường lỗi chunk: WebKit huỷ `import()` dở dang lúc điều hướng, tải lại
+  khi đó giành mất lượt chuyển trang của người dùng (CI WebKit "Frame load interrupted").
+  *(2026-10-21)* Tự tải lại tối đa 2 lần / 5 phút (`duocTuTaiLai()`, cùng khoá với `public/reload-on-chunk-error.js`) — chỉ chặn "cách
+  10 giây" từng thành vòng tải lại vô hạn khi service worker trả app shell cũ (mạng chậm > 4 s). SW nay vẫn LƯU bản mới về trễ.
+- 🔵 **Offline (2026-10-08):** build sinh `dist/sw.js` (plugin `ycx-offline-sw` ở `vite.config.ts`, mẫu `scripts/sw-template.js`): tải sẵn app shell, điều hướng ưu tiên mạng
+  (không kẹt bản cũ), `/assets/*` ưu tiên bản lưu. Offline chỉ dùng được dữ liệu đã lưu trên máy; đăng nhập/đồng bộ/gửi LINE cần mạng. Test: `tests/e2e/offline-app-shell.spec.ts`.
+- 🔵 **Phân quyền theo siêu thị ở Report BI** (bổ sung 2026-08-31): dữ liệu Thi đua/Summary Luỹ kế dùng chung theo siêu thị lưu ở `biData/{maKho}/…` — dùng LẠI đúng field `departmentId`/hàm `myKhos()` đã có (1 Kho = 1 Siêu thị trong thực tế công ty, xác nhận với user), KHÔNG có custom claim `allowedSupermarkets` riêng. Chỉ manager/admin được ghi (`isManager()`), mọi user cùng Kho đọc được. Xem `implementation_plan.md` mục "Đợt 4" để biết đầy đủ thiết kế + bảng map "tên siêu thị trong báo cáo" → "Mã Kho".
+- `functions/` là project TypeScript độc lập (tsconfig/package.json riêng), bị loại trừ khỏi `tsconfig.json` và `eslint.config.js` ở gốc — không chạy qua `npm run check`, phải tự `cd functions && npm run typecheck && npm run build` để kiểm tra riêng.
+- Deploy: `npm run deploy:rules` / `npm run deploy:functions`. *(Sửa 2026-09-18: bản cũ ghi "không phải việc agent tự chạy" — xem mục 0.0, chủ dự án đã cấp quyền.)*
+- 🔴 **Hiện trạng (đo trên code 2026-10-08): `features/sticker-event` dùng database `(default)`** — `features/sticker-event/firebase-applet-config.json` có `firestoreDatabaseId: "(default)"`, `functions/src/firebaseAdmin.ts` có `STICKER_DB_ID = '(default)'`, `stickerDb = db`; hồ sơ user In Sticker ở collection `stickerUsers`. Script di trú: `functions/scripts/migrate-sticker-to-default.cjs`. Database cũ `ai-studio-16672ec9-…` **ĐÃ XOÁ** (đo 2026-10-08 bằng `firestore:databases:list`: project chỉ còn `(default)` và `dang-ky-phong` — cái sau không thuộc code dashboard, đừng đụng); đã bỏ khỏi `firebase.json` và xoá `firestore.stickerevent.rules`.
+  *Phần dưới là lịch sử trước di trú, giữ để hiểu bối cảnh:* `features/sticker-event` dùng CHUNG project Firebase `dashboa-7e20b`, từng ở database `ai-studio-16672ec9-22fb-43a6-b6ee-e59aa8a8c699`, cấu hình động qua `features/sticker-event/firebase-applet-config.json` — file này **ĐƯỢC commit trong git** và điều đó đúng: nó chỉ chứa cấu hình Firebase *web* (`apiKey`, `projectId`, `authDomain`…), thứ Firebase thiết kế để gửi tới mọi trình duyệt, bảo mật nằm ở Firestore Rules chứ không ở việc giấu `apiKey`. *(Sửa 2026-09-19: bản cũ ghi "gitignored" — SAI, đã kiểm bằng `git ls-files` + `git check-ignore`. Câu sai này từng làm agent nghi CI thiếu file khi điều tra job e2e đỏ.)* Phía Cloud Functions, `functions/src/firebaseAdmin.ts` có sẵn 2 instance: `db` (database `(default)`) và `stickerDb` (database In Sticker).
+  *(Sửa 2026-09-17: bản cũ ghi "dùng Firebase project **riêng**" và "**chưa** áp dụng pattern Cloud Functions này, vẫn ghi `role` trực tiếp từ client" — **CẢ HAI ĐỀU SAI**. Đã đo trên code: `firebase-applet-config.json` có `projectId: dashboa-7e20b`; còn `firestore.stickerevent.rules` hiện đã khoá `protectedKeys() = ['role','storeId','username']` khỏi mọi lượt update từ client và **bỏ hẳn `allow create`** — hồ sơ user chỉ tạo được qua Cloud Function `stickerRegister`, đổi role/storeId chỉ qua `stickerAdminUpdateUser`. Câu sai này nguy hiểm thật: nó từng làm agent kết luận sai về nguồn gốc hết hạn mức Firestore, xem `implementation_plan.md` mục "Audit hạn mức đọc/ghi Firestore".)*
+- 🔵 **Hạn mức Firestore — trần CỨNG của database In Sticker CŨ** *(đã gỡ bằng việc di trú sang `(default)`; vẫn
+  giữ thói quen tiết kiệm lượt đọc dưới đây vì `(default)` dùng chung cho cả app).* Đo thật bằng
+  `./node_modules/.bin/firebase firestore:databases:list --project dashboa-7e20b` (2026-09-18):
+
+  | Database | Edition | Dùng bởi |
+  |---|---|---|
+  | `(default)` | **STANDARD** | root, bi-dashboard, phan-ca |
+  | `ai-studio-16672ec9-…` | **ENTERPRISE** | sticker-event |
+
+  Database In Sticker là **Enterprise edition do Google AI Studio tự tạo** — đây mới là nguyên nhân
+  thật của trần cứng (không phải chuyện Spark/Blaze). `(default)` là STANDARD nên có gói miễn phí
+  tiêu chuẩn và nâng Blaze được → **di trú sang `(default)` thực sự gỡ được trần**. Database In
+  Sticker thuộc diện **"free tier database"**: server trả nguyên văn *"This database cannot exceed free quota limits even when a billing instrument is enabled"*. Nghĩa là **nâng lên gói Blaze cũng KHÔNG nới được** hạn mức cho database này. (Thông báo lỗi không nêu con số; hạn mức đọc miễn phí tiêu chuẩn của Firestore là 50.000/ngày — con số này là suy ra từ tài liệu, chưa phải quan sát.) Hạn mức bị chạm thật ngày 2026-09-17 là hạn mức **ĐỌC**. Khi sửa bất cứ gì trong `features/sticker-event` chạm Firestore, **phải cân nhắc số lượt đọc**: đừng thêm query chạy mỗi lần mở app/mở modal mà không có cơ chế cache hoặc smart-sync theo mốc thời gian (`metadata/sync`). Xem `implementation_plan.md` mục "Audit hạn mức đọc/ghi Firestore" để biết các mẫu đã áp dụng và cách ĐO (`tests/unit/sticker-firestore-quota.test.ts` — bộ mock Firestore đếm chính xác số lượt đọc/ghi/xoá của hàm thật).
+- ⚠️ Riêng In Sticker, `role` được dùng qua **custom claim `stickerRole`/`stickerStoreId`** (không phải `role`/`departmentId` của app gốc) — 2 hệ phân quyền tách biệt dù ở cùng project.
+
+---
+
+## 1.2. Dữ liệu cục bộ tách theo tài khoản (bổ sung 2026-09-23)
+
+Trước đây 3 khu vực (gốc, Report BI, In Sticker — Phân Ca có kho `ScheduleAppDB` riêng) dùng chung
+đúng một IndexedDB tên cố định `BI_HUB_DATABASE_V2`, nên dữ liệu cục bộ thuộc về **trình duyệt**
+chứ không thuộc **tài khoản**: ai đăng nhập sau trên cùng máy cũng
+thấy dữ liệu của người trước (chủ dự án gặp thật 2026-09-23 ở Report BI).
+
+**Quy tắc hiện tại:**
+- 🔴 Tên database là **hàm thuần của uid**: `BI_HUB_DATABASE_V2__<uid>`. Chưa đăng nhập (kể cả Chế
+  độ Dùng Thử) thì dùng tên cũ `BI_HUB_DATABASE_V2` — lúc đó không có dữ liệu riêng tư của ai.
+- 🔴 **Mọi nơi mở database này phải lấy tên từ `utils/localDbScope.ts → biHubDbName()`** và `await
+  ensureBiHubDbReady(name)` trước khi mở. CẤM viết lại hằng `'BI_HUB_DATABASE_V2'` trong code mới.
+  Hiện có đúng 4 nơi mở: `services/dbService/core.ts`, `features/bi-dashboard/services/dbService.ts`,
+  `features/sticker-event/services/dbService.ts`, `features/bi-dashboard/utils/dbMigration.ts`.
+- Lần đầu của mỗi tài khoản, `ensureBiHubDbReady()` **chép** dữ liệu từ database dùng chung cũ sang
+  database riêng — nhưng CHỈ KHI kho cũ đúng là của tài khoản đó (`services/localDataOwner.ts`
+  quyết định qua dấu chủ sở hữu, trước khi dấu đó bị ghi đè).
+- Trạng thái của module này nằm trên `globalThis`, KHÔNG phải biến module: nếu bundler tách module
+  thành 2 bản (đã gặp thật, xem chú thích "module duplication" ở `contexts/AuthContext.tsx`) thì 2
+  bản vẫn phải thấy chung một uid. Test `tests/e2e/indexeddb-rieng-theo-tai-khoan.spec.ts` từng đỏ
+  đúng vì chuyện này.
+- **Báo cáo khai thác** (bổ sung 2026-09-29, chủ dự án chốt "lưu cục bộ IndexedDB, không cần cloud"):
+  kho `YCX_KHAI_THAC_DB__<uid>` (`utils/localDbScope.ts → khaiThacDbName()`). Kho này KHÔNG có bản
+  cloud nên **đăng xuất/đổi tài khoản KHÔNG xoá nó**; chỉ nút "Xoá tất cả dữ liệu" xoá kho của chính
+  người bấm. Kho dùng chung cũ `YCX_KHAI_THAC_DB` được chuyển về chủ máy trước khi bị dọn.
+  Mọi kho riêng theo tài khoản phải được `isPerAccountDbName()` nhận ra — nếu không, bước liệt kê
+  database của `clearAllLocalAppData` sẽ xoá chúng.
+- 🔴 **Đồng bộ giữa thiết bị = mới nhất thắng theo TỪNG khoá** (2026-10-14): cấu hình nhẹ đẩy/kéo qua `services/lightSync.ts`
+  (mốc `settingsMeta.<khoá>`, đẩy trong transaction, chỉ khoá máy mới hơn). CẤM đẩy nguyên bộ cài đặt hay chép đè nguyên bộ xuống máy
+  không so mốc. `services/syncService.ts` (users/{uid}.settings) chỉ còn lo vài khoá đường mới không quản (`laKhoaDongBoCu`). Dữ liệu
+  hiển thị trên nhiều máy phải có listener realtime (`onSnapshot`), không chỉ đọc lúc mở tab. Đo: `tests/e2e/dong-bo-hai-may-du-lieu-that.spec.ts`.
+- Các kho còn lại (`ScheduleAppDB`, `TaxCalculatorDB`, `ProductSearchDB`, `keyval-store`) VẪN dùng
+  chung → vẫn bị **xoá sạch khi đổi tài khoản** (`clearAllLocalAppData`) — đều có bản trên cloud hoặc
+  nhập lại được. Thêm kho mới mà quên khai vào `APP_DATABASES` là để lại dữ liệu người cũ ở khu đó;
+  thêm kho CHỈ-CÓ-TRÊN-MÁY thì phải tách theo tài khoản như Báo cáo khai thác, không được xoá.
+
+---
+
+## 2. Quy chuẩn Thiết kế & Giao diện (Design System)
+
+- **Màu sắc**: Chỉ dùng bảng màu semantic đã duyệt: `sky` (primary), `slate` (secondary), `emerald` (success), `amber` (warning), `rose` (danger). Cấm khai báo custom property màu sắc mới trong `features/*`.
+- **Màu ramp (Xoay vòng)**: Khi phân biệt trên 5 hạng mục dữ liệu, dùng pattern "6 họ semantic x 2 tầng sắc độ" (5 màu chuẩn + `indigo`, mỗi họ 2 sắc độ đậm/nhạt), không tự chế màu ngoài palette.
+- **UI Components**: Mọi phần tử tương tác (button, input, modal, confirm dialog, badge, select, dropdown) **bắt buộc** dùng components ở `components/shared/ui/*`. Cấm viết `<button>` thô hoặc tự dựng modal `fixed inset-0` mới.
+  *(2026-10-21: ESLint CHẶN `<button>` thô — trước chỉ cảnh báo; GĐ10 bước 2 đưa 194 chỗ về 0. Khoá bởi `tests/unit/eslint-cam-nut-tho.test.ts`.
+  *(2026-10-29)* `variant="unstyled"` = **0 chỗ** (582 → 0, khoá bởi `components/shared/ui/buttonVaiTro.test.ts` + ratchet `unstyledButton`).
+  Phần tử bấm được KHÔNG mang hình nút dùng kiểu theo vai trò (không ép cỡ/đệm, không `data-ui="shared"`): `cell` (ô bảng, đầu cột sắp
+  xếp), `row` (dòng danh sách/menu, rộng hết), `card` (thẻ chọn — đang chọn = `aria-pressed`), `tab` (mục dải tab tự dựng có chỉ báo
+  riêng; chỉ chọn một thì dùng `<Tabs>`). Viên bật/tắt: `toggle` + `aria-pressed`, màu bật theo nghĩa = lớp `aria-pressed:*`. Amber đặc:
+  `warning`. Cỡ nhỏ trong dòng dữ liệu: `xs`/`icon-xs` (24px) · icon trong dòng chữ: `icon-inline` — vùng chạm 44 bằng `ycx-hit`. Ô nhập/chọn/ô tick: `Input`/`Select`/`Textarea`/
+  `Checkbox` — đè hình qua `className`; nút nhỏ đứng riêng thêm `ycx-hit` khi vùng chạm 44 không đè ô/nút khác.)*
+- **Cấm tuyệt đối `window.alert/confirm/prompt`**: Bắt buộc dùng component `<ConfirmDialog />`. *(GĐ10 2026-10-15: ESLint trước chỉ bắt
+  `confirm()` viết trần nên 6 chỗ `window.confirm()` lọt — nay chặn cả `window.`/`globalThis.`/`self.`, test
+  `tests/unit/eslint-cam-hop-thoai-trinh-duyet.test.ts`. Phải chọn giữa 2 việc → `ConfirmDialog extraAction` (hộp 3 lựa chọn), KHÔNG nối 2 hộp.
+  Việc xoá dữ liệu nào cũng phải hỏi trước — kể cả khi chỉ còn một loại dữ liệu.)*
+- **Bài đo chuẩn thiết kế trên CI (GĐ10 2026-10-15):** `chuan-thiet-ke-b`, `icon-audit-man-goc`, `icon-audit-bi` chạy mỗi lần push (job e2e);
+  `icon-audit-modal` (~12 phút/bài) chạy hằng đêm + chạy tay ở `.github/workflows/design-audit.yml`. Trước đây cả 4 không chạy tự động.
+- **Toast — MỘT hệ duy nhất (2026-10-10, `KE_HOACH_GIAO_DIEN_APPLE.md` GĐ1):** mọi thông báo nhanh gọi
+  `import { toast } from '…/components/shared/ui/toast'` — `toast.success/error/info/warning/loading/promise`, toast có nút
+  `toast.action({ title, description, actions })`, tuỳ chọn `description`, `icon: '<tên AppIcon>'`, `onDismiss`, `id`. ESLint CHẶN
+  import `react-hot-toast` ở mọi nơi khác; không tự vẽ khung toast/thẻ nổi `fixed bottom-*` (đè thanh tab iPhone). `AppToaster` (gắn
+  một lần ở `App.tsx`) vẽ viên nang vật liệu mờ ở TRÊN GIỮA màn hình (iPhone dưới tai thỏ, laptop cách mép trên 12px), tối đa 3
+  cái, vuốt để tắt. Không dùng emoji làm icon toast (emoji cũ tự quy đổi). Test: `tests/e2e/toast-thong-nhat.spec.ts`.
+  *(GĐ5 2026-10-13)* Việc nhiều bước (vd xuất Google Sheet) dùng `toastViecDai('Đang…')` → `.buoc()` / `.xong(title, { actions })` /
+  `.loi()` — cùng MỘT toast. CẤM dựng toast bằng DOM (`createElement` + `cssText 'position:fixed;bottom…'`) — test
+  `components/shared/ui/toast/khongToastTuVe.test.ts` đỏ. `AppToaster` portal ra `<body>` (#root là `relative z-10`: để trong #root thì
+  toast nằm DƯỚI lớp nền mờ của modal).
+- **Modal tràn sát mép (GĐ5 2026-10-13):** khối muốn chạm mép thân `<Modal>` dùng class `modal-bleed` / `modal-bleed-x|t|b` (lấy đúng
+  đệm thân qua biến `--modal-pad`: 12px iPhone, 20px từ sm). CẤM tự viết `-m-5` / `-m-3 sm:-m-5` — lệch đệm là chữ bị cắt mép trên
+  iPhone (lỗi #5/#6/#21). Test `components/shared/ui/modalBleed.test.ts`.
+- **Công tắc MỘT kiểu (GĐ8 2026-10-13):** mọi bật/tắt dùng `Switch` (`components/shared/ui/Switch.tsx`). CẤM ô tick ẩn
+  `sr-only peer` + `peer-checked:after:translate-x-*` hay nút tự gắn `role="switch"` — `components/shared/ui/khongCongTacTuVe.test.ts`
+  đỏ ngay. Nút của `Tabs`/`ListRow`/`Switch` là `type="button"` (trong `<form>` không thành nút gửi).
+- **Lớp CSS khung (GĐ7 2026-10-13, styles.css):** `ycx-tranh-dock` — trang TRÀN NGANG trên laptop tự chừa lề 2 dock nổi (khung đặt
+  `--dock-left/--dock-right`; trang có max-width đặt thêm `--trang-max`). `[data-thay-tieu-de]` trên gốc thanh công cụ đưa lên khe
+  `#mobile-topbar-actions` → dưới 540px chữ tiêu đề thanh trên nhường chỗ (Check thưởng — chủ dự án chốt "1 thanh bar duy nhất").
+- **Lớp Apple (2026-10-11, `KE_HOACH_GIAO_DIEN_APPLE.md` GĐ3 — `DESIGN_SYSTEM.md` mục 7):** chữ theo thang 10 bậc `type-*` (bậc 44px `kpi-xl` chỉ cho số KPI chính ở màn ≥ xl — chủ dự án chọn B 21/10)
+  (token `--type-*`, ratchet `offScaleText` chỉ được giảm), tiêu đề viết thường như câu (IN HOA chỉ nhãn cột). Dùng component
+  dùng chung thay vì tự vẽ: `Switch` (công tắc), `Tabs variant="segment"` (segmented), `Banner` (thông báo tĩnh, cấm chữ chạy),
+  `ListGroup`/`ListRow` (trang cài đặt), `ActionMenu` (nút "⋯" — thanh/tiêu đề tối đa 1 nút chính + ≤ 2 icon), `usePageActions`
+  (màn khai báo nút cho thanh trên — KHÔNG `createPortal` vào thanh trên nữa), `BusyBar` (tính lại ngầm, không chặn màn),
+  `EmptyState`. Button: `primary` (một nút/màn) · `secondary` (xám tinted) · `tinted` · `destructive` · `danger` (chỉ xác nhận cuối).
+  Lớp nổi mới dùng `usePresence` + CSS — thư viện `motion` ĐÃ GỠ khỏi dự án (GĐ4 2026-10-12), đừng cài lại.
+- **Liquid Glass (2026-10-28, `DESIGN_SYSTEM.md` mục 8):** lớp điều khiển nổi (thanh tab nổi iPhone, dock laptop, cụm con nhộng) dùng
+  `<GlassSurface>` / `.ycx-glass` — token `--glass-*` ở `styles/tokens.css`, đường lùi (giảm trong suốt / tăng tương phản / không
+  hỗ trợ blur / in) đổi token ở `:root`. CẤM chép công thức kính tay (`khongKinhTuVe.test.ts`); KHÔNG phủ kính lên bảng/KPI/biểu đồ.
+  Thanh tab iPhone = viên kính 3 tab có nhãn + nút tròn "Khác"; trang chừa đáy 72px + safe-area. Đo: `tests/e2e/liquid-glass-khung.spec.ts`.
+- **Khung app (GĐ4 2026-10-12):** thanh trên iPhone là `components/layout/MobileNavBar.tsx` (tiêu đề 17px viết như câu ·
+  dòng phụ 12px · nút 44×44 · vật liệu mờ); màn khai báo nút bằng `usePageActions({ scope, primary, quick, items })` →
+  `PageActionsBar` tự xếp [nút chính][1 nút nhanh][⋯] (`scope: 'mobile'` khi màn đã có thanh công cụ laptop riêng — vd Phân tích).
+  2 khe cũ `#mobile-topbar-subtitle` / `#mobile-topbar-actions` VẪN chạy (màn chưa chuyển); nút nhỏ trong đó tự được vùng chạm 44
+  bằng `::after` (styles.css `.ycx-navbar`) — giữ cỡ nhìn thấy 32px của chủ dự án. Thanh tab dưới + sheet "Khác" (Modal +
+  ListGroup) ở `MobileBottomNav.tsx`; chuông mở sheet trên iPhone. Laptop: GIỮ khung của chủ dự án (logo bật/tắt dock nổi — nhớ
+  trạng thái, tiêu đề 2 màu IN HOA). Test: `tests/e2e/khung-app-gd4.spec.ts`.
+- **Khung app không được chồng/tràn (2026-10-10):** `tests/e2e/apple-tuong-thich.spec.ts` quét mọi tab ở 6 khung màn hình (iPhone
+  SE/16/16 Pro Max, iPad, laptop, màn lớn): trang không tràn ngang, nút trên thanh trên/thanh tab không đè nhau, vùng chạm ≥ 44px.
+  Lỗi đã biết nằm trong `DA_BIET` của spec — chỉ được GỠ dần (như lint-ratchet), không thêm. *(GĐ9 2026-10-13: `DA_BIET` đã TRỐNG;
+  CI chạy spec này trên cả Chromium lẫn WebKit — engine của Safari — đỏ là chặn.)* Với DỮ LIỆU THẬT (tài khoản test, chỉ đọc):
+  `ANH=1 ANH_NHAN=<nhãn> npx playwright test tests/e2e/anh-truoc-sau-apple.spec.ts --project=chromium` → ảnh mọi tab iPhone 440 +
+  laptop 1440/1280 và số đo (tràn ngang, chữ < 11px, bị dock nổi che, lỗi runtime) ở `.anh-apple/<nhãn>/` — gitignore, KHÔNG commit.
+- **Icon** *(chuẩn hoá 2026-10-02)*: mọi icon gọi qua `<AppIcon name="<chức năng>" size="<token>" />` hoặc
+  `<Button icon="…">` (`components/shared/ui/icon/` — thuộc `components/shared/ui/*` nên cả 5 khu vực dùng hợp lệ).
+  CẤM import `lucide-react` ngoài `iconRegistry.ts`, cấm `size={số}` trên icon, cấm vẽ `<svg>` icon trong JSX
+  (ngoại lệ: logo thương hiệu nhiều màu — Google ở LoginView), cấm lớp `stroke-[…]` trên AppIcon (nét luôn 2).
+  Tên chức năng `nav*` CHỈ dùng cho thanh điều hướng (`components/layout/navIcons.ts`). Thang size `xs…hero`, mốc
+  laptop/mobile `lg`, bảng icon chuẩn: `DESIGN_SYSTEM.md` mục 4.6. `components/common/Icon.tsx` và 2 file SVG tự vẽ
+  `Icons.tsx` ĐÃ XOÁ (2026-10-07); tên icon kiểu cũ trong DỮ LIỆU đã lưu đổi qua `resolveIconName()`.
+  `lint-ratchet`: `iconDirectImport`/`iconNumericSize`/`iconLegacyCall` = 0, `iconRawSvg` = 1, `iconEmoji` = 113 (toàn là NỘI DUNG: tin nhắn LINE mẫu, bookmarklet, tên ngày lễ,
+  văn bản copy ra ngoài) — chỉ được giảm. CẤM dùng emoji / ✓ ✕ ⚠ làm icon giao diện (nút, nhãn, tiêu đề, icon toast) — dùng AppIcon.
+- **Dark mode**: **ĐÃ TẮT toàn dự án** (áp dụng từ 2026-07-10). Cấm viết class `dark:` mới cho các thay đổi giao diện. Các class `dark:` cũ trong code được giữ nguyên (vô hiệu, không cần dọn dẹp). *(2026-10-14)* Bản build tự BỎ luật CSS của `dark:` (plugin `ycx-bo-css-dark-chet` ở `vite.config.ts` — ~110 KB CSS chết, 8 KB nén). Muốn bật lại dark mode: gỡ plugin đó trước, nếu không `dark:` im lặng không tác dụng trên bản build.
+- **Bo góc — chuẩn (B), chủ dự án chốt 2026-10-07: GIỮ phong cách bo mềm đang chạy**, đặt thành MỘT thang
+  dùng chung (giá trị ở `styles/tokens.css`, class sinh ở `styles.css` `@theme inline`):
+  `rounded-control` 8px (nút, ô nhập, select) · `rounded-card` 16px (thẻ, thẻ KPI, khung `DataTable`) ·
+  `rounded-popup` 12px (dropdown, menu) · `rounded-overlay` 16px (modal, sheet) · `rounded-md` 6px (tooltip) ·
+  `rounded-full` (huy hiệu, viên, avatar). **Ô bảng và khung KHỐI DỮ LIỆU lớn trên laptop vẫn vuông**
+  (`rounded-none`) — giữ như Phân tích/Report BI đang chạy. Phần tử MỚI dùng class ngữ nghĩa, không tự đặt
+  `rounded-xl`/`rounded-2xl`/`rounded-[…]`. *(Thay quy tắc 2026-09-10 "4px/6px, bỏ rounded-xl cho card" —
+  chủ dự án chọn không đổi giao diện sang phẳng.)* *(GĐ10 bước 4, 2026-10-21: 905 lớp `rounded-lg/xl/2xl` → token cùng giá trị
+  8/12/16px, giao diện không đổi; ratchet `legacyRadius` = 0. `cn()` khai 4 token cho tailwind-merge → `className="rounded-card"`
+  đè được bo góc gốc của Input/Button, KHÔNG cần `!`.)*
+- **Đổ bóng** *(chuẩn B, 2026-10-07)*: thẻ tĩnh `shadow-sm`, rê chuột `shadow-md`; dropdown/popup `shadow-lg`;
+  modal `shadow-xl`. Khối dữ liệu vuông và ô bảng không đổ bóng.
+  `lint-ratchet` chặn lệch chuẩn mới (GĐ4, 2026-10-07): `rawOverlay` (tự dựng `fixed inset-0` ngoài
+  `components/shared/ui`) = **0** (2026-10-09: hộp thoại dùng `<Modal>`/`<ConfirmDialog>`, màn chờ/lớp nền/khung toàn màn hình dùng `<Overlay kind="busy|scrim|fullscreen">` — cấm viết lại `fixed inset-0`), `tinyText` (`text-[≤10px]`) = 50 (2026-10-09; toàn bộ là ô xem trước tin nhắn LINE `IPhoneChatPreview` — cỡ nhỏ có chủ đích để giống LINE thật),
+  `offScaleRadius` (`rounded-3xl`/`rounded-[…]` không qua token) = 4 (2026-10-09; khung điện thoại mô phỏng của `IPhoneChatPreview`) — chỉ được giảm.
+- **Mật độ bảng** *(mới 2026-09-10)*: dòng dữ liệu cao **26px** (đệm `3px 8px`), đầu bảng **28px** và
+  bắt buộc dính trên (`sticky`), dải nhóm **24px**. Bảng nhiều cột phải **ghim cột đầu** (`sticky left`,
+  viền phải 2px).
+- **Trạng thái đạt/chưa đạt**: mã hoá bằng **vạch màu 3px ở mép trái dòng**, KHÔNG dùng viên pill giữa
+  bảng. Pill chiếm chiều ngang — thứ khan hiếm nhất ở bảng 48 cột.
+- **Cỡ chữ nhỏ nhất là 11px** và phải dùng phông condensed. ❌ Bỏ `text-[10px]` — màn hình siêu thị
+  thường là laptop cũ, độ phân giải thấp.
+- **Phông**: `UTM Avo` (tự host, `public/fonts/`) cho số và nội dung — **giữ nguyên, không đổi**: đây là
+  phông Việt được chọn có chủ đích, đã tinh chỉnh ánh xạ trọng lượng để tránh giả đậm.
+  `Roboto Condensed` (đã nạp sẵn trong `index.html`) cho nhãn cột viết hoa.
+- **Bảng luôn là bảng**: 🔴 **Dữ liệu dạng bảng LUÔN hiển thị dạng bảng — trên mọi màn hình, kể cả iPhone** (chủ dự án chốt 2026-10-02: *"Vì tính chất dữ liệu nên phải xem trên dạng bảng"*). CẤM chuyển bảng sang dạng thẻ (card/bento) hay danh sách thẻ, kể cả dưới dạng nút chuyển "Bảng/Thẻ". Được phép làm bảng dễ xem hơn: ghim cột đầu, ghim đầu bảng, viền mờ báo còn cột, mật độ, cỡ chữ.
+- **Bảng biểu (Tables)**: Viền mỏng `border-slate-200`, header bảng viết hoa `text-[11px] font-bold tracking-wider`.
+  ⚠️ *Sửa 2026-09-10: mục này trước ghi `tracking-tight` là SAI.* Đo trên code thật: trong class mang
+  dấu hiệu header bảng, `tracking-wider` **46 lần** vs `tracking-tight` **9 lần** — và `DESIGN_SYSTEM.md`
+  cũng ghi `tracking-wider`. Quy tắc sai này đã khiến code mới viết theo bị lệch chuẩn; 8 header còn
+  sót dùng `tracking-tight` là di sản của lỗi đó, dọn dần khi có dịp chạm vào file.
+- **Đồng nhất thiết kế** *(cập nhật 2026-10-07)*: mật độ, màu, chữ, bảng theo **"Bảng điều khiển ca trực"**;
+  riêng bo góc/đổ bóng theo chuẩn (B) ở trên. Mọi khu vực dùng chung một thang — đo bằng
+  `tests/e2e/chuan-thiet-ke-b.spec.ts` (kiểu tính toán thật: nút 8px, thẻ KPI 16px, modal 16px).
+  Đặc tả đầy đủ (13 token màu kèm mã hex, thang chữ, mật độ, mẫu bảng 48 cột) ở `DESIGN_SYSTEM.md`.
+  Nguyên tắc gốc: **mỗi pixel dành cho số, không dành cho trang trí** — người dùng là quản lý siêu thị
+  liếc màn hình giữa hai lượt khách.
+
+---
+
+## 3. Hiện trạng & Lộ trình rà soát (Tháng 7/2026)
+
+- **Gỡ bỏ any**: Chỉ dùng `any` khi parse dữ liệu Excel raw thô từ Google Sheets hoặc thư viện bên ngoài.
+- **Tách tệp cồng kềnh**: Các tệp god-file như `printService.ts` (~1466 dòng) hoặc `StickerPrinterView.tsx` chỉ refactor tách nhỏ khi có yêu cầu cụ thể.
+- **Responsive**: View nào có toolbar desktop (portal vào `#global-header-actions`) bắt buộc phải có toolbar mobile `lg:hidden` tương ứng.
+- **Tiến độ rà soát**:
+  - Đợt 0: Dọn rác nhanh (file chết, unused warnings, console.log).
+  - Đợt 1: Hợp nhất logic tính toán DTQĐ về `calculateRowMetrics()` để sửa sai lệch số liệu.
+  - Đợt 2: Đồng nhất thiết kế các module còn lại theo module Phân Tích (chuẩn hóa màu, bo góc, border).
+  - Đợt 3: Loại bỏ any, hợp nhất modal và tách god-file.

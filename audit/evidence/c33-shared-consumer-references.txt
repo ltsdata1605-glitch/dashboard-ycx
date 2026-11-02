@@ -1,0 +1,199 @@
+components/employees/performance/PerformanceSingleTable.tsx:4:import { EmptyState } from '../../shared/ui/EmptyState';
+components/employees/performance/PerformanceSingleTable.tsx:247:                <EmptyState icon="empty" title="Không có dữ liệu hiển thị" description="Thử đổi bộ lọc kho, bộ phận hoặc khoảng thời gian." />
+components/kpis/modals/KpiCardConfigModal.tsx:13:import { ListGroup, ListRow } from '../../shared/ui/ListGroup';
+components/kpis/modals/KpiCardConfigModal.tsx:15:import { EmptyState } from '../../shared/ui/EmptyState';
+components/kpis/modals/KpiCardConfigModal.tsx:446:            <ListGroup footer={editingCard.hasTarget ? 'Tự hiện thanh tiến độ, tính % đạt và đổi màu trạng thái.' : undefined}>
+components/kpis/modals/KpiCardConfigModal.tsx:447:                <ListRow
+components/kpis/modals/KpiCardConfigModal.tsx:468:            </ListGroup>
+components/kpis/modals/KpiCardConfigModal.tsx:473:        <EmptyState
+components/kpis/modals/KpiCardConfigModal.tsx:486:            <ListGroup title="Thứ tự hiển thị" footer="Tắt công tắc để ẩn thẻ khỏi dãy KPI. Đổi thứ tự bằng nút ⋯.">
+components/kpis/modals/KpiCardConfigModal.tsx:517:            </ListGroup>
+components/kpis/modals/KpiCardConfigModal.tsx:518:            <ListGroup>
+components/kpis/modals/KpiCardConfigModal.tsx:519:                <ListRow icon="add" iconTone="sky" label="Thêm thẻ mới" onClick={addNewCard} chevron={false} />
+components/kpis/modals/KpiCardConfigModal.tsx:520:            </ListGroup>
+components/tables/MonthlyTrendTable.tsx:6:import { EmptyState } from '../shared/ui/EmptyState';
+components/tables/MonthlyTrendTable.tsx:101:                            <EmptyState compact icon="table" title="Không có dữ liệu để hiển thị" />
+components/charts/IndustryGrid.tsx:9:import { SectionHeader } from '../shared/ui/SectionHeader';
+components/charts/IndustryGrid.tsx:11:import { SectionCard } from '../shared/ui/SectionCard';
+components/charts/IndustryGrid.tsx:12:import { EmptyState } from '../shared/ui/EmptyState';
+components/charts/IndustryGrid.tsx:224:        <SectionCard
+components/charts/IndustryGrid.tsx:229:            <SectionHeader
+components/charts/IndustryGrid.tsx:314:            </SectionHeader>
+components/charts/IndustryGrid.tsx:338:                                <EmptyState icon={<AppIcon name="searchEmpty" size="xl" />} title="Không có dữ liệu" compact />
+components/charts/IndustryGrid.tsx:500:                                    <EmptyState compact icon="chartPie" title="Không có dữ liệu biểu đồ" />
+components/charts/IndustryGrid.tsx:508:        </SectionCard>
+components/employees/TopSellerList.tsx:4:import { EmptyState } from '../shared/ui/EmptyState';
+components/employees/TopSellerList.tsx:160:                    <EmptyState compact icon="users" title="Không có nhân viên" description="Bộ phận đã chọn chưa có dữ liệu bán hàng." />
+features/sticker-event/SavedListsModal.tsx:9:import { EmptyState } from '../../components/shared/ui/EmptyState';
+features/sticker-event/SavedListsModal.tsx:130:                            <EmptyState icon={<AppIcon name="exportBatch" size="xl" />} title="Chưa có danh sách nào được lưu" />
+features/bi-dashboard/components/nhanvien/CompetitionTab.tsx:25:import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/nhanvien/CompetitionTab.tsx:1089:                                    <EmptyState
+components/charts/TrendChart.tsx:10:import { SectionHeader } from '../shared/ui/SectionHeader';
+components/charts/TrendChart.tsx:12:import { SectionCard } from '../shared/ui/SectionCard';
+components/charts/TrendChart.tsx:13:import { EmptyState } from '../shared/ui/EmptyState';
+components/charts/TrendChart.tsx:329:        return <div className="flex items-center justify-center h-full"><EmptyState icon={<AppIcon name="trendUp" size="lg" />} title="Không có dữ liệu xu hướng" compact /></div>;
+components/charts/TrendChart.tsx:418:    <SectionCard
+components/charts/TrendChart.tsx:424:      <SectionHeader
+components/charts/TrendChart.tsx:541:      </SectionHeader>
+components/charts/TrendChart.tsx:710:    </SectionCard>
+components/employees/EmployeeAnalysis.tsx:9:import { SectionHeader } from '../shared/ui/SectionHeader';
+components/employees/EmployeeAnalysis.tsx:11:import { SectionCard } from '../shared/ui/SectionCard';
+components/employees/EmployeeAnalysis.tsx:208:        <SectionCard className="mb-8 flex flex-col flex-grow lg:rounded-none">
+components/employees/EmployeeAnalysis.tsx:210:            <SectionHeader
+components/employees/EmployeeAnalysis.tsx:249:            </SectionHeader>
+components/employees/EmployeeAnalysis.tsx:309:        </SectionCard>
+features/bi-dashboard/components/nhanvien/RevenueTab.tsx:25:import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/nhanvien/RevenueTab.tsx:384:    // Tiêu đề dùng đúng cỡ chữ nhỏ gọn có sẵn của SectionHeader (text-sm lg:text-xl) thay vì tự
+features/bi-dashboard/components/nhanvien/RevenueTab.tsx:387:    // 2 span vì subtitle không còn là sibling liền kề của title trong SectionHeader.
+features/bi-dashboard/components/nhanvien/RevenueTab.tsx:409:    if (!supermarketName) return <Card bordered={false} title="Phân tích Nhân viên"><EmptyState icon={<AppIcon name="users" size="xl" />} title="Vui lòng chọn siêu thị" compact /></Card>;
+components/tables/SummaryTable.tsx:8:import { EmptyState } from '../shared/ui/EmptyState';
+components/tables/SummaryTable.tsx:467:                                     <EmptyState icon={<AppIcon name="empty" size="lg" />} title="Không có dữ liệu để hiển thị" compact />
+features/sticker-event/ManualInputModal.tsx:12:import { EmptyState } from '../../components/shared/ui/EmptyState';
+features/sticker-event/ManualInputModal.tsx:332:                                <EmptyState
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:6:import { Button, Input, Tabs, EmptyState, SectionCard, Switch } from '../../../components/shared/ui';
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:162:        <SectionCard className="w-full max-w-sm lg:aspect-[197/285] min-h-[460px] p-3 lg:p-6 no-print flex flex-col overflow-hidden">
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:451:                            <EmptyState icon={<AppIcon name="history" size="lg" />} title="Chưa có lịch sử in" compact />
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:514:        </SectionCard>
+components/filters/FilterSection.tsx:16:import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';
+components/filters/FilterSection.tsx:210:                        <ListGroup title="Nhân viên & phân ca">
+components/filters/FilterSection.tsx:211:                            <ListRow
+components/filters/FilterSection.tsx:218:                            <ListRow icon="cloudUpload" iconTone="sky" label="Nhập file Excel phân ca" onClick={() => onLoadShiftFile?.()} />
+components/filters/FilterSection.tsx:219:                            <ListRow
+components/filters/FilterSection.tsx:225:                            <ListRow
+components/filters/FilterSection.tsx:233:                        </ListGroup>
+components/filters/FilterSection.tsx:358:                    <ListGroup title="Hiển thị các khu vực">
+components/filters/FilterSection.tsx:362:                                <ListRow
+components/filters/FilterSection.tsx:371:                    </ListGroup>
+components/filters/FilterSection.tsx:374:                    <ListGroup title="Cấu hình">
+components/filters/FilterSection.tsx:375:                        <ListRow
+components/filters/FilterSection.tsx:381:                    </ListGroup>
+features/sticker-event/ResultsDisplay.tsx:7:import { EmptyState } from '../../components/shared/ui/EmptyState';
+features/sticker-event/ResultsDisplay.tsx:343:          <EmptyState
+components/layout/FontSelector.tsx:7:import { ListGroup, ListRow } from '../shared/ui/ListGroup';
+components/layout/FontSelector.tsx:214:            <ListGroup>
+components/layout/FontSelector.tsx:216:                    <ListRow
+components/layout/FontSelector.tsx:224:            </ListGroup>
+features/sticker-event/stickerprinter/StickerManualQueue.tsx:5:import { Button, Input, EmptyState } from '../../../components/shared/ui';
+features/sticker-event/stickerprinter/StickerManualQueue.tsx:402:                            <EmptyState icon={<AppIcon name="searchEmpty" size="md" />} title="Không tìm thấy sticker phù hợp" compact />
+features/sticker-event/stickerprinter/StickerManualQueue.tsx:460:                <EmptyState
+components/layout/MobileMoreSheet.tsx:7:import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';
+components/layout/MobileMoreSheet.tsx:15: * đầu): sheet chỉ mở khi bấm "Khác" nên `Modal` + `ListGroup` không cần có mặt lúc vẽ khung app. MobileBottomNav tải trước mảnh
+components/layout/MobileMoreSheet.tsx:41:                <ListGroup>
+components/layout/MobileMoreSheet.tsx:98:                </ListGroup>
+components/layout/MobileMoreSheet.tsx:100:                <ListGroup title="Công cụ">
+components/layout/MobileMoreSheet.tsx:102:                        <ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}
+components/layout/MobileMoreSheet.tsx:106:                </ListGroup>
+components/layout/MobileMoreSheet.tsx:108:                <ListGroup title="Hệ thống">
+components/layout/MobileMoreSheet.tsx:110:                        <ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}
+components/layout/MobileMoreSheet.tsx:114:                </ListGroup>
+features/bi-dashboard/components/nhanvien/InstallmentTab.tsx:13:import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/nhanvien/InstallmentTab.tsx:401:    if (rows.length === 0) return <Card bordered={false} title="Phân tích Trả chậm"><EmptyState icon={<AppIcon name="report" size="xl" />} title="Chưa có dữ liệu" /></Card>;
+features/sticker-event/SuperAdminModal.tsx:9:import { EmptyState } from '../../components/shared/ui/EmptyState';
+features/sticker-event/SuperAdminModal.tsx:174:                <EmptyState icon={<AppIcon name="users" size="lg" />} title="Chưa có dữ liệu tìm kiếm" />
+features/sticker-event/stickerprinter/StickerPrintPreview.tsx:2:import { SectionCard } from '../../../components/shared/ui/SectionCard';
+features/sticker-event/stickerprinter/StickerPrintPreview.tsx:228:        <SectionCard className="p-0 shrink-0 w-full max-w-sm mx-auto overflow-hidden rounded-none lg:rounded-none no-print-bg">
+features/sticker-event/stickerprinter/StickerPrintPreview.tsx:429:        </SectionCard>
+components/shared/DrillDownModal.tsx:9:import { EmptyState } from '../shared/ui/EmptyState';
+components/shared/DrillDownModal.tsx:107:                    <EmptyState icon="search" title="Không có dòng nào khớp" description="Thử xoá bớt từ khoá tìm kiếm." />
+components/views/UserManagementView.tsx:12:import { EmptyState } from '../shared/ui/EmptyState';
+components/views/UserManagementView.tsx:914:                                <EmptyState
+components/views/LandingPageView.tsx:2:import { EmptyState } from '../shared/ui/EmptyState';
+components/views/LandingPageView.tsx:51:                <EmptyState
+components/views/DashboardView.tsx:53:import { SectionHeader } from '../shared/ui/SectionHeader';
+components/views/DashboardView.tsx:54:import { SectionCard } from '../shared/ui/SectionCard';
+components/views/DashboardView.tsx:561:                                        <SectionCard ref={kpiCardsOnlyRef} className="relative lg:rounded-none">
+components/views/DashboardView.tsx:622:                                                <SectionHeader
+components/views/DashboardView.tsx:663:                                                </SectionHeader>
+components/views/DashboardView.tsx:671:                                        </SectionCard>
+components/views/AboutView.tsx:4:import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';
+components/views/AboutView.tsx:42:            <ListGroup title="Phân hệ">
+components/views/AboutView.tsx:44:                    <ListRow key={p.tab} icon={p.icon} iconTone={p.tone} label={p.ten} description={p.moTa} onClick={() => setActiveTab(p.tab)} />
+components/views/AboutView.tsx:46:            </ListGroup>
+components/views/AboutView.tsx:48:            <ListGroup
+components/views/AboutView.tsx:52:                <ListRow icon="spreadsheet" iconTone="slate" label="File Excel xử lý trên máy"
+components/views/AboutView.tsx:54:                <ListRow icon="cloud" iconTone="slate" label="Kết quả đồng bộ theo tài khoản"
+components/views/AboutView.tsx:56:                <ListRow icon="department" iconTone="slate" label="Phân quyền theo Kho"
+components/views/AboutView.tsx:58:                <ListRow icon="sparkles" iconTone="slate" label="AI (Google Gemini)"
+components/views/AboutView.tsx:60:            </ListGroup>
+components/summary/WarehouseSummary.tsx:6:import { SectionHeader } from '../shared/ui/SectionHeader';
+components/summary/WarehouseSummary.tsx:768:                <SectionHeader 
+components/summary/WarehouseSummary.tsx:844:                </SectionHeader>
+components/modals/GtdhTargetModal.tsx:9:import { EmptyState } from '../shared/ui/EmptyState';
+components/modals/GtdhTargetModal.tsx:141:                        <EmptyState
+features/bi-dashboard/components/Dashboard.tsx:36:const EmptyState: React.FC<{ onNavigate: () => void; message?: string }> = ({ onNavigate, message }) => (
+features/bi-dashboard/components/Dashboard.tsx:427:                <EmptyState onNavigate={onNavigateToUpdater} />
+features/bi-dashboard/components/Card.tsx:2:import { SectionCard } from '../../../components/shared/ui/SectionCard';
+features/bi-dashboard/components/Card.tsx:3:import { SectionHeader } from '../../../components/shared/ui/SectionHeader';
+features/bi-dashboard/components/Card.tsx:9:   *  SectionHeader thay vì nhồi vào `title` khiến tiêu đề bị to/nặng bất thường. */
+features/bi-dashboard/components/Card.tsx:15:  /** Tắt viền/bo góc/shadow của SectionCard khi Card này đã nằm sẵn trong 1 khung viền khác ở
+features/bi-dashboard/components/Card.tsx:27:      <SectionHeader 
+features/bi-dashboard/components/Card.tsx:36:      </SectionHeader>
+features/bi-dashboard/components/Card.tsx:52:    <SectionCard
+features/bi-dashboard/components/Card.tsx:57:    </SectionCard>
+components/shared/ui/EmptyState.tsx:6:/* ─── EmptyState ─── */
+components/shared/ui/EmptyState.tsx:13:export interface EmptyStateProps {
+components/shared/ui/EmptyState.tsx:23:export const EmptyState: React.FC<EmptyStateProps> = ({
+components/shared/ui/EmptyState.tsx:68:EmptyState.displayName = 'EmptyState';
+features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx:3:import { EmptyState } from '../../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx:171:            <EmptyState
+components/modals/UploadTypeSelectionModal.tsx:5:import { ListGroup, ListRow } from '../shared/ui/ListGroup';
+components/modals/UploadTypeSelectionModal.tsx:43:                <ListGroup>
+components/modals/UploadTypeSelectionModal.tsx:44:                    <ListRow
+components/modals/UploadTypeSelectionModal.tsx:50:                    <ListRow
+components/modals/UploadTypeSelectionModal.tsx:56:                </ListGroup>
+features/phan-ca/components/EditPatternModal.tsx:11:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/phan-ca/components/EditPatternModal.tsx:484:                <EmptyState title="Chưa có mẫu ca nào cho bộ phận này." compact />
+features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx:4:import { EmptyState } from '../../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx:61:            <EmptyState
+features/bi-dashboard/components/BiSupermarketMapAdmin.tsx:8:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/BiSupermarketMapAdmin.tsx:400:                        <EmptyState compact title="Chưa có siêu thị nào trong bảng map" description="Dán dữ liệu Báo cáo để tự nhận diện, hoặc thêm thủ công ở trên." />
+features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx:3:import { EmptyState } from '../../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx:238:                <EmptyState
+features/phan-ca/components/ConflictListModal.tsx:6:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/phan-ca/components/ConflictListModal.tsx:52:          <EmptyState
+components/modals/FileHistoryModal.tsx:3:import { EmptyState } from '../shared/ui/EmptyState';
+components/modals/FileHistoryModal.tsx:97:                    <EmptyState
+features/phan-ca/components/HistoryModal.tsx:6:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/phan-ca/components/HistoryModal.tsx:28:        <EmptyState
+features/phan-ca/components/EditShiftModal.tsx:9:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/phan-ca/components/EditShiftModal.tsx:545:                      <EmptyState
+features/phan-ca/components/EditRulesModal.tsx:7:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/phan-ca/components/EditRulesModal.tsx:125:            <EmptyState title="Chưa có cấu hình ca nào. Hãy thêm ở bên dưới." compact />
+components/shared/ui/ListGroup.tsx:11: *  - `ListGroup`: tiêu đề nhóm 13px xám (viết thường như câu) + thẻ trắng bo 12px + chú thích cuối nhóm (tuỳ chọn).
+components/shared/ui/ListGroup.tsx:12: *  - `ListRow`: hàng ≥ 44px (cảm ứng 48px) — [ô icon màu 28px] [nhãn 15px + mô tả 13px] [giá trị] [công tắc | ›].
+components/shared/ui/ListGroup.tsx:22:export interface ListGroupProps {
+components/shared/ui/ListGroup.tsx:30:export const ListGroup: React.FC<ListGroupProps> = ({ title, footer, children, className, ...rest }) => (
+components/shared/ui/ListGroup.tsx:37:ListGroup.displayName = 'ListGroup';
+components/shared/ui/ListGroup.tsx:39:export interface ListRowProps {
+components/shared/ui/ListGroup.tsx:58:export const ListRow: React.FC<ListRowProps> = ({
+components/shared/ui/ListGroup.tsx:97:ListRow.displayName = 'ListRow';
+features/bi-dashboard/components/DataUpdater.tsx:40:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/DataUpdater.tsx:1103:                        <EmptyState
+components/shared/ui/DataTable.tsx:3:import { EmptyState } from './EmptyState';
+components/shared/ui/DataTable.tsx:298:                  <EmptyState
+components/modals/CrossSellingBuilderModal.tsx:161:    const updateSectionHeader = (secId: string, val: string) => {
+components/modals/CrossSellingBuilderModal.tsx:386:                                                onChange={e => updateSectionHeader(section.id, e.target.value)}
+features/phan-ca/PhanCaView.tsx:28:import { SectionCard } from '../../components/shared/ui/SectionCard';
+features/phan-ca/PhanCaView.tsx:29:import { SectionHeader } from '../../components/shared/ui/SectionHeader';
+features/phan-ca/PhanCaView.tsx:31:import { EmptyState } from '../../components/shared/ui/EmptyState';
+features/phan-ca/PhanCaView.tsx:614:        <SectionCard className={`p-3 lg:p-6 mb-3 lg:mb-6 ${isExportingImage ? 'export-hidden' : ''}`}>
+features/phan-ca/PhanCaView.tsx:621:        </SectionCard>
+features/phan-ca/PhanCaView.tsx:622:        <SectionCard ref={exportContainerRef} className={isIndividualExport ? 'max-w-5xl mx-auto' : ''}>
+features/phan-ca/PhanCaView.tsx:624:            <SectionHeader
+features/phan-ca/PhanCaView.tsx:633:            </SectionHeader>
+features/phan-ca/PhanCaView.tsx:692:                <EmptyState icon="calendar" title="Chưa có lịch" description="Lịch hiện ở đây sau khi nhập nhân viên và bấm “Tạo lịch”." />
+features/phan-ca/PhanCaView.tsx:706:        </SectionCard>
+features/bi-dashboard/components/SupermarketConfig.tsx:24:import { EmptyState } from '../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/SupermarketConfig.tsx:983:                    <EmptyState
+components/shared/ui/SectionHeader.tsx:8:interface SectionHeaderProps {
+components/shared/ui/SectionHeader.tsx:34:export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, icon, subtitle, children, quick, actions, onClick, className = '', titleClassName }) => {
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:16:import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:546:                                <EmptyState
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:561:                            <EmptyState
+features/bi-dashboard/components/dashboard/IndustryView.tsx:12:import { EmptyState } from '../../../../components/shared/ui/EmptyState';
+features/bi-dashboard/components/dashboard/IndustryView.tsx:516:                    <EmptyState title="Chưa có dữ liệu cho siêu thị này" compact />
+components/shared/ui/SectionCard.tsx:4:interface SectionCardProps extends React.HTMLAttributes<HTMLDivElement> {
+components/shared/ui/SectionCard.tsx:15: * Khác với `Card` (tĩnh, không đổi hình theo breakpoint): `SectionCard` dành riêng cho khung bọc
+components/shared/ui/SectionCard.tsx:18:export const SectionCard = React.forwardRef<HTMLDivElement, SectionCardProps>(
+components/shared/ui/SectionCard.tsx:33:SectionCard.displayName = 'SectionCard';
+components/shared/ui/SectionCard.tsx:35:export default SectionCard;

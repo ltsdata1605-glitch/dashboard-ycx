@@ -1,0 +1,497 @@
+import { useMemo } from 'react';
+import { RevenueRow, BonusMetrics } from '../types/nhanVienTypes';
+import { standardizeEmployeeName, formatEmployeeName, extractEmployeeId, isSameEmployee } from '../utils/nhanVienHelpers';
+import { getBonusForEmployee } from '../utils/bonusParser';
+import { getMonthProgress } from '../services/metricService';
+
+export interface CompetitionStatsSummary {
+    datMap: Map<string, number>;
+    totalHeaders: number;
+    storeDatPercent: number;
+    storeColumnDatCount: number;
+}
+
+interface UseRevenueDataProps {
+    rows: RevenueRow[];
+    departmentNames: string[];
+    sortConfig: { key: string; direction: 'asc' | 'desc' };
+    prevMonthRows: RevenueRow[];
+    departmentWeights: Record<string, number>;
+    deptEmployeeCounts: Record<string, number>;
+    supermarketTarget: number;
+    employeeInstallmentMap: Map<string, number>;
+    /** DT siêu thị (mẫu số của % trả chậm) theo nhân viên — CÙNG khoá với employeeInstallmentMap. Có thì % trả chậm dòng bộ phận /
+     *  TỔNG CỘNG tính CÓ TRỌNG SỐ (Σ DT trả chậm / Σ DT siêu thị) — khớp tab Trả chậm; thiếu thì lùi về trung bình cộng như cũ. */
+    employeeInstallmentBaseMap?: Map<string, number>;
+    viewMode: 'group' | 'list';
+    exportDeptFilter: string | null;
+    isActive?: boolean;
+    bonusData?: Record<string, BonusMetrics | null>;
+    isRealtime?: boolean;
+    dateContext?: { day?: number; month?: number; year?: number } | null;
+    competitionStats?: CompetitionStatsSummary | null;
+}
+
+export const useRevenueData = ({
+    rows,
+    departmentNames,
+    sortConfig,
+    prevMonthRows,
+    departmentWeights,
+    deptEmployeeCounts,
+    supermarketTarget,
+    employeeInstallmentMap,
+    employeeInstallmentBaseMap,
+    viewMode,
+    exportDeptFilter,
+    isActive,
+    bonusData,
+    isRealtime = false,
+    dateContext = null,
+    competitionStats = null
+}: UseRevenueDataProps) => {
+
+    const displayList = useMemo(() => {
+        if (isActive === false) return [];
+        const isFiltering = !departmentNames.includes('all');
+
+        const assignBonusTiers = (emps: RevenueRow[]) => {
+            if (emps.length === 0) return;
+            const sorted = [...emps].sort((a, b) => (b.bonus_tong || 0) - (a.bonus_tong || 0));
+            
+            const top3Ids = new Set<string>();
+            sorted.slice(0, 3).forEach(e => {
+                if ((e.bonus_tong || 0) > 0) {
+                    top3Ids.add(e.originalName || '');
+                }
+            });
+
+            // Calculate bottom 30% of employees
+            const botCount = Math.ceil(emps.length * 0.3);
+            const botIds = new Set<string>();
+            if (botCount > 0) {
+                const sortedAsc = [...emps].sort((a, b) => (a.bonus_tong || 0) - (b.bonus_tong || 0));
+                sortedAsc.slice(0, botCount).forEach(e => {
+                    botIds.add(e.originalName || '');
+                });
+            }
+
+            emps.forEach(e => {
+                if (top3Ids.has(e.originalName || '')) {
+                    e.bonus_tier = 'top';
+                } else if (botIds.has(e.originalName || '')) {
+                    e.bonus_tier = 'bot';
+                } else {
+                    e.bonus_tier = 'normal';
+                }
+            });
+        };
+        const allDepts = Array.from(new Set(rows.filter(r => r.type === 'employee' && r.department).map(r => r.department as string))).sort();
+        
+        const now = new Date();
+        const monthProgress = getMonthProgress(now, dateContext);
+        const totalDays = monthProgress.daysInMonth;
+        const daysPassed = monthProgress.daysPassed;
+        const remainingDays = Math.max(1, totalDays - daysPassed);
+
+        // Tỷ lệ thời gian ngày cho chế độ Realtime (8h00 - 21h30 = 13.5 tiếng = 810 phút)
+        const timeRatioRealtime = (() => {
+            const startMinutes = 8 * 60; // 480
+            const endMinutes = 21 * 60 + 30; // 1290
+            const totalWorkMinutes = endMinutes - startMinutes; // 810
+            const nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+            if (nowMinutes <= startMinutes) return 0.05;
+            if (nowMinutes >= endMinutes) return 1;
+            return Math.max(0.05, (nowMinutes - startMinutes) / totalWorkMinutes);
+        })();
+
+        let deptsToProcess = exportDeptFilter ? [exportDeptFilter] : (isFiltering ? departmentNames : allDepts);
+
+        // Map tra cứu O(1) thay vì .find() O(n) lồng trong .map() ở calculateWithComparison bên dưới
+        const prevMonthRowsMap = new Map(prevMonthRows.map(pr => [pr.originalName, pr]));
+
+        const traCuuTheoNhanVien = (map: Map<string, number>, origName?: string, name?: string): number => {
+            if (!origName && !name) return 0;
+            // 1. Đối chiếu trực tiếp key
+            if (origName && map.has(origName)) return map.get(origName)!;
+            if (name && map.has(name)) return map.get(name)!;
+
+            // 2. Đối chiếu theo Mã số nhân viên (Employee ID duy nhất trong MWG)
+            const id = extractEmployeeId(origName || '') || extractEmployeeId(name || '');
+            if (id && map.has(id)) return map.get(id)!;
+
+            // 3. Đối chiếu theo tên chuẩn hóa, rút gọn hoặc đảo thứ tự
+            if (origName) {
+                const canonical = standardizeEmployeeName(origName);
+                if (map.has(canonical)) return map.get(canonical)!;
+                const formatted = formatEmployeeName(origName);
+                if (map.has(formatted)) return map.get(formatted)!;
+                if (origName.includes(' - ')) {
+                    const parts = origName.split(' - ').map(p => p.trim());
+                    if (parts.length >= 2) {
+                        const swapped = `${parts[1]} - ${parts[0]}`;
+                        if (map.has(swapped)) return map.get(swapped)!;
+                    }
+                }
+            }
+            if (name) {
+                const canonical = standardizeEmployeeName(name);
+                if (map.has(canonical)) return map.get(canonical)!;
+                const formatted = formatEmployeeName(name);
+                if (map.has(formatted)) return map.get(formatted)!;
+            }
+
+            // 4. Fallback duyệt qua toàn bộ map và so khớp bằng isSameEmployee
+            for (const [k, v] of map.entries()) {
+                if (isSameEmployee(k, origName) || isSameEmployee(k, name)) {
+                    return v;
+                }
+            }
+            return 0;
+        };
+
+        const getInstallmentForEmployee = (origName?: string, name?: string): number => traCuuTheoNhanVien(employeeInstallmentMap, origName, name);
+        // % trả chậm của NHÓM nhân viên: Σ(% × DT siêu thị) / Σ DT siêu thị = Σ DT trả chậm / Σ DT siêu thị — đúng cách tab Trả chậm
+        // cộng dòng bộ phận/tổng (recomputeInstallmentTotal). Trước 2026-10-29 là TRUNG BÌNH CỘNG % từng người: người bán ít mà % cao
+        // kéo số tổng lệch, 2 tab cho 2 con số khác nhau. Không có DT siêu thị (dữ liệu cũ) → giữ trung bình cộng.
+        const traChamNhom = (list: RevenueRow[]): number => {
+            if (list.length === 0) return 0;
+            if (employeeInstallmentBaseMap && employeeInstallmentBaseMap.size > 0) {
+                let tu = 0, mau = 0;
+                for (const e of list) {
+                    const base = traCuuTheoNhanVien(employeeInstallmentBaseMap, e.originalName, e.name);
+                    if (base > 0) { tu += Number(e.calculatedInstallment || 0) * base; mau += base; }
+                }
+                if (mau > 0) return tu / mau;
+            }
+            return list.reduce((t, e) => t + Number(e.calculatedInstallment || 0), 0) / list.length;
+        };
+
+        const calculateWithComparison = (emp: RevenueRow): RevenueRow => {
+            const weight = (departmentWeights[emp.department!] || 0) / 100;
+            const empCount = deptEmployeeCounts[emp.department!] || 1;
+            let empTarget = supermarketTarget > 0 ? (supermarketTarget * weight) / empCount : 0;
+            
+            // 2. Chế độ Realtime: M.Tiêu = Mục tiêu luỹ kế / số ngày của tháng
+            if (isRealtime && totalDays > 0) {
+                empTarget = empTarget / totalDays;
+            }
+
+            const currentInstallment = getInstallmentForEmployee(emp.originalName, emp.name);
+            const currentCompletion = empTarget > 0 ? (emp.dtqd / empTarget) * 100 : 0;
+
+            const prevData = prevMonthRows.length > 0 ? (prevMonthRowsMap.get(emp.originalName) ?? null) : null;
+
+            // 3. Chế độ Realtime: Bỏ D.Kiến; %D.KIẾN đổi thành %HT = DTQĐ / M.Tiêu
+            const empDuKien = isRealtime 
+                ? emp.dtqd
+                : (daysPassed > 0 ? (emp.dtqd / daysPassed) * totalDays : 0);
+            
+            // 4. %HT (hoặc %D.KIẾN ở Luỹ kế)
+            const empPctDkht = isRealtime
+                ? (empTarget > 0 ? (emp.dtqd / empTarget) * 100 : 0)
+                : (empTarget > 0 ? (empDuKien / empTarget) * 100 : 0);
+
+            let prevCompData = null;
+            if (prevData) {
+                const prevTarget = empTarget; 
+                const prevDk = daysPassed > 0 ? (prevData.dtqd / daysPassed) * totalDays : 0;
+                prevCompData = {
+                    dtlk: prevData.dtlk,
+                    dtqd: prevData.dtqd,
+                    target: prevTarget,
+                    completion: prevTarget > 0 ? (prevData.dtqd / prevTarget) * 100 : 0,
+                    hqqd: prevData.dtlk > 0 ? (prevData.dtqd / prevData.dtlk) - 1 : 0,
+                    installment: 0,
+                    pctBillBk: prevData.pctBillBk || 0,
+                    duKien: prevDk,
+                    dkht: prevTarget > 0 ? (prevDk / prevTarget) * 100 : 0
+                };
+            }
+
+            const remaining_total = Math.max(0, empTarget - emp.dtqd);
+            const remaining_daily = remaining_total / remainingDays;
+            
+            const avgDaily = emp.dtqd / daysPassed;
+            const remaining_daily_status: 'warning' | 'success' | undefined = empTarget > 0 ? (avgDaily < remaining_daily ? 'warning' : 'success') : undefined;
+            
+            const bonus_tong = getBonusForEmployee(bonusData, emp.originalName, emp.name)?.tong || 0;
+
+            const totalHeaders = competitionStats?.totalHeaders || 0;
+            const datMap = competitionStats?.datMap;
+            let empCompDat: number | undefined;
+            if (datMap && totalHeaders > 0) {
+                if (emp.name && datMap.has(emp.name)) empCompDat = datMap.get(emp.name);
+                else if (emp.originalName && datMap.has(emp.originalName)) empCompDat = datMap.get(emp.originalName);
+                else if (emp.originalName) {
+                    const c = standardizeEmployeeName(emp.originalName);
+                    if (datMap.has(c)) empCompDat = datMap.get(c);
+                }
+                if (empCompDat === undefined && (emp.originalName || emp.name)) {
+                    for (const [k, v] of datMap.entries()) {
+                        if (isSameEmployee(k, emp.originalName) || isSameEmployee(k, emp.name)) {
+                            empCompDat = v;
+                            break;
+                        }
+                    }
+                }
+            }
+            const empCompPctDat = empCompDat !== undefined && totalHeaders > 0 ? (empCompDat / totalHeaders) * 100 : undefined;
+
+            return { 
+                ...emp, 
+                calculatedTarget: empTarget, 
+                calculatedCompletion: currentCompletion,
+                calculatedInstallment: currentInstallment,
+                remaining_total,
+                remaining_daily,
+                remaining_daily_status,
+                bonus_tong,
+                duKien: empDuKien,
+                pctDkht: empPctDkht,
+                comp_dat: empCompDat,
+                comp_pct_dat: empCompPctDat,
+                comp_total: totalHeaders > 0 ? totalHeaders : undefined,
+                prevCompData
+            };
+        };
+
+        if (viewMode === 'list' && !exportDeptFilter) {
+            const list = rows.filter(r => r.type === 'employee' && (isFiltering ? departmentNames.includes(r.department!) : true))
+                             .map(calculateWithComparison);
+
+            list.sort((a, b) => {
+                let valA: unknown, valB: unknown;
+                if (sortConfig.key === 'name') { valA = a.originalName || a.name; valB = b.originalName || b.name; }
+                else if (sortConfig.key === 'target') { valA = a.calculatedTarget; valB = b.calculatedTarget; }
+                else if (sortConfig.key === 'completion') { valA = a.calculatedCompletion; valB = b.calculatedCompletion; }
+                else if (sortConfig.key === 'duKien') { valA = a.duKien; valB = b.duKien; }
+                else if (sortConfig.key === 'pctDkht') { valA = a.pctDkht; valB = b.pctDkht; }
+                else if (sortConfig.key === 'installment') { valA = a.calculatedInstallment; valB = b.calculatedInstallment; }
+                else if (sortConfig.key === 'hqqd') { valA = a.hieuQuaQD; valB = b.hieuQuaQD; }
+                else if (sortConfig.key === 'comp_dat') { valA = a.comp_dat ?? -1; valB = b.comp_dat ?? -1; }
+                else if (sortConfig.key === 'comp_pct_dat') { valA = a.comp_pct_dat ?? -1; valB = b.comp_pct_dat ?? -1; }
+                else { valA = (a as unknown as Record<string, unknown>)[sortConfig.key]; valB = (b as unknown as Record<string, unknown>)[sortConfig.key]; }
+                const compare = typeof valA === 'string' && typeof valB === 'string' ? valA.localeCompare(valB) : ((valA as number) || 0) - ((valB as number) || 0);
+                return sortConfig.direction === 'asc' ? compare : -compare;
+            });
+
+            const result: RevenueRow[] = list.map((emp, index) => ({ ...emp, rank: index + 1 }));
+            assignBonusTiers(result);
+            
+            if (result.length > 0) {
+                const sumDtlk = result.reduce((s, e) => s + e.dtlk, 0);
+                const sumDtqd = result.reduce((s, e) => s + e.dtqd, 0);
+                const sumTarget = result.reduce((s, e) => s + (e.calculatedTarget || 0), 0);
+                const sumDuKien = isRealtime
+                    ? sumDtqd
+                    : (daysPassed > 0 ? (sumDtqd / daysPassed) * totalDays : 0);
+                const sumPctDkht = isRealtime
+                    ? (sumTarget > 0 ? (sumDtqd / sumTarget) * 100 : 0)
+                    : (sumTarget > 0 ? (sumDuKien / sumTarget) * 100 : 0);
+                const avgHqqd = sumDtlk > 0 ? (sumDtqd / sumDtlk) - 1 : 0;
+                const avgInstallment = traChamNhom(result);
+                const sumBonusTong = result.reduce((s, e) => s + (e.bonus_tong || 0), 0);
+                
+                const prevDtlk = result.reduce((s, e) => s + (e.prevCompData?.dtlk || 0), 0);
+                const prevDtqd = result.reduce((s, e) => s + (e.prevCompData?.dtqd || 0), 0);
+                const prevTarget = result.reduce((s, e) => s + (e.prevCompData?.target || 0), 0);
+                const prevDk = daysPassed > 0 ? (prevDtqd / daysPassed) * totalDays : 0;
+
+                const totalHeaders = competitionStats?.totalHeaders || 0;
+                result.push({
+                    type: 'total',
+                    name: 'TỔNG CỘNG',
+                    dtlk: sumDtlk,
+                    dtqd: sumDtqd,
+                    calculatedTarget: sumTarget,
+                    calculatedCompletion: sumTarget > 0 ? (sumDtqd / sumTarget) * 100 : 0,
+                    duKien: sumDuKien,
+                    pctDkht: sumPctDkht,
+                    hieuQuaQD: avgHqqd,
+                    calculatedInstallment: avgInstallment,
+                    remaining_total: Math.max(0, sumTarget - sumDtqd),
+                    remaining_daily: Math.max(0, sumTarget - sumDtqd) / remainingDays,
+                    bonus_tong: sumBonusTong,
+                    comp_dat: competitionStats?.storeColumnDatCount,
+                    comp_pct_dat: totalHeaders > 0 ? ((competitionStats?.storeColumnDatCount || 0) / totalHeaders) * 100 : undefined,
+                    comp_total: totalHeaders > 0 ? totalHeaders : undefined,
+                    prevCompData: (prevDtlk || prevDtqd) ? {
+                        dtlk: prevDtlk,
+                        dtqd: prevDtqd,
+                        target: prevTarget,
+                        completion: prevTarget > 0 ? (prevDtqd / prevTarget) * 100 : 0,
+                        hqqd: prevDtlk > 0 ? (prevDtqd / prevDtlk) - 1 : 0,
+                        installment: 0,
+                        pctBillBk: 0,
+                        duKien: prevDk,
+                        dkht: prevTarget > 0 ? (prevDk / prevTarget) * 100 : 0
+                    } : null
+                });
+            }
+            return result;
+        }
+
+        let deptGroups = deptsToProcess.map(deptName => {
+            let deptEmployees = rows.filter(r => r.type === 'employee' && r.department === deptName)
+                                    .map(calculateWithComparison);
+
+            deptEmployees.sort((a, b) => {
+                let valA: unknown, valB: unknown;
+                if (sortConfig.key === 'name') { valA = a.originalName || a.name; valB = b.originalName || b.name; }
+                else if (sortConfig.key === 'target') { valA = a.calculatedTarget; valB = b.calculatedTarget; }
+                else if (sortConfig.key === 'completion') { valA = a.calculatedCompletion; valB = b.calculatedCompletion; }
+                else if (sortConfig.key === 'duKien') { valA = a.duKien; valB = b.duKien; }
+                else if (sortConfig.key === 'pctDkht') { valA = a.pctDkht; valB = b.pctDkht; }
+                else if (sortConfig.key === 'installment') { valA = a.calculatedInstallment; valB = b.calculatedInstallment; }
+                else if (sortConfig.key === 'hqqd') { valA = a.hieuQuaQD; valB = b.hieuQuaQD; }
+                else { valA = (a as unknown as Record<string, unknown>)[sortConfig.key]; valB = (b as unknown as Record<string, unknown>)[sortConfig.key]; }
+                const compare = typeof valA === 'string' && typeof valB === 'string' ? valA.localeCompare(valB) : ((valA as number) || 0) - ((valB as number) || 0);
+                return sortConfig.direction === 'asc' ? compare : -compare;
+            });
+
+            const sumDtlk = deptEmployees.reduce((s, e) => s + e.dtlk, 0);
+            const sumDtqd = deptEmployees.reduce((s, e) => s + e.dtqd, 0);
+            const sumTarget = deptEmployees.reduce((s, e) => s + (e.calculatedTarget || 0), 0);
+            const sumDuKien = isRealtime 
+                ? sumDtqd 
+                : (daysPassed > 0 ? (sumDtqd / daysPassed) * totalDays : 0);
+            const deptPctDkht = isRealtime
+                ? (sumTarget > 0 ? (sumDtqd / sumTarget) * 100 : 0)
+                : (sumTarget > 0 ? (sumDuKien / sumTarget) * 100 : 0);
+            const avgInstallment = traChamNhom(deptEmployees);
+            const avgHqqd = sumDtlk > 0 ? (sumDtqd / sumDtlk) - 1 : 0;
+            const sumBonusTong = deptEmployees.reduce((s, e) => s + (e.bonus_tong || 0), 0);
+            const totalHeaders = competitionStats?.totalHeaders || 0;
+            const deptDatSum = deptEmployees.reduce((s, e) => s + (e.comp_dat || 0), 0);
+            const deptAvgDat = deptEmployees.length > 0 ? deptDatSum / deptEmployees.length : 0;
+            const deptPossible = deptEmployees.length * totalHeaders;
+            const deptPctDat = deptPossible > 0 ? (deptDatSum / deptPossible) * 100 : undefined;
+
+            return {
+                name: deptName,
+                employees: deptEmployees,
+                sumDtlk,
+                sumDtqd,
+                sumTarget,
+                sumDuKien,
+                deptPctDkht,
+                avgInstallment,
+                avgHqqd,
+                sumBonusTong,
+                deptAvgDat,
+                deptPctDat,
+                sortValue: sortConfig.key === 'comp_dat' ? deptAvgDat : (sortConfig.key === 'comp_pct_dat' ? (deptPctDat || 0) : (sortConfig.key === 'dtqd' ? sumDtqd : (sortConfig.key === 'dtlk' ? sumDtlk : (sortConfig.key === 'target' ? sumTarget : (sortConfig.key === 'duKien' ? sumDuKien : (sortConfig.key === 'name' ? deptName : (sortConfig.key === 'bonus_tong' ? sumBonusTong : sumDtqd)))))))
+            };
+        });
+
+        deptGroups.sort((a, b) => {
+            if (sortConfig.key === 'name') {
+                return sortConfig.direction === 'asc' ? String(a.sortValue).localeCompare(String(b.sortValue)) : String(b.sortValue).localeCompare(String(a.sortValue));
+            }
+            return sortConfig.direction === 'asc' ? (a.sortValue as number) - (b.sortValue as number) : (b.sortValue as number) - (a.sortValue as number);
+        });
+
+        let finalOutput: RevenueRow[] = [];
+        let grandSumDtlk = 0, grandSumDtqd = 0, grandSumTarget = 0;
+        let grandPrevDtlk = 0, grandPrevDtqd = 0, grandPrevTarget = 0;
+
+        deptGroups.forEach(group => {
+            if (group.employees.length > 0) {
+                const prevDeptDtlk = group.employees.reduce((s, e) => s + (e.prevCompData?.dtlk || 0), 0);
+                const prevDeptDtqd = group.employees.reduce((s, e) => s + (e.prevCompData?.dtqd || 0), 0);
+                const prevDeptTarget = group.employees.reduce((s, e) => s + (e.prevCompData?.target || 0), 0);
+                const prevDeptDk = daysPassed > 0 ? (prevDeptDtqd / daysPassed) * totalDays : 0;
+                const totalHeaders = competitionStats?.totalHeaders || 0;
+
+                finalOutput.push({ 
+                    type: 'department', 
+                    name: group.name, 
+                    dtlk: group.sumDtlk, 
+                    dtqd: group.sumDtqd, 
+                    calculatedTarget: group.sumTarget, 
+                    calculatedCompletion: group.sumTarget > 0 ? (group.sumDtqd / group.sumTarget) * 100 : 0,
+                    duKien: group.sumDuKien,
+                    pctDkht: group.deptPctDkht,
+                    hieuQuaQD: group.avgHqqd,
+                    calculatedInstallment: group.avgInstallment,
+                    remaining_total: Math.max(0, group.sumTarget - group.sumDtqd),
+                    remaining_daily: Math.max(0, group.sumTarget - group.sumDtqd) / remainingDays,
+                    bonus_tong: group.sumBonusTong,
+                    comp_dat: totalHeaders > 0 ? group.deptAvgDat : undefined,
+                    comp_pct_dat: group.deptPctDat,
+                    comp_total: totalHeaders > 0 ? totalHeaders : undefined,
+                    prevCompData: (prevDeptDtlk || prevDeptDtqd) ? {
+                        dtlk: prevDeptDtlk,
+                        dtqd: prevDeptDtqd,
+                        target: prevDeptTarget,
+                        completion: prevDeptTarget > 0 ? (prevDeptDtqd / prevDeptTarget) * 100 : 0,
+                        hqqd: prevDeptDtlk > 0 ? (prevDeptDtqd / prevDeptDtlk) - 1 : 0,
+                        installment: 0,
+                        pctBillBk: 0,
+                        duKien: prevDeptDk,
+                        dkht: prevDeptTarget > 0 ? (prevDeptDk / prevDeptTarget) * 100 : 0
+                    } : null
+                });
+                finalOutput.push(...group.employees.map((emp, index) => ({ ...emp, rank: index + 1 })));
+                
+                grandSumDtlk += group.sumDtlk;
+                grandSumDtqd += group.sumDtqd;
+                grandSumTarget += group.sumTarget;
+
+                grandPrevDtlk += prevDeptDtlk;
+                grandPrevDtqd += prevDeptDtqd;
+                grandPrevTarget += prevDeptTarget;
+            }
+        });
+
+        const employeeRows = finalOutput.filter(r => r.type === 'employee');
+        assignBonusTiers(employeeRows);
+
+        if (finalOutput.length > 0 && !exportDeptFilter) {
+            const grandSumBonusTong = finalOutput.filter(r => r.type === 'department').reduce((s, d) => s + (d.bonus_tong || 0), 0);
+            const grandSumDuKien = isRealtime 
+                ? grandSumDtqd 
+                : (daysPassed > 0 ? (grandSumDtqd / daysPassed) * totalDays : 0);
+            const grandPctDkht = isRealtime
+                ? (grandSumTarget > 0 ? (grandSumDtqd / grandSumTarget) * 100 : 0)
+                : (grandSumTarget > 0 ? (grandSumDuKien / grandSumTarget) * 100 : 0);
+            const grandPrevDk = daysPassed > 0 ? (grandPrevDtqd / daysPassed) * totalDays : 0;
+            const totalHeaders = competitionStats?.totalHeaders || 0;
+
+            finalOutput.push({
+                type: 'total',
+                name: 'TỔNG CỘNG',
+                dtlk: grandSumDtlk,
+                dtqd: grandSumDtqd,
+                calculatedTarget: grandSumTarget,
+                calculatedCompletion: grandSumTarget > 0 ? (grandSumDtqd / grandSumTarget) * 100 : 0,
+                duKien: grandSumDuKien,
+                pctDkht: grandPctDkht,
+                hieuQuaQD: grandSumDtlk > 0 ? (grandSumDtqd / grandSumDtlk) - 1 : 0,
+                calculatedInstallment: traChamNhom(finalOutput.filter(r => r.type === 'employee')),
+                remaining_total: Math.max(0, grandSumTarget - grandSumDtqd),
+                remaining_daily: Math.max(0, grandSumTarget - grandSumDtqd) / remainingDays,
+                bonus_tong: grandSumBonusTong,
+                comp_dat: competitionStats?.storeColumnDatCount,
+                comp_pct_dat: totalHeaders > 0 ? ((competitionStats?.storeColumnDatCount || 0) / totalHeaders) * 100 : undefined,
+                comp_total: totalHeaders > 0 ? totalHeaders : undefined,
+                prevCompData: (grandPrevDtlk || grandPrevDtqd) ? {
+                    dtlk: grandPrevDtlk,
+                    dtqd: grandPrevDtqd,
+                    target: grandPrevTarget,
+                    completion: grandPrevTarget > 0 ? (grandPrevDtqd / grandPrevTarget) * 100 : 0,
+                    hqqd: grandPrevDtlk > 0 ? (grandPrevDtqd / grandPrevDtlk) - 1 : 0,
+                    installment: 0,
+                    pctBillBk: 0,
+                    duKien: grandPrevDk,
+                    dkht: grandPrevTarget > 0 ? (grandPrevDk / grandPrevTarget) * 100 : 0
+                } : null
+            });
+        }
+
+        return finalOutput;
+    }, [rows, departmentNames, sortConfig, prevMonthRows, departmentWeights, deptEmployeeCounts, supermarketTarget, employeeInstallmentMap, employeeInstallmentBaseMap, viewMode, exportDeptFilter, isActive, bonusData, isRealtime, dateContext, competitionStats]);
+
+    return { displayList };
+};

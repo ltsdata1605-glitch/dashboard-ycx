@@ -1,0 +1,8 @@
+[WebServer] (node:23888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/ui-dung-chung-dot-2.spec.ts:74:1 › A15: menu trong Modal — mũi tên chọn mục, Escape đóng menu nhưng KHÔNG đóng Modal (1.5s)
+
+  1 passed (5.4s)

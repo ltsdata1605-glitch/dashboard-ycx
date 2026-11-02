@@ -1,0 +1,320 @@
+import React, { useEffect, useMemo, useState } from 'react';
+
+/**
+ * `lunar-javascript` (~290 KB) chỉ cần cho ngày âm + lễ âm lịch của chế độ Lịch → nạp RIÊNG khi lịch được vẽ lần đầu
+ * (GĐ2 tăng tốc, KE_HOACH_GIAO_DIEN_APPLE.md mục 4.3 #2). Trước đây nó nằm trong gói TrendChart — tab Phân tích phải tải
+ * cả thư viện âm lịch ngay cả khi chỉ xem biểu đồ cột. Chưa nạp xong thì lịch vẫn vẽ ngày dương + số liệu; ngày âm hiện
+ * ngay khi thư viện về (thường < 1 giây).
+ */
+type LunarLib = { Solar: { fromYmd: (y: number, m: number, d: number) => { getLunar: () => { getDay: () => number; getMonth: () => number } } } };
+let lunarLib: LunarLib | null = null;
+let lunarPromise: Promise<LunarLib> | null = null;
+
+/** Nạp thư viện âm lịch (một lần cho cả app). Nơi xuất ảnh lịch gọi trước khi chụp để ảnh luôn có ngày âm. */
+export function choAmLichSanSang(): Promise<LunarLib> {
+    if (!lunarPromise) {
+        lunarPromise = import('lunar-javascript').then((m: LunarLib) => (lunarLib = m));
+        lunarPromise.catch(() => { lunarPromise = null; }); // lỗi mạng → lần vẽ sau thử lại
+    }
+    return lunarPromise;
+}
+
+function useAmLich(): LunarLib | null {
+    const [lib, setLib] = useState<LunarLib | null>(lunarLib);
+    useEffect(() => {
+        if (lib) return;
+        let conSong = true;
+        choAmLichSanSang().then(m => { if (conSong) setLib(m); }, () => { /* không có âm lịch thì vẫn vẽ lịch dương */ });
+        return () => { conSong = false; };
+    }, [lib]);
+    return lib;
+}
+
+interface DailyData {
+    rawDate?: Date;
+    value: number;
+}
+
+interface RevenueCalendarProps {
+    data: DailyData[];
+    monthDate: Date;
+    metricName: string;
+    title: string;
+    subtitle?: string;
+    isDraft?: boolean;
+    /** compact mode: smaller cells, tighter layout for saved-calendar grid */
+    compact?: boolean;
+    /** Action buttons rendered inline with the title */
+    actionButtons?: React.ReactNode;
+}
+
+const formatValue = (val: number, metricName: string) => {
+    if (metricName.includes('Tỉ trọng') || metricName.includes('%')) {
+        // Làm tròn số nguyên, không dùng số lẻ
+        return Math.round(val) + '%';
+    }
+    if (val >= 1000000000) return (val / 1000000000).toFixed(1).replace(/\.0$/, '') + ' Tỷ';
+    if (val >= 1000000) return (val / 1000000).toFixed(0) + ' Tr';
+    if (val >= 1000) return (val / 1000).toFixed(0) + ' K';
+    return val.toLocaleString('vi-VN');
+};
+
+const RevenueCalendar: React.FC<RevenueCalendarProps> = ({ data, monthDate, metricName, title, subtitle, isDraft, compact, actionButtons }) => {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+
+    const dataMap = useMemo(() => {
+        const map = new Map<string, number>();
+        data.forEach(d => {
+            if (d.rawDate) {
+                const dateStr = `${d.rawDate.getFullYear()}-${String(d.rawDate.getMonth() + 1).padStart(2, '0')}-${String(d.rawDate.getDate()).padStart(2, '0')}`;
+                map.set(dateStr, d.value);
+            }
+        });
+        return map;
+    }, [data]);
+
+    const amLich = useAmLich();
+
+    const calendarDays = useMemo(() => {
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        
+        let startDayOfWeek = firstDayOfMonth.getDay();
+        startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+
+        const totalDays = lastDayOfMonth.getDate();
+        const days = [];
+
+        for (let i = 0; i < startDayOfWeek; i++) {
+            days.push(null);
+        }
+
+        for (let i = 1; i <= totalDays; i++) {
+            const currentDate = new Date(year, month, i);
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const value = dataMap.get(dateStr);
+
+            const lunar = amLich ? amLich.Solar.fromYmd(year, month + 1, i).getLunar() : null;
+            const lunarStr = lunar ? `${lunar.getDay()}/${lunar.getMonth()}` : '';
+
+            let holidayName = null;
+            
+            // Solar Holidays
+            if (i === 14 && month + 1 === 2) holidayName = 'Valentine 🌹';
+            else if (i === 8 && month + 1 === 3) holidayName = 'Q.Tế Phụ Nữ 🌹';
+            else if (i === 30 && month + 1 === 4) holidayName = 'Giải Phóng 🇻🇳';
+            else if (i === 1 && month + 1 === 5) holidayName = 'Quốc Tế LĐ 🇻🇳';
+            else if (i === 2 && month + 1 === 9) holidayName = 'Quốc Khánh 🇻🇳';
+            else if (i === 20 && month + 1 === 11) holidayName = 'Nhà Giáo VN 🌻';
+            else if (i === 24 && month + 1 === 12) holidayName = 'Noel 🎄';
+            else if (i === 1 && month + 1 === 1) holidayName = 'Tết Dương 🎆';
+
+            // Lunar Holidays
+            const lDay = lunar ? lunar.getDay() : 0;
+            const lMonth = lunar ? lunar.getMonth() : 0;
+            if (lDay === 1 && lMonth === 1) holidayName = 'Mùng 1 Tết 🧧';
+            else if (lDay === 2 && lMonth === 1) holidayName = 'Mùng 2 Tết 🧧';
+            else if (lDay === 3 && lMonth === 1) holidayName = 'Mùng 3 Tết 🧧';
+            else if (lDay === 10 && lMonth === 3) holidayName = 'Giỗ Tổ HV 🏮';
+            else if (lDay === 15 && lMonth === 8) holidayName = 'Trung Thu 🥮';
+
+            days.push({
+                day: i,
+                dateStr,
+                lunarStr,
+                value: value !== undefined ? value : null,
+                isWeekend: currentDate.getDay() === 0 || currentDate.getDay() === 6,
+                holidayName
+            });
+        }
+
+        while (days.length % 7 !== 0) {
+            days.push(null);
+        }
+
+        return days;
+    }, [year, month, dataMap, amLich]);
+
+    // Responsive sizing based on mode
+    // compact takes priority (used in 2-column grid for both draft + saved)
+    // isDraft only enlarges when compact is false (full-width mode)
+    const dayNumSize  = compact  ? 'text-[11px]'
+                      : isDraft  ? 'text-[16px] md:text-[20px] lg:text-[25px]'
+                      :            'text-[12px] md:text-[14px]';
+
+    const lunarSize   = compact  ? 'text-[11px]'
+                      : isDraft  ? 'text-[12px] md:text-[14px]'
+                      :            'text-[11px]';
+
+    // Revenue / % value size MUST be larger than day number size and completely symmetrical
+    const valueSize   = compact  ? 'text-[13px] md:text-[14px] lg:text-[15px] xl:text-[17px]'
+                      : isDraft  ? 'text-[17px] md:text-[20px] lg:text-[26px] xl:text-[34px]'
+                      :            'text-[13px] md:text-[14px] lg:text-[15px] xl:text-[17px]';
+
+    const cellMinH    = compact ? 'min-h-[44px] md:min-h-[52px]' : 'min-h-[55px] md:min-h-[65px] lg:min-h-[75px]';
+    const cellPad     = compact ? 'p-1' : 'p-1.5 md:p-2';
+    const gridGap     = compact ? 'gap-0.5 md:gap-1' : 'gap-1 md:gap-2 lg:gap-3';
+    const titleSize   = compact ? 'text-base md:text-[17px] md:leading-7' : isDraft ? 'text-[25px] md:text-[28px] leading-8 md:leading-9' : 'text-xl md:text-[25px] md:leading-8';
+
+    const monthStr = String(month + 1).padStart(2, '0');
+    
+    // Đề bài: "Dòng tiêu đề bổ sung thêm tổng số lượng/doanh thu/doanh thu QĐ của tháng được chọn"
+    const isPercentage = metricName.includes('Tỉ trọng') || metricName.includes('%');
+    const displayTotal = useMemo(() => {
+        if (isPercentage) return null;
+        const sum = data.reduce((acc, current) => acc + (current.value || 0), 0);
+        return formatValue(sum, metricName);
+    }, [data, metricName, isPercentage]);
+
+    return (
+        <div className="w-full flex-col relative p-1 md:p-2 bg-transparent">
+            <div className={`w-full flex flex-col ${compact ? 'gap-1 md:gap-2' : 'gap-2 md:gap-4'}`}>
+                {/* Header Title Section */}
+                <div className="mb-1">
+                    {/* Lỗi #7 (video v2:013): tiêu đề dài không co (thiếu min-w-0) ép cụm nút tràn/chồng nhau trên iPhone. Tiêu đề co lại
+                        và tự "…", cụm nút giữ nguyên chỗ, cách nhau 8px. */}
+                    <div className="flex items-center justify-between gap-2">
+                        <h2 className={`min-w-0 flex-1 font-black uppercase tracking-tight text-slate-800 dark:text-slate-100 ${titleSize} flex items-center gap-2`}>
+                            <span className="truncate">{title}</span>
+                            {isDraft && (
+                                <span className="shrink-0 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-500 text-[11px] font-bold rounded border border-amber-200 dark:border-amber-700/50 hide-on-export leading-none">NHÁP</span>
+                            )}
+                        </h2>
+                        {actionButtons && (
+                            <div className="flex items-center gap-2 flex-shrink-0 hide-on-export">
+                                {actionButtons}
+                            </div>
+                        )}
+                    </div>
+                    <div className={`font-bold mt-0.5 text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 flex-wrap ${compact ? 'text-[11px]' : 'text-[11px] md:text-[12px]'}`}>
+                        <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md whitespace-nowrap">THÁNG {monthStr}.{year}</span>
+                        {subtitle && (
+                            <>
+                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 flex-shrink-0"></span>
+                                <span className="bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 px-1.5 py-0.5 rounded-md font-extrabold whitespace-nowrap">{subtitle}</span>
+                            </>
+                        )}
+                        {displayTotal !== null && (
+                            <>
+                                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 flex-shrink-0"></span>
+                                <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-md font-black whitespace-nowrap whitespace-pre">TỔNG: {displayTotal}</span>
+                            </>
+                        )}
+                        {!compact && (
+                            <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                                <span className="text-sky-700 dark:text-sky-400 font-extrabold flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+                                    CẬP NHẬT MỚI
+                                </span>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Days of week header */}
+                <div className={`grid grid-cols-7 ${gridGap}`}>
+                    {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day, idx) => {
+                        const isWeekend = idx >= 5;
+                        return (
+                            <div key={day} className={`${compact ? 'py-0.5 text-[11px]' : 'py-2 px-1 text-[11px] md:text-[12px]'} text-center font-extrabold rounded-control tracking-wide uppercase ${isWeekend ? 'text-amber-700 bg-amber-100/50 dark:bg-amber-900/20 dark:text-amber-400' : 'text-slate-500 bg-slate-100 dark:bg-slate-800/80 dark:text-slate-400'}`}>
+                                {compact ? day : (idx === 0 ? 'THỨ HAI' : idx === 1 ? 'THỨ BA' : idx === 2 ? 'THỨ TƯ' : idx === 3 ? 'THỨ NĂM' : idx === 4 ? 'THỨ SÁU' : idx === 5 ? 'THỨ BẢY' : 'CHỦ NHẬT')}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className={`grid grid-cols-7 ${gridGap}`}>
+                    {calendarDays.map((dayData, idx) => {
+                        if (!dayData) {
+                            return (
+                                <div 
+                                    key={`empty-${idx}`} 
+                                    className={`aspect-square w-full h-auto ${cellMinH} rounded-control bg-slate-50/50 dark:bg-white/[0.02] border border-dashed border-slate-200/60 dark:border-white/5`}
+                                />
+                            );
+                        }
+
+                        const isWeekend = dayData.isWeekend;
+                        // `value !== null` đã đủ phân biệt "có dữ liệu" (kể cả giá trị thật = 0,
+                        // VD 0% trả chậm 1 ngày có doanh thu) với "không có dữ liệu" (null, ngày
+                        // không có trong dataMap) — trước đây thêm `&& value > 0` khiến giá trị 0%
+                        // hợp lệ hiển thị mờ + dấu "-" giống hệt ngày không có dữ liệu.
+                        const hasData = dayData.value !== null;
+                        const isToday = new Date().getDate() === dayData.day && new Date().getMonth() === month && new Date().getFullYear() === year;
+                        
+                        let bgClass = 'bg-white dark:bg-slate-900';
+                        let borderClass = 'border-slate-200/80 dark:border-white/10';
+                        let textClass = 'text-slate-800 dark:text-slate-100';
+                        let dayNumClass = 'text-slate-700 dark:text-slate-200';
+                        let barColor = 'bg-sky-500';
+                        
+                        if (isWeekend) {
+                            bgClass = 'bg-amber-50/40 dark:bg-[#2c1d11]';
+                            borderClass = 'border-amber-100 dark:border-amber-900/40';
+                            textClass = 'text-amber-700 dark:text-amber-400';
+                            dayNumClass = 'text-amber-700 dark:text-amber-500';
+                            barColor = 'bg-amber-500';
+                        }
+
+                        if (isToday) {
+                            borderClass = 'border-sky-400 dark:border-sky-500 ring-2 ring-sky-500/20 dark:ring-sky-500/30';
+                            bgClass = isWeekend ? 'bg-amber-100/60 dark:bg-[#3d2411]' : 'bg-sky-50/40 dark:bg-sky-900/10';
+                        }
+                        
+                        // Holiday override
+                        if (dayData.holidayName) {
+                            bgClass = 'bg-rose-50/80 dark:bg-rose-900/20';
+                            borderClass = 'border-rose-300 dark:border-rose-800/50';
+                            textClass = 'text-rose-700 dark:text-rose-400';
+                            dayNumClass = 'text-rose-700 dark:text-rose-500';
+                            barColor = 'bg-rose-500';
+                            if (isToday) borderClass = 'border-rose-500 ring-2 ring-rose-500/30';
+                        }
+
+                        return (
+                            <div 
+                                key={dayData.dateStr} 
+                                className={`${bgClass} border ${borderClass} rounded-popup aspect-square w-full h-auto ${cellMinH} flex flex-col hover:-translate-y-1 hover:shadow-lg transition-all duration-300 relative group cursor-default overflow-hidden p-1 md:p-1.5`}
+                            >
+                                {/* Top Row: Solar & Lunar Date — ô hẹp (iPhone, chế độ gọn) thì ngày âm tự xuống dòng thay vì dính vào số
+                                    ngày ("1910/9"). */}
+                                <div className="flex flex-wrap justify-between items-start gap-x-1 w-full">
+                                    <span className={`font-black ${isToday ? 'text-sky-700 dark:text-sky-400' : dayNumClass} ${dayNumSize} leading-none`}>
+                                        {dayData.day}
+                                    </span>
+                                    <span className={`font-bold ${lunarSize} text-slate-400 dark:text-slate-500 leading-none`}>
+                                        {dayData.lunarStr}
+                                    </span>
+                                </div>
+
+                                {/* Center Data (Symmetrical & Prevent wrapping on export) */}
+                                <div className={`flex-1 flex items-center justify-center font-medium tracking-tight ${textClass} ${hasData ? '' : 'opacity-25'} ${valueSize} w-full text-center whitespace-nowrap overflow-visible`}>
+                                    {hasData ? formatValue(dayData.value!, metricName) : '-'}
+                                </div>
+
+                                {/* Bottom Row: Bar & Holiday */}
+                                <div className="flex flex-col items-center justify-end w-full mt-auto">
+                                    {dayData.holidayName && (
+                                        <span className={`font-bold text-rose-500 dark:text-rose-400 whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 ${compact ? 'text-[11px] max-w-[40px]' : 'text-[11px] max-w-[80px]'}`} title={dayData.holidayName}>
+                                            {dayData.holidayName}
+                                        </span>
+                                    )}
+                                    {hasData && !compact && (
+                                        <div className="w-full h-1 bg-slate-200/50 dark:bg-slate-700/50 rounded-full overflow-hidden shrink-0 mt-0.5">
+                                            <div className={`h-full ${barColor} rounded-full w-full opacity-60 group-hover:opacity-100 transition-opacity`}></div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default RevenueCalendar;

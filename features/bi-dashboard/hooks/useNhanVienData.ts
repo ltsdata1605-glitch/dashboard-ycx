@@ -1,0 +1,1167 @@
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { shortenSupermarketName, extractSupermarketList, extractAllSupermarketList } from '../utils/dashboardHelpers';
+import { useIndexedDBState } from './useIndexedDBState';
+import * as db from '../utils/db';
+import { appendBonusHistory } from '../utils/bonusHistory';
+import { RevenueRow, BonusMetrics, ManualDeptMapping, InstallmentRow, BonusComparePart, BonusCompareStore } from '../types/nhanVienTypes';
+import { formatEmployeeName, standardizeEmployeeName, extractEmployeeId, isSameEmployee, isIgnoredDept } from '../utils/nhanVienHelpers';
+import { parseBonusUpdatedAt } from '../utils/bonusParser';
+import { useWorker } from './useWorker';
+import { getAnalysisEmployees, AnalysisEmployeesPayload, ANALYSIS_EMPLOYEES_KEY, AnalysisEmployeeItem, isSystemOrIgnoredEmployee } from '../services/analysisEmployeeSyncService';
+import { parseAllEmployees } from '../services/employeeParser';
+import { fetchSupermarketMap } from '../services/biSupermarketMapService';
+import { fetchAllowedSummaryLuyKeText } from '../services/biDataService';
+import { useReportBiAuth } from './useReportBiAuth';
+import { auth } from '../../../services/firebase';
+
+/** Dựng lại dòng 'total' từ các dòng nhân viên (cùng công thức nhóm bộ phận ở InstallmentTab). */
+export function recomputeInstallmentTotal(rows: InstallmentRow[]): InstallmentRow[] {
+    const idx = rows.findIndex(r => r.type === 'total');
+    if (idx === -1) return rows;
+    const employees = rows.filter(r => r.type === 'employee');
+    const totalDtSieuThi = employees.reduce((s, e) => s + (e.totalDtSieuThi || 0), 0);
+    const sample = rows.find(r => r.providers.length > 0)?.providers || [];
+    const providers = sample.map((sp, i) => {
+        const dt = employees.reduce((s, e) => s + (e.providers[i]?.dt || 0), 0);
+        return { ...sp, dt, percent: totalDtSieuThi > 0 ? (dt / totalDtSieuThi) * 100 : 0 };
+    });
+    const totalPercent = totalDtSieuThi > 0 ? (providers.reduce((s, p) => s + p.dt, 0) / totalDtSieuThi) * 100 : 0;
+    const next = rows.slice();
+    next[idx] = { ...rows[idx], providers, totalDtSieuThi, totalPercent };
+    return next;
+}
+
+export function useNhanVienData(isActive?: boolean) {
+    const { allowedKhos } = useReportBiAuth();
+    const [sharedSummaryLuyKeText, setSharedSummaryLuyKeText] = useState('');
+    const [summaryLuyKe] = useIndexedDBState<string>('summary-luy-ke', '');
+    const [summaryRealtime] = useIndexedDBState<string>('summary-realtime', '');
+    const [competitionLuyKe] = useIndexedDBState<string>('competition-luy-ke', '');
+    const [competitionRealtime] = useIndexedDBState<string>('competition-realtime', '');
+    const [customSupermarkets] = useIndexedDBState<string[]>('updater-custom-supermarkets', []);
+    const [activeSupermarketsRaw, setActiveSupermarkets, isActiveSupermarketsLoaded] = useIndexedDBState<string[]>('nhanvien-active-supermarkets', []);
+    const [hiddenEmployees, setHiddenEmployees] = useState<string[]>([]);
+    const [analysisEmployeesPayload, setAnalysisEmployeesPayload] = useState<AnalysisEmployeesPayload | null>(null);
+    const [supermarketMap, setSupermarketMap] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (isActive === false || allowedKhos.length === 0) return;
+        let isMounted = true;
+        fetchAllowedSummaryLuyKeText(allowedKhos).then(text => {
+            if (isMounted && text) setSharedSummaryLuyKeText(text);
+        }).catch(() => {});
+        return () => { isMounted = false; };
+    }, [allowedKhos.join(','), isActive]);
+
+    useEffect(() => {
+        const uid = auth.currentUser?.uid;
+        fetchSupermarketMap(uid).then(setSupermarketMap).catch(() => {});
+        const handleMapChange = (e: CustomEvent<{ userId: string; map: Record<string, string> }>) => {
+            if (!uid || e.detail?.userId === uid) {
+                setSupermarketMap(e.detail?.map || {});
+            }
+        };
+        window.addEventListener('bi-supermarket-map-changed', handleMapChange as EventListener);
+        return () => window.removeEventListener('bi-supermarket-map-changed', handleMapChange as EventListener);
+    }, []);
+    
+    const effectiveSummaryLuyKe = summaryLuyKe || sharedSummaryLuyKeText;
+    const supermarkets = useMemo(() => {
+        const list = extractAllSupermarketList({
+            summaryLuyKe: effectiveSummaryLuyKe,
+            summaryRealtime,
+            competitionLuyKe,
+            competitionRealtime,
+            customSupermarkets,
+            supermarketMap
+        });
+        // Bổ sung siêu thị từ Phân tích (analysisEmployeesPayload) nếu các nguồn trên rỗng hoặc chưa dán ở thiết bị này
+        if (analysisEmployeesPayload) {
+            if (analysisEmployeesPayload.supermarket && !list.includes(analysisEmployeesPayload.supermarket)) {
+                list.push(analysisEmployeesPayload.supermarket);
+            }
+            if (analysisEmployeesPayload.employees && analysisEmployeesPayload.employees.length > 0) {
+                analysisEmployeesPayload.employees.forEach(e => {
+                    if (e.supermarket && !list.includes(e.supermarket)) {
+                        list.push(e.supermarket);
+                    }
+                });
+            }
+        }
+        return list;
+    }, [effectiveSummaryLuyKe, summaryRealtime, competitionLuyKe, competitionRealtime, customSupermarkets, supermarketMap, analysisEmployeesPayload]);
+
+    const activeSupermarkets = useMemo(() => {
+        if (!Array.isArray(activeSupermarketsRaw)) return [];
+        if (supermarkets.length === 0) {
+            if (analysisEmployeesPayload?.supermarket) return [analysisEmployeesPayload.supermarket];
+            return activeSupermarketsRaw;
+        }
+        const filtered = activeSupermarketsRaw.filter(sm => supermarkets.includes(sm));
+        return filtered.length > 0 ? filtered : [supermarkets[0]];
+    }, [activeSupermarketsRaw, supermarkets, analysisEmployeesPayload]);
+
+    const [aggregatedData, setAggregatedData] = useState({
+        danhSach: '',
+        danhSachQd: '',
+        employeeRealtime: '',
+        employeeRealtimeQd: '',
+        thiDua: '',
+        traGop: '',
+        manualMapping: {} as ManualDeptMapping,
+        bonusData: {} as Record<string, BonusMetrics | null>,
+        // Nhãn kỳ hiện tại của bonusData — do lựa chọn Tự động (Hiện tại/Tháng/Năm/Khoảng
+        // thời gian) ghi vào lúc chạy xong; null -> BonusTab tự fallback về "ĐẾN NGÀY hôm qua".
+        bonusPeriodLabel: null as string | null
+    });
+
+    const [dataVersion, setDataVersion] = useState(0);
+    const [aggregatedWeights, setAggregatedWeights] = useState<Record<string, number>>({});
+    const { runWorkerTask } = useWorker();
+
+    // Nhân viên -> tên siêu thị GỐC (chưa rút gọn) họ thực sự thuộc về — chỉ có giá trị khi
+    // ≥2 siêu thị active cùng lúc ("Tổng hợp"). Dùng để các hàm lưu Thưởng ghi đúng key siêu
+    // thị của từng nhân viên thay vì đổ hết vào activeSupermarkets[0] (bug: dữ liệu thưởng của
+    // nhân viên siêu thị 2/3... bị ghi nhầm vào siêu thị 1, biến mất khi xem lại siêu thị đó
+    // riêng lẻ). 1 siêu thị active thì bỏ trống, resolveEmployeeSupermarket tự fallback đúng.
+    const [employeeSupermarketMap, setEmployeeSupermarketMap] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (isActiveSupermarketsLoaded && activeSupermarketsRaw.length === 0 && activeSupermarkets.length > 0) {
+            setActiveSupermarkets(activeSupermarkets);
+        }
+    }, [activeSupermarkets, isActiveSupermarketsLoaded, activeSupermarketsRaw, setActiveSupermarkets]);
+
+    useEffect(() => {
+        if (!isActiveSupermarketsLoaded || isActive === false) return;
+        let isMounted = true;
+        const fetchAllData = async () => {
+            if (activeSupermarkets.length === 0) {
+                if (supermarkets.length === 0 && Array.isArray(activeSupermarketsRaw) && activeSupermarketsRaw.length > 0) {
+                    // Đang chờ danh sách siêu thị khởi tạo từ summaryLuyKe, không wipe trắng dữ liệu đã có
+                    return;
+                }
+                if (analysisEmployeesPayload?.supermarket) {
+                    return;
+                }
+                setAggregatedData({
+                    danhSach: '',
+                    danhSachQd: '',
+                    employeeRealtime: '',
+                    employeeRealtimeQd: '',
+                    thiDua: '',
+                    traGop: '',
+                    manualMapping: {},
+                    bonusData: {},
+                    bonusPeriodLabel: null
+                });
+                setEmployeeSupermarketMap({});
+                return;
+            }
+
+            const uniqueSafeNames = Array.from(new Set(activeSupermarkets.map(sm => shortenSupermarketName(sm))));
+
+            const getWithFallback = async (prefix: string, safeName: string, suffix: string) => {
+                const primaryKey = `${prefix}${safeName}${suffix}`;
+                const primaryVal = await db.get(primaryKey as any);
+                if (primaryVal !== undefined && primaryVal !== null && primaryVal !== '') {
+                    return primaryVal;
+                }
+                const candidates = [
+                    `${prefix}${safeName.toUpperCase()}${suffix}`,
+                    `${prefix}${safeName.toLowerCase()}${suffix}`
+                ];
+                activeSupermarkets.forEach(sm => {
+                    if (shortenSupermarketName(sm) === safeName) {
+                        candidates.push(`${prefix}${sm}${suffix}`);
+                        candidates.push(`${prefix}${sm.toUpperCase()}${suffix}`);
+                    }
+                });
+                const uniqueCandidates = Array.from(new Set(candidates)).filter(k => k !== primaryKey);
+                for (const key of uniqueCandidates) {
+                    const val = await db.get(key as any);
+                    if (val !== undefined && val !== null && val !== '') {
+                        return val;
+                    }
+                }
+                return null;
+            };
+
+            const results = await Promise.all(uniqueSafeNames.map(safeName => {
+                return Promise.all([
+                    getWithFallback('config-', safeName, '-danhsach'),
+                    getWithFallback('config-', safeName, '-thidua'),
+                    getWithFallback('config-', safeName, '-tragop'),
+                    getWithFallback('manual-dept-mapping-', safeName, ''),
+                    getWithFallback('bonus-data-', safeName, ''),
+                    getWithFallback('targethero-', safeName, '-departmentweights'),
+                    getWithFallback('hidden-employees-', safeName, ''),
+                    getWithFallback('bonus-current-period-label-', safeName, ''),
+                    getWithFallback('config-', safeName, '-employee-realtime'),
+                    getWithFallback('config-', safeName, '-danhsach-qd'),
+                    getWithFallback('config-', safeName, '-employee-realtime-qd')
+                ]);
+            }));
+
+            if (!isMounted) return;
+
+            let combinedDS = '', combinedDSQd = '', combinedRealtime = '', combinedRealtimeQd = '', combinedTD = '', combinedTG = '';
+            let combinedMM: ManualDeptMapping = {};
+            let combinedBonus: Record<string, BonusMetrics | null> = {};
+            let combinedPeriodLabel: string | null = null;
+            const allWeights: Record<string, number[]> = {};
+
+            const combinedHidden: string[] = [];
+            results.forEach(([ds, td, tg, mm, bonus, weights, hidden, periodLabel, empRt, dsQd, empRtQd]) => {
+                if (ds) combinedDS += (combinedDS ? '\n' : '') + ds;
+                if (dsQd) combinedDSQd += (combinedDSQd ? '\n' : '') + dsQd;
+                if (empRt) combinedRealtime += (combinedRealtime ? '\n' : '') + empRt;
+                if (empRtQd) combinedRealtimeQd += (combinedRealtimeQd ? '\n' : '') + empRtQd;
+                if (td) combinedTD += (combinedTD ? '\n' : '') + td;
+                if (tg) combinedTG += (combinedTG ? '\n' : '') + tg;
+                if (mm) Object.assign(combinedMM, mm);
+                if (bonus) Object.assign(combinedBonus, bonus);
+                if (Array.isArray(hidden)) combinedHidden.push(...hidden);
+                if (!combinedPeriodLabel && periodLabel) combinedPeriodLabel = periodLabel as string;
+                if (weights) {
+                    Object.entries(weights as Record<string, number>).forEach(([dept, w]) => {
+                        if (!allWeights[dept]) allWeights[dept] = [];
+                        allWeights[dept].push(w);
+                    });
+                }
+            });
+
+            // Tự động khôi phục dữ liệu thưởng mồ côi (nếu bonusData đang rỗng do phiên trước bị gán nhầm key vô danh "")
+            if (Object.keys(combinedBonus).length === 0) {
+                const orphanUndef = await db.get<Record<string, BonusMetrics>>('bonus-data-undefined');
+                const orphanEmpty = await db.get<Record<string, BonusMetrics>>('bonus-data-');
+                const orphan = (orphanUndef && Object.keys(orphanUndef).length > 0) ? orphanUndef : orphanEmpty;
+                if (orphan && Object.keys(orphan).length > 0) {
+                    Object.assign(combinedBonus, orphan);
+                    if (uniqueSafeNames.length > 0) {
+                        void db.set(`bonus-data-${uniqueSafeNames[0]}`, orphan);
+                    }
+                }
+            }
+
+            // Chuẩn hóa và đồng bộ các biến thể tên cho combinedBonus:
+            // Với mỗi nhân viên (cùng extractEmployeeId), nếu tồn tại nhiều key (VD "Mã - Tên" và "Tên - Mã")
+            // có updatedAt khác nhau, luôn lấy bản ghi có updatedAt mới nhất để gán cho tất cả các biến thể key.
+            const empIdToLatestBonus = new Map<string, BonusMetrics>();
+            Object.entries(combinedBonus).forEach(([key, metrics]) => {
+                if (!metrics) return;
+                const empId = extractEmployeeId(key);
+                if (!empId) return;
+                const existing = empIdToLatestBonus.get(empId);
+                const currentUpdatedAt = metrics.updatedAt ? new Date(metrics.updatedAt).getTime() : 0;
+                const existingUpdatedAt = existing?.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                if (!existing || currentUpdatedAt >= existingUpdatedAt) {
+                    empIdToLatestBonus.set(empId, metrics);
+                }
+            });
+
+            // Gán metrics mới nhất đồng bộ cho mọi biến thể key
+            Object.keys(combinedBonus).forEach(key => {
+                const empId = extractEmployeeId(key);
+                if (empId && empIdToLatestBonus.has(empId)) {
+                    combinedBonus[key] = empIdToLatestBonus.get(empId)!;
+                }
+            });
+
+            // Đảm bảo các cặp key chuẩn đảo ngược (Mã - Tên và Tên - Mã) luôn có đủ dữ liệu
+            Object.entries({ ...combinedBonus }).forEach(([key, metrics]) => {
+                if (!metrics) return;
+                const empId = extractEmployeeId(key);
+                const canonical = standardizeEmployeeName(key);
+                if (!combinedBonus[canonical]) combinedBonus[canonical] = metrics;
+                if (key.includes(' - ')) {
+                    const parts = key.split(' - ').map(p => p.trim());
+                    const reversedKey = `${parts[1]} - ${parts[0]}`;
+                    if (!combinedBonus[reversedKey]) combinedBonus[reversedKey] = metrics;
+                }
+                if (empId && !combinedBonus[empId]) {
+                    combinedBonus[empId] = metrics;
+                }
+            });
+
+            // Đồng bộ sang analysisEmployees: nếu có nhân viên nào trong phân tích trùng empId, gắn luôn
+            if (analysisEmployeesList.length > 0) {
+                analysisEmployeesList.forEach(emp => {
+                    const empId = emp.id || extractEmployeeId(emp.originalName);
+                    if (empId && empIdToLatestBonus.has(empId)) {
+                        const latest = empIdToLatestBonus.get(empId)!;
+                        combinedBonus[emp.originalName] = latest;
+                        combinedBonus[standardizeEmployeeName(emp.originalName)] = latest;
+                    }
+                });
+            }
+
+            const finalWeights: Record<string, number> = {};
+            Object.entries(allWeights).forEach(([dept, wList]) => {
+                finalWeights[dept] = wList.reduce((a, b) => a + b, 0) / wList.length;
+            });
+
+            setAggregatedWeights(finalWeights);
+            setHiddenEmployees(combinedHidden);
+            setAggregatedData({
+                danhSach: combinedDS,
+                danhSachQd: combinedDSQd,
+                employeeRealtime: combinedRealtime,
+                employeeRealtimeQd: combinedRealtimeQd,
+                thiDua: combinedTD,
+                traGop: combinedTG,
+                manualMapping: combinedMM,
+                bonusData: combinedBonus,
+                bonusPeriodLabel: combinedPeriodLabel
+            });
+
+            // Xác định nhân viên -> siêu thị cho tất cả siêu thị active (kể cả khi chỉ có 1 siêu thị)
+            // để nhận diện chính xác nhân viên nào thuộc siêu thị nào, lọc đúng danh sách và chia Target chuẩn xác.
+            if (uniqueSafeNames.length >= 1) {
+                const newEmployeeSupermarketMap: Record<string, string> = {};
+                await Promise.all(activeSupermarkets.map(async (rawName) => {
+                    const safeName = shortenSupermarketName(rawName);
+                    const idx = uniqueSafeNames.indexOf(safeName);
+                    if (idx === -1) return;
+                    const [ds, , , mm, , , , , empRt, dsQd, empRtQd] = results[idx];
+                    const rawStoreEmployees = (ds as string) || (dsQd as string) || (empRt as string) || (empRtQd as string) || '';
+                    if (rawStoreEmployees) {
+                        try {
+                            const parsedList = parseAllEmployees(rawStoreEmployees);
+                            parsedList.forEach(pe => {
+                                if (pe.originalName) {
+                                    newEmployeeSupermarketMap[pe.originalName] = rawName;
+                                    const canonical = standardizeEmployeeName(pe.originalName);
+                                    if (canonical) newEmployeeSupermarketMap[canonical] = rawName;
+                                    const id = extractEmployeeId(pe.originalName);
+                                    if (id) newEmployeeSupermarketMap[id] = rawName;
+                                }
+                            });
+                            const rows = await runWorkerTask('PARSE_REVENUE', rawStoreEmployees) as RevenueRow[];
+                            rows.forEach(row => {
+                                if (row.type === 'employee' && row.originalName) {
+                                    newEmployeeSupermarketMap[row.originalName] = rawName;
+                                    const canonical = standardizeEmployeeName(row.originalName);
+                                    if (canonical) newEmployeeSupermarketMap[canonical] = rawName;
+                                    const id = extractEmployeeId(row.originalName);
+                                    if (id) newEmployeeSupermarketMap[id] = rawName;
+                                }
+                            });
+                        } catch (err) {
+                            console.error(`[useNhanVienData] Lỗi xác định siêu thị nhân viên (${rawName}):`, err);
+                        }
+                    }
+                    if (mm) {
+                        Object.values(mm as ManualDeptMapping).forEach(employees => {
+                            if (Array.isArray(employees)) {
+                                employees.forEach(empName => {
+                                    newEmployeeSupermarketMap[empName] = rawName;
+                                    const canonical = standardizeEmployeeName(empName);
+                                    if (canonical) newEmployeeSupermarketMap[canonical] = rawName;
+                                    const id = extractEmployeeId(empName);
+                                    if (id) newEmployeeSupermarketMap[id] = rawName;
+                                });
+                            }
+                        });
+                    }
+
+                    // Gắn theo mã kho (maKho) nếu nhân viên có nhập mã kho trùng với mã kho của siêu thị
+                    const smKho = extractEmployeeId(rawName) || (rawName.match(/\d+/) || [])[0] || (safeName.match(/\d+/) || [])[0] || '';
+                    if (smKho && analysisEmployeesList.length > 0) {
+                        analysisEmployeesList.forEach(emp => {
+                            if (emp.maKho && emp.maKho === smKho) {
+                                newEmployeeSupermarketMap[emp.originalName] = rawName;
+                                const canonical = standardizeEmployeeName(emp.originalName);
+                                if (canonical) newEmployeeSupermarketMap[canonical] = rawName;
+                                if (emp.id) newEmployeeSupermarketMap[emp.id] = rawName;
+                            }
+                        });
+                    }
+                }));
+                if (isMounted) setEmployeeSupermarketMap(newEmployeeSupermarketMap);
+            } else {
+                setEmployeeSupermarketMap({});
+            }
+        };
+        fetchAllData();
+        return () => { isMounted = false; };
+    }, [activeSupermarkets, dataVersion, isActiveSupermarketsLoaded, isActive, runWorkerTask]);
+
+    const loadAnalysisEmployees = useCallback(async () => {
+        try {
+            const payload = await getAnalysisEmployees();
+            setAnalysisEmployeesPayload(payload);
+        } catch (err) {
+            console.error('[useNhanVienData] Lỗi tải danh sách nhân viên phân tích:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Chỉ 9 key liệt kê trong fetchAllData() (config-*, manual-dept-mapping-*, bonus-data-*,
+        // targethero-*-departmentweights, hidden-employees-*, bonus-current-period-label-*) thực sự
+        // ảnh hưởng tới dữ liệu hook này trả về — "comptarget-" (target thi đua) không được fetch ở
+        // đây nên không cần bump lại; "targethero-" phải khớp đúng suffix "-departmentweights",
+        // các key targethero khác (quydoi/tragop/total) chỉ dùng ở useDashboardLogic.
+        const handleDbChange = (event: CustomEvent) => {
+            const key = event.detail.key;
+            if (key === 'departmentMap' || key === ANALYSIS_EMPLOYEES_KEY || key === `bi_${ANALYSIS_EMPLOYEES_KEY}`) {
+                loadAnalysisEmployees();
+                return;
+            }
+            const isRelevant = key.startsWith('config-')
+                || key.startsWith('manual-dept-mapping')
+                || key.startsWith('bonus-data-')
+                || key.startsWith('bonus-current-period-label-')
+                || key.startsWith('hidden-employees-')
+                || key.startsWith('targethero-')
+                || key.startsWith('comptarget-')
+                || key === 'summary-luy-ke';
+            if (isRelevant) {
+                setDataVersion(v => v + 1);
+            }
+        };
+        window.addEventListener('indexeddb-change', handleDbChange as EventListener);
+        return () => window.removeEventListener('indexeddb-change', handleDbChange as EventListener);
+    }, [loadAnalysisEmployees]);
+
+    useEffect(() => {
+        loadAnalysisEmployees();
+        const handleAnalysisUpdate = (e: CustomEvent) => {
+            if (e.detail) {
+                setAnalysisEmployeesPayload(e.detail);
+            }
+        };
+        window.addEventListener('analysis-employees-updated', handleAnalysisUpdate as EventListener);
+        return () => window.removeEventListener('analysis-employees-updated', handleAnalysisUpdate as EventListener);
+    }, [loadAnalysisEmployees]);
+
+    const analysisEmployeesList = useMemo(() => {
+        const rawList = analysisEmployeesPayload?.employees || [];
+        return rawList.filter(emp => {
+            const dept = (emp.department || '').trim();
+            return dept && !isSystemOrIgnoredEmployee(emp.originalName, dept) && !isIgnoredDept(dept);
+        });
+    }, [analysisEmployeesPayload]);
+
+    const hasAnalysisEmployees = useMemo(() => {
+        return analysisEmployeesList.length > 0;
+    }, [analysisEmployeesList]);
+
+    // Tạo Map lookup O(1) để kiểm tra xem một tên nhân viên trong báo cáo thô có thuộc Phân tích không
+    const analysisEmployeeLookup = useMemo(() => {
+        const lookup = new Map<string, AnalysisEmployeeItem>();
+        if (!hasAnalysisEmployees) return lookup;
+        for (const emp of analysisEmployeesList) {
+            lookup.set(emp.originalName.toLowerCase().trim(), emp);
+            lookup.set(standardizeEmployeeName(emp.originalName).toLowerCase().trim(), emp);
+            lookup.set(formatEmployeeName(emp.originalName).toLowerCase().trim(), emp);
+            if (emp.id) {
+                lookup.set(emp.id.toLowerCase().trim(), emp);
+            }
+        }
+        return lookup;
+    }, [analysisEmployeesList, hasAnalysisEmployees]);
+
+    const isEmployeeInAnalysis = useCallback((origName?: string): boolean => {
+        // QUY TẮC BẮT BUỘC: Nếu chưa có danh sách phân tích hoặc tên rỗng thì KHÔNG cho qua
+        if (!hasAnalysisEmployees || !origName) return false;
+        const clean = origName.toLowerCase().trim();
+        if (analysisEmployeeLookup.has(clean)) return true;
+        const canonical = standardizeEmployeeName(origName).toLowerCase().trim();
+        if (analysisEmployeeLookup.has(canonical)) return true;
+        if (origName.includes(' - ')) {
+            const parts = origName.split(' - ').map(p => p.trim().toLowerCase());
+            if (analysisEmployeeLookup.has(parts[0]) || analysisEmployeeLookup.has(parts[1])) return true;
+        }
+        return false;
+    }, [hasAnalysisEmployees, analysisEmployeeLookup]);
+
+    // Siêu thị GỐC (chưa rút gọn) của 1 nhân viên — kết hợp employeeSupermarketMap, maKho, và supermarket
+    const resolveEmployeeSupermarket = useCallback((originalName: string): string => {
+        if (employeeSupermarketMap[originalName]) return employeeSupermarketMap[originalName];
+        const canonical = standardizeEmployeeName(originalName);
+        if (employeeSupermarketMap[canonical]) return employeeSupermarketMap[canonical];
+        const empId = extractEmployeeId(originalName);
+        if (empId && employeeSupermarketMap[empId]) return employeeSupermarketMap[empId];
+
+        const empFromAnalysis = analysisEmployeesPayload?.employees?.find(e =>
+            e.originalName === originalName ||
+            standardizeEmployeeName(e.originalName) === canonical ||
+            (e.id && empId && e.id === empId)
+        );
+        if (empFromAnalysis?.supermarket) return empFromAnalysis.supermarket;
+        if (empFromAnalysis?.maKho) {
+            const matchedSm = supermarkets.find(sm => {
+                const smKho = extractEmployeeId(sm) || (sm.match(/\d+/) || [])[0] || '';
+                return smKho && smKho === empFromAnalysis.maKho;
+            });
+            if (matchedSm) return matchedSm;
+        }
+
+        if (activeSupermarkets.length === 1 && activeSupermarkets[0] && Object.keys(employeeSupermarketMap).length === 0) {
+            return activeSupermarkets[0];
+        }
+        if (activeSupermarkets.length > 0 && activeSupermarkets[0]) return activeSupermarkets[0];
+        if (analysisEmployeesPayload?.supermarket) return analysisEmployeesPayload.supermarket;
+        if (supermarkets.length > 0) return supermarkets[0];
+        return 'Tổng';
+    }, [employeeSupermarketMap, activeSupermarkets, analysisEmployeesPayload, supermarkets]);
+
+    const hiddenEmployeesSet = useMemo(() => new Set(hiddenEmployees), [hiddenEmployees]);
+
+    const [parsedRevenueBase, setParsedRevenueBase] = useState<RevenueRow[]>([]);
+    useEffect(() => {
+        if ((!aggregatedData.danhSach && !aggregatedData.danhSachQd) || isActive === false) {
+            setParsedRevenueBase([]);
+            return;
+        }
+        let isMounted = true;
+        runWorkerTask('PARSE_REVENUE', { thucText: aggregatedData.danhSach, qdText: aggregatedData.danhSachQd }).then((base: RevenueRow[]) => {
+            if (isMounted) {
+                setParsedRevenueBase(base.filter(r => {
+                    if (r.type !== 'employee') return true;
+                    if (!r.originalName || hiddenEmployeesSet.has(r.originalName)) return false;
+                    const dept = (r.department || '').trim();
+                    if (!dept || isSystemOrIgnoredEmployee(r.originalName, dept) || isIgnoredDept(dept)) return false;
+                    if (hasAnalysisEmployees) return isEmployeeInAnalysis(r.originalName);
+                    return false;
+                }));
+            }
+        }).catch(err => console.error('[useNhanVienData] Lỗi parse danh sách doanh thu:', err));
+        return () => { isMounted = false; };
+    }, [aggregatedData.danhSach, aggregatedData.danhSachQd, hiddenEmployeesSet, isActive, hasAnalysisEmployees, isEmployeeInAnalysis]);
+
+    const [parsedRevenueRealtimeBase, setParsedRevenueRealtimeBase] = useState<RevenueRow[]>([]);
+    useEffect(() => {
+        if ((!aggregatedData.employeeRealtime && !aggregatedData.employeeRealtimeQd) || isActive === false) {
+            setParsedRevenueRealtimeBase([]);
+            return;
+        }
+        let isMounted = true;
+        runWorkerTask('PARSE_REVENUE', { thucText: aggregatedData.employeeRealtime, qdText: aggregatedData.employeeRealtimeQd }).then((base: RevenueRow[]) => {
+            if (isMounted) {
+                setParsedRevenueRealtimeBase(base.filter(r => {
+                    if (r.type !== 'employee') return true;
+                    if (!r.originalName || hiddenEmployeesSet.has(r.originalName)) return false;
+                    const dept = (r.department || '').trim();
+                    if (!dept || isSystemOrIgnoredEmployee(r.originalName, dept) || isIgnoredDept(dept)) return false;
+                    if (hasAnalysisEmployees) return isEmployeeInAnalysis(r.originalName);
+                    return false;
+                }));
+            }
+        }).catch(err => console.error('[useNhanVienData] Lỗi parse danh sách doanh thu realtime:', err));
+        return () => { isMounted = false; };
+    }, [aggregatedData.employeeRealtime, aggregatedData.employeeRealtimeQd, hiddenEmployeesSet, isActive, hasAnalysisEmployees, isEmployeeInAnalysis]);
+
+    const employeeDepartmentMap = useMemo(() => {
+        if (isActive === false) return {} as Record<string, string>;
+        const map: Record<string, string> = {};
+
+        // 1. Nguồn chuẩn ưu tiên số 1: Danh sách nhân viên từ chức năng Phân tích
+        if (hasAnalysisEmployees) {
+            analysisEmployeesList.forEach(emp => {
+                if (emp.department && !isSystemOrIgnoredEmployee(emp.originalName, emp.department)) {
+                    map[emp.originalName] = emp.department;
+                    map[standardizeEmployeeName(emp.originalName)] = emp.department;
+                    map[formatEmployeeName(emp.originalName)] = emp.department;
+                    if (emp.id) {
+                        map[emp.id] = emp.department;
+                    }
+                }
+            });
+        }
+
+        // 2. Dự phòng từ parsedRevenueBase (cho các nhân viên khớp Phân tích hoặc khi chưa có Phân tích)
+        parsedRevenueBase.filter(r => r.type === 'employee' && r.originalName && r.department).forEach(r => {
+            if (isSystemOrIgnoredEmployee(r.originalName, r.department)) return;
+            const canonical = standardizeEmployeeName(r.originalName!);
+            if (isEmployeeInAnalysis(r.originalName)) {
+                if (!map[canonical]) map[canonical] = r.department!;
+                if (!map[r.originalName!]) map[r.originalName!] = r.department!;
+            }
+        });
+
+        // 3. Cho phép override thủ công từ manualMapping (nếu có tùy chỉnh riêng)
+        Object.entries(aggregatedData.manualMapping).forEach(([deptName, employees]) => {
+            if (Array.isArray(employees)) {
+                employees.forEach(empName => {
+                    if (!hiddenEmployeesSet.has(empName)) {
+                        const canonical = standardizeEmployeeName(empName);
+                        map[canonical] = deptName;
+                        map[empName] = deptName;
+                    }
+                });
+            }
+        });
+        return map;
+    }, [parsedRevenueBase, aggregatedData.manualMapping, hiddenEmployeesSet, isActive, hasAnalysisEmployees, analysisEmployeesList, isEmployeeInAnalysis]);
+
+    const allEmployees = useMemo(() => {
+        if (isActive === false) return [];
+        // YÊU CẦU CỐT LÕI: Luôn luôn và duy nhất lấy danh sách nhân viên từ chức năng Phân tích.
+        // Nếu chưa có danh sách phân tích thì trả về mảng rỗng để yêu cầu người dùng cập nhật.
+        if (!hasAnalysisEmployees) return [];
+
+        const seen = new Set<string>();
+        const list: { name: string; originalName: string; department: string }[] = [];
+
+        // Lọc theo siêu thị đang active nếu người dùng chọn xem siêu thị cụ thể
+        const isFilteringSpecificSupermarkets = (
+            activeSupermarkets.length > 0 &&
+            !activeSupermarkets.includes('Tổng') &&
+            !activeSupermarkets.includes('Tổng hợp') &&
+            (supermarkets.length > 0 ? activeSupermarkets.length < supermarkets.length : true)
+        );
+        const hasAnyMapping = Object.keys(employeeSupermarketMap).length > 0;
+
+        for (const emp of analysisEmployeesList) {
+            if (hiddenEmployeesSet.has(emp.originalName)) continue;
+            const canonical = standardizeEmployeeName(emp.originalName);
+            const dedupKey = emp.id || canonical;
+            if (!seen.has(dedupKey)) {
+                if (isFilteringSpecificSupermarkets && (hasAnyMapping || emp.maKho || emp.supermarket)) {
+                    const assignedSm = resolveEmployeeSupermarket(emp.originalName);
+                    const isBelong = activeSupermarkets.some(activeSm => {
+                        if (assignedSm === activeSm) return true;
+                        if (shortenSupermarketName(assignedSm) === shortenSupermarketName(activeSm)) return true;
+                        const smKho = extractEmployeeId(activeSm) || (activeSm.match(/\d+/) || [])[0] || '';
+                        if (emp.maKho && smKho && emp.maKho === smKho) return true;
+                        return false;
+                    });
+                    if (!isBelong) continue;
+                }
+
+                seen.add(dedupKey);
+                const dept = employeeDepartmentMap[emp.originalName] || employeeDepartmentMap[canonical] || emp.department;
+                if (!dept || isSystemOrIgnoredEmployee(emp.originalName, dept) || isIgnoredDept(dept)) continue;
+                list.push({
+                    name: emp.name || formatEmployeeName(emp.originalName),
+                    originalName: emp.originalName,
+                    department: dept
+                });
+            }
+        }
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+    }, [employeeDepartmentMap, hasAnalysisEmployees, analysisEmployeesList, hiddenEmployeesSet, isActive, activeSupermarkets, supermarkets.length, employeeSupermarketMap, resolveEmployeeSupermarket]);
+
+    const deptEmployeeCounts = useMemo(() => {
+        if (isActive === false) return {};
+        const counts: Record<string, number> = {};
+        allEmployees.forEach(emp => { counts[emp.department] = (counts[emp.department] || 0) + 1; });
+        return counts;
+    }, [allEmployees, isActive]);
+
+    const [installmentRows, setInstallmentRows] = useState<InstallmentRow[]>([]);
+    useEffect(() => {
+        if (!aggregatedData.traGop || isActive === false) return;
+        let isMounted = true;
+        runWorkerTask('PARSE_INSTALLMENT', { text: aggregatedData.traGop, employeeDepartmentMap }).then(rows => {
+            if (isMounted && rows) {
+                const kept = (rows as InstallmentRow[]).filter((r: InstallmentRow) => {
+                    if (r.type !== 'employee') return true;
+                    if (!r.originalName || hiddenEmployeesSet.has(r.originalName)) return false;
+                    if (hasAnalysisEmployees) return isEmployeeInAnalysis(r.originalName);
+                    const dept = (employeeDepartmentMap[r.originalName] || r.department || '').trim();
+                    return dept && !isIgnoredDept(dept) && !isSystemOrIgnoredEmployee(r.originalName, dept);
+                });
+                // Dòng TỔNG CỘNG của báo cáo gốc còn cộng cả người đã bị lọc (ngoài Phân Tích / bị ẩn) — đo 2026-10-09:
+                // bảng chỉ hiện NV 101 (200/1.000) mà dòng tổng ra 650/2.000. Tính lại tổng từ đúng các dòng còn lại.
+                setInstallmentRows(kept.length === rows.length ? kept : recomputeInstallmentTotal(kept));
+            }
+        }).catch(err => console.error('[useNhanVienData] Lỗi parse trả góp:', err));
+        return () => { isMounted = false; };
+    }, [aggregatedData.traGop, employeeDepartmentMap, hiddenEmployeesSet, isActive, hasAnalysisEmployees, isEmployeeInAnalysis]);
+
+    const buildRevenueRows = useCallback((sourceRows: RevenueRow[]): RevenueRow[] => {
+        if (isActive === false) return [];
+
+        const getDeptForEmployee = (origName?: string, currentDept?: string): string => {
+            if (origName) {
+                if (employeeDepartmentMap[origName]) return employeeDepartmentMap[origName];
+                const canonical = standardizeEmployeeName(origName);
+                if (employeeDepartmentMap[canonical]) return employeeDepartmentMap[canonical];
+                if (origName.includes(' - ')) {
+                    const parts = origName.split(' - ').map(p => p.trim());
+                    if (employeeDepartmentMap[`${parts[1]} - ${parts[0]}`]) return employeeDepartmentMap[`${parts[1]} - ${parts[0]}`];
+                    if (employeeDepartmentMap[parts[0]]) return employeeDepartmentMap[parts[0]];
+                    if (employeeDepartmentMap[parts[1]]) return employeeDepartmentMap[parts[1]];
+                }
+            }
+            if (currentDept && !isIgnoredDept(currentDept) && !isSystemOrIgnoredEmployee(origName, currentDept)) return currentDept;
+            return '';
+        };
+
+        // Nếu có danh sách nhân viên từ Phân Tích (allEmployees):
+        // Nguồn chuẩn duy nhất là allEmployees, kết hợp với số liệu từ sourceRows (nếu có).
+        // Đảm bảo toàn bộ nhân viên trong Phân Tích đều hiển thị trên bảng Doanh Thu.
+        if (hasAnalysisEmployees && allEmployees.length > 0) {
+            const rowByOriginal = new Map<string, RevenueRow>();
+            const rowByCanonical = new Map<string, RevenueRow>();
+            const rowByFormatted = new Map<string, RevenueRow>();
+            const rowById = new Map<string, RevenueRow>();
+
+            sourceRows.forEach(row => {
+                if (row.type === 'employee' && row.originalName) {
+                    const orig = row.originalName.trim();
+                    const can = standardizeEmployeeName(orig);
+                    const fmt = formatEmployeeName(orig);
+                    const id = extractEmployeeId(orig);
+
+                    rowByOriginal.set(orig.toLowerCase(), row);
+                    rowByCanonical.set(can.toLowerCase(), row);
+                    rowByFormatted.set(fmt.toLowerCase(), row);
+                    if (id) rowById.set(id, row);
+                }
+            });
+
+            const mappedEmployees: RevenueRow[] = allEmployees.map(emp => {
+                const empOrig = emp.originalName.trim();
+                const empCan = standardizeEmployeeName(empOrig);
+                const empFmt = formatEmployeeName(empOrig);
+                const empId = extractEmployeeId(empOrig);
+
+                let matched = rowByOriginal.get(empOrig.toLowerCase())
+                    || rowByCanonical.get(empCan.toLowerCase())
+                    || rowByFormatted.get(empFmt.toLowerCase())
+                    || (empId ? rowById.get(empId) : undefined);
+
+                if (!matched) {
+                    matched = sourceRows.find(r => r.type === 'employee' && (isSameEmployee(r.originalName, emp.originalName) || isSameEmployee(r.name, emp.name)));
+                }
+
+                if (matched) {
+                    return {
+                        ...matched,
+                        type: 'employee',
+                        name: emp.name || matched.name,
+                        originalName: emp.originalName,
+                        department: emp.department,
+                        dtlk: matched.dtlk || 0,
+                        dtqd: matched.dtqd || 0,
+                        hieuQuaQD: matched.hieuQuaQD || 0,
+                        soLuong: matched.soLuong || 0,
+                        pctBillBk: matched.pctBillBk || 0
+                    };
+                }
+
+                return {
+                    type: 'employee',
+                    name: emp.name,
+                    originalName: emp.originalName,
+                    department: emp.department,
+                    dtlk: 0,
+                    dtqd: 0,
+                    hieuQuaQD: 0,
+                    soLuong: 0,
+                    pctBillBk: 0
+                };
+            });
+
+            const currentDepts = Array.from(new Set(allEmployees.map(e => e.department))).filter(Boolean).sort();
+            const finalRows: RevenueRow[] = [];
+
+            currentDepts.forEach((deptName: string) => {
+                const deptEmps = mappedEmployees.filter(r => r.department === deptName);
+                if (deptEmps.length > 0) {
+                    const origDeptRow = sourceRows.find(r => r.type === 'department' && r.name === deptName);
+                    const sumDtlk = deptEmps.reduce((s, e) => s + (e.dtlk || 0), 0);
+                    const sumDtqd = deptEmps.reduce((s, e) => s + (e.dtqd || 0), 0);
+                    const hqqd = origDeptRow ? origDeptRow.hieuQuaQD : (sumDtlk > 0 ? (sumDtqd / sumDtlk) - 1 : 0);
+                    finalRows.push({
+                        type: 'department',
+                        name: deptName,
+                        dtlk: sumDtlk,
+                        dtqd: sumDtqd,
+                        hieuQuaQD: hqqd
+                    });
+                    finalRows.push(...deptEmps);
+                }
+            });
+
+            return finalRows;
+        }
+
+        // Fallback khi chưa có danh sách phân tích
+        const mappedRows = sourceRows
+            .filter(row => {
+                if (row.type !== 'employee') return true;
+                const dept = getDeptForEmployee(row.originalName, row.department);
+                return dept && !isIgnoredDept(dept) && !isSystemOrIgnoredEmployee(row.originalName, dept);
+            })
+            .map(row => {
+                if (row.type === 'employee' && row.originalName) {
+                    return { 
+                        ...row, 
+                        department: getDeptForEmployee(row.originalName, row.department)
+                    };
+                }
+                return row;
+            });
+
+        const finalRows: RevenueRow[] = [];
+        const currentDeptsInMap = Array.from(new Set(Object.values(employeeDepartmentMap))).sort();
+        currentDeptsInMap.forEach((deptName: string) => {
+            const deptEmps = mappedRows.filter(r => r.type === 'employee' && r.department === deptName);
+            if (deptEmps.length > 0) {
+                const origDeptRow = mappedRows.find(r => r.type === 'department' && r.name === deptName);
+                finalRows.push({ 
+                    type: 'department', name: deptName, 
+                    dtlk: deptEmps.reduce((s, e) => s + (e.dtlk || 0), 0), 
+                    dtqd: deptEmps.reduce((s, e) => s + (e.dtqd || 0), 0), 
+                    hieuQuaQD: origDeptRow ? origDeptRow.hieuQuaQD : 0
+                });
+                finalRows.push(...deptEmps);
+            }
+        });
+        return finalRows;
+    }, [allEmployees, hasAnalysisEmployees, employeeDepartmentMap, isActive]);
+
+    const revenueRows = useMemo(() => {
+        return buildRevenueRows(parsedRevenueBase);
+    }, [buildRevenueRows, parsedRevenueBase]);
+
+    const realtimeRevenueRows = useMemo(() => {
+        if (isActive === false || (!aggregatedData.employeeRealtime && !aggregatedData.employeeRealtimeQd && parsedRevenueRealtimeBase.length === 0)) return [];
+        return buildRevenueRows(parsedRevenueRealtimeBase);
+    }, [buildRevenueRows, parsedRevenueRealtimeBase, aggregatedData.employeeRealtime, aggregatedData.employeeRealtimeQd, isActive]);
+
+    // Toàn bộ tên phòng ban thật sự có nhân viên (không lọc bớt) — dùng để "Tất cả" luôn đúng
+    // nghĩa là TẤT CẢ. Trước đây effectiveActiveDepartments khi chọn "Tất cả" lại resolve về
+    // departmentOptions (danh sách ĐÃ lọc bớt cho dropdown), nên nhân viên phòng "Kế toán"/"Tiếp
+    // đón khách hàng"/chứa "quản lý" tuy vẫn được đếm vào employeeDepartmentMap (isIgnoredDept ở
+    // nhanVienHelpers.ts chỉ loại "quản lý siêu thị"/"trưởng ca", hẹp hơn nhiều) nhưng lại bị
+    // useRevenueData.ts lọc mất khỏi MỌI bảng hiển thị (Doanh thu/Bán kèm/Trả góp/Thi đua/Chi
+    // tiết) kể cả khi user đã chọn "Tất cả" — vì departmentNames.includes(r.department) không
+    // bao giờ chứa các phòng ban đó. Doanh thu thật của những nhân viên này vẫn bị đếm ở
+    // deptEmployeeCounts/employeeDepartmentMap nhưng biến mất khỏi mọi bảng số liệu.
+    const allDepartmentNames = useMemo(() => {
+        if (isActive === false) return [];
+        return Array.from(new Set(Object.values(employeeDepartmentMap as Record<string, string>)))
+            .filter((d): d is string => typeof d === 'string' && Boolean(d) && !isIgnoredDept(d))
+            .sort();
+    }, [employeeDepartmentMap, isActive]);
+
+    // Danh sách cho dropdown chọn phòng ban — CỐ Ý lọc bớt các phòng không phải kinh doanh
+    // (quản lý/trưởng ca/kế toán/tiếp đón khách) để không ai cần lọc riêng theo các phòng này.
+    // Chỉ ảnh hưởng danh sách LỰA CHỌN trong dropdown, KHÔNG còn ảnh hưởng tới việc "Tất cả"
+    // hiển thị gì (xem allDepartmentNames ở trên).
+    const departmentOptions = useMemo(() => {
+        if (isActive === false) return [];
+        const excludedKeywords = ['quản lý', 'trưởng ca', 'kế toán', 'tiếp đón khách hàng', 'chưa xác định', 'không phân ca', 'bp khác', 'khác'];
+        return allDepartmentNames.filter(d => !excludedKeywords.some(keyword => d.toLowerCase().includes(keyword)) && !isIgnoredDept(d));
+    }, [allDepartmentNames, isActive]);
+
+    const [activeDepartmentsRaw, setActiveDepartments] = useIndexedDBState<string[]>('nhanvien-active-depts-multi', ['all']);
+    const activeDepartments = useMemo(() => {
+        if (isActive === false) return ['all'];
+        return Array.isArray(activeDepartmentsRaw)
+            ? activeDepartmentsRaw.filter(d => d === 'all' || departmentOptions.includes(d))
+            : ['all'];
+    }, [activeDepartmentsRaw, departmentOptions, isActive]);
+    const effectiveActiveDepartments = useMemo(() => {
+        if (isActive === false) return [];
+        return activeDepartments.length === 0 || activeDepartments.includes('all') ? allDepartmentNames : activeDepartments;
+    }, [activeDepartments, allDepartmentNames, isActive]);
+
+    const toggleSupermarket = useCallback((sm: string) => {
+        setActiveSupermarkets(prev => {
+            if (sm === 'all') return prev.length === supermarkets.length ? [supermarkets[0]] : [...supermarkets];
+            const next = prev.includes(sm) ? prev.filter(s => s !== sm) : [...prev, sm];
+            return next.length === 0 ? [supermarkets[0]] : next;
+        });
+    }, [supermarkets, setActiveSupermarkets]);
+
+    const toggleDepartment = useCallback((dept: string) => {
+        setActiveDepartments(prev => {
+            if (dept === 'all') return ['all'];
+            let next = Array.isArray(prev) ? prev.filter(d => d !== 'all') : [];
+            if (next.includes(dept)) {
+                next = next.filter(d => d !== dept);
+            } else {
+                next.push(dept);
+            }
+            if (next.length === 0) return ['all'];
+            if (next.length === departmentOptions.length) return ['all'];
+            return next;
+        });
+    }, [departmentOptions, setActiveDepartments]);
+
+    // 2 bản đồ CÙNG khoá: % trả chậm và DT siêu thị (mẫu số) — tab Doanh thu cần mẫu số để cộng % trả chậm dòng bộ phận/tổng
+    // có trọng số, khớp tab Trả chậm (2026-10-29).
+    const { employeeInstallmentMap, employeeInstallmentBaseMap } = useMemo(() => {
+        const pctMap = new Map<string, number>();
+        const baseMap = new Map<string, number>();
+        if (isActive === false) return { employeeInstallmentMap: pctMap, employeeInstallmentBaseMap: baseMap };
+        let baseHienTai = 0;
+        // Ghi cùng lúc vào 2 bản đồ — giữ nguyên toàn bộ cách đặt khoá bên dưới (tên gốc, chuẩn hoá, đảo, mã NV).
+        const map = { set: (k: string, v: number) => { pctMap.set(k, v); baseMap.set(k, baseHienTai); } };
+        installmentRows.forEach(row => {
+            if (row.type !== 'employee' && row.type !== undefined) return;
+            const pct = row.totalPercent ?? 0;
+            baseHienTai = row.totalDtSieuThi ?? 0;
+
+            // 1. Chỉ mục theo originalName và name
+            if (row.originalName) {
+                map.set(row.originalName, pct);
+                const canonical = standardizeEmployeeName(row.originalName);
+                if (canonical) map.set(canonical, pct);
+                const formatted = formatEmployeeName(row.originalName);
+                if (formatted) map.set(formatted, pct);
+                if (row.originalName.includes(' - ')) {
+                    const parts = row.originalName.split(' - ').map(p => p.trim());
+                    if (parts.length >= 2) {
+                        map.set(`${parts[1]} - ${parts[0]}`, pct);
+                    }
+                }
+            }
+            if (row.name) {
+                map.set(row.name, pct);
+                const canonical = standardizeEmployeeName(row.name);
+                if (canonical) map.set(canonical, pct);
+                const formatted = formatEmployeeName(row.name);
+                if (formatted) map.set(formatted, pct);
+            }
+            // 2. Chỉ mục theo Mã số nhân viên duy nhất (Employee ID, ví dụ "59814")
+            const empId = extractEmployeeId(row.originalName || '') || extractEmployeeId(row.name || '');
+            if (empId) {
+                map.set(empId, pct);
+            }
+        });
+        return { employeeInstallmentMap: pctMap, employeeInstallmentBaseMap: baseMap };
+    }, [installmentRows, isActive]);
+
+
+
+    const handleSaveBonus = useCallback(async (originalName: string, metrics: BonusMetrics) => {
+        const resolvedSm = resolveEmployeeSupermarket(originalName);
+        const safeName = shortenSupermarketName(resolvedSm) || (activeSupermarkets[0] ? shortenSupermarketName(activeSupermarkets[0]) : '') || 'Tổng';
+        if (!safeName || safeName === 'undefined') return;
+        const canonical = standardizeEmployeeName(originalName);
+        const empId = extractEmployeeId(originalName);
+        let swapped = '';
+        if (originalName.includes(' - ')) {
+            const parts = originalName.split(' - ').map(p => p.trim());
+            swapped = `${parts[1]} - ${parts[0]}`;
+        }
+
+        setAggregatedData(prev => {
+            const nextBonusData = { ...prev.bonusData, [originalName]: metrics, [canonical]: metrics };
+            if (swapped) nextBonusData[swapped] = metrics;
+            if (empId) {
+                Object.keys(nextBonusData).forEach(k => {
+                    if (extractEmployeeId(k) === empId) nextBonusData[k] = metrics;
+                });
+            }
+            return { ...prev, bonusData: nextBonusData };
+        });
+
+        const currentDbData = await db.get<Record<string, BonusMetrics>>(`bonus-data-${safeName}`) || {};
+        const nextDbData = { ...currentDbData, [originalName]: metrics, [canonical]: metrics };
+        if (swapped) nextDbData[swapped] = metrics;
+        if (empId) {
+            Object.keys(nextDbData).forEach(k => {
+                if (extractEmployeeId(k) === empId) nextDbData[k] = metrics;
+            });
+        }
+        await db.set(`bonus-data-${safeName}`, nextDbData);
+    }, [resolveEmployeeSupermarket, activeSupermarkets]);
+
+    // Ghi hàng loạt cho chế độ Tự động — gom nhóm theo ĐÚNG siêu thị của từng nhân viên (trước
+    // đây đổ hết vào activeSupermarkets[0], sai dữ liệu khi 2+ siêu thị active cùng lúc — xem
+    // resolveEmployeeSupermarket) rồi đọc/ghi 1 lần/nhóm thay vì gọi handleSaveBonus lặp N lần
+    // (read-modify-write không khóa, gọi lặp nhanh có nguy cơ ghi đè lẫn nhau).
+    const handleSaveBonusBatch = useCallback(async (entries: { originalName: string; metrics: BonusMetrics }[]) => {
+        if (entries.length === 0) return;
+
+        setAggregatedData(prev => {
+            const nextBonusData = { ...prev.bonusData };
+            entries.forEach(({ originalName, metrics }) => {
+                nextBonusData[originalName] = metrics;
+                const canonical = standardizeEmployeeName(originalName);
+                nextBonusData[canonical] = metrics;
+                if (originalName.includes(' - ')) {
+                    const parts = originalName.split(' - ').map(p => p.trim());
+                    nextBonusData[`${parts[1]} - ${parts[0]}`] = metrics;
+                }
+                const empId = extractEmployeeId(originalName);
+                if (empId) {
+                    Object.keys(nextBonusData).forEach(k => {
+                        if (extractEmployeeId(k) === empId) nextBonusData[k] = metrics;
+                    });
+                }
+            });
+            return { ...prev, bonusData: nextBonusData };
+        });
+
+        const groups = new Map<string, { originalName: string; metrics: BonusMetrics }[]>();
+        entries.forEach(entry => {
+            const resolvedSm = resolveEmployeeSupermarket(entry.originalName);
+            const safeName = shortenSupermarketName(resolvedSm) || (activeSupermarkets[0] ? shortenSupermarketName(activeSupermarkets[0]) : '') || 'Tổng';
+            if (!groups.has(safeName)) groups.set(safeName, []);
+            groups.get(safeName)!.push(entry);
+        });
+
+        await Promise.all(Array.from(groups.entries()).map(async ([safeName, groupEntries]) => {
+            if (!safeName || safeName === 'undefined') return;
+            const currentDbData = await db.get<Record<string, BonusMetrics>>(`bonus-data-${safeName}`) || {};
+            const mergedDbData = { ...currentDbData };
+            groupEntries.forEach(({ originalName, metrics }) => {
+                mergedDbData[originalName] = metrics;
+                const canonical = standardizeEmployeeName(originalName);
+                mergedDbData[canonical] = metrics;
+                if (originalName.includes(' - ')) {
+                    const parts = originalName.split(' - ').map(p => p.trim());
+                    mergedDbData[`${parts[1]} - ${parts[0]}`] = metrics;
+                }
+                const empId = extractEmployeeId(originalName);
+                if (empId) {
+                    Object.keys(mergedDbData).forEach(k => {
+                        if (extractEmployeeId(k) === empId) mergedDbData[k] = metrics;
+                    });
+                }
+            });
+            await db.set(`bonus-data-${safeName}`, mergedDbData);
+        }));
+
+        // Ghi lịch sử từng nhân viên, đúng key scheme BonusDataModal đang dùng (bonus-history-*),
+        // để chế độ Tự động không tạo khoảng trống dữ liệu so với dán tay.
+        await Promise.all(entries.map(({ originalName, metrics }) =>
+            appendBonusHistory(resolveEmployeeSupermarket(originalName), originalName, metrics)
+        ));
+    }, [resolveEmployeeSupermarket, activeSupermarkets]);
+
+    // Ghi kho lưu trữ theo THÁNG (phục vụ "Xem theo tháng") — 1 key/(siêu thị, tháng),
+    // ghi đè toàn bộ mỗi lần chạy lại cùng tháng (dữ liệu mới nhất thắng, không cộng dồn).
+    // Chỉ khi yyyymm là THÁNG HIỆN TẠI mới đồng thời mirror sang bonus-data-*/bonus-history-*
+    // (giữ tab "hôm nay" luôn khớp); tháng quá khứ không đụng tới dữ liệu hiện tại.
+    const handleSaveBonusMonthly = useCallback(async (
+        entries: { originalName: string; metrics: BonusMetrics }[],
+        yyyymm: string,
+    ) => {
+        if (entries.length === 0) return;
+
+        const groups = new Map<string, { originalName: string; metrics: BonusMetrics }[]>();
+        entries.forEach(entry => {
+            const safeName = shortenSupermarketName(resolveEmployeeSupermarket(entry.originalName));
+            if (!groups.has(safeName)) groups.set(safeName, []);
+            groups.get(safeName)!.push(entry);
+        });
+
+        await Promise.all(Array.from(groups.entries()).map(async ([safeName, groupEntries]) => {
+            const monthlyKey = `bonus-monthly-${safeName}-${yyyymm}` as const;
+            const monthlyData: Record<string, BonusMetrics> = {};
+            groupEntries.forEach(({ originalName, metrics }) => { monthlyData[originalName] = metrics; });
+            await db.set(monthlyKey, monthlyData);
+        }));
+
+
+        const now = new Date();
+        const currentYYYYMM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        if (yyyymm === currentYYYYMM) {
+            await handleSaveBonusBatch(entries);
+        }
+    }, [resolveEmployeeSupermarket, handleSaveBonusBatch]);
+
+    // Ghi kho "So sánh cùng kỳ tháng" — 1 key/siêu thị chứa CẢ 2 kỳ: { runId, current, previous }.
+    // Mỗi bước (kỳ này / kỳ trước) ghi phần của mình; runId khác với bản đang lưu -> bỏ phần
+    // của bước kia (tránh ghép "kỳ này" mới với "kỳ trước" của lượt cũ khi 1 bước lỗi giữa chừng).
+    // Bước "kỳ này" đồng thời mirror sang bonus-data-* để tab Tổng hợp/Theo ngày khớp số.
+    const handleSaveBonusCompare = useCallback(async (
+        entries: { originalName: string; metrics: BonusMetrics }[],
+        part: BonusComparePart,
+        range: { fromDate: string; toDate: string },
+        runId: string,
+    ) => {
+        if (entries.length === 0) return;
+
+        const groups = new Map<string, { originalName: string; metrics: BonusMetrics }[]>();
+        entries.forEach(entry => {
+            const safeName = shortenSupermarketName(resolveEmployeeSupermarket(entry.originalName));
+            if (!groups.has(safeName)) groups.set(safeName, []);
+            groups.get(safeName)!.push(entry);
+        });
+
+        await Promise.all(Array.from(groups.entries()).map(async ([safeName, groupEntries]) => {
+            const key = `bonus-compare-${safeName}` as const;
+            const existing = await db.get<BonusCompareStore>(key);
+            const base: BonusCompareStore = existing && existing.runId === runId
+                ? existing
+                : { runId, updatedAt: '' };
+            const data: Record<string, BonusMetrics> = {};
+            groupEntries.forEach(({ originalName, metrics }) => { data[originalName] = metrics; });
+            const next: BonusCompareStore = {
+                ...base,
+                [part]: { fromDate: range.fromDate, toDate: range.toDate, data },
+                updatedAt: new Date().toLocaleString('vi-VN'),
+            };
+            await db.set(key, next);
+        }));
+
+        if (part === 'current') {
+            await handleSaveBonusBatch(entries);
+        }
+    }, [resolveEmployeeSupermarket, handleSaveBonusBatch]);
+
+    // Nhãn kỳ hiện tại của bonusData (VD "THÁNG 6/2026", "NĂM 2026 (LUỸ KẾ)") — do
+    // AutoBonusPanel gọi sau khi 1 lượt Tự động chạy xong, để BonusTab đổi tiêu đề báo cáo
+    // đúng theo lựa chọn Hiện tại/Tháng/Năm/Khoảng thời gian thay vì luôn cố định "hôm qua".
+    // Ghi vào TẤT CẢ siêu thị đang active (không chỉ activeSupermarkets[0]) — đây chỉ là 1
+    // chuỗi nhãn kỳ báo cáo (không phải dữ liệu theo nhân viên), nên đảm bảo mọi siêu thị
+    // active đều thấy đúng nhãn khi xem riêng lẻ sau đó.
+    const setBonusPeriodLabel = useCallback(async (label: string) => {
+        setAggregatedData(prev => ({ ...prev, bonusPeriodLabel: label }));
+        const uniqueSafeNames = Array.from(new Set(activeSupermarkets.map(sm => shortenSupermarketName(sm))));
+        await Promise.all(uniqueSafeNames.map(safeName => db.set(`bonus-current-period-label-${safeName}`, label)));
+    }, [activeSupermarkets]);
+
+    const effectiveAggregatedWeights = useMemo(() => {
+        if (isActive === false) return {};
+        if (Object.keys(aggregatedWeights).length > 0) return aggregatedWeights;
+        
+        const weights: Record<string, number> = {};
+        const hasAllInOne = departmentOptions.some(d => typeof d === "string" && d.toUpperCase().includes("ALL IN ONE"));
+        
+        if (hasAllInOne) {
+            departmentOptions.forEach(d => {
+                if (typeof d === "string") weights[d] = d.toUpperCase().includes("ALL IN ONE") ? 100 : 0;
+            });
+        } else {
+            const share = 100 / (departmentOptions.length || 1);
+            departmentOptions.forEach(d => { if (typeof d === "string") weights[d] = share; });
+        }
+        return weights;
+    }, [aggregatedWeights, departmentOptions, isActive]);
+
+    return {
+        supermarkets,
+        activeSupermarkets,
+        activeDepartments,
+        effectiveActiveDepartments,
+        departmentOptions,
+        aggregatedData,
+        aggregatedWeights: effectiveAggregatedWeights,
+        employeeDepartmentMap,
+        installmentRows,
+        revenueRows,
+        realtimeRevenueRows,
+        employeeInstallmentMap,
+        employeeInstallmentBaseMap,
+        allEmployees,
+        hiddenEmployees,
+        deptEmployeeCounts,
+        toggleSupermarket,
+        toggleDepartment,
+        handleSaveBonus,
+        handleSaveBonusBatch,
+        handleSaveBonusMonthly,
+        handleSaveBonusCompare,
+        resolveEmployeeSupermarket,
+        setBonusPeriodLabel,
+        setAggregatedData,
+        dataVersion,
+        hasAnalysisEmployees,
+        analysisEmployeesCount: analysisEmployeesList.length,
+        analysisEmployeesLastUpdated: analysisEmployeesPayload?.updatedAt || null,
+        loadAnalysisEmployees
+    };
+}

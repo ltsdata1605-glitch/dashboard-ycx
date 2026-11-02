@@ -1,0 +1,10 @@
+[WebServer] (node:48744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/section-header-keyboard.spec.ts:2:1 › section quick action keyboard does not activate header (1.4s)
+  ✓  2 [webkit] › tests/e2e/section-header-keyboard.spec.ts:26:3 › card tokens and responsive section exception 390 (536ms)
+  ✓  3 [webkit] › tests/e2e/section-header-keyboard.spec.ts:26:3 › card tokens and responsive section exception 1366 (596ms)
+
+  3 passed (3.8s)

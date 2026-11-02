@@ -1,0 +1,405 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { Product } from './types';
+import { parseCurrency } from './services/fileParser';
+import { formatCurrency as formatCurrencyForDisplay } from './utils/format';
+import { ManualProductDoc } from './services/firebaseService';
+import { Button } from '../../components/shared/ui/Button';
+import { Input } from '../../components/shared/ui/Input';
+import { Textarea } from '../../components/shared/ui/Textarea';
+import { Checkbox } from '../../components/shared/ui/Checkbox';
+import { Modal } from '../../components/shared/ui/Modal';
+import { EmptyState } from '../../components/shared/ui/EmptyState';
+
+export interface ManualProductWithId extends Product {
+    firebaseId?: string; // ID from Firestore document
+}
+
+interface ManualInputModalProps {
+    onClose: () => void;
+    onPrintSelected: (products: Product[]) => void;
+    onSaveProduct: (product: ManualProductWithId) => Promise<string>; // returns docId
+    onDeleteProduct: (docId: string) => void;
+    onUpdateProduct: (product: ManualProductWithId) => Promise<void>;
+    manualProducts: ManualProductWithId[];
+}
+
+const initialFormData = {
+    sanPham: '',
+    msp: '',
+    giaGoc: '',
+    giaGiam: '',
+    thuongERP: '',
+    thuongNong: '',
+    khuyenMai: ''
+};
+
+interface InputFieldProps {
+    name: keyof Omit<typeof initialFormData, 'khuyenMai'>;
+    label: string;
+    placeholder: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    error?: string;
+    required?: boolean;
+    type?: string;
+    inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+}
+
+const InputField: React.FC<InputFieldProps> = ({ name, label, placeholder, value, onChange, error, required = false, type = 'text', inputMode }) => (
+    <div>
+        <label htmlFor={name} className="block text-sm font-medium text-slate-700 mb-1">
+            {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {/* Ô dùng chung: lỗi nối vào ô qua aria-invalid + aria-describedby (dòng lỗi do Input tự vẽ) */}
+        <Input
+            type={type}
+            id={name}
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            inputMode={inputMode}
+            error={error}
+        />
+    </div>
+);
+
+const ManualInputModal: React.FC<ManualInputModalProps> = ({
+    onClose,
+    onPrintSelected,
+    onSaveProduct,
+    onDeleteProduct,
+    onUpdateProduct,
+    manualProducts,
+}) => {
+    const [formData, setFormData] = useState(initialFormData);
+    const [errors, setErrors] = useState<Partial<typeof formData>>({});
+    const [editingId, setEditingId] = useState<string | null>(null); // Firebase doc ID being edited
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isSaving, setIsSaving] = useState(false);
+
+    const tongThuong = useMemo(() => {
+        const erp = parseCurrency(formData.thuongERP);
+        const nong = parseCurrency(formData.thuongNong);
+        return nong * 0.4 + erp;
+    }, [formData.thuongERP, formData.thuongNong]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        const numericFields = new Set(['msp', 'giaGoc', 'giaGiam', 'thuongERP', 'thuongNong']);
+        let processedValue = value;
+        if (numericFields.has(name)) {
+            processedValue = value.replace(/\D/g, '');
+        }
+        if (name === 'msp' && processedValue === '') {
+            setFormData(initialFormData);
+        } else {
+            setFormData(prev => ({ ...prev, [name]: processedValue }));
+        }
+        if (errors[name as keyof typeof errors]) {
+            setErrors(prev => ({ ...prev, [name]: undefined }));
+        }
+    };
+
+    const validate = (): boolean => {
+        const newErrors: Partial<typeof formData> = {};
+        if (!formData.sanPham.trim()) newErrors.sanPham = 'Tên sản phẩm là bắt buộc.';
+        if (!formData.msp.trim()) newErrors.msp = 'Mã sản phẩm là bắt buộc.';
+        if (!formData.giaGiam.trim()) newErrors.giaGiam = 'Giá bán là bắt buộc.';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // ADD new product
+    const handleAddProduct = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validate() || isSaving) return;
+        setIsSaving(true);
+
+        const newProduct: ManualProductWithId = {
+            sanPham: formData.sanPham.trim(),
+            msp: formData.msp.trim(),
+            giaGoc: formatCurrencyForDisplay(parseCurrency(formData.giaGoc)),
+            giaGiam: formatCurrencyForDisplay(parseCurrency(formData.giaGiam)),
+            khuyenMai: formData.khuyenMai.trim(),
+            thuongERP: parseCurrency(formData.thuongERP),
+            thuongNong: parseCurrency(formData.thuongNong),
+            tongThuong: tongThuong,
+            ngayIn: new Date().toLocaleDateString('vi-VN'),
+            selected: false,
+            quantity: 1,
+        };
+
+        // Call parent handler (non-blocking — UI updates immediately)
+        onSaveProduct(newProduct);
+        setFormData(initialFormData);
+        setErrors({});
+        setIsSaving(false);
+    };
+
+    // EDIT: Load product data into form
+    const handleEditProduct = (product: ManualProductWithId) => {
+        if (!product.firebaseId) return;
+        setEditingId(product.firebaseId);
+        setFormData({
+            sanPham: product.sanPham,
+            msp: product.msp,
+            giaGoc: String(parseCurrency(product.giaGoc)),
+            giaGiam: String(parseCurrency(product.giaGiam)),
+            thuongERP: String(product.thuongERP),
+            thuongNong: String(product.thuongNong),
+            khuyenMai: product.khuyenMai || '',
+        });
+        // Scroll form into view
+        document.getElementById('manual-form-top')?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // SAVE edited product
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validate() || !editingId || isSaving) return;
+        setIsSaving(true);
+
+        const updatedProduct: ManualProductWithId = {
+            sanPham: formData.sanPham.trim(),
+            msp: formData.msp.trim(),
+            giaGoc: formatCurrencyForDisplay(parseCurrency(formData.giaGoc)),
+            giaGiam: formatCurrencyForDisplay(parseCurrency(formData.giaGiam)),
+            khuyenMai: formData.khuyenMai.trim(),
+            thuongERP: parseCurrency(formData.thuongERP),
+            thuongNong: parseCurrency(formData.thuongNong),
+            tongThuong: tongThuong,
+            ngayIn: new Date().toLocaleDateString('vi-VN'),
+            selected: false,
+            quantity: 1,
+            firebaseId: editingId,
+        };
+
+        // Call parent handler (non-blocking — UI updates immediately)
+        onUpdateProduct(updatedProduct);
+        setFormData(initialFormData);
+        setEditingId(null);
+        setErrors({});
+        setIsSaving(false);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setFormData(initialFormData);
+        setErrors({});
+    };
+
+    // SELECTION
+    const toggleSelection = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === manualProducts.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(manualProducts.filter(p => p.firebaseId).map(p => p.firebaseId!)));
+        }
+    };
+
+    // PRINT
+    const handlePrintSelected = () => {
+        const selected = manualProducts.filter(p => p.firebaseId && selectedIds.has(p.firebaseId));
+        if (selected.length > 0) onPrintSelected(selected);
+    };
+
+    const handlePrintAll = () => {
+        if (manualProducts.length > 0) onPrintSelected(manualProducts);
+    };
+
+    const selectedCount = selectedIds.size;
+    const totalQuantity = manualProducts.reduce((acc, p) => {
+        if (p.firebaseId && selectedIds.has(p.firebaseId)) return acc + (p.quantity || 1);
+        return acc;
+    }, 0);
+
+    return (
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            title="Nhập thông tin sản phẩm thủ công"
+            titleColorClass="text-slate-900"
+            subTitle={<>Ngành hàng: <b className="text-sky-600">Nhóm thủ công</b> • Dữ liệu dùng chung cho mã kho</>}
+            maxWidth="lg"
+            footer={
+                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 w-full">
+                    <Button type="button" variant="secondary" onClick={onClose} className="order-2 sm:order-1">
+                        Đóng
+                    </Button>
+                    <div className="flex items-center gap-2 order-1 sm:order-2">
+                        {selectedCount > 0 && (
+                            <Button
+                                type="button"
+                                variant="primary"
+                                onClick={handlePrintSelected}
+                            >
+                                In đã chọn ({selectedCount})
+                            </Button>
+                        )}
+                        <Button
+                            type="button"
+                            variant="success"
+                            onClick={handlePrintAll}
+                            disabled={manualProducts.length === 0}
+                        >
+                            In tất cả ({manualProducts.length})
+                        </Button>
+                    </div>
+                </div>
+            }
+        >
+            <div className="modal-bleed">
+                {/* Form */}
+                    <form id="manual-form-top" onSubmit={editingId ? handleSaveEdit : handleAddProduct} className="p-5 space-y-3 bg-slate-50 border-b border-slate-200">
+                        {editingId && (
+                            <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded-control px-3 py-2">
+                                <AppIcon name="edit" size="sm" className="shrink-0 text-amber-600" />
+                                <span className="text-amber-700 font-medium">Đang chỉnh sửa sản phẩm — Thay đổi thông tin và bấm "Lưu thay đổi"</span>
+                                <Button type="button" variant="inline-link" onClick={handleCancelEdit} className="ml-auto text-amber-600 hover:text-amber-800 text-xs">Hủy sửa</Button>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <InputField name="sanPham" label="Tên sản phẩm" placeholder="Ví dụ: iPhone 15 Pro Max" required value={formData.sanPham} onChange={handleChange} error={errors.sanPham} />
+                            <InputField name="msp" label="Mã sản phẩm (MSP)" placeholder="Ví dụ: 123456789" required value={formData.msp} onChange={handleChange} error={errors.msp} type="tel" inputMode="numeric" />
+                            <InputField name="giaGoc" label="Giá gốc (nếu có)" placeholder="Nhập số, ví dụ: 34990000" value={formData.giaGoc} onChange={handleChange} error={errors.giaGoc} type="tel" inputMode="numeric" />
+                            <InputField name="thuongERP" label="Thưởng ERP (nếu có)" placeholder="Nhập số, ví dụ: 50000" value={formData.thuongERP} onChange={handleChange} error={errors.thuongERP} type="tel" inputMode="numeric" />
+                            <InputField name="thuongNong" label="Thưởng Nóng (nếu có)" placeholder="Nhập số, ví dụ: 100000" value={formData.thuongNong} onChange={handleChange} error={errors.thuongNong} type="tel" inputMode="numeric" />
+                            <InputField name="giaGiam" label="Giá bán" placeholder="Nhập số, ví dụ: 29990000" required value={formData.giaGiam} onChange={handleChange} error={errors.giaGiam} type="tel" inputMode="numeric" />
+                        </div>
+                        <div>
+                            <label htmlFor="khuyenMai" className="block text-sm font-medium text-slate-700 mb-1">Khuyến mãi (nếu có)</label>
+                            <Textarea
+                                id="khuyenMai" name="khuyenMai" value={formData.khuyenMai} onChange={handleChange}
+                                placeholder="Nội dung khuyến mãi..." rows={1}
+                                className="min-h-0"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center pt-1">
+                            <div className="text-sm">
+                                <span className="text-slate-600">Tổng thưởng tạm tính: </span>
+                                <span className="font-bold text-sky-600">{formatCurrencyForDisplay(tongThuong)}</span>
+                            </div>
+                            {editingId ? (
+                                <div className="flex gap-2">
+                                    <Button type="button" variant="secondary" onClick={handleCancelEdit}>
+                                        Hủy sửa
+                                    </Button>
+                                    <Button type="submit" variant="primary" disabled={isSaving} isLoading={isSaving} icon={isSaving ? undefined : 'save'} className="bg-amber-500 hover:bg-amber-600 border-amber-600 text-white">
+                                        {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button type="submit" variant="primary" disabled={isSaving} isLoading={isSaving}>
+                                    {isSaving ? 'Đang lưu...' : 'Thêm sản phẩm'}
+                                </Button>
+                            )}
+                        </div>
+                    </form>
+
+                    {/* Product list */}
+                    <div className="px-5 py-4">
+                        <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                                    Danh sách sản phẩm ({manualProducts.length})
+                                </h3>
+                                {manualProducts.length > 0 && (
+                                    <Checkbox
+                                        checked={selectedIds.size === manualProducts.length && manualProducts.length > 0}
+                                        onChange={toggleSelectAll}
+                                        label="Chọn tất cả"
+                                        wrapperClassName="gap-1.5"
+                                        labelClassName="text-xs text-slate-500"
+                                    />
+                                )}
+                            </div>
+                            <span className="text-xs text-sky-600 font-medium">Lưu trên Firebase</span>
+                        </div>
+
+                        {manualProducts.length === 0 ? (
+                            <div className="border-2 border-dashed border-slate-200 rounded-popup">
+                                <EmptyState
+                                    icon={<AppIcon name="productOff" size="lg" />}
+                                    title="Chưa có sản phẩm nào"
+                                    description='Nhập thông tin ở trên và bấm "Thêm sản phẩm".'
+                                    compact
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {manualProducts.map((p) => {
+                                    const isSelected = p.firebaseId ? selectedIds.has(p.firebaseId) : false;
+                                    const isEditing = p.firebaseId === editingId;
+                                    return (
+                                        <div
+                                            key={p.firebaseId || p.msp}
+                                            className={`flex items-center gap-3 p-3 rounded-popup border transition-colors cursor-pointer ${
+                                                isEditing
+                                                    ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200'
+                                                    : isSelected
+                                                    ? 'bg-sky-50 border-sky-200'
+                                                    : 'bg-white border-slate-200 hover:border-sky-200 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            {/* Checkbox */}
+                                            <Checkbox
+                                                checked={isSelected}
+                                                onChange={() => p.firebaseId && toggleSelection(p.firebaseId)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                aria-label={`Chọn ${p.sanPham}`}
+                                                wrapperClassName="shrink-0"
+                                            />
+
+                                            {/* Product info - clickable for edit */}
+                                            <div
+                                                className="flex-grow min-w-0"
+                                                onClick={() => handleEditProduct(p)}
+                                                title="Click để chỉnh sửa"
+                                            >
+                                                <p className="font-semibold text-slate-800 truncate">{p.sanPham}</p>
+                                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 mt-0.5">
+                                                    <span>MSP: <b>{p.msp}</b></span>
+                                                    {p.giaGoc && <span>Gốc: {p.giaGoc}</span>}
+                                                    <span className="text-emerald-600 font-semibold">Bán: {p.giaGiam}</span>
+                                                    {(p.thuongERP > 0 || p.thuongNong > 0) && (
+                                                        <span className="text-sky-600">
+                                                            Thưởng: {formatCurrencyForDisplay(p.tongThuong)}
+                                                        </span>
+                                                    )}
+                                                    {p.khuyenMai && <span className="text-amber-500">KM: {p.khuyenMai}</span>}
+                                                </div>
+                                            </div>
+
+                                            {/* Delete */}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                icon="delete"
+                                                onClick={(e) => { e.stopPropagation(); p.firebaseId && onDeleteProduct(p.firebaseId); }}
+                                                className="text-slate-400 hover:text-rose-600 transition-colors shrink-0"
+                                                title="Xóa sản phẩm"
+                                                aria-label="Xóa sản phẩm"
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+            </div>
+        </Modal>
+    );
+};
+
+export default ManualInputModal;

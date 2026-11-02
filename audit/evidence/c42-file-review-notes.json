@@ -1,0 +1,6 @@
+{
+  "components/shared/ui/toast/AppToaster.tsx": "Full source reread. Replaced useToaster all-store timers with public-store visible-slot hook; preserved ToastItem/gesture/actions/material.4queue+3gesture cases perenginePASS. No business/share API changes.",
+  "components/shared/ui/toast/useVisibleToasts.ts": "Authored/fullread: public useToasterStore,3slot newestfirst,remaining duration clock perid/revision,hoverpause,preemption,removeDelay/resurrection,localheight/offset,unmount timercleanup. ADR c42-toast-timing-adr.md; runtime7cases perengine; customtoast/multipletoasters/native device still pending.",
+  "tests/e2e/helpers/materialHarness.html": "Actual AppToaster/toast API fixture: queue3Infinity blockers+finite toast;release/hover/loading/success/resurrect buttons. No external data/services.",
+  "tests/e2e/toast-visible-duration.spec.ts": "Authored/read4cases: queued budget,hoverpause,loading replacement/id resurrection,preemption/mobile geometry. Deliberate waits exceed durations; browserclock not mocked. Before1FAIL2PASS retained."
+}

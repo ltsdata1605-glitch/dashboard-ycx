@@ -1,0 +1,15 @@
+[WebServer] (node:36538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/shared-tabs-states.spec.ts:4:3 › underline: exposes selection and native keyboard changes (1.9s)
+  ✓  2 [webkit] › tests/e2e/shared-tabs-states.spec.ts:4:3 › pills: exposes selection and native keyboard changes (725ms)
+  ✓  3 [webkit] › tests/e2e/shared-tabs-states.spec.ts:4:3 › segment: exposes selection and native keyboard changes (613ms)
+  ✓  4 [webkit] › tests/e2e/shared-tabs-states.spec.ts:4:3 › chips: exposes selection and native keyboard changes (521ms)
+  ✓  5 [webkit] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline sm:44px (504ms)
+  ✓  6 [webkit] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline md:44px (481ms)
+  ✓  7 [webkit] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills sm:44px (476ms)
+  ✓  8 [webkit] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills md:44px (470ms)
+
+  8 passed (8.3s)

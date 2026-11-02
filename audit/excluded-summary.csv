@@ -1,0 +1,5 @@
+path,files,reason
+node_modules,52966,DEPENDENCY — thư viện bên thứ ba (npm)
+functions/node_modules,6363,DEPENDENCY
+dist,170,GENERATED — bản build Vite
+test-results,17,GENERATED — kết quả Playwright

@@ -1,0 +1,221 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from '../../../components/shared/ui/toast';
+import {
+    BiSyncMode,
+    BiSyncProgress,
+    startBiAutoSyncSession,
+    claimPendingAutoSync,
+    savePendingAutoSync,
+    clearPendingAutoSync,
+    PENDING_MAX_RELOADS,
+    applyBiSyncResults,
+    onBiProgress,
+    onBiDone,
+    onBiError,
+} from '../services/biAutoSyncService';
+import { startUserscriptUpdateWatcher } from '../services/userscriptProbeService';
+import { BiAutoSyncModal } from '../components/BiAutoSyncModal';
+import { LuyKeMonthPickerModal } from '../components/LuyKeMonthPickerModal';
+import { useReportBiAuth } from './useReportBiAuth';
+import { uploadSummaryLuyKeIfManager, uploadCompetitionLuyKeIfManager } from '../services/biDataService';
+import { fetchSupermarketMap } from '../services/biSupermarketMapService';
+
+export function useBiAutoSync(activeSupermarket?: string | null) {
+    const { user, allowedKhos, canManageSharedBiData, employeeName } = useReportBiAuth();
+    const [autoSyncModalOpen, setAutoSyncModalOpen] = useState(false);
+    const [autoSyncMode, setAutoSyncMode] = useState<BiSyncMode>('realtime');
+    const [autoSyncStatus, setAutoSyncStatus] = useState<'idle' | 'running' | 'success' | 'error' | 'not-installed' | 'outdated'>('idle');
+    const [autoSyncCurrentVersion, setAutoSyncCurrentVersion] = useState<string>('');
+    const [autoSyncLatestVersion, setAutoSyncLatestVersion] = useState<string>('');
+    const [autoSyncProgress, setAutoSyncProgress] = useState<BiSyncProgress | null>(null);
+    const [autoSyncError, setAutoSyncError] = useState<string>('');
+    // Mã lượt (jobId) CHÍNH nơi này đã khởi chạy — chỉ nhận kết quả đúng lượt đó (xem onBiDone bên dưới)
+    const jobDangChoRef = React.useRef<string | null>(null);
+    const workerWindowRef = useRef<Window | null>(null);
+    const pendingReloadsRef = useRef(0);
+
+    // Luỹ kế phải chọn tháng trước (giống nút ở mục Cập nhật) — gọi 'luyke' không kèm tháng thì mở bảng chọn tháng
+    const [chonThangMo, setChonThangMo] = useState(false);
+    const [autoSyncMonth, setAutoSyncMonth] = useState<string>('');
+
+    const handleStartAutoSync = useCallback(async (mode: BiSyncMode, opts: { tuChayTiep?: boolean; month?: string } = {}) => {
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            return;
+        }
+        if (mode === 'luyke' && !opts.month && !opts.tuChayTiep) {
+            setChonThangMo(true);
+            return;
+        }
+        setAutoSyncMode(mode);
+        setAutoSyncMonth(mode === 'luyke' ? (opts.month || '') : '');
+        setAutoSyncProgress(null);
+        setAutoSyncError('');
+        setAutoSyncStatus('running');
+        setAutoSyncModalOpen(true);
+        if (!opts.tuChayTiep) pendingReloadsRef.current = 0;
+
+        try {
+            const { jobId, workerWindow, workerOpened } = await startBiAutoSyncSession(mode, { ...opts, onJobId: (id) => { jobDangChoRef.current = id; } });
+            jobDangChoRef.current = jobId;
+            workerWindowRef.current = workerWindow;
+            clearPendingAutoSync();
+            if (!workerOpened) {
+                toast.info('Bấm "Mở lại tab MWG" để tiếp tục — trình duyệt chặn tự mở tab.', { duration: 6000 });
+            }
+        } catch (err: any) {
+            const msg = err?.message || '';
+            if (msg === 'USERSCRIPT_NOT_INSTALLED') {
+                clearPendingAutoSync();
+                setAutoSyncStatus('not-installed');
+            } else if (msg.startsWith('USERSCRIPT_OUTDATED')) {
+                setAutoSyncStatus('outdated');
+                setAutoSyncCurrentVersion(msg.split(':')[1] || '');
+                setAutoSyncLatestVersion(msg.split(':')[2] || '');
+                savePendingAutoSync({ mode, ts: Date.now(), reloads: pendingReloadsRef.current, month: opts.month });
+            } else {
+                clearPendingAutoSync();
+                setAutoSyncStatus('error');
+                setAutoSyncError(msg || 'Không thể khởi chạy quy trình tự động.');
+            }
+        }
+    }, []);
+
+    // Tự chạy tiếp lượt dở sau khi tải lại trang (nếu người dùng bấm F5 ngoài tab employees)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && (window.innerWidth < 1024 || window.location.search.includes('tab=employees'))) {
+            return;
+        }
+        const p = claimPendingAutoSync();
+        if (!p) return;
+        pendingReloadsRef.current = p.reloads;
+        void handleStartAutoSync(p.mode, { tuChayTiep: true, month: p.month });
+    }, [handleStartAutoSync]);
+
+    // Kiểm tra ngầm liên tục khi đang báo cần cập nhật Userscript
+    useEffect(() => {
+        if (!autoSyncModalOpen || autoSyncStatus !== 'outdated') return;
+        const targetVer = autoSyncLatestVersion || '7.22';
+
+        const stopWatcher = startUserscriptUpdateWatcher(targetVer, (installedVer) => {
+            clearPendingAutoSync();
+            setAutoSyncStatus('running');
+            toast.success(`Đã nhận diện Userscript v${installedVer}! Tự động đổ dữ liệu...`, { duration: 4000 });
+            void handleStartAutoSync(autoSyncMode, { month: autoSyncMonth, tuChayTiep: true });
+        });
+
+        return () => {
+            stopWatcher();
+        };
+    }, [autoSyncModalOpen, autoSyncStatus, autoSyncLatestVersion, autoSyncMode, autoSyncMonth, handleStartAutoSync]);
+
+    useEffect(() => {
+        const unsubProgress = onBiProgress((prog) => {
+            setAutoSyncProgress(prog);
+            setAutoSyncStatus('running');
+        });
+
+        const unsubDone = onBiDone(async (payload) => {
+            // Chỉ nhận kết quả của ĐÚNG lượt nơi này vừa khởi chạy, và chỉ một lần. Không chặn thì:
+            // - mở trang là userscript (≤ 7.11) phát lại kết quả CŨ còn trong bộ nhớ Tampermonkey → pháo giấy + toast
+            //   mỗi lần mở trang và GHI ĐÈ dữ liệu cũ lên (chủ dự án gặp 2026-10-01);
+            // - trang có nhiều nơi nghe (DataUpdater + nút nổi + nút nhanh) × 2 kênh (event + postMessage) → 4 toast.
+            if (!payload.jobId || payload.jobId !== jobDangChoRef.current) return;
+            jobDangChoRef.current = null;
+            setAutoSyncStatus('success');
+            setAutoSyncModalOpen(false);
+            try { window.focus(); } catch {}
+            const res = await applyBiSyncResults(payload.mode, payload.results, activeSupermarket || null);
+
+            // Tự động đồng bộ lên biData/{maKho} nếu là quản lý/admin có quyền (đảm bảo đồng nghiệp & tải lại trang có ngay số mới nhất)
+            if (payload.mode === 'luyke' && canManageSharedBiData && user && allowedKhos.length > 0) {
+                fetchSupermarketMap(user.uid).then(nameToKho => {
+                    if (payload.results.summary) {
+                        uploadSummaryLuyKeIfManager(user, allowedKhos, payload.results.summary, nameToKho, employeeName)
+                            .catch(e => console.error('[useBiAutoSync] Lỗi upload summary luy ke:', e));
+                    }
+                    if (payload.results.competition) {
+                        uploadCompetitionLuyKeIfManager(user, allowedKhos, payload.results.competition, nameToKho, employeeName)
+                            .catch(e => console.error('[useBiAutoSync] Lỗi upload competition luy ke:', e));
+                    }
+                }).catch(e => console.error('[useBiAutoSync] Lỗi fetch supermarket map:', e));
+            }
+
+            const modeLabel = payload.mode === 'realtime' ? 'Realtime' : 'Luỹ kế';
+            toast.success(`Tự động cập nhật thành công ${res.successCount} mục dữ liệu ${modeLabel}!`, { duration: 4000 });
+
+            // Tự động mở màn hình tương ứng khi chạy xong
+            const { navigateToBiRealtime, navigateToBiLuyKe } = await import('../services/autoNavigationService');
+            if (payload.mode === 'realtime') {
+                void navigateToBiRealtime();
+            } else {
+                void navigateToBiLuyKe();
+            }
+
+            // Tự động chụp và lưu ảnh các khu vực BI đã cấu hình lên Bot LINE (bcrt / bclk / bc)
+            setTimeout(() => {
+                const targetDept = activeSupermarket && activeSupermarket !== 'Tổng' ? activeSupermarket : (allowedKhos[0] || undefined);
+                import('../../../services/autoReportExportService')
+                    .then(({ triggerBiAutoReportExport }) => {
+                        void triggerBiAutoReportExport(payload.mode, user, targetDept);
+                    })
+                    .catch(console.error);
+            }, 2000);
+        });
+
+        const unsubError = onBiError((err) => {
+            setAutoSyncStatus('error');
+            setAutoSyncError(err.message || 'Lỗi quy trình tự động.');
+            clearPendingAutoSync();
+        });
+
+        return () => {
+            unsubProgress();
+            unsubDone();
+            unsubError();
+        };
+    }, [activeSupermarket]);
+
+    const renderAutoSyncModal = () => (
+        <>
+        <LuyKeMonthPickerModal
+            isOpen={chonThangMo}
+            onClose={() => setChonThangMo(false)}
+            onStart={(month) => { void handleStartAutoSync('luyke', { month }); }}
+        />
+        <BiAutoSyncModal
+            month={autoSyncMonth}
+            isOpen={autoSyncModalOpen}
+            mode={autoSyncMode}
+            status={autoSyncStatus}
+            progress={autoSyncProgress}
+            currentVersion={autoSyncCurrentVersion}
+            latestVersion={autoSyncLatestVersion}
+            errorMessage={autoSyncError}
+            onRetry={() => { void handleStartAutoSync(autoSyncMode, { month: autoSyncMonth }); }}
+            onClose={() => { setAutoSyncModalOpen(false); clearPendingAutoSync(); }}
+            onCancel={() => {
+                setAutoSyncStatus('idle');
+                setAutoSyncProgress(null);
+            }}
+            onReopenWorker={() => {
+                try {
+                    const extra = autoSyncMode === 'luyke' && autoSyncMonth ? `&ycx_month=${autoSyncMonth}` : '';
+                    const target = `https://baocao.dienmayxanh.com/dashboard/revenue-consolidated?ycx_mode=${autoSyncMode}&job_id=${autoSyncProgress?.jobId || 'reopen'}${extra}#ycx_mode=${autoSyncMode}${extra}`;
+                    window.open(target, 'mwg_bi_worker');
+                } catch (e) {
+                    console.warn(e);
+                }
+            }}
+        />
+        </>
+    );
+
+    return {
+        handleStartAutoSync,
+        autoSyncMode,
+        autoSyncStatus,
+        autoSyncModalOpen,
+        setAutoSyncModalOpen,
+        renderAutoSyncModal,
+    };
+}

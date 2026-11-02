@@ -1,0 +1,12 @@
+[WebServer] (node:50701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+keyboard sequence {"key":"Alt+Tab","focusTrace":[{"tag":"BUTTON","id":"","title":"Phân tích YCX"},{"tag":"BUTTON","id":"","title":"Report BI"},{"tag":"BUTTON","id":"","title":"Check thưởng"},{"tag":"BUTTON","id":"","title":"Bot LINE"},{"tag":"BUTTON","id":"","title":"Công cụ"},{"tag":"BUTTON","id":"","title":"Cài đặt & Phân quyền"},{"tag":"BUTTON","id":"","title":null},{"tag":"BUTTON","id":"","title":"Đăng xuất"},{"tag":"BUTTON","id":"","title":"Bấm vào để thu gọn menu"},{"tag":"BUTTON","id":"","title":"Tải lên báo cáo YCX mới (Realtime hoặc Lũy kế)"},{"tag":"A","id":"","title":"Tải dữ liệu báo cáo"},{"tag":"BUTTON","id":"btn-desktop-history","title":"Quản lý tệp đã lưu (Lũy kế)"},{"tag":"BUTTON","id":"","title":"Font hiện tại: Mặc định (UTM Avo)"}]}
+(node:50704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+focus clipping ancestors []
+  ✓  1 [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group (19.7s)
+
+  1 passed (26.6s)

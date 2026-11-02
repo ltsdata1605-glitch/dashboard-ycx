@@ -1,0 +1,154 @@
+import React from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { Button } from '../../components/shared/ui/Button';
+import { Modal } from '../../components/shared/ui/Modal';
+
+interface UserGuideModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userRole?: 'admin' | 'staff';
+}
+
+const UserGuideModal: React.FC<UserGuideModalProps> = ({ isOpen, onClose, userRole }) => {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        <span className="flex items-center gap-3">
+          <span className="p-2 bg-sky-50 rounded-control">
+            <AppIcon name="guide" size="lg" className="text-sky-600" />
+          </span>
+          Hướng dẫn sử dụng
+        </span>
+      }
+      titleColorClass="text-slate-900"
+      subTitle="Hệ thống In Sticker Event"
+      maxWidth="lg"
+      footer={
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            onClick={onClose}
+          >
+            Đã hiểu
+          </Button>
+        </div>
+      }
+    >
+        <div className="modal-bleed p-6 space-y-8">
+          {/* Nguyên lý hoạt động */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <AppIcon name="refresh" size="lg" className="text-sky-500" />
+              <h3 className="text-base font-bold text-slate-800">1. Nguyên lý hoạt động</h3>
+            </div>
+            <div className="bg-slate-50 rounded-popup p-4 border border-slate-100">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Hệ thống hoạt động dựa trên dữ liệu bảng giá và tồn kho được tải lên bởi Quản lý. 
+                Dữ liệu được lưu trữ tập trung trên Cloud (Firebase), cho phép tất cả nhân viên trong cùng một kho 
+                truy cập và sử dụng dữ liệu đồng nhất để in sticker giá sản phẩm một cách nhanh chóng và chính xác.
+              </p>
+            </div>
+          </section>
+
+          {/* Chức năng Nhân viên */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <AppIcon name="user" size="lg" className="text-sky-500" />
+              <h3 className="text-base font-bold text-slate-800">2. Chức năng dành cho Nhân viên</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                'Tìm kiếm sản phẩm theo mã hoặc tên.',
+                'Quét mã vạch bằng Camera để chọn nhanh.',
+                'Lọc sản phẩm theo ngành hàng, nhóm hàng.',
+                'Tùy chỉnh số lượng sticker cần in.',
+                'Lưu danh sách in để sử dụng lại sau này.',
+                'Tùy chỉnh bố cục in (1, 2, 4, 10 sticker/trang).'
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-white border border-slate-100 rounded-control shadow-sm">
+                  <AppIcon name="success" size="md" className="text-emerald-500 mt-0.5" />
+                  <span className="text-sm text-slate-600">{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Chức năng Quản lý */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <AppIcon name="securityOk" size="lg" className="text-amber-500" />
+              <h3 className="text-base font-bold text-slate-800">3. Chức năng dành cho Quản lý</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="p-4 bg-amber-50 border border-amber-100 rounded-popup">
+                <p className="text-sm text-amber-800 font-medium mb-2 italic">* Bao gồm tất cả chức năng của nhân viên và thêm:</p>
+                <ul className="space-y-2">
+                  {[
+                    'Cập nhật bảng giá: Tải file Excel bảng giá lên hệ thống.',
+                    'Cập nhật tồn kho: Tải file Excel tồn kho để đồng bộ số lượng.',
+                    'Quản lý người dùng: Tạo tài khoản, phân quyền cho nhân viên.',
+                    'Quản lý kho: Thiết lập mã kho cho các chi nhánh.'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* Cách cập nhật dữ liệu */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <AppIcon name="database" size="lg" className="text-emerald-500" />
+              <h3 className="text-base font-bold text-slate-800">4. Quy trình dành cho Quản lý</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="relative pl-8 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                <div className="relative mb-6">
+                  <div className="absolute -left-8 top-0 w-6 h-6 bg-sky-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-1">Lấy dữ liệu từ Report</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Click vào <a href="https://report.mwgroup.vn/home/dashboard/4286" target="_blank" rel="noopener noreferrer" className="text-rose-600 font-bold underline hover:text-rose-800">"Lấy file tồn kho"</a>. 
+                    Chọn các nhóm cần in giá: <span className="font-medium">ĐGD, DCNB, Phụ Kiện</span>. 
+                    Chọn siêu thị và trạng thái <span className="font-medium">MỚI</span>. 
+                    Xem báo cáo và tải file về máy.
+                  </p>
+                </div>
+                <div className="relative mb-6">
+                  <div className="absolute -left-8 top-0 w-6 h-6 bg-sky-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-1">Đổ tồn vào hệ thống</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Upload file vừa tải ở bước 1 vào mục <span className="font-bold text-sky-600">"Tải File tồn kho"</span>.
+                  </p>
+                </div>
+                <div className="relative mb-6">
+                  <div className="absolute -left-8 top-0 w-6 h-6 bg-sky-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-1">Tải file mẫu tự động</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Chờ hệ thống xử lý trong giây lát. <span className="font-medium text-emerald-600">File mẫu in giá sẽ tự động được tải xuống máy của bạn.</span>
+                  </p>
+                </div>
+                <div className="relative">
+                  <div className="absolute -left-8 top-0 w-6 h-6 bg-sky-600 text-white rounded-full flex items-center justify-center text-xs font-bold">4</div>
+                  <h4 className="text-sm font-bold text-slate-800 mb-1">Xuất file giá từ ERP & Upload</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Vào ERP &gt; In giá. Chọn lần lượt từng ngành hàng (<span className="font-medium">ĐGD, DCNB, Phụ kiện</span>), nhóm hàng chọn <span className="font-medium">Tất cả</span>. 
+                    Chọn <span className="font-medium">"Thêm sản phẩm"</span> &gt; <span className="font-medium">"Nhập Excel"</span> &gt; Chọn file mẫu vừa tải ở bước 3. 
+                    Chọn mẫu in <span className="font-bold">81</span> &gt; In bảng giá &gt; Xuất file định dạng <span className="font-medium">"Data-only(*.xlsx)"</span>. 
+                    Làm lần lượt cho từng ngành hàng. Cuối cùng, vào <span className="font-bold text-emerald-600">"Tải File bảng giá"</span> và chọn tất cả các file giá vừa xuất để hoàn tất.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+    </Modal>
+  );
+};
+
+export default UserGuideModal;

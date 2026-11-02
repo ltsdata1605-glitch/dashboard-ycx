@@ -1,0 +1,409 @@
+
+import React from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import type { SummaryTableNode, ProductConfig } from '../../types';
+import { abbreviateName, formatCurrency, formatQuantity, getParentGroup, getSubgroup } from '../../utils/dataUtils';
+
+interface RecursiveRowProps {
+    nodeKey: string;
+    currentNode?: SummaryTableNode;
+    prevNode?: SummaryTableNode;
+    level: number;
+    parentId: string;
+    expandedIds: Set<string>;
+    toggleExpand: (id: string) => void;
+    rootIndex: number;
+    isComparisonMode: boolean;
+    sortConfig: { column: string, type: 'current' | 'delta', direction: 'asc' | 'desc' };
+    drilldownOrder: string[]; // Receive the dynamic order
+    parentRevenue: number; // Mới thêm: Doanh thu của node cha để tính %DT Thực
+    parentQuantity: number; // Mới thêm: Số lượng của node cha để tính %SL
+    visibleColumns: string[]; // State điều khiển Ẩn Hiện Cột
+    daysCountData: { current: number; prev: number }; // Số ngày để tính Trung Bình
+    // PERF FIX: nhận qua props thay vì tự gọi useDashboardContext() bên trong component đệ quy —
+    // trước đây làm React.memo vô hiệu với context (mọi RecursiveRow đang mở re-render khi BẤT KỲ
+    // phần nào của DashboardContext đổi, kể cả không liên quan — xem implementation_plan.md).
+    gtdhTargets?: Record<string, number>;
+    productConfig?: ProductConfig | null;
+    kpiTargets?: { hieuQua: number, traGop: number, gtdh?: number, doanhThuThuc?: number };
+}
+
+const getTraGopPercentClass = (percentage: number, target: number) => {
+    if (isNaN(percentage)) return 'text-slate-600 dark:text-slate-300';
+    if (percentage >= target) return 'text-emerald-700 dark:text-emerald-500 font-bold';
+    if (percentage >= target - 5) return 'text-amber-700 dark:text-amber-500';
+    return 'text-rose-700 dark:text-rose-500 font-bold';
+};
+
+// Colors matching PILL_COLORS in SummaryTable.tsx but tuned for text visibility
+const ROW_TEXT_COLORS: Record<string, string> = {
+    'parent': 'text-rose-700 dark:text-rose-300',         // Rose
+    'child': 'text-sky-700 dark:text-sky-300',           // Sky
+    'manufacturer': 'text-primary-700 dark:text-primary-300', // Primary instead of Emerald
+    'creator': 'text-amber-700 dark:text-amber-300',      // Amber
+    'product': 'text-sky-700 dark:text-sky-300'     // Violet
+};
+
+const RecursiveRow: React.FC<RecursiveRowProps> = React.memo(({
+    nodeKey, currentNode, prevNode, level, parentId, expandedIds, toggleExpand, rootIndex, isComparisonMode, sortConfig, drilldownOrder, parentRevenue, parentQuantity, visibleColumns, daysCountData, gtdhTargets, productConfig, kpiTargets
+}) => {
+    const currentId = `${parentId}-${nodeKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    const isExpanded = expandedIds.has(currentId);
+    
+    // Determine metrics
+    const quantity = currentNode?.totalQuantity || 0;
+    const revenue = currentNode?.totalRevenue || 0;
+    const revenueQD = currentNode?.totalRevenueQD || 0;
+    const traGopRevenue = currentNode?.totalTraGop || 0;
+    
+    const avgQuantity = Math.ceil(quantity / daysCountData.current);
+    const avgRevenue = revenue / daysCountData.current;
+
+    // Sort Children logic
+    const currentChildrenKeys = currentNode ? Object.keys(currentNode.children) : [];
+    const prevChildrenKeys = prevNode ? Object.keys(prevNode.children) : [];
+    let allChildrenKeys = Array.from(new Set([...currentChildrenKeys, ...prevChildrenKeys]))
+        .filter(key => key !== 'Không xác định');
+
+    // Apply sorting to children
+    allChildrenKeys.sort((a, b) => {
+        const nodeA = currentNode?.children[a];
+        const prevNodeA = prevNode?.children[a];
+        
+        const nodeB = currentNode?.children[b];
+        const prevNodeB = prevNode?.children[b];
+        
+        // Helper to get value safely
+        const getVal = (node: SummaryTableNode | undefined, key: string, daysDivisor: number = 1) => {
+            if (!node) return 0;
+            if (key === 'aov') return node.totalQuantity > 0 ? node.totalRevenue / node.totalQuantity : 0;
+            if (key === 'traGopPercent') return node.totalRevenue > 0 ? (node.totalTraGop / node.totalRevenue) * 100 : 0;
+            if (key === 'avgQuantity') return Math.ceil(node.totalQuantity / daysDivisor);
+            if (key === 'avgRevenue') return node.totalRevenue / daysDivisor;
+            return (node as unknown as Record<string, unknown>)[key] as number || 0;
+        };
+
+        const currValA = getVal(nodeA, sortConfig.column, daysCountData.current);
+        const currValB = getVal(nodeB, sortConfig.column, daysCountData.current);
+        
+        let finalValA = currValA;
+        let finalValB = currValB;
+
+        if (sortConfig.type === 'delta') {
+            const prevValA = getVal(prevNodeA, sortConfig.column, daysCountData.prev);
+            const prevValB = getVal(prevNodeB, sortConfig.column, daysCountData.prev);
+            finalValA = currValA - prevValA;
+            finalValB = currValB - prevValB;
+        }
+
+        if (finalValA === finalValB) return a.localeCompare(b); 
+        return sortConfig.direction === 'asc' ? finalValA - finalValB : finalValB - finalValA;
+    });
+    
+    const hasChildren = allChildrenKeys.length > 0;
+    const isExpandable = hasChildren && level < 6; 
+
+    const aov = quantity > 0 ? revenue / quantity : 0;
+    
+    // Resolve inherited GTĐH targets
+    let activeTarget: number | undefined = undefined;
+    if (gtdhTargets && gtdhTargets[nodeKey]) {
+        activeTarget = gtdhTargets[nodeKey];
+    } else if (productConfig) {
+        const nhomHang = getSubgroup(nodeKey, productConfig);
+        if (nhomHang && gtdhTargets?.[nhomHang]) {
+            activeTarget = gtdhTargets[nhomHang];
+        } else {
+            const nganhHang = getParentGroup(nhomHang || nodeKey, productConfig);
+            if (nganhHang && gtdhTargets?.[nganhHang]) {
+                activeTarget = gtdhTargets[nganhHang];
+            }
+        }
+    }
+    
+    // Mặc định là 1 (1M) nếu < 1 là không đạt mục tiêu
+    if (activeTarget === undefined) {
+        activeTarget = 1000000;
+    }
+    const traGopPercent = revenue > 0 ? (traGopRevenue / revenue) * 100 : 0;
+    const dtThucPercent = parentRevenue > 0 ? (revenue / parentRevenue) * 100 : 0;
+    const slPercent = parentQuantity > 0 ? (quantity / parentQuantity) * 100 : 0;
+    
+    // Calculate Deltas
+    let deltaQuantity = 0, deltaRevenue = 0, deltaRevenueQD = 0, deltaAOV = 0, deltaTraGopPercent = 0;
+    let deltaAvgQuantity = 0, deltaAvgRevenue = 0;
+
+    if (isComparisonMode) {
+        const prevQuantity = prevNode?.totalQuantity || 0;
+        const prevRevenue = prevNode?.totalRevenue || 0;
+        const prevRevenueQD = prevNode?.totalRevenueQD || 0;
+        const prevTraGopRevenue = prevNode?.totalTraGop || 0;
+        
+        const prevAov = prevQuantity > 0 ? prevRevenue / prevQuantity : 0;
+        const prevTraGopPercent = prevRevenue > 0 ? (prevTraGopRevenue / prevRevenue) * 100 : 0;
+        
+        const prevAvgQuantity = Math.ceil(prevQuantity / daysCountData.prev);
+        const prevAvgRevenue = prevRevenue / daysCountData.prev;
+
+        deltaQuantity = quantity - prevQuantity;
+        deltaRevenue = revenue - prevRevenue;
+        deltaRevenueQD = revenueQD - prevRevenueQD;
+        deltaAOV = aov - prevAov;
+        deltaTraGopPercent = traGopPercent - prevTraGopPercent;
+        
+        deltaAvgQuantity = avgQuantity - prevAvgQuantity;
+        deltaAvgRevenue = avgRevenue - prevAvgRevenue;
+    }
+
+    const renderDelta = (val: number, type: 'currency' | 'number' | 'percent' | 'decimal1') => {
+        if (val === 0 && (type !== 'percent' || Math.abs(val) < 0.1)) return <span className="text-slate-300 text-[11px]">-</span>;
+        
+        const isPositive = val > 0;
+        const colorClass = isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400';
+        
+        let formattedVal = '';
+        if (type === 'currency') formattedVal = formatCurrency(Math.abs(val));
+        else if (type === 'percent') formattedVal = `${Math.ceil(Math.abs(val))}%`; 
+        else if (type === 'decimal1') formattedVal = Math.abs(val).toFixed(1);
+        else formattedVal = formatQuantity(Math.abs(val));
+
+        const sign = isPositive ? '+' : '-';
+
+        return (
+            <span className={`text-[11px] font-bold ${colorClass} block whitespace-nowrap`}>
+                {sign}{formattedVal}
+            </span>
+        );
+    };
+
+    const displayName = (level >= 3 && nodeKey.length > 30) ? abbreviateName(nodeKey) : nodeKey;
+    const isRoot = level === 1;
+    let rowClasses = '', contentColorClass = '';
+
+    // Determine color based on current level in the drilldown order
+    const currentType = drilldownOrder[level - 1];
+    if (currentType && ROW_TEXT_COLORS[currentType]) {
+        contentColorClass = `${ROW_TEXT_COLORS[currentType]} font-bold`;
+        if (level === 1) contentColorClass += ' uppercase font-extrabold';
+    } else {
+        contentColorClass = 'text-slate-600 dark:text-slate-400 font-medium';
+    }
+
+    if (isRoot) {
+        rowClasses = `bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 hover:bg-primary-50/30 dark:hover:bg-primary-500/5 transition-all duration-200`;
+    } else {
+        rowClasses = `bg-slate-50/30 dark:bg-white/[0.02] hover:bg-slate-100/50 dark:hover:bg-white/[0.05] border-b border-slate-200 dark:border-slate-700 transition-all duration-200`;
+    }
+
+    const indentMargin = `${(level - 1) * 12}px`;
+    // So điều kiện hiển thị theo MẪU SỐ (revenue > 0, tức có doanh thu để tính %), không theo
+    // KẾT QUẢ === 0 — doanh thu thật nhưng 0% trả góp là kết quả hợp lệ (khác "-" = không có
+    // dữ liệu để tính), 2 trường hợp trước đây bị gộp chung vì cả 2 đều cho ra đúng số 0.
+    const traGopDisplay = revenue > 0 ? `${Math.ceil(traGopPercent)}%` : '-';
+
+    const cellClass = "px-1 sm:px-2 py-1 text-center text-[11px] sm:text-[13px]"; 
+    const deltaCellClass = "px-1 sm:px-2 py-1 text-center bg-slate-50/30 dark:bg-white/[0.01]"; 
+    const separatorClass = "border-r border-slate-200 dark:border-slate-700";
+
+    return (
+        <>
+            <tr
+                className={`${rowClasses} ${isExpandable ? 'cursor-pointer' : ''}`}
+                onClick={isExpandable ? () => toggleExpand(currentId) : undefined}
+            >
+                {/* NGÀNH HÀNG */}
+                <td className={`px-2 sm:px-3 py-1 text-[11px] sm:text-[13px] whitespace-nowrap border-r border-slate-200 dark:border-slate-700 sticky left-0 z-30 ${isRoot ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/95 dark:bg-slate-800/95'}`}>
+                    <div className={`flex items-center gap-1 sm:gap-1.5 ${contentColorClass}`} style={{ marginLeft: indentMargin }}>
+                        {isExpandable ? (
+                            <div className={`w-4 h-4 rounded bg-slate-100 dark:bg-white/5 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''} flex-shrink-0 text-slate-400`}>
+                                <AppIcon name="chevronRight" size="xs" />
+                            </div>
+                        ) : (
+                            <div className="w-4 h-4 inline-block flex-shrink-0"></div>
+                        )}
+                        <span className="truncate tracking-tight max-w-[130px] sm:max-w-[150px]" title={nodeKey}>{displayName}</span>
+                    </div>
+                </td>
+                
+                {/* Quantity */}
+                {visibleColumns.includes('totalQuantity') && (
+                    <>
+                        <td className={`${cellClass} font-bold text-slate-600 dark:text-slate-400 ${!isComparisonMode ? separatorClass : ''}`}>
+                            {formatQuantity(quantity)}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                {renderDelta(deltaQuantity, 'number')}
+                            </td>
+                        )}
+                    </>
+                )}
+
+                {/* %SL */}
+                {visibleColumns.includes('slPercent') && (
+                    isComparisonMode ? (
+                        <td className={`px-1 sm:px-2 py-1 text-center text-[11px] sm:text-[12px] font-bold ${separatorClass} bg-slate-50/50 dark:bg-white/[0.02]`}>
+                            {(() => {
+                                const qCurr = quantity;
+                                const qPrev = prevNode?.totalQuantity || 0;
+                                const growth = qPrev > 0 ? ((qCurr - qPrev) / qPrev) * 100 : (qCurr > 0 ? 100 : 0);
+                                if (qCurr === 0 && qPrev === 0) return <span className="text-slate-400">-</span>;
+                                return renderDelta(growth, 'percent');
+                            })()}
+                        </td>
+                    ) : (
+                        <td className={`${cellClass} font-bold text-emerald-700 dark:text-emerald-400 ${separatorClass}`}>
+                            {parentQuantity > 0 ? `${Math.ceil(slPercent)}%` : '-'}
+                        </td>
+                    )
+                )}
+
+                {/* Revenue (Doanh thu thực) */}
+                {visibleColumns.includes('totalRevenue') && (
+                    <>
+                        <td className={`${cellClass} font-black text-slate-900 dark:text-white tracking-tight ${!isComparisonMode ? separatorClass : ''}`}>
+                            {formatCurrency(revenue)}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                {renderDelta(deltaRevenue, 'currency')}
+                            </td>
+                        )}
+                    </>
+                )}
+
+                {/* % DT Thuc */}
+                {visibleColumns.includes('dtThucPercent') && (
+                    isComparisonMode ? (
+                        <td className={`px-1 sm:px-2 py-1 text-center text-[11px] sm:text-[12px] font-bold ${separatorClass} bg-slate-50/50 dark:bg-white/[0.02]`}>
+                            {(() => {
+                                const rCurr = revenue;
+                                const rPrev = prevNode?.totalRevenue || 0;
+                                const growth = rPrev > 0 ? ((rCurr - rPrev) / rPrev) * 100 : (rCurr > 0 ? 100 : 0);
+                                if (rCurr === 0 && rPrev === 0) return <span className="text-slate-400">-</span>;
+                                return renderDelta(growth, 'percent');
+                            })()}
+                        </td>
+                    ) : (
+                        <td className={`${cellClass} font-bold text-amber-700 dark:text-amber-400 ${separatorClass}`}>
+                            {parentRevenue > 0 ? `${Math.ceil(dtThucPercent)}%` : '-'}
+                        </td>
+                    )
+                )}
+
+                {/* Avg Quantity (TrB SL) */}
+                {visibleColumns.includes('avgQuantity') && (
+                    <>
+                        <td className={`${cellClass} font-bold text-sky-700 dark:text-sky-400 ${!isComparisonMode ? separatorClass : ''}`}>
+                            {avgQuantity > 0 ? formatQuantity(avgQuantity) : '-'}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                {renderDelta(deltaAvgQuantity, 'number')}
+                            </td>
+                        )}
+                    </>
+                )}
+
+                {/* Avg Revenue (TrB DT) */}
+                {visibleColumns.includes('avgRevenue') && (
+                    <>
+                        <td className={`${cellClass} font-bold text-sky-700 dark:text-sky-300 tracking-tight ${!isComparisonMode ? separatorClass : ''}`}>
+                            {formatCurrency(avgRevenue)}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                {renderDelta(deltaAvgRevenue, 'currency')}
+                            </td>
+                        )}
+                    </>
+                )}
+
+                {/* RevenueQD (DT Quy Doi) */}
+                {visibleColumns.includes('totalRevenueQD') && (
+                    <>
+                        <td className={`${cellClass} tracking-tight ${!isComparisonMode ? separatorClass : ''}`}>
+                            {(() => {
+                                const target = gtdhTargets?.[nodeKey] || 0;
+                                const isWarning = target > 0 && revenueQD < target;
+                                return (
+                                    <div className="flex items-center justify-center gap-1.5 font-black">
+                                        <span className={isWarning ? 'text-rose-500 dark:text-rose-400' : 'text-primary-600 dark:text-primary-400'}>
+                                            {formatCurrency(revenueQD)}
+                                        </span>
+                                        {isWarning && (
+                                            <div className="group relative shrink-0 text-rose-500 flex items-center" title={`Mục tiêu: ${formatCurrency(target)}\nCòn thiếu: ${formatCurrency(target - revenueQD)}`}>
+                                                <AppIcon name="warning" size="sm" />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                {renderDelta(deltaRevenueQD, 'currency')}
+                            </td>
+                        )}
+                    </>
+                )}
+
+                {/* AOV */}
+                {visibleColumns.includes('aov') && (
+                    <>
+                        <td className={`${cellClass} font-bold ${(activeTarget !== undefined && aov < activeTarget) ? 'text-rose-500 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'} ${!isComparisonMode ? separatorClass : ''}`}>
+                            {aov === 0 ? '-' : (aov / 1000000).toFixed(1)}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                <span className={`text-[11px] font-bold block whitespace-nowrap ${deltaAOV > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                                    {deltaAOV === 0 ? '-' : (deltaAOV > 0 ? '+' : '') + (deltaAOV / 1000000).toFixed(1)}
+                                </span>
+                            </td>
+                        )}
+                    </>
+                )}
+
+                {/* Tra Gop % */}
+                {visibleColumns.includes('traGopPercent') && (
+                    <>
+                        <td className={`${cellClass} ${getTraGopPercentClass(traGopPercent, kpiTargets?.traGop || 45)} ${!isComparisonMode ? separatorClass : ''}`}>
+                            {traGopDisplay}
+                        </td>
+                        {isComparisonMode && (
+                            <td className={`${deltaCellClass} ${separatorClass}`}>
+                                {renderDelta(deltaTraGopPercent, 'percent')}
+                            </td>
+                        )}
+                    </>
+                )}
+            </tr>
+            
+            {isExpanded && hasChildren && allChildrenKeys.map((key) => (
+                <RecursiveRow
+                    key={key}
+                    nodeKey={key}
+                    currentNode={currentNode?.children[key]}
+                    prevNode={prevNode?.children[key]}
+                    level={level + 1}
+                    parentId={currentId}
+                    expandedIds={expandedIds}
+                    toggleExpand={toggleExpand}
+                    rootIndex={rootIndex}
+                    isComparisonMode={isComparisonMode}
+                    sortConfig={sortConfig}
+                    drilldownOrder={drilldownOrder}
+                    parentRevenue={revenue}
+                    parentQuantity={quantity}
+                    visibleColumns={visibleColumns}
+                    daysCountData={daysCountData}
+                    gtdhTargets={gtdhTargets}
+                    productConfig={productConfig}
+                    kpiTargets={kpiTargets}
+                />
+            ))}
+        </>
+    );
+});
+
+export default RecursiveRow;

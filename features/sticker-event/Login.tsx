@@ -1,0 +1,499 @@
+import React, { useState, useEffect } from 'react';
+import { auth } from './firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { Button } from '../../components/shared/ui/Button';
+import { Input } from '../../components/shared/ui/Input';
+import { Tabs } from '../../components/shared/ui/Tabs';
+import { StickerEventUserData } from './types';
+import { stickerRegister, stickerResolveSession, stickerStaffAuth } from './services/sessionService';
+import { getErrorMessage, getErrorCode } from '../../utils/dataUtils';
+
+interface LoginProps {
+  onLoginSuccess: (user: User, userData: StickerEventUserData) => void;
+}
+
+interface AuthErrorLike {
+  code?: string;
+  message?: string;
+}
+
+const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'admin' | 'staff'>('staff');
+  const [storeId, setStoreId] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const cacheKey = `userData_${user.uid}`;
+          const cachedData = sessionStorage.getItem(cacheKey);
+          if (cachedData) {
+            try {
+              const parsed = JSON.parse(cachedData) as StickerEventUserData;
+              const tokenResult = await user.getIdTokenResult();
+              // BUG FIX: trước đây chỉ kiểm tra tokenResult.claims.stickerRole có tồn tại hay không
+              // rồi tin toàn bộ cache — không so khớp storeId. Cloud Function setStickerClaims()
+              // (functions/src/stickerEvent.ts) ghi CẢ stickerRole LẪN stickerStoreId vào token, nên
+              // token mới luôn phản ánh đúng storeId hiện tại kể cả khi cache cũ đã lệch. Nếu admin
+              // đổi kho của 1 nhân viên (stickerAdminUpdateUser), storeId trong token đổi theo nhưng
+              // cache sessionStorage của tab đang mở vẫn giữ storeId CŨ vô thời hạn cho tới khi đăng
+              // xuất/đăng nhập lại — mọi "Lưu DS" tiếp theo lưu nhầm vào kho cũ, admin kiểm tra ở kho
+              // mới không thấy (đúng lớp bug user báo cáo, không chỉ do limit(100)/orderBy Firestore).
+              // So khớp storeId trong token với cache — lệch thì bỏ qua cache, tải lại từ server.
+              const claimStoreId = (tokenResult.claims.stickerStoreId as string | null | undefined) ?? '';
+              const cachedStoreId = parsed.storeId ?? '';
+              if (tokenResult.claims.stickerRole && claimStoreId === cachedStoreId) {
+                onLoginSuccess(user, parsed);
+                return;
+              }
+            } catch { /* cache invalid, fall through to server */ }
+          }
+
+          let profile;
+          let retries = 3;
+          let lastError: unknown;
+
+          while (retries > 0) {
+            try {
+              profile = await stickerResolveSession();
+              break; // Success
+            } catch (err: unknown) {
+              const code = getErrorCode(err) || '';
+              const isNotFound = code.includes('not-found');
+              console.warn(`Lỗi tải phiên đăng nhập (còn ${retries - 1} lần thử):`, err);
+              lastError = err;
+              retries--;
+              if (retries === 0 || !isNotFound) throw lastError;
+              await new Promise(resolve => setTimeout(resolve, 1200));
+            }
+          }
+
+          if (profile) {
+            await user.getIdToken(true);
+
+            const data: StickerEventUserData = {
+              uid: user.uid,
+              username: profile.username ?? undefined,
+              email: user.email ?? undefined,
+              role: profile.role,
+              storeId: profile.storeId ?? undefined,
+              storeHasAdmin: profile.storeHasAdmin,
+            };
+            sessionStorage.setItem(cacheKey, JSON.stringify(data));
+            onLoginSuccess(user, data);
+          }
+        } catch (err: unknown) {
+          console.error("Lỗi lấy thông tin người dùng:", err);
+          const code = getErrorCode(err) || '';
+          const msg = getErrorMessage(err) || '';
+
+          if (code.includes('resource-exhausted') || msg.includes('hạn mức')) {
+            // Hết hạn mức Firestore. Cloud Function stickerResolveSession đã dịch sang thông điệp
+            // tiếng Việt rõ ràng (xem withQuotaMessage trong functions/src/stickerEvent.ts) — hiện
+            // NGUYÊN VĂN, đừng bọc thêm chữ "Lỗi kết nối" làm loãng.
+            //
+            // Trước bản sửa 2026-09-18, lỗi này rơi xuống nhánh mặc định và người dùng chỉ thấy
+            // "Lỗi kết nối (functions/internal): INTERNAL" — không đoán được nguyên nhân nên bấm
+            // đăng nhập lại nhiều lần, mà mỗi lần lại đốt thêm hạn mức.
+            setError(msg || 'Hệ thống đã dùng hết hạn mức truy cập miễn phí trong ngày. Vui lòng quay lại sau.');
+          } else if (code.includes('not-found')) {
+            setError('Không tìm thấy thông tin người dùng. Tài khoản có thể đã bị xóa.');
+            await signOut(auth);
+          } else if (code.includes('permission-denied') || msg.includes('permissions') || msg.includes('Quyền')) {
+            setError('Lỗi phân quyền. Vui lòng tải lại trang (F5) hoặc liên hệ Admin.');
+          } else if (code.includes('unavailable') || code.includes('deadline-exceeded')) {
+            setError('Không thể kết nối đến máy chủ dữ liệu. Vui lòng kiểm tra internet hoặc thử lại sau.');
+          } else {
+            setError(`Lỗi kết nối (${code || 'unknown'}): ${msg || 'Vui lòng kiểm tra mạng và thử lại.'}`);
+          }
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [onLoginSuccess]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const cleanUsername = username.trim();
+    if (!cleanUsername) {
+        setError('Vui lòng nhập tên đăng nhập.');
+        setLoading(false);
+        return;
+    }
+
+    let cleanStoreId = storeId.trim().toUpperCase();
+    if (!isLogin && role === 'staff' && !cleanStoreId) {
+        setError('Vui lòng nhập mã kho siêu thị.');
+        setLoading(false);
+        return;
+    }
+
+    // ───────── STAFF AUTHENTICATION (NO PASSWORD) ─────────
+    if (role === 'staff') {
+      const email = cleanUsername.includes('@') ? cleanUsername : `${cleanUsername}@example.com`;
+      const staffDefaultPassword = `staff_${cleanUsername.toLowerCase()}_123456`;
+
+      // 1. Try Cloud Function stickerStaffAuth first
+      try {
+        const staffRes = await stickerStaffAuth({
+          username: cleanUsername,
+          storeId: cleanStoreId,
+          isLogin
+        });
+        await signInWithCustomToken(auth, staffRes.customToken);
+        setLoading(false);
+        return;
+      } catch (fnErr: unknown) {
+        const fnCode = getErrorCode(fnErr) || (fnErr as AuthErrorLike).code || '';
+        const fnMsg = getErrorMessage(fnErr) || (fnErr as AuthErrorLike).message || '';
+
+        // If Cloud Function returns business error.
+        // Xét THÔNG ĐIỆP chứ không xét mã `not-found`: SDK đổi HTTP 404 (hàm đang deploy lại /
+        // chưa deploy) thành đúng mã `functions/not-found` với thông điệp "NOT FOUND" — xét mã thì
+        // nhân viên có tài khoản thật bị báo "chưa có tài khoản" (gặp thật 2026-10-09, user 195025).
+        if (fnMsg.includes('chưa có tài khoản') || fnMsg.includes('chưa tồn tại')) {
+          setError('Tên đăng nhập chưa có tài khoản. Vui lòng chọn "Đăng ký" bên dưới.');
+          setLoading(false);
+          return;
+        }
+        if (fnCode.includes('permission-denied') || fnMsg.includes('Quản lý')) {
+          setError('Tài khoản này là Quản lý (Admin). Vui lòng chọn vai trò Admin (Quản lý) và nhập mật khẩu.');
+          setLoading(false);
+          return;
+        }
+        if (fnCode.includes('failed-precondition') || fnMsg.includes('chưa được khởi tạo')) {
+          setError('Lưu ý: Nhân viên chỉ có thể đăng ký vào mã kho sau khi Quản lý (Admin) của kho đó đã đăng ký tài khoản trước. Vui lòng liên hệ Quản lý tạo tài khoản Admin trước.');
+          setLoading(false);
+          return;
+        }
+
+        // Máy chủ báo THIẾU QUYỀN KÝ TOKEN (`unavailable` + thông điệp nêu vai trò IAM): hàm đã kịp
+        // đặt lại mật khẩu trước khi đổ, nên đường dự phòng bên dưới vẫn đăng nhập được. Chỉ ghi
+        // nhớ để nếu dự phòng CŨNG hỏng thì hiện đúng nguyên nhân — không phải "sai tên đăng nhập".
+        const serverCannotSignToken = fnCode.includes('unavailable') && fnMsg.includes('Token Creator');
+        if (serverCannotSignToken) {
+          console.warn('stickerStaffAuth: máy chủ thiếu quyền ký custom token (IAM) — dùng đường dự phòng. ' + fnMsg);
+        }
+        // Tới đây là máy chủ KHÔNG trả lời nghiệp vụ (404/mạng/internal) — nếu dự phòng cũng hỏng thì
+        // báo đúng là lỗi máy chủ, không được đổ cho người dùng "chưa có tài khoản".
+        const serverUnreachableMsg = `Máy chủ đăng nhập tạm thời không phản hồi (${fnCode || 'lỗi mạng'}). Vui lòng thử lại sau ít phút.`;
+
+        // 2. If Cloud Function returns internal / not-deployed error, fallback to client-side Auth
+        console.warn("Cloud Function stickerStaffAuth unavailable, using client-side fallback:", fnErr);
+        try {
+          if (isLogin) {
+            // Client Staff Login Fallback
+            try {
+              await signInWithEmailAndPassword(auth, email, staffDefaultPassword);
+            } catch (clientLoginErr: unknown) {
+              const code = (clientLoginErr as AuthErrorLike).code || '';
+              if (code === 'auth/too-many-requests') {
+                setError('Hệ thống tạm khóa thao tác do đăng nhập sai nhiều lần. Vui lòng thử lại sau 2-3 phút.');
+                setLoading(false);
+                return;
+              }
+              const fallbacks = [`${cleanUsername}123456`, '123456123456', 'staff123456'];
+              let loggedIn = false;
+              for (const fbPass of fallbacks) {
+                try {
+                  await signInWithEmailAndPassword(auth, email, fbPass);
+                  loggedIn = true;
+                  break;
+                } catch { /* continue */ }
+              }
+              if (!loggedIn) {
+                setError(serverCannotSignToken
+                  ? fnMsg
+                  : serverUnreachableMsg);
+                setLoading(false);
+                return;
+              }
+            }
+          } else {
+            // Client Staff Register Fallback
+            let user;
+            try {
+              const userCredential = await createUserWithEmailAndPassword(auth, email, staffDefaultPassword);
+              user = userCredential.user;
+            } catch (regErr: unknown) {
+              const code = (regErr as AuthErrorLike).code || '';
+              if (code === 'auth/email-already-in-use') {
+                try {
+                  const userCredential = await signInWithEmailAndPassword(auth, email, staffDefaultPassword);
+                  user = userCredential.user;
+                } catch {
+                  try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, `${cleanUsername}123456`);
+                    user = userCredential.user;
+                  } catch {
+                    setError('Tên đăng nhập này đã được khởi tạo. Vui lòng chọn "Đăng nhập".');
+                    setLoading(false);
+                    return;
+                  }
+                }
+              } else {
+                throw regErr;
+              }
+            }
+
+            if (user) {
+              try {
+                await stickerRegister({ username: cleanUsername, storeId: cleanStoreId, requestedRole: 'staff' });
+              } catch (regFnErr: unknown) {
+                const code = getErrorCode(regFnErr) || '';
+                if (code.includes('failed-precondition')) {
+                  setError('Lưu ý: Nhân viên chỉ có thể đăng ký vào mã kho sau khi Quản lý (Admin) của kho đó đã đăng ký tài khoản trước. Vui lòng liên hệ Quản lý tạo tài khoản Admin trước.');
+                } else {
+                  setError(getErrorMessage(regFnErr) || 'Đăng ký Nhân viên thất bại.');
+                }
+                setLoading(false);
+                return;
+              }
+            }
+          }
+          setLoading(false);
+          return;
+        } catch (fallbackErr: unknown) {
+          console.error("Staff fallback auth error:", fallbackErr);
+          const errCode = (fallbackErr as AuthErrorLike).code || '';
+          if (errCode === 'auth/too-many-requests') {
+            setError('Hệ thống tạm khóa thao tác do đăng nhập sai nhiều lần. Vui lòng thử lại sau 2-3 phút.');
+          } else if (serverCannotSignToken) {
+            setError(fnMsg);
+          } else {
+            setError(serverUnreachableMsg);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+    }
+
+    // ───────── ADMIN AUTHENTICATION (REQUIRES PASSWORD) ─────────
+    const email = cleanUsername.includes('@') ? cleanUsername : `${cleanUsername}@example.com`;
+
+    let finalPassword = password;
+    if (password && password.length < 6) {
+        finalPassword = password.repeat(Math.ceil(6 / password.length)).substring(0, 6);
+    }
+
+    try {
+      if (isLogin) {
+        // Admin Login Logic
+        try {
+          await signInWithEmailAndPassword(auth, email, finalPassword);
+        } catch (loginErr: unknown) {
+          const code = (loginErr as AuthErrorLike).code;
+          if (code === 'auth/too-many-requests') {
+            throw {
+              code: 'auth/too-many-requests',
+              message: 'Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 2-3 phút.'
+            };
+          } else if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+            throw {
+              code: 'auth/invalid-credential',
+              message: 'Tên đăng nhập hoặc mật khẩu Admin không đúng.'
+            };
+          }
+          throw loginErr;
+        }
+      } else {
+        // Admin Register Logic
+        if ((cleanUsername === '21707' || cleanUsername === 'admin') && !cleanStoreId) {
+            cleanStoreId = 'SUPERADMIN';
+        }
+
+        if (!cleanStoreId) {
+            setError('Vui lòng nhập mã kho siêu thị.');
+            setLoading(false);
+            return;
+        }
+
+        let user;
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, finalPassword);
+            user = userCredential.user;
+        } catch (regErr: unknown) {
+            if ((regErr as AuthErrorLike).code === 'auth/email-already-in-use') {
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, finalPassword);
+                    user = userCredential.user;
+                } catch {
+                    throw {
+                        code: 'auth/email-already-in-use',
+                        message: 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn "Đăng nhập" hoặc kiểm tra lại mật khẩu.'
+                    };
+                }
+            } else {
+                throw regErr;
+            }
+        }
+
+        if (user) {
+            try {
+                await stickerRegister({ username: cleanUsername, storeId: cleanStoreId, requestedRole: role });
+            } catch (fnErr: unknown) {
+                const code = getErrorCode(fnErr) || '';
+                let message = 'Đăng ký Admin thất bại. Vui lòng thử lại.';
+                if (code.includes('already-exists')) {
+                    message = `Mã kho "${cleanStoreId}" đã có quản trị viên. Mỗi mã kho chỉ được có 1 tài khoản Admin duy nhất.`;
+                } else {
+                    message = getErrorMessage(fnErr) || message;
+                }
+                throw { code: 'sticker/register-failed', message };
+            }
+        }
+      }
+      setLoading(false);
+    } catch (err: unknown) {
+      const authErr = err as AuthErrorLike;
+      console.error("Auth Error Details:", authErr.code, authErr.message);
+
+      if (authErr.code === 'sticker/register-failed') {
+        setError(authErr.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      } else if (authErr.code === 'auth/email-already-in-use') {
+        setError(authErr.message || 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn "Đăng nhập".');
+      } else if (authErr.code === 'auth/too-many-requests') {
+        setError(authErr.message || 'Hệ thống tạm khóa thao tác do đăng nhập sai nhiều lần. Vui lòng thử lại sau 2-3 phút.');
+      } else if (authErr.code === 'auth/invalid-email') {
+        setError('Tên đăng nhập không hợp lệ.');
+      } else if (authErr.code === 'auth/weak-password') {
+        setError('Mật khẩu không hợp lệ.');
+      } else if (authErr.code === 'auth/invalid-credential' || authErr.code === 'auth/user-not-found' || authErr.code === 'auth/wrong-password') {
+        setError('Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.');
+      } else if (authErr.code === 'auth/operation-not-allowed') {
+        setError('Lỗi hệ thống: Đăng nhập bằng Email/Password chưa được bật trong Firebase Console.');
+      } else if (authErr.code === 'auth/network-request-failed') {
+        setError('Lỗi kết nối mạng. Vui lòng kiểm tra internet.');
+      }
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-dvh flex items-center justify-center bg-slate-100 p-4">
+      {/* GĐ7: thẻ + điều khiển theo bộ chung (segmented vai trò, Input, nút chính) — trước là radio nhỏ, ô nhập tự vẽ, nút ghost tự tô */}
+      <div className="bg-white p-6 sm:p-8 rounded-card shadow-xl w-full max-w-md">
+        <div className="flex flex-col items-center mb-5">
+            <h2 className="type-title font-bold text-slate-900">
+            {isLogin ? 'Đăng nhập' : 'Đăng ký'}
+            </h2>
+        </div>
+        
+        {/* Welcome / Instruction Message */}
+        <div className="bg-sky-50 text-sky-800 p-4 rounded-control mb-6 text-sm border border-sky-100">
+            <p className="font-semibold mb-2">Chào mừng bạn!</p>
+            <ul className="list-disc pl-5 space-y-1">
+                <li>Nếu bạn là <strong>Quản lý</strong>: Vui lòng tạo tài khoản Admin để tải lên dữ liệu giá và tồn kho.</li>
+                <li>Nếu bạn là <strong>Nhân viên</strong>: Vui lòng tạo tài khoản Nhân viên (chỉ cần nhập User và Mã kho, không cần mật khẩu).</li>
+            </ul>
+        </div>
+
+        {error && (
+          <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-4 mb-4 rounded text-sm" role="alert">
+            <p>{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          
+          {/* Vai trò — segmented (nhãn giữ nguyên "Admin (Quản lý)" vì luồng test đăng nhập tìm theo chữ này) */}
+          <div>
+              <span className="block text-sm font-medium text-slate-700 mb-1.5">Vai trò</span>
+              <Tabs
+                  variant="segment"
+                  size="sm"
+                  fullWidth
+                  activeId={role}
+                  onChange={(id) => setRole(id as 'staff' | 'admin')}
+                  items={[
+                      { id: 'staff', label: 'Nhân viên' },
+                      { id: 'admin', label: 'Admin (Quản lý)' },
+                  ]}
+              />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tên đăng nhập (User)</label>
+            <Input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              placeholder="Nhập tên đăng nhập…"
+            />
+          </div>
+
+          {/* Mật khẩu — Chỉ bắt buộc và hiển thị khi Vai trò là Admin */}
+          {role === 'admin' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Mật khẩu
+              </label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required={role === 'admin'}
+                autoComplete="current-password"
+                placeholder="Nhập mật khẩu…"
+              />
+            </div>
+          )}
+
+          {/* Store ID required during Registration */}
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Mã kho siêu thị</label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={storeId}
+                onChange={(e) => setStoreId(e.target.value)}
+                required={!isLogin}
+                placeholder="Nhập mã kho…"
+              />
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={loading}
+            className="w-full mt-2"
+          >
+            {loading ? 'Đang xử lý…' : (isLogin ? 'Đăng nhập' : 'Đăng ký')}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center border-t border-slate-100 pt-4">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError(null);
+              setPassword('');
+            }}
+            className="text-sm text-sky-700 font-semibold"
+          >
+            {isLogin ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "typecheck",
+    "command": "npm run typecheck",
+    "exit_code": 0,
+    "status": "PASS",
+    "seconds": 15.44,
+    "log": "audit/evidence/typecheck.txt"
+  },
+  {
+    "name": "typecheck-functions",
+    "command": "npm run typecheck:functions",
+    "exit_code": 0,
+    "status": "PASS",
+    "seconds": 2.31,
+    "log": "audit/evidence/typecheck-functions.txt"
+  }
+]

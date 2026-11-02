@@ -1,0 +1,208 @@
+[WebServer] (node:16688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/shared-dropdown.spec.ts:6:9 › Dropdown 390 › span icon trigger has a name without nested interactive controls (882ms)
+  ✘  2 [chromium] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 390 › keyboard selection skips disabled items and restores focus to trigger (10.3s)
+  ✘  3 [chromium] › tests/e2e/shared-dropdown.spec.ts:33:9 › Dropdown 390 › Escape returns focus but outside click preserves the destination focus (1.0m)
+  ✓  4 [chromium] › tests/e2e/shared-dropdown.spec.ts:6:9 › Dropdown 1366 › span icon trigger has a name without nested interactive controls (321ms)
+  ✘  5 [chromium] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 1366 › keyboard selection skips disabled items and restores focus to trigger (10.3s)
+  ✘  6 [chromium] › tests/e2e/shared-dropdown.spec.ts:33:9 › Dropdown 1366 › Escape returns focus but outside click preserves the destination focus (1.0m)
+
+
+  1) [chromium] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 390 › keyboard selection skips disabled items and restores focus to trigger 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('[data-dropdown-trigger]')
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeFocused" locator('[data-dropdown-trigger]') with timeout 10000ms
+      - waiting for locator('[data-dropdown-trigger]')
+        24 × locator resolved to <div tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" data-dropdown-trigger="" class="ycx-hit cursor-pointer">…</div>
+           - unexpected value "inactive"
+
+
+      26 |             await expect(page.locator('output')).toHaveText('previous');
+      27 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);
+    > 28 |             await expect(trigger).toBeFocused();
+         |                                   ^
+      29 |             await page.keyboard.press('ArrowDown');
+      30 |             await expect(page.getByRole('button', { name:'Kỳ trước', exact:true })).toBeFocused();
+      31 |             await page.screenshot({path:`audit/evidence/c15-dropdown-${width}.png`, animations:'disabled'});
+        at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:28:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-dropdown.spec.ts:33:9 › Dropdown 390 › Escape returns focus but outside click preserves the destination focus 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Bên ngoài' })
+        - locator resolved to <button data-ui="shared" class="items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-[var(--btn-height-md)] max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control block mt-16">Bên ngoài</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="py-1 max-h-[280px] overflow-y-auto custom-scrollbar">…</div> from <div class="relative inline-flex">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="py-1 max-h-[280px] overflow-y-auto custom-scrollbar">…</div> from <div class="relative inline-flex">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        115 × waiting for element to be visible, enabled and stable
+            - element is visible, enabled and stable
+            - scrolling into view if needed
+            - done scrolling
+            - <div class="py-1 max-h-[280px] overflow-y-auto custom-scrollbar">…</div> from <div class="relative inline-flex">…</div> subtree intercepts pointer events
+          - retrying click action
+            - waiting 500ms
+
+
+      41 |             await trigger.click();
+      42 |             const outside = page.getByRole('button', {name:'Bên ngoài'});
+    > 43 |             await outside.click();
+         |                           ^
+      44 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);
+      45 |             await expect(outside).toBeFocused();
+      46 |         });
+        at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:43:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 1366 › keyboard selection skips disabled items and restores focus to trigger 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('[data-dropdown-trigger]')
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeFocused" locator('[data-dropdown-trigger]') with timeout 10000ms
+      - waiting for locator('[data-dropdown-trigger]')
+        24 × locator resolved to <div tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" data-dropdown-trigger="" class="ycx-hit cursor-pointer">…</div>
+           - unexpected value "inactive"
+
+
+      26 |             await expect(page.locator('output')).toHaveText('previous');
+      27 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);
+    > 28 |             await expect(trigger).toBeFocused();
+         |                                   ^
+      29 |             await page.keyboard.press('ArrowDown');
+      30 |             await expect(page.getByRole('button', { name:'Kỳ trước', exact:true })).toBeFocused();
+      31 |             await page.screenshot({path:`audit/evidence/c15-dropdown-${width}.png`, animations:'disabled'});
+        at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:28:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/shared-dropdown.spec.ts:33:9 › Dropdown 1366 › Escape returns focus but outside click preserves the destination focus 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Bên ngoài' })
+        - locator resolved to <button data-ui="shared" class="items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-[var(--btn-height-md)] max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control block mt-16">Bên ngoài</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <button disabled class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed justify-start w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 opacity-40 cursor-not-allowed">…</button> from <div class="relative inline-flex">…</div> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <button disabled class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed justify-start w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 opacity-40 cursor-not-allowed">…</button> from <div class="relative inline-flex">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        114 × waiting for element to be visible, enabled and stable
+            - element is visible, enabled and stable
+            - scrolling into view if needed
+            - done scrolling
+            - <button disabled class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed justify-start w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 opacity-40 cursor-not-allowed">…</button> from <div class="relative inline-flex">…</div> subtree intercepts pointer events
+          - retrying click action
+            - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      41 |             await trigger.click();
+      42 |             const outside = page.getByRole('button', {name:'Bên ngoài'});
+    > 43 |             await outside.click();
+         |                           ^
+      44 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);
+      45 |             await expect(outside).toBeFocused();
+      46 |         });
+        at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:43:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 390 › keyboard selection skips disabled items and restores focus to trigger 
+    [chromium] › tests/e2e/shared-dropdown.spec.ts:33:9 › Dropdown 390 › Escape returns focus but outside click preserves the destination focus 
+    [chromium] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 1366 › keyboard selection skips disabled items and restores focus to trigger 
+    [chromium] › tests/e2e/shared-dropdown.spec.ts:33:9 › Dropdown 1366 › Escape returns focus but outside click preserves the destination focus 
+  2 passed (2.4m)

@@ -1,0 +1,238 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c40-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c40-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c40-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "toast-gesture-cancel.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c40-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "toast-gesture-cancel.spec.ts",
+      "file": "toast-gesture-cancel.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "cancelled swipe retains toast and does not invoke onDismiss",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 11295,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('Toast counts')\nExpected: \u001b[32m\"\u001b[7m0\u001b[27m/0\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27m/0\"\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" getByLabel('Toast counts') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Toast counts')\u001b[22m\n\u001b[2m    24 × locator resolved to <output aria-label=\"Toast counts\">1/0</output>\u001b[22m\n\u001b[2m       - unexpected value \"1/0\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('Toast counts')\nExpected: \u001b[32m\"\u001b[7m0\u001b[27m/0\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27m/0\"\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" getByLabel('Toast counts') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Toast counts')\u001b[22m\n\u001b[2m    24 × locator resolved to <output aria-label=\"Toast counts\">1/0</output>\u001b[22m\n\u001b[2m       - unexpected value \"1/0\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/toast-gesture-cancel.spec.ts:25:72",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/toast-gesture-cancel.spec.ts",
+                      "column": 72,
+                      "line": 25
+                    },
+                    "snippet": "  23 | });\n  24 | test('cancelled swipe retains toast and does not invoke onDismiss',async({page})=>{\n> 25 |   await swipe(page,true);await expect(page.getByLabel('Toast counts')).toHaveText('0/0');\n     |                                                                        ^\n  26 |   await expect(page.getByTestId('app-toast')).toHaveCSS('opacity','1');\n  27 |   await page.getByRole('button',{name:'Keep',exact:true}).click();await expect(page.getByLabel('Toast counts')).toHaveText('0/1');\n  28 | });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/toast-gesture-cancel.spec.ts",
+                        "column": 72,
+                        "line": 25
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('Toast counts')\nExpected: \u001b[32m\"\u001b[7m0\u001b[27m/0\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m1\u001b[27m/0\"\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" getByLabel('Toast counts') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Toast counts')\u001b[22m\n\u001b[2m    24 × locator resolved to <output aria-label=\"Toast counts\">1/0</output>\u001b[22m\n\u001b[2m       - unexpected value \"1/0\"\u001b[22m\n\n\n  23 | });\n  24 | test('cancelled swipe retains toast and does not invoke onDismiss',async({page})=>{\n> 25 |   await swipe(page,true);await expect(page.getByLabel('Toast counts')).toHaveText('0/0');\n     |                                                                        ^\n  26 |   await expect(page.getByTestId('app-toast')).toHaveCSS('opacity','1');\n  27 |   await page.getByRole('button',{name:'Keep',exact:true}).click();await expect(page.getByLabel('Toast counts')).toHaveText('0/1');\n  28 | });\n    at /Users/ltson/dashboardycx/tests/e2e/toast-gesture-cancel.spec.ts:25:72"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T10:35:15.396Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c40-before/toast-gesture-cancel-cance-20979-d-does-not-invoke-onDismiss-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c40-before/toast-gesture-cancel-cance-20979-d-does-not-invoke-onDismiss-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c40-before/toast-gesture-cancel-cance-20979-d-does-not-invoke-onDismiss-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/toast-gesture-cancel.spec.ts",
+                    "column": 72,
+                    "line": 25
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a9205cd991681396b77b-ae806bfa3c33a56c1750",
+          "file": "toast-gesture-cancel.spec.ts",
+          "line": 24,
+          "column": 1
+        },
+        {
+          "title": "completed swipe dismisses exactly once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1702,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T10:35:27.331Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a9205cd991681396b77b-e0b2880abd71c1d39c45",
+          "file": "toast-gesture-cancel.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "action keepOpen and finish preserve dismissal callback contract",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1677,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T10:35:29.175Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a9205cd991681396b77b-3c140e05281536b3320a",
+          "file": "toast-gesture-cancel.spec.ts",
+          "line": 33,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T10:35:13.915Z",
+    "duration": 16993.434999999998,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

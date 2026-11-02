@@ -1,0 +1,524 @@
+/* ═══════════════════════════════════════════════════════════
+   YCX DASHBOARD — DESIGN TOKEN SYSTEM
+   Architecture: Primitive → Semantic → Component
+   Grid: 8pt base | Palette: Sky/Slate | Dark: class-based
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── PRIMITIVE TOKENS ─── */
+
+  /* Color Primitives — Sky palette (brand) */
+  --p-sky-50:  #f0f9ff;
+  --p-sky-100: #e0f2fe;
+  --p-sky-200: #bae6fd;
+  --p-sky-300: #7dd3fc;
+  --p-sky-400: #38bdf8;
+  --p-sky-500: #0ea5e9;
+  --p-sky-600: #0284c7;
+  --p-sky-700: #0369a1;
+  --p-sky-800: #075985;
+  --p-sky-900: #0c4a6e;
+  --p-sky-950: #082f49;
+
+  /* Color Primitives — Slate palette (neutral) */
+  --p-slate-50:  #f8fafc;
+  --p-slate-100: #f1f5f9;
+  --p-slate-200: #e2e8f0;
+  --p-slate-300: #cbd5e1;
+  --p-slate-400: #94a3b8;
+  --p-slate-500: #64748b;
+  --p-slate-600: #475569;
+  --p-slate-700: #334155;
+  --p-slate-800: #1e293b;
+  --p-slate-900: #0f172a;
+  --p-slate-950: #020617;
+
+  /* Color Primitives — Semantic Status */
+  --p-emerald-50:  #ecfdf5;
+  --p-emerald-100: #d1fae5;
+  --p-emerald-500: #10b981;
+  --p-emerald-600: #059669;
+  --p-emerald-700: #047857;
+  --p-emerald-900: #064e3b;
+
+  --p-amber-50:  #fffbeb;
+  --p-amber-100: #fef3c7;
+  --p-amber-500: #f59e0b;
+  --p-amber-600: #d97706;
+  --p-amber-700: #b45309;
+  --p-amber-900: #78350f;
+
+  --p-rose-50:  #fff1f2;
+  --p-rose-100: #ffe4e6;
+  --p-rose-500: #f43f5e;
+  --p-rose-600: #e11d48;
+  --p-rose-700: #be123c;
+  --p-rose-900: #881337;
+
+  --p-violet-50:  #f5f3ff;
+  --p-violet-100: #ede9fe;
+  --p-violet-500: #8b5cf6;
+  --p-violet-600: #7c3aed;
+  --p-violet-700: #6d28d9;
+
+  /* Spacing Primitives — 4px base (8pt grid compatible) */
+  --p-space-0:   0px;
+  --p-space-0-5: 2px;
+  --p-space-1:   4px;
+  --p-space-1-5: 6px;
+  --p-space-2:   8px;
+  --p-space-3:   12px;
+  --p-space-4:   16px;
+  --p-space-5:   20px;
+  --p-space-6:   24px;
+  --p-space-8:   32px;
+  --p-space-10:  40px;
+  --p-space-12:  48px;
+  --p-space-16:  64px;
+  --p-space-20:  80px;
+  --p-space-24:  96px;
+
+  /* Radius Primitives */
+  --p-radius-none: 0px;
+  --p-radius-sm:   4px;
+  --p-radius-md:   6px;
+  --p-radius-lg:   8px;
+  --p-radius-xl:   12px;
+  --p-radius-2xl:  16px;
+  --p-radius-3xl:  24px;
+  --p-radius-full: 9999px;
+
+  /* Shadow Primitives */
+  --p-shadow-xs:  0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --p-shadow-sm:  0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  --p-shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --p-shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --p-shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --p-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.20);
+  --p-shadow-ring: 0 0 0 3px;
+
+  /* Typography Primitives */
+  --p-font-sans:  'UTM Avo', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --p-font-mono:  'Fira Code', ui-monospace, monospace;
+  --p-font-display: 'UTM Avo', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --p-text-2xs:  11px; /* sàn chữ 11px (CLAUDE.md mục 2) — trước là 10px */
+  --p-text-xs:   12px;
+  --p-text-sm:   14px;
+  --p-text-base: 16px;
+  --p-text-lg:   18px;
+  --p-text-xl:   20px;
+  --p-text-2xl:  24px;
+  --p-text-3xl:  30px;
+  --p-text-4xl:  36px;
+
+  --p-leading-none:    1;
+  --p-leading-tight:   1.25;
+  --p-leading-snug:    1.375;
+  --p-leading-normal:  1.5;
+  --p-leading-relaxed: 1.625;
+
+  --p-weight-light:    300;
+  --p-weight-normal:   400;
+  --p-weight-medium:   500;
+  --p-weight-semibold: 600;
+  --p-weight-bold:     700;
+  --p-weight-black:    900;
+
+  /* Tracking Primitives */
+  --p-tracking-tight:  -0.02em;
+  --p-tracking-normal: -0.01em;
+  --p-tracking-wide:   0.025em;
+  --p-tracking-wider:  0.05em;
+
+  /* Animation Primitives */
+  --p-duration-fast:     100ms;
+  --p-duration-normal:   200ms;
+  --p-duration-slow:     300ms;
+  --p-duration-slower:   500ms;
+  --p-ease-default:      cubic-bezier(0.4, 0, 0.2, 1);
+  --p-ease-in:           cubic-bezier(0.4, 0, 1, 1);
+  --p-ease-out:          cubic-bezier(0, 0, 0.2, 1);
+  --p-ease-spring:       cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Z-Index Scale */
+  --p-z-base:      0;
+  --p-z-dropdown:  50;
+  --p-z-sticky:    100;
+  --p-z-overlay:   200;
+  --p-z-modal:     300;
+  --p-z-popover:   400;
+  --p-z-toast:     500;
+  --p-z-tooltip:   600;
+  --p-z-max:       999;
+
+
+  /* ─── SEMANTIC TYPOGRAPHY TOKENS ─── */
+  /* Chuẩn hóa type scale cho toàn bộ dự án — thay thế arbitrary font-size */
+  --text-caption:      var(--p-text-2xs);    /* 11px — tiny labels, footnotes */
+  --text-overline:     11px;                 /* 11px — table headers, section labels */
+  --text-label:        var(--p-text-xs);     /* 12px — badges, tags, small labels */
+  --text-body-sm:      13px;                 /* 13px — compact body text, sub-labels */
+  --text-body:         var(--p-text-sm);     /* 14px — default body text */
+  --text-body-lg:      var(--p-text-base);   /* 16px — prominent body text */
+  --text-heading-sm:   var(--p-text-lg);     /* 18px — card titles, section headings */
+  --text-heading:      var(--p-text-xl);     /* 20px — page section headings */
+  --text-heading-lg:   var(--p-text-2xl);    /* 24px — page titles */
+  --text-display:      var(--p-text-3xl);    /* 30px — hero numbers, KPI values */
+  --text-display-lg:   var(--p-text-4xl);    /* 36px — hero headings */
+
+  /* ─── NAVIGATION TOKENS ─── */
+  --nav-item-height:       44px;
+  --nav-item-radius:       var(--p-radius-xl);
+  --nav-item-px:           var(--p-space-3);
+  --nav-item-py:           var(--p-space-3);
+  --nav-item-gap:          var(--p-space-3);
+  --nav-item-text:         var(--p-slate-500);
+  --nav-item-text-hover:   var(--brand);
+  --nav-item-bg-hover:     var(--p-slate-100);
+  --nav-item-active-bg:    var(--brand);
+  --nav-item-active-text:  #ffffff;
+  --nav-item-active-shadow: 0 4px 12px -2px rgba(5, 132, 199, 0.25);
+  --nav-sub-border:        var(--p-slate-200);
+
+  /* ─── FOCUS RING TOKENS ─── */
+  --focus-ring-width:      2px;
+  --focus-ring-offset:     2px;
+  --focus-ring-color:      rgba(14, 165, 233, 0.4);
+  --focus-ring-color-danger: rgba(244, 63, 94, 0.4);
+
+
+  /* ─── SEMANTIC TOKENS (Light Mode) ─── */
+
+  /* Brand */
+  --brand: var(--p-sky-500);
+  --brand-hover: var(--p-sky-600);
+  --brand-active: var(--p-sky-700);
+  --brand-subtle: var(--p-sky-50);
+  --brand-muted: var(--p-sky-100);
+  --brand-on: #ffffff;
+
+  /* Surfaces */
+  --surface-ground: var(--p-slate-100);
+  --surface-primary: #ffffff;
+  --surface-secondary: var(--p-slate-50);
+  --surface-elevated: #ffffff;
+  --surface-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Text */
+  --text-primary: var(--p-slate-900);
+  --text-secondary: var(--p-slate-600);
+  --text-tertiary: var(--p-slate-400);
+  --text-inverse: #ffffff;
+  --text-brand: var(--p-sky-600);
+  --text-success: var(--p-emerald-700);
+  --text-warning: var(--p-amber-700);
+  --text-danger: var(--p-rose-700);
+
+  /* Borders */
+  --border-default: var(--p-slate-200);
+  --border-subtle: var(--p-slate-100);
+  --border-strong: var(--p-slate-300);
+  --border-brand: var(--p-sky-500);
+  --border-focus: var(--p-sky-500);
+
+  /* Status */
+  --status-success: var(--p-emerald-500);
+  --status-success-subtle: var(--p-emerald-50);
+  --status-success-text: var(--p-emerald-700);
+
+  --status-warning: var(--p-amber-500);
+  --status-warning-subtle: var(--p-amber-50);
+  --status-warning-text: var(--p-amber-700);
+
+  --status-danger: var(--p-rose-500);
+  --status-danger-subtle: var(--p-rose-50);
+  --status-danger-text: var(--p-rose-700);
+
+  --status-info: var(--p-sky-500);
+  --status-info-subtle: var(--p-sky-50);
+  --status-info-text: var(--p-sky-700);
+
+  /* Shadows — Semantic */
+  --shadow-card: var(--p-shadow-sm);
+  --shadow-card-hover: var(--p-shadow-md);
+  --shadow-dropdown: var(--p-shadow-lg);
+  --shadow-modal: var(--p-shadow-xl);
+  --shadow-focus: var(--p-shadow-ring) rgba(14, 165, 233, 0.2);
+
+
+  /* ─── CHUẨN "BẢNG ĐIỀU KHIỂN CA TRỰC" (2026-09-10) ───
+     Xem DESIGN_SYSTEM.md. Nguyên tắc: mỗi pixel dành cho số, không dành cho trang trí.
+
+     ĐƠN GIẢN HOÁ SO VỚI BẢN ĐẶC TẢ: đặc tả ban đầu đặt 6 mã hex mới (#f4f6f8, #d8dee5,
+     #eaeef2, #0f1720, #47535f, #7c8894). Tất cả đều nằm giữa 2 nấc Tailwind và LỆCH KHÔNG
+     QUÁ 2% so với nấc gần nhất — mắt không phân biệt được. Thêm 6 màu gần trùng vào một dự
+     án vừa mất cả Đợt 6 để dọn màu là đi ngược lại chính việc đó. Nên: bám nguyên primitive
+     có sẵn. Chỉ giữ lại phần THẬT SỰ đổi — sắc độ đậm hơn một bậc cho màu ngữ nghĩa. */
+
+  /* Nền & bề mặt */
+  --console-ground:   var(--p-slate-100);   /* nền ngoài cùng */
+  --console-surface:  #ffffff;              /* nền bảng, vùng dữ liệu */
+  --console-band:     var(--p-slate-100);   /* dải nhóm trong bảng */
+  --console-hover:    var(--p-sky-50);      /* dòng đang rê chuột — tông xanh để KHÁC dải nhóm */
+
+  /* Mực */
+  --console-ink-1:    var(--p-slate-900);   /* số và chữ chính */
+  --console-ink-2:    var(--p-slate-600);   /* chữ mô tả */
+  --console-ink-3:    var(--p-slate-500);   /* nhãn cột — dùng 500 chứ không 400: nhãn 11px
+                                               trên nền trắng cần đủ tương phản để đọc */
+
+  /* Hai cấp đường kẻ — KHÔNG thêm cấp thứ ba */
+  --console-line-1:   var(--p-slate-200);   /* chia khối, viền bảng, cột ghim */
+  --console-line-2:   var(--p-slate-100);   /* chia dòng */
+
+  /* Ngữ nghĩa — ĐẬM HƠN MỘT BẬC so với bản cũ (600 → 700).
+     Lý do: chữ 11–13px trên nền trắng, sắc độ 600 không đủ tương phản trên màn hình
+     laptop cũ ở siêu thị. Đây là thay đổi màu THẬT SỰ duy nhất của chuẩn mới. */
+  --console-accent:   var(--p-sky-700);
+  --console-good:     var(--p-emerald-700);
+  --console-warn:     var(--p-amber-700);
+  --console-bad:      var(--p-rose-700);
+
+  /* Mật độ — con số cụ thể để lập trình */
+  --console-row-h:      26px;   /* dòng dữ liệu (bản cũ ~30px) */
+  --console-head-h:     28px;   /* đầu bảng, luôn sticky */
+  --console-band-h:     24px;   /* dải nhóm — thấp hơn dòng vì nó là vách ngăn */
+  --console-row-px:     8px;
+  --console-row-py:     3px;
+  --console-stripe-w:   3px;    /* vạch trạng thái mép trái, THAY cho pill */
+  --console-pin-w:      148px;  /* bề rộng tối thiểu cột ghim */
+
+  /* Bo góc — bo góc nói "tôi ở tầng khác", chỉ dùng cho thứ nổi lên trên */
+  --console-radius-control: 4px;   /* nút, ô nhập */
+  --console-radius-overlay: 6px;   /* modal, dropdown */
+  /* bảng và vùng dữ liệu: 0 — không khai token, dùng rounded-none */
+
+  /* Chiều cao thanh đầu app khi dính trên (đo thật bằng Playwright: 69px).
+     Mọi đầu bảng `sticky` phải lùi xuống dưới nó, nếu không dòng tiêu đề đầu
+     tiên bị che khuất — đã gặp thật khi làm Đợt 3.2. Thanh này chỉ dính ở
+     desktop (`hidden lg:block lg:sticky lg:top-0 z-[150]`); mobile có thanh
+     riêng nên bảng vẫn dùng top-0. */
+  --app-header-h: 69px;
+
+  /* Nhãn cột: phông condensed đã nạp sẵn trong index.html, có dấu tiếng Việt.
+     KHÔNG đổi --font-sans (UTM Avo) — xem DESIGN_SYSTEM.md mục 2. */
+  --console-font-label: "Roboto Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
+
+  /* ─── COMPONENT TOKENS ─── */
+
+  /* Card */
+  --card-bg: var(--surface-primary);
+  --card-border: var(--border-subtle);
+  /* Chuẩn (B) chủ dự án chốt 2026-10-07: thẻ / thẻ KPI / khung bảng bo 16px. */
+  --card-radius: var(--p-radius-2xl);
+  --card-padding: var(--p-space-6);
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
+
+  /* Button */
+  --btn-radius: var(--p-radius-lg);
+  --btn-font-weight: var(--p-weight-semibold);
+  --btn-transition: all var(--p-duration-normal) var(--p-ease-default);
+  --btn-height-sm: 32px;
+  --btn-height-md: 40px;
+  --btn-height-lg: 48px;
+  --btn-px-sm: var(--p-space-3);
+  --btn-px-md: var(--p-space-4);
+  --btn-px-lg: var(--p-space-6);
+
+  /* Input */
+  --input-bg: var(--surface-primary);
+  --input-border: var(--border-default);
+  --input-border-focus: var(--border-focus);
+  --input-radius: var(--p-radius-lg);
+  --input-height: 40px;
+  --input-px: var(--p-space-3);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-tertiary);
+  --input-shadow-focus: var(--shadow-focus);
+
+  /* Popup / dropdown / menu nổi */
+  --popup-radius: var(--p-radius-xl);
+
+  /* Modal */
+  --modal-bg: var(--surface-primary);
+  --modal-radius: var(--p-radius-2xl);
+  --modal-padding: var(--p-space-8);
+  --modal-shadow: var(--shadow-modal);
+  --modal-overlay: var(--surface-overlay);
+
+  /* Badge */
+  --badge-radius: var(--p-radius-full);
+  --badge-px: var(--p-space-2);
+  --badge-py: var(--p-space-0-5);
+  --badge-text-size: var(--p-text-xs);
+  --badge-font-weight: var(--p-weight-medium);
+
+  /* Table */
+  --table-header-bg: var(--p-slate-50);
+  --table-header-text: var(--p-slate-500);
+  --table-header-size: 11px;
+  --table-header-weight: var(--p-weight-bold);
+  --table-header-tracking: var(--p-tracking-wide);
+  --table-row-hover: var(--p-slate-50);
+  --table-border: var(--border-default);
+  --table-cell-px: var(--p-space-3);
+  --table-cell-py: var(--p-space-2);
+
+  /* Sidebar */
+  --sidebar-width-collapsed: 80px;
+  --sidebar-width-expanded: 260px;
+  --sidebar-bg: var(--p-slate-900);
+  --sidebar-text: var(--p-slate-300);
+  --sidebar-text-active: #ffffff;
+  --sidebar-active-bg: rgba(14, 165, 233, 0.15);
+  --sidebar-active-indicator: var(--brand);
+
+  /* Topbar */
+  --topbar-height: 64px;
+  --topbar-height-mobile: 52px;
+  --topbar-bg: rgba(255, 255, 255, 0.9);
+  --topbar-border: var(--border-subtle);
+
+  /* Stat Card */
+  --stat-label-size: var(--p-text-xs);
+  --stat-label-color: var(--text-secondary);
+  --stat-value-size: var(--p-text-2xl);
+  --stat-value-weight: var(--p-weight-bold);
+
+  /* Progress Bar */
+  --progress-height: 6px;
+  --progress-radius: var(--p-radius-full);
+  --progress-bg: var(--p-slate-200);
+  --progress-fill: var(--brand);
+
+  /* Tooltip */
+  --tooltip-bg: var(--p-slate-900);
+  --tooltip-text: #ffffff;
+  --tooltip-radius: var(--p-radius-md);
+  --tooltip-px: var(--p-space-2);
+  --tooltip-py: var(--p-space-1);
+  --tooltip-text-size: var(--p-text-xs);
+
+  /* Skeleton */
+  --skeleton-bg: var(--p-slate-200);
+  --skeleton-shine: var(--p-slate-100);
+  --skeleton-radius: var(--p-radius-md);
+
+  /* Transition presets */
+  --transition-fast: var(--p-duration-fast) var(--p-ease-default);
+  --transition-normal: var(--p-duration-normal) var(--p-ease-default);
+  --transition-slow: var(--p-duration-slow) var(--p-ease-default);
+  --transition-spring: var(--p-duration-slow) var(--p-ease-spring);
+}
+
+
+/* ─── DARK MODE — Semantic Token Overrides ─── */
+
+.dark {
+  /* Surfaces */
+  --surface-ground: var(--p-slate-950);
+  --surface-primary: var(--p-slate-900);
+  --surface-secondary: var(--p-slate-800);
+  --surface-elevated: var(--p-slate-800);
+  --surface-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Text */
+  --text-primary: var(--p-slate-50);
+  --text-secondary: var(--p-slate-400);
+  --text-tertiary: var(--p-slate-500);
+  --text-brand: var(--p-sky-400);
+  --text-success: var(--p-emerald-500);
+  --text-warning: var(--p-amber-500);
+  --text-danger: var(--p-rose-500);
+
+  /* Borders */
+  --border-default: var(--p-slate-700);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: var(--p-slate-600);
+
+  /* Status */
+  --status-success-subtle: rgba(16, 185, 129, 0.12);
+  --status-success-text: var(--p-emerald-500);
+  --status-warning-subtle: rgba(245, 158, 11, 0.12);
+  --status-warning-text: var(--p-amber-500);
+  --status-danger-subtle: rgba(244, 63, 94, 0.12);
+  --status-danger-text: var(--p-rose-500);
+  --status-info-subtle: rgba(14, 165, 233, 0.12);
+  --status-info-text: var(--p-sky-400);
+
+  /* Shadows — Darker in dark mode */
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-focus: var(--p-shadow-ring) rgba(14, 165, 233, 0.3);
+
+  /* Card */
+  --card-bg: var(--surface-primary);
+  --card-border: var(--border-subtle);
+
+  /* Table */
+  --table-header-bg: var(--p-slate-800);
+  --table-header-text: var(--p-slate-400);
+  --table-row-hover: var(--p-slate-800);
+
+  /* Sidebar */
+  --sidebar-bg: var(--p-slate-950);
+
+  /* Topbar */
+  --topbar-bg: rgba(15, 23, 42, 0.9);
+
+  /* Skeleton */
+  --skeleton-bg: var(--p-slate-800);
+  --skeleton-shine: var(--p-slate-700);
+
+  /* Tooltip */
+  --tooltip-bg: var(--p-slate-700);
+
+  /* Navigation — Dark */
+  --nav-item-text:       var(--p-slate-400);
+  --nav-item-bg-hover:   var(--p-slate-800);
+  --nav-sub-border:      var(--p-slate-700);
+  --nav-item-active-shadow: 0 4px 12px -2px rgba(5, 132, 199, 0.3);
+
+  /* Focus Ring — Dark */
+  --focus-ring-color:    rgba(56, 189, 248, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LỚP APPLE (GĐ3 2026-10-11) — xem DESIGN_SYSTEM.md mục 7
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* ─── LỚP APPLE (GĐ3 2026-10-11, KE_HOACH_GIAO_DIEN_APPLE.md mục 2.3) ───
+     Thang chữ 10 bậc — MỌI chữ mới chọn 1 trong 10 bậc (class `type-*` ở styles.css). Bậc có 2 giá trị iPhone/laptop:
+     laptop đọc gần hơn và màn dày chữ hơn nên nhỏ hơn 1px (đổi ở khối @media cuối file).
+     Bảng giữ nguyên: số trong bảng 13px = `subhead`, nhãn cột 11px = `caption` (IN HOA, Roboto Condensed). */
+  --type-large-title: 28px;  --type-large-title-lh: 34px;   /* tiêu đề trang (vùng nội dung) */
+  --type-title: 20px;        --type-title-lh: 25px;         /* tiêu đề sheet/modal lớn */
+  --type-headline: 17px;     --type-headline-lh: 22px;      /* tiêu đề khối, tiêu đề thanh trên */
+  --type-body: 15px;         --type-body-lh: 20px;          /* nội dung, ô nhập, nút */
+  --type-subhead: 13px;      --type-subhead-lh: 18px;       /* phụ đề, số trong bảng */
+  --type-footnote: 12px;     --type-footnote-lh: 16px;      /* chú thích, giờ cập nhật */
+  --type-caption: 11px;      --type-caption-lh: 13px;       /* nhãn cột (IN HOA), nhãn thanh tab */
+  --type-kpi: 25px;          --type-kpi-lh: 28px;           /* số thẻ KPI (tabular-nums) */
+  --type-kpi-lg: 34px;       --type-kpi-lg-lh: 38px;        /* một con số nổi bật */
+  --type-kpi-xl: 44px;       --type-kpi-xl-lh: 48px;        /* số KPI chính ở màn ≥ xl (phương án B, chủ dự án chốt 2026-10-21) */
+
+  /* Vật liệu mờ cho 3 vùng nổi nhỏ cố định: thanh trên, thanh tab, toast (class .ycx-material) */
+  --material-bg: rgb(255 255 255 / 0.84);
+  --material-filter: saturate(180%) blur(20px);
+  --hairline: rgb(15 23 42 / 0.08);
+  /* Chuyển động: sheet / núm công tắc / segmented (vào nhanh, dừng êm) */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Laptop (≥ lg 1024px): đọc gần hơn → 3 bậc nhỏ đi 1–2px như bảng thang chữ. */
+@media (min-width: 1024px) {
+  :root {
+    --type-large-title: 26px;  --type-large-title-lh: 32px;
+    --type-headline: 16px;
+    --type-body: 14px;
+  }
+}

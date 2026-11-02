@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Material foundation regression</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="material-harness"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { ActionMenu } from '/components/shared/ui/ActionMenu.tsx';
+      if (new URLSearchParams(location.search).has('icon-boundary')) {
+        const {AppIcon,renderIcon}=await import('/components/shared/ui/icon/index.ts');
+        const {Input}=await import('/components/shared/ui/Input.tsx');
+        createRoot(document.getElementById('material-harness')).render(React.createElement('main',{style:{padding:24}},
+          React.createElement(Input,{'aria-label':'Audit inherited icon',leftIcon:'constructor',placeholder:'Fallback input'}),
+          React.createElement('div',{id:'raw-icon'},React.createElement(AppIcon,{name:'__proto__',label:'Fallback icon'})),
+          React.createElement('div',{id:'literal-icon'},renderIcon('toString','md')),
+          React.createElement('div',{id:'canonical-icon'},React.createElement(AppIcon,{name:'exportImage',label:'Xuất ảnh'}))));
+      } else if (new URLSearchParams(location.search).has('toast-queue')) {
+        const {AppToaster,toast}=await import('/components/shared/ui/toast/index.ts');
+        function QueueFixture(){
+          React.useEffect(()=>{toast.removeAll();return ()=>toast.removeAll();},[]);
+          return React.createElement('main',{style:{paddingTop:350}},React.createElement(AppToaster),
+            ...[
+              ['Queue',()=>{toast.info('Queued finite',{id:'queued',duration:900});for(let i=1;i<=3;i++)toast.info(`Block ${i}`,{id:`block${i}`,duration:Infinity});}],
+              ['Release',()=>toast.remove('block3')],
+              ['Timed',()=>toast.info('Timed toast',{id:'timed',duration:1200})],
+              ['Loading',()=>toast.loading('Loading audit',{id:'replace'})],
+              ['Success',()=>toast.success('Success audit',{id:'replace',duration:900})],
+              ['Resurrect',()=>{toast.dismiss('replace');toast.info('Resurrected audit',{id:'replace',duration:Infinity});}]
+            ].map(([text,onClick])=>React.createElement('button',{key:text,onClick,style:{margin:8}},text)));
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(QueueFixture));
+      } else if (new URLSearchParams(location.search).has('toast-gesture')) {
+        const {AppToaster,toast}=await import('/components/shared/ui/toast/index.ts');
+        function ToastFixture(){
+          const[dismissed,setDismissed]=React.useState(0),[actions,setActions]=React.useState(0);
+          React.useEffect(()=>{
+            toast.removeAll();toast.action({id:'audit-toast',title:'Audit toast',description:'Thông báo cần giữ nếu gesture bị hủy.',onDismiss:()=>setDismissed(n=>n+1),actions:[{label:'Keep',keepOpen:true,onClick:()=>setActions(n=>n+1)},{label:'Finish',onClick:()=>setActions(n=>n+1)}]});
+            return ()=>toast.removeAll();
+          },[]);
+          return React.createElement('main',null,React.createElement(AppToaster),React.createElement('output',{'aria-label':'Toast counts',style:{position:'absolute',top:300}},`${dismissed}/${actions}`));
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(ToastFixture));
+      } else if (new URLSearchParams(location.search).has('page-actions')) {
+        const {PageActionsProvider,usePageActions}=await import('/components/shared/ui/PageActions.tsx');
+        const {PageActionsBar}=await import('/components/layout/PageActionsBar.tsx');
+        const variant=new URLSearchParams(location.search).get('variant')||'desktop';
+        function Owner({name,active,count,record,scope,busy}){
+          usePageActions(active?{title:name,scope,primary:{id:'primary',label:`${name} primary`,icon:'add',loading:busy,onClick:()=>record(`${name}:${count}:primary`)},quick:[1,2,3].map(n=>({id:`q${n}`,label:`${name} quick ${n}`,icon:'add',onSelect:()=>record(`${name}:${count}:q${n}`)})),items:[{id:'item',label:`${name} item`,onSelect:()=>record(`${name}:${count}:item`)}]}:null);return null;
+        }
+        function ActionsFixture(){
+          const[count,setCount]=React.useState(1),[b,setB]=React.useState(false),[mounted,setMounted]=React.useState(true),[record,setRecord]=React.useState('none'),[scope,setScope]=React.useState('all'),[busy,setBusy]=React.useState(false);
+          return React.createElement(PageActionsProvider,null,
+            React.createElement(Owner,{name:'A',active:true,count,record:setRecord,scope,busy}),
+            mounted&&React.createElement(Owner,{name:'B',active:b,count,record:setRecord,scope,busy}),
+            React.createElement('main',{style:{padding:24}},React.createElement(PageActionsBar,{variant}),
+              React.createElement('output',{'aria-label':'Action result'},record),
+              React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:8,marginTop:80}},
+                ...[['Update callback',()=>setCount(n=>n+1)],['Toggle B',()=>setB(v=>!v)],['Unmount B',()=>setMounted(false)],['Mobile scope',()=>setScope('mobile')],['Busy',()=>setBusy(v=>!v)]].map(([text,onClick])=>React.createElement('button',{key:text,onClick},text)))));
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(ActionsFixture));
+      } else if (new URLSearchParams(location.search).has('touch-title')) {
+        const {TouchTitleHint}=await import('/components/shared/ui/TouchTitleHint.tsx');
+        function TouchFixture(){
+          const[hint,setHint]=React.useState(0),[other,setOther]=React.useState(0);
+          return React.createElement('main',{style:{padding:24}},React.createElement(TouchTitleHint),
+            React.createElement('button',{title:'Chú thích audit',style:{width:100,height:48},onClick:()=>setHint(n=>n+1)},'Hint'),
+            React.createElement('button',{style:{width:100,height:48},onClick:()=>setOther(n=>n+1)},'Other'),
+            React.createElement('output',{'aria-label':'Counts'},`${hint}/${other}`));
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(TouchFixture));
+      } else if (new URLSearchParams(location.search).has('table-foundation')) {
+        const {DataTable}=await import('/components/shared/ui/DataTable.tsx');
+        const {installTableScrollCue}=await import('/components/shared/ui/tableScrollCue.ts');
+        const columns=[
+          {id:'name',header:'Tên',cell:r=>r.name,sortable:true,sticky:true,minWidth:'200px'},
+          {id:'a',header:'A',cell:r=>r.a,group:'Nhóm 1',width:'200px'},
+          {id:'b',header:'B',cell:r=>r.a*2,group:'Nhóm 1',width:'200px',hideMobile:true},
+          {id:'c',header:'C',cell:r=>r.a*3,group:'Nhóm 2',width:'200px',hideMobile:true}];
+        const rows=Array.from({length:40},(_,i)=>({id:i,name:`Audit ${i+1}`,a:i}));
+        function TableFixture(){
+          const[sort,setSort]=React.useState({}),[mode,setMode]=React.useState('data');
+          React.useEffect(()=>installTableScrollCue(),[]);
+          return React.createElement('main',{style:{padding:16}},
+            React.createElement('div',{id:'audit-table',style:{maxWidth:700}},React.createElement(DataTable,{columns,data:mode==='empty'?[]:rows,rowKey:r=>r.id,isLoading:mode==='loading',loadingRows:3,maxHeight:'220px',fixedLayout:true,sortColumn:sort.col,sortDirection:sort.dir,onSort:(col,dir)=>setSort({col,dir})})),
+            ...['loading','empty','data'].map(value=>React.createElement('button',{key:value,onClick:()=>setMode(value)},value)));
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(TableFixture));
+      } else if (new URLSearchParams(location.search).has('searchable-select')) {
+        const {default:SearchableSelect}=await import('/components/shared/ui/SearchableSelect.tsx');
+        const {Modal}=await import('/components/shared/ui/Modal.tsx');
+        function SelectFixture(){
+          const[value,setValue]=React.useState(''),[open,setOpen]=React.useState(true);
+          const content=React.createElement('main',{style:{padding:24,maxWidth:400}},
+            React.createElement(SearchableSelect,{label:'Ngành audit',options:['Alpha','Beta'],value,onChange:setValue,placeholder:'Chọn ngành…',allowCustom:new URLSearchParams(location.search).has('custom')}),
+            React.createElement('output',{'aria-label':'Selected'},value||'EMPTY'));
+          return new URLSearchParams(location.search).has('in-modal')?React.createElement(Modal,{isOpen:open,onClose:()=>setOpen(false),title:'Audit form'},content):content;
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(SelectFixture));
+      } else if (new URLSearchParams(location.search).has('error-boundary')) {
+        const {ErrorBoundary}=await import('/components/shared/ui/ErrorBoundary.tsx');
+        const chunk=new URLSearchParams(location.search).has('chunk');
+        if(chunk){sessionStorage.setItem('ycx_chunk_reloads',JSON.stringify([Date.now(),Date.now()]));sessionStorage.setItem('last_module_import_reload',String(Date.now()));}
+        function Fault({fixed}){if(!fixed)throw new Error(chunk?'Failed to fetch dynamically imported module':'AUDIT render failure');return React.createElement('p',null,'AUDIT recovered');}
+        function BoundaryFixture(){const[fixed,setFixed]=React.useState(false);return React.createElement('main',null,
+          React.createElement('button',{onClick:()=>setFixed(true)},'Khắc phục fixture'),
+          React.createElement(ErrorBoundary,{name:'AUDIT'},React.createElement(Fault,{fixed})));}
+        createRoot(document.getElementById('material-harness')).render(React.createElement(BoundaryFixture));
+      } else if (new URLSearchParams(location.search).has('card-foundation')) {
+        const {Card}=await import('/components/shared/ui/Card.tsx');
+        const {SectionCard}=await import('/components/shared/ui/SectionCard.tsx');
+        const {EmptyState}=await import('/components/shared/ui/EmptyState.tsx');
+        const {ListGroup,ListRow}=await import('/components/shared/ui/ListGroup.tsx');
+        const h=React.createElement;
+        function CardFixture(){const[count,setCount]=React.useState(0);return h('main',{style:{padding:16}},
+          h(Card,{'data-testid':'card'},'Audit card'),h(SectionCard,{'data-testid':'section'},'Audit section'),
+          h(ListGroup,{title:'Audit group'},h(ListRow,{label:'Active row',onClick:()=>setCount(n=>n+1)}),h(ListRow,{label:'Disabled row',disabled:true,onClick:()=>setCount(n=>n+1)})),
+          h(EmptyState,{title:'Không có dữ liệu audit',description:'Dữ liệu giả cục bộ',compact:true}),h('output',{'aria-label':'Rows activated'},count));}
+        createRoot(document.getElementById('material-harness')).render(h(CardFixture));
+      } else if (new URLSearchParams(location.search).has('section-header')) {
+        const {SectionHeader}=await import('/components/shared/ui/SectionHeader.tsx');
+        function HeaderFixture(){
+          const [opened,setOpened]=React.useState(0),[quick,setQuick]=React.useState(0);
+          return React.createElement('main',null,React.createElement(SectionHeader,{title:'Audit section',onClick:()=>setOpened(n=>n+1),quick:[{id:'quick',label:'Quick audit',onSelect:()=>setQuick(n=>n+1)}]}),
+            React.createElement('output',{'aria-label':'Header count'},opened),React.createElement('output',{'aria-label':'Quick count'},quick));
+        }
+        createRoot(document.getElementById('material-harness')).render(React.createElement(HeaderFixture));
+      } else if (new URLSearchParams(location.search).has('bonus-fallback')) {
+        const {setActiveLocalUid,LEGACY_BI_HUB_DB_NAME}=await import('/utils/localDbScope.ts');
+        setActiveLocalUid('audit-c32',{inheritLegacyData:false});
+        const withStore=new URLSearchParams(location.search).has('with-store');
+        await new Promise((resolve,reject)=>{
+          const req=indexedDB.open(LEGACY_BI_HUB_DB_NAME,1);
+          req.onupgradeneeded=()=>{if(withStore)req.result.createObjectStore('settings');};
+          req.onerror=()=>reject(req.error);
+          req.onsuccess=()=>{
+            const db=req.result;
+            if(!withStore){db.close();resolve();return;}
+            const tx=db.transaction('settings','readwrite');
+            tx.objectStore('settings').put({competitionData:[Array(20).fill('')],fileName:'AUDIT legacy'},'checkthuong_data');
+            tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>reject(tx.error);
+          };
+        });
+        const {useCheckThuongBonus}=await import('/features/bi-dashboard/hooks/useCheckThuongBonus.ts');
+        function BonusFixture(){const result=useCheckThuongBonus('AUDIT',true);return React.createElement('output',null,result.source?.fileName||'NO_BONUS');}
+        createRoot(document.getElementById('material-harness')).render(React.createElement(BonusFixture));
+      } else if (new URLSearchParams(location.search).has('competition-switch')) {
+        const {default:CompetitionView}=await import('/features/bi-dashboard/components/dashboard/CompetitionView.tsx');
+        const h=React.createElement;
+        function CompetitionFixture(){
+          const [ready,setReady]=React.useState(false);
+          React.useEffect(()=>setReady(true),[]);
+          return h('main',null,h('div',{id:'column-settings-portal',style:{display:'flex',justifyContent:'flex-end'}}),ready&&h(CompetitionView,{
+            data:{AUDIT:{headers:['Realtime','Target V.Trội','%HT V.Trội'],programs:[{name:'AUDIT A',metric:'SLLK',data:[10,20,50]},{name:'AUDIT B',metric:'SLLK',data:[5,20,25]}]}},
+            isRealtime:true,activeSupermarket:'AUDIT',setActiveSupermarket:()=>{},onBatchExport:()=>{},isBatchExporting:false}));
+        }
+        createRoot(document.getElementById('material-harness')).render(h(CompetitionFixture));
+      } else if (new URLSearchParams(location.search).has('industry-switch')) {
+        const { default: IndustryView } = await import('/features/bi-dashboard/components/dashboard/IndustryView.tsx');
+        const h = React.createElement;
+        const names = ['AUDIT A','AUDIT B','AUDIT C','AUDIT D','AUDIT E','AUDIT F','AUDIT G','AUDIT H'];
+        const rows = names.map(name=>[name,'10']);
+        const tree = names.map(name=>({name,level:0,values:[name,'10'],children:[{name:'SUB '+name,level:1,values:['SUB '+name,'5'],children:[]}]}));
+        createRoot(document.getElementById('material-harness')).render(h(IndustryView,{realtimeData:{headers:['Nhóm ngành hàng','DTQĐ'],rows,tree},luykeData:null,isRealtime:true}));
+      } else if (new URLSearchParams(location.search).has('summary-switch')) {
+        const { default: SummaryTableView } = await import('/features/bi-dashboard/components/dashboard/SummaryTableView.tsx');
+        const h = React.createElement;
+        function SummaryFixture() {
+          const [ready,setReady] = React.useState(false);
+          React.useEffect(()=>setReady(true),[]);
+          return h('main',{style:{padding:32}},h('div',{id:'summary-table-inline-actions',style:{display:'flex',justifyContent:'flex-end'}}),
+            ready && h(SummaryTableView,{data:{headers:['Tên miền','DTLK'],rows:[['AUDIT A','10'],['AUDIT B','20']]},
+              supermarketDailyTargets:{},supermarketMonthlyTargets:{},supermarketTargets:{},activeSupermarket:null,onExport:async()=>{}}));
+        }
+        createRoot(document.getElementById('material-harness')).render(h(SummaryFixture));
+      } else if (new URLSearchParams(location.search).has('tabs')) {
+        const { Tabs } = await import('/components/shared/ui/Tabs.tsx');
+        const h = React.createElement;
+        function TabsFixture() {
+          const [active,setActive] = React.useState('one');
+          const params = new URLSearchParams(location.search);
+          return h('main',{style:{padding:32}},h(Tabs,{variant:params.get('variant')||'underline',size:params.get('size')||'sm',activeId:active,onChange:setActive,
+            items:[{id:'one',label:'Một'},{id:'two',label:'Hai'},{id:'disabled',label:'Khóa',disabled:true}]}),h('output',null,active));
+        }
+        createRoot(document.getElementById('material-harness')).render(h(TabsFixture));
+      } else if (new URLSearchParams(location.search).has('fonts')) {
+        const { napPhongGoogle } = await import('/components/shared/ui/googleFonts.ts');
+        const { Button } = await import('/components/shared/ui/Button.tsx');
+        const h = React.createElement;
+        createRoot(document.getElementById('material-harness')).render(h('main',{style:{padding:24}},
+          h(Button,{onClick:()=>napPhongGoogle(['Inter','Inter',"'Inter', sans-serif"])},'Tải Inter'),
+          h(Button,{onClick:()=>napPhongGoogle('UTM Avo')},'Phông cục bộ')));
+      } else if (new URLSearchParams(location.search).has('feedback')) {
+        const { ProgressBar } = await import('/components/shared/ui/ProgressBar.tsx');
+        const { Banner } = await import('/components/shared/ui/Banner.tsx');
+        const { default: TimeProgressBar } = await import('/features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx');
+        const h = React.createElement;
+        createRoot(document.getElementById('material-harness')).render(h('main',{style:{padding:24,maxWidth:380}},
+          h(ProgressBar,{label:'Hoàn thành',value:150,showLabel:true}),
+          h(ProgressBar,{label:'Chưa có tổng',value:0,max:0,showLabel:true}),
+          h(TimeProgressBar,{customDaysPassed:15,customTotalDays:30}),
+          h(Banner,{title:'Thông báo dài',maxLines:1},'Nội dung cần đọc đầy đủ. '.repeat(20)),
+          h(Banner,{title:'Thông báo khác',maxLines:1},'Thông tin thứ hai cần mở rộng. '.repeat(20))));
+      } else if (new URLSearchParams(location.search).has('selection-controls')) {
+        const { Switch } = await import('/components/shared/ui/Switch.tsx');
+        const h = React.createElement;
+        function SelectionControls() {
+          const [small, setSmall] = React.useState(false);
+          const [medium, setMedium] = React.useState(false);
+          return h('main', {style:{padding:64,display:'flex',flexDirection:'column',gap:48}},
+            h(Switch,{size:'sm',label:'Nhỏ',checked:small,onChange:setSmall}),
+            h(Switch,{label:'Vừa',checked:medium,onChange:setMedium}),
+            h(Switch,{size:'sm',label:'Khóa',checked:false,disabled:true,onChange:setSmall}));
+        }
+        createRoot(document.getElementById('material-harness')).render(h(SelectionControls));
+      } else if (new URLSearchParams(location.search).has('dropdown')) {
+        const { Dropdown } = await import('/components/shared/ui/Dropdown.tsx');
+        const { Button } = await import('/components/shared/ui/Button.tsx');
+        const { AppIcon } = await import('/components/shared/ui/icon/AppIcon.tsx');
+        const h = React.createElement;
+        function DropdownFixture() {
+          const [selected, setSelected] = React.useState('current');
+          return h('main', {style:{padding:32,minHeight:new URLSearchParams(location.search).has('floating')?1600:undefined}},
+            h(Dropdown, {width:'240px', escapeClipping:new URLSearchParams(location.search).has('floating'), onSelect:setSelected,
+              trigger:h('span', {'aria-label':'Chọn chế độ xem', className:'ycx-hit inline-flex items-center justify-center w-8 h-8 rounded-control'},h(AppIcon,{name:'more',size:'md'})),
+              items:[
+                {id:'current',label:'Kỳ này',active:selected==='current'},
+                {id:'disabled',label:'Đang tải',disabled:true},
+                {id:'divider',label:'',divider:true},
+                {id:'previous',label:'Kỳ trước',active:selected==='previous'},
+                {id:'all',label:'Tổng hợp',active:selected==='all'},
+              ],
+            }),
+            h(Button, {className:'block mt-64'}, 'Bên ngoài'),
+            h('output',null,selected));
+        }
+        createRoot(document.getElementById('material-harness')).render(h(DropdownFixture));
+      } else if (new URLSearchParams(location.search).has('tooltip')) {
+        const { Tooltip } = await import('/components/shared/ui/Tooltip.tsx');
+        const { Button } = await import('/components/shared/ui/Button.tsx');
+        const h = React.createElement;
+        function TooltipFixture() {
+          const [disabled, setDisabled] = React.useState(false);
+          const [mounted, setMounted] = React.useState(true);
+          const params = new URLSearchParams(location.search);
+          const side = params.get('side') || 'bottom';
+          const edge = params.get('edge');
+          if (edge) {
+            const positions = {
+              top:{top:8,left:8}, bottom:{bottom:8,right:8},
+              left:{top:'40%',left:8}, right:{top:'40%',right:8},
+            };
+            const content = 'Mô tả dài cần đọc đầy đủ, giữ chữ tiếng Việt. '.repeat(6) + 'YCX'.repeat(40);
+            return h('main', {style:{position:'fixed',...positions[edge]}},
+              h(Tooltip, {content, side, delay:0}, h(Button, null, 'Ở mép')));
+          }
+          return h('main', {style:{padding:80}, onKeyDown:e=>{
+            if (e.key === 'd') setDisabled(v=>!v);
+            if (e.key === 'u') setMounted(false);
+          }},
+            h('p', {id:'tooltip-help'}, 'Thông tin có sẵn'),
+            mounted && h(Tooltip, {content:'Lưu thay đổi', side, delay:200, disabled},
+              h(Button, {'aria-describedby':'tooltip-help'}, 'Thao tác')),
+            h(Button, {className:'block mt-16'}, 'Tiếp theo'),
+            h(Button, {className:'block mt-4', onClick:()=>setMounted(true)}, 'Gắn lại'),
+            h('output', null, disabled ? 'disabled' : 'enabled'),
+          );
+        }
+        createRoot(document.getElementById('material-harness')).render(h(TooltipFixture));
+      } else if (new URLSearchParams(location.search).has('forms')) {
+        const { Button } = await import('/components/shared/ui/Button.tsx');
+        const { Input } = await import('/components/shared/ui/Input.tsx');
+        const { Select } = await import('/components/shared/ui/Select.tsx');
+        const h = React.createElement;
+        function Forms() {
+          const [error, setError] = React.useState(false);
+          const [loading, setLoading] = React.useState(false);
+          const [value, setValue] = React.useState('a');
+          const options = [{value:'a', label:'Tháng 9'}, {value:'b', label:'Tháng 10'}];
+          return h('main', {style: {padding:24, maxWidth:480}},
+            h('div', {className:'flex flex-wrap gap-4 mb-4'},
+              h(Button, {onClick:()=>setLoading(true), isLoading:loading, icon:'save'}, 'Lưu'),
+              h(Button, {onClick:()=>setError(v=>!v), variant:'secondary'}, 'Kiểm lỗi'),
+              h(Button, {onClick:()=>setLoading(false), variant:'ghost'}, 'Đặt lại'),
+              h(Button, {size:'icon', icon:'close', 'aria-label':'Nút icon'}),
+            ),
+            h('p', {id:'form-help'}, 'Chọn kỳ báo cáo.'),
+            h(Input, {'aria-label':'Tên', 'aria-describedby':'form-help', error:error?'Thiếu tên':undefined}),
+            h(Select, {'aria-label':'Kỳ', 'aria-describedby':'form-help', 'aria-invalid':false, options, value, onChange:e=>setValue(e.target.value), error:error?'Thiếu kỳ':undefined}),
+            h(Select, {'aria-label':'Kỳ khóa', disabled:true, options}),
+            h(Input, {'aria-label':'Ô dense', dense:true, defaultValue:'28px'}),
+            h(Select, {'aria-label':'Kỳ dense', dense:true, options}),
+            h(Button, {size:'sm'}, 'Nhỏ'),
+            h(Button, {size:'lg'}, 'Lớn'),
+            h(Button, {className:'h-12 rounded-card'}, 'Cao riêng'),
+            h(Button, {size:'none', className:'h-5'}, 'Không size'),
+            h(Input, {'aria-label':'Cao riêng input', className:'h-12 rounded-none'}),
+            h(Select, {'aria-label':'Cao riêng select', className:'h-12 rounded-popup', options}),
+            h('output', null, value),
+          );
+        }
+        createRoot(document.getElementById('material-harness')).render(h(Forms));
+      } else if (new URLSearchParams(location.search).has('controls')) {
+        const { CapsuleBar } = await import('/components/shared/ui/CapsuleBar.tsx');
+        const { TopBarActions } = await import('/components/shared/ui/TopBarActions.tsx');
+        const h = React.createElement;
+        function Controls() {
+          const [active, setActive] = React.useState('first');
+          const [count, setCount] = React.useState(0);
+          return h('div', { style: { padding: 16 } },
+            h(CapsuleBar, { ariaLabel: 'Phân hệ', items: [
+              { id: 'first', label: 'Siêu thị', icon: 'chartPie', active: active === 'first', onClick: () => setActive('first') },
+              { id: 'second', label: 'Nhân viên', icon: 'users', active: active === 'second', onClick: () => setActive('second') },
+              { id: 'disabled', label: 'Đang đồng bộ', icon: 'refresh', disabled: true, onClick: () => setCount(999) },
+            ] }),
+            h(TopBarActions, { portalTargetId: false, showSystemGroup: false, ariaLabel: 'Thao tác' },
+              h(TopBarActions.Group, null,
+                h(TopBarActions.Button, { label: 'Tăng', onClick: () => setCount(c => c + 1) }),
+                h(TopBarActions.Button, { label: 'Khoá', disabled: true, onClick: () => setCount(999) }),
+              ),
+            ),
+            h('output', { 'data-testid': 'count' }, String(count)),
+          );
+        }
+        createRoot(document.getElementById('material-harness')).render(h(Controls));
+      } else if (new URLSearchParams(location.search).has('aggregate')) {
+        const { mountHarness } = await import('./appleUiHarness.tsx');
+        mountHarness();
+      } else createRoot(document.getElementById('material-harness')).render(
+        React.createElement(ActionMenu, {
+          title: 'Thao tác',
+          'data-testid': 'menu-thu',
+          items: [
+            { id: 'share', label: 'Chia sẻ', icon: 'share', onSelect: () => {} },
+            { id: 'download', label: 'Tải về', icon: 'download', onSelect: () => {} },
+            { id: 'delete', label: 'Xoá', icon: 'delete', destructive: true, onSelect: () => {} },
+          ],
+        }),
+      );
+    </script>
+  </body>
+</html>

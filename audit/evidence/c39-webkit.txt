@@ -1,0 +1,11 @@
+[WebServer] (node:56301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/page-actions-registry.spec.ts:3:3 › PageActions latest callback and owner removal mobile (2.1s)
+  ✓  2 [webkit] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading mobile (2.2s)
+  ✓  3 [webkit] › tests/e2e/page-actions-registry.spec.ts:3:3 › PageActions latest callback and owner removal desktop (845ms)
+  ✓  4 [webkit] › tests/e2e/page-actions-registry.spec.ts:18:3 › PageActions overflow scope and loading desktop (1.2s)
+
+  4 passed (8.1s)

@@ -1,0 +1,16 @@
+features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx:25:import { Switch } from '../dashboard/DashboardWidgets';
+features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx:572:                                            <Switch
+features/bi-dashboard/components/dashboard/DashboardWidgets.tsx:9:    <SwitchChung checked={checked} onChange={() => onChange()} id={id} size="sm" />
+features/bi-dashboard/components/nhanvien/CompetitionTab.tsx:18:import { Switch } from '../dashboard/DashboardWidgets';
+features/bi-dashboard/components/nhanvien/CompetitionTab.tsx:822:                                                                <Switch checked={isSelected} onChange={() => setHighlightedEmployees(prev => { const newSet = new Set(prev); if (newSet.has(emp.originalName)) newSet.delete(emp.originalName); else newSet.add(emp.originalName); return newSet; })} />
+features/bi-dashboard/components/dashboard/IndustryView.tsx:7:import { Switch } from './DashboardWidgets';
+features/bi-dashboard/components/dashboard/IndustryView.tsx:317:                                            <Switch
+features/bi-dashboard/components/dashboard/IndustryView.tsx:372:                                                <Switch
+features/bi-dashboard/components/dashboard/IndustryView.tsx:477:                                    <Switch
+features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx:4:import { ProgressBar } from '../DashboardWidgets';
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:9:import { Switch } from './DashboardWidgets';
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:319:                                <Switch
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:359:                                <Switch
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:13:import { Switch } from './DashboardWidgets';
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:405:                                                <Switch
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:454:                                                <Switch

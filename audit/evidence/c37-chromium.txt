@@ -1,0 +1,16 @@
+[WebServer] (node:53145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/data-table-foundation.spec.ts:3:3 › DataTable native sort groups and loading/empty 390 (1.4s)
+TABLE_GEOMETRY {"viewport":390,"clientWidth":356,"scrollWidth":400,"tableWidth":400,"minWidth":"400px","firstCellWidth":200}
+(node:53158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › tests/e2e/data-table-foundation.spec.ts:24:3 › DataTable scroll cue sticky header and column 390 (333ms)
+  ✓  3 [chromium] › tests/e2e/data-table-foundation.spec.ts:3:3 › DataTable native sort groups and loading/empty 1366 (455ms)
+TABLE_GEOMETRY {"viewport":1366,"clientWidth":698,"scrollWidth":800,"tableWidth":800,"minWidth":"800px","firstCellWidth":200}
+  ✓  4 [chromium] › tests/e2e/data-table-foundation.spec.ts:24:3 › DataTable scroll cue sticky header and column 1366 (337ms)
+  ✓  5 [chromium] › tests/e2e/data-table-foundation.spec.ts:42:1 › fixed width and group spans recompute across lg breakpoint (317ms)
+
+  5 passed (4.8s)

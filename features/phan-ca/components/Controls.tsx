@@ -1,0 +1,185 @@
+import React from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { Button } from '../../../components/shared/ui/Button';
+import { Input } from '../../../components/shared/ui/Input';
+import { Select } from '../../../components/shared/ui/Select';
+
+interface ControlsProps {
+  monthYear: string;
+  setMonthYear: (value: string) => void;
+  startDay: number;
+  setStartDay: (value: number) => void;
+  duration: number;
+  setDuration: (value: number) => void;
+  onGenerate: () => void;
+  departments: string[];
+  departmentFilter: string;
+  setDepartmentFilter: (value: string) => void;
+  supermarkets: string[];
+  currentSupermarket: string;
+  setSupermarket: (value: string) => void;
+  onboardingStep: number;
+  hasStaff: boolean;
+  hasPatternsForCurrentDept: boolean;
+  onDateControlClick: () => void;
+}
+
+/** Nhãn ô nhập viết như câu 12px (GĐ7 — trước IN HOA 11px xám nhạt, mỗi nhãn một màu). */
+const NHAN = 'text-[12px] font-medium text-slate-500 mb-1';
+
+const Controls: React.FC<ControlsProps> = ({
+  monthYear,
+  setMonthYear,
+  startDay,
+  setStartDay,
+  duration,
+  setDuration,
+  onGenerate,
+  departments,
+  departmentFilter,
+  setDepartmentFilter,
+  supermarkets,
+  currentSupermarket,
+  setSupermarket,
+  onboardingStep,
+  hasStaff,
+  hasPatternsForCurrentDept,
+  onDateControlClick
+}) => {
+  const isDisabled = !hasStaff;
+  const isGenerateDisabled = !hasStaff || !hasPatternsForCurrentDept;
+
+  const controlHighlightClass = (step: number) => 
+    onboardingStep === step ? 'ring-2 ring-rose-500 animate-pulse z-10 relative' : '';
+  const tooltip = (step: number, title: string, content: string) => onboardingStep === step && (
+    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-52 bg-rose-600 text-white text-[11px] py-2 px-3 shadow-xl z-50 text-center font-medium">
+        <div className="font-bold mb-0.5">{title}</div>
+        {content}
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -mb-1 w-2.5 h-2.5 bg-rose-600 rotate-45"></div>
+    </div>
+  );
+
+  return (
+    <div className={`flex flex-col lg:flex-row lg:flex-wrap items-stretch lg:items-end gap-3 lg:gap-4 ${isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+      {/* Date group — compact horizontal row */}
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] lg:flex lg:flex-wrap items-end gap-3 relative ${controlHighlightClass(3)}`}
+        onClick={onDateControlClick}
+      >
+          {tooltip(3, 'Bước 3: Thời gian', 'Chọn Tháng/Năm, ngày bắt đầu và số ngày.')}
+
+          <div className="flex flex-col">
+            <label htmlFor="cfgMonth" className={NHAN}>
+              Tháng / năm
+            </label>
+            <Input
+              type="month"
+              id="cfgMonth"
+              className="h-9 w-full lg:w-44 text-sm"
+              value={monthYear}
+              onChange={(e) => setMonthYear(e.target.value)}
+              disabled={isDisabled}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="cfgStartDay" className={NHAN}>
+              Bắt đầu
+            </label>
+            <Input
+              type="number" inputMode="decimal"
+              id="cfgStartDay"
+              className="h-9 w-full lg:w-16 text-sm text-center"
+              value={startDay}
+              onChange={(e) => setStartDay(parseInt(e.target.value))}
+              min="1"
+              max="31"
+              disabled={isDisabled}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="cfgDuration" className={NHAN}>
+              Số ngày
+            </label>
+            <Input
+              type="number" inputMode="decimal"
+              id="cfgDuration"
+              className="h-9 w-full lg:w-16 text-sm text-center"
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value))}
+              min="1"
+              max="31"
+              disabled={isDisabled}
+            />
+          </div>
+      </div>
+
+      {/* Vertical separator */}
+      <div className="hidden lg:block w-px h-9 bg-slate-200 self-end"></div>
+
+      {/* Store & Department selectors */}
+      <div className="grid grid-cols-2 lg:flex lg:flex-wrap items-end gap-3">
+        <div className="flex flex-col min-w-0">
+          <label htmlFor="cfgSupermarket" className={NHAN}>
+            Siêu thị
+          </label>
+          <Select
+              id="cfgSupermarket"
+              className="h-9 w-full lg:w-44 text-sm font-semibold"
+              value={currentSupermarket}
+              onChange={(e) => setSupermarket(e.target.value)}
+              disabled={supermarkets.length <= 1 && isDisabled}
+          >
+              {supermarkets.length === 0 && <option value="">(Chưa có)</option>}
+              {supermarkets.map(sm => (
+                  <option key={sm} value={sm}>
+                      {sm}
+                  </option>
+              ))}
+          </Select>
+        </div>
+
+        <div className="flex flex-col min-w-0">
+            <label htmlFor="cfgDepartment" className={NHAN}>
+              Bộ phận
+            </label>
+            <Select
+                id="cfgDepartment"
+                className="h-9 w-full lg:w-48 text-sm"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                disabled={isDisabled}
+            >
+                {departments.length === 0 && <option>...</option>}
+                {departments.map(dep => (
+                    <option key={dep} value={dep}>
+                        {dep}
+                    </option>
+                ))}
+            </Select>
+        </div>
+      </div>
+
+      {/* Generate button */}
+      <div className="relative lg:ml-auto">
+        {tooltip(6, 'Bước 6: Hoàn tất!', 'Bấm vào đây để tạo lịch tự động!')}
+        <Button
+          variant="primary"
+          size="md"
+          icon="sparkles"
+          onClick={onGenerate}
+          className={`w-full lg:w-auto px-6 ${controlHighlightClass(6)}`}
+          disabled={isGenerateDisabled}
+          title={isGenerateDisabled ? "Vui lòng nhập danh sách nhân viên và tạo Ca Xoay trước." : "Tạo lịch làm việc mới"}
+        >
+          Tạo lịch
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const MemoizedControls = React.memo(Controls);
+MemoizedControls.displayName = 'Controls';
+export default MemoizedControls;

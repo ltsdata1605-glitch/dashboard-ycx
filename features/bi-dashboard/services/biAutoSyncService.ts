@@ -1,0 +1,777 @@
+/**
+ * Service quản lý cầu nối Tự động Cập nhật dữ liệu Realtime & Luỹ kế
+ * giữa Dashboard và Tampermonkey Userscript.
+ */
+import * as db from '../utils/db';
+import { configStore } from '../store/configStore';
+import { shortenSupermarketName, isSupermarketMatch } from '../utils/dashboardHelpers';
+import { detectUserscript } from '../utils/bonusBridge';
+
+export const getDetailedTimestamp = () => {
+    const now = new Date();
+    return now.toLocaleString('vi-VN');
+};
+
+export const EVT_BI_START_JOB = 'ycx-bi-automation:start-job';
+export const EVT_BI_PROGRESS = 'ycx-bi-automation:progress';
+export const EVT_BI_DONE = 'ycx-bi-automation:done';
+export const EVT_BI_ERROR = 'ycx-bi-automation:error';
+/** Nhờ userscript mở tab MWG bằng GM_openInTab (không bị chặn popup) — userscript ≥ 7.5 đáp lại OPEN_WORKER_OK. */
+export const EVT_BI_OPEN_WORKER = 'ycx-bi-automation:open-worker';
+export const EVT_BI_OPEN_WORKER_OK = 'ycx-bi-automation:open-worker-ok';
+
+export type BiSyncMode = 'realtime' | 'luyke';
+
+export interface BiSyncProgress {
+    jobId: string;
+    mode: BiSyncMode;
+    step: number; // 1: Doanh thu hợp nhất, 2: Ngành hàng BI, 3: Nhân viên, 4: Thi đua, 5: Hoàn tất
+    totalSteps: number;
+    stepName: string;
+    message: string;
+}
+
+export interface BiSyncResults {
+    summary?: string;     // Doanh thu hợp nhất
+    industry?: string;    // Siêu thị ngành hàng
+    employee?: string;    // Doanh thu nhân viên (Thực / mặc định)
+    employeeThuc?: string;// Doanh thu nhân viên (Thực)
+    employeeQd?: string;  // Doanh thu nhân viên (Quy đổi)
+    competition?: string; // Thi đua (Cụm & Siêu thị)
+    installment?: string; // Trả chậm (Luỹ kế)
+    industryByStore?: Record<string, string>; // Ngành hàng theo từng siêu thị
+    employeeByStore?: Record<string, string>; // Doanh thu nhân viên theo từng siêu thị
+    employeeThucByStore?: Record<string, string>; // Doanh thu thực nhân viên theo từng siêu thị
+    employeeQdByStore?: Record<string, string>;   // Doanh thu quy đổi nhân viên theo từng siêu thị
+    installmentByStore?: Record<string, string>; // Trả chậm theo nhân viên, từng siêu thị (Luỹ kế, userscript 7.9+)
+    competitionByStore?: Record<string, string>; // Thi đua theo nhân viên, từng siêu thị (Luỹ kế, userscript 7.10+)
+}
+
+export interface BiSyncJobDonePayload {
+    jobId: string;
+    mode: BiSyncMode;
+    results: BiSyncResults;
+}
+
+function makeJobId(): string {
+    return `bi-job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Tháng Luỹ kế mặc định (YYYYMM) khi chọn "Tháng hiện tại": tháng này; riêng NGÀY 1 thì lấy tháng TRƯỚC
+ * (chủ dự án 2026-10-01: ngày 1 chưa có số luỹ kế tháng mới → đổ dữ liệu tháng liền kề trước đó).
+ */
+export function thangLuyKeMacDinh(now: Date = new Date()): string {
+    const d = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (now.getDate() === 1) d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** "202609" → "09/2026" để hiển thị. */
+export function nhanThang(yyyymm: string): string {
+    return /^\d{6}$/.test(yyyymm) ? `${yyyymm.slice(4)}/${yyyymm.slice(0, 4)}` : yyyymm;
+}
+
+export function sendStartBiJob(jobId: string, mode: BiSyncMode, month?: string): void {
+    window.dispatchEvent(new CustomEvent(EVT_BI_START_JOB, {
+        detail: {
+            source: 'ycx-bi-automation',
+            type: 'start-job',
+            jobId,
+            mode,
+            month: month || null,
+            createdAt: Date.now(),
+        }
+    }));
+}
+
+export function onBiProgress(cb: (progress: BiSyncProgress) => void): () => void {
+    const handler = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        if (detail && detail.source === 'ycx-bi-automation' && detail.type === 'progress') {
+            cb(detail as BiSyncProgress);
+        }
+    };
+    const messageHandler = (e: MessageEvent) => {
+        const data = e.data;
+        if (data && data.source === 'ycx-bi-automation' && data.type === 'progress') {
+            cb(data as BiSyncProgress);
+        }
+    };
+    window.addEventListener(EVT_BI_PROGRESS, handler as EventListener);
+    window.addEventListener('message', messageHandler);
+    return () => {
+        window.removeEventListener(EVT_BI_PROGRESS, handler as EventListener);
+        window.removeEventListener('message', messageHandler);
+    };
+}
+
+export function onBiDone(cb: (payload: BiSyncJobDonePayload) => void): () => void {
+    const handler = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        if (detail && detail.source === 'ycx-bi-automation' && detail.type === 'done') {
+            cb(detail as BiSyncJobDonePayload);
+        }
+    };
+    const messageHandler = (e: MessageEvent) => {
+        const data = e.data;
+        if (data && data.source === 'ycx-bi-automation' && data.type === 'done') {
+            cb(data as BiSyncJobDonePayload);
+        }
+    };
+    window.addEventListener(EVT_BI_DONE, handler as EventListener);
+    window.addEventListener('message', messageHandler);
+    return () => {
+        window.removeEventListener(EVT_BI_DONE, handler as EventListener);
+        window.removeEventListener('message', messageHandler);
+    };
+}
+
+export function onBiError(cb: (payload: { jobId: string; message: string }) => void): () => void {
+    const handler = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        if (detail && detail.source === 'ycx-bi-automation' && detail.type === 'error') {
+            cb(detail);
+        }
+    };
+    const messageHandler = (e: MessageEvent) => {
+        const data = e.data;
+        if (data && data.source === 'ycx-bi-automation' && data.type === 'error') {
+            cb(data);
+        }
+    };
+    window.addEventListener(EVT_BI_ERROR, handler as EventListener);
+    window.addEventListener('message', messageHandler);
+    return () => {
+        window.removeEventListener(EVT_BI_ERROR, handler as EventListener);
+        window.removeEventListener('message', messageHandler);
+    };
+}
+
+export function isBiIndustryContentValid(content: string | undefined | null): boolean {
+    if (!content || typeof content !== 'string') return false;
+    const trimmed = content.trim();
+    if (trimmed.length < 30) return false;
+    const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
+    if (lines.length < 2) return false;
+    const dataRows = lines.filter(l => {
+        const firstCell = l.split('\t')[0].trim().toLowerCase();
+        return !firstCell.includes('ngành hàng') && firstCell !== 'tổng' && firstCell !== '—';
+    });
+    return dataRows.length > 0;
+}
+
+function isBiContentValid(content: string | undefined | null): boolean {
+    if (!content || typeof content !== 'string') return false;
+    const trimmed = content.trim();
+    if (trimmed.length < 30) return false;
+    const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
+    return lines.length >= 2;
+}
+
+/**
+ * Áp dụng kết quả thu thập tự động vào hệ thống (IndexedDB, configStore, last updates)
+ */
+export async function applyBiSyncResults(
+    mode: BiSyncMode,
+    results: BiSyncResults,
+    activeSupermarketName: string | null
+): Promise<{ successCount: number; errors: string[] }> {
+    const nowTs = getDetailedTimestamp();
+    const safeName = activeSupermarketName ? shortenSupermarketName(activeSupermarketName) : '';
+    let successCount = 0;
+    const errors: string[] = [];
+
+    // Helper lưu key vào configStore + db (RAM cache cập nhật ngay, db.set tự bắn event sau khi commit transaction)
+    const saveBiField = async (key: string, val: string, tsKey: string) => {
+        try {
+            configStore.setCache(key, val);
+            configStore.setCache(tsKey, nowTs);
+            configStore.setLoaded(key, true);
+            configStore.setLoaded(tsKey, true);
+            await db.set(key, val);
+            await db.set(tsKey, nowTs);
+            successCount++;
+        } catch (e: any) {
+            errors.push(`Lỗi lưu ${key}: ${e.message}`);
+        }
+    };
+
+    if (mode === 'realtime') {
+        // 1. Doanh thu hợp nhất Realtime
+        if (results.summary && isBiContentValid(results.summary)) {
+            await saveBiField('summary-realtime', results.summary, 'summary-realtime-ts');
+        }
+        // 2. Siêu thị ngành hàng Realtime: Lưu lần lượt cho từng siêu thị nếu có dữ liệu theo siêu thị
+        const savedSafeNames = new Set<string>();
+        if (results.industryByStore && Object.keys(results.industryByStore).length > 0) {
+            for (const [stKey, indText] of Object.entries(results.industryByStore)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !savedSafeNames.has(stSafeName.toLowerCase())) {
+                    if (!isBiIndustryContentValid(indText)) {
+                        console.warn(`[BI-Sync] Bỏ qua dữ liệu ngành hàng rỗng hoặc không hợp lệ cho siêu thị ${stSafeName}`);
+                        continue;
+                    }
+                    savedSafeNames.add(stSafeName.toLowerCase());
+                    const key = `config-${stSafeName}-industry-realtime`;
+                    await saveBiField(key, indText, `${key}-ts`);
+                    const keyUpper = `config-${stSafeName.toUpperCase()}-industry-realtime`;
+                    if (keyUpper !== key) {
+                        await saveBiField(keyUpper, indText, `${keyUpper}-ts`);
+                    }
+
+                    // Lưu bổ sung cho biến thể đã loại bỏ tiền tố ĐMX / DMX / Điện máy XANH
+                    const cleanName = stSafeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+                    if (cleanName && cleanName.toLowerCase() !== stSafeName.toLowerCase()) {
+                        savedSafeNames.add(cleanName.toLowerCase());
+                        const keyClean = `config-${cleanName}-industry-realtime`;
+                        await saveBiField(keyClean, indText, `${keyClean}-ts`);
+                        const keyCleanUpper = `config-${cleanName.toUpperCase()}-industry-realtime`;
+                        if (keyCleanUpper !== keyClean) {
+                            await saveBiField(keyCleanUpper, indText, `${keyCleanUpper}-ts`);
+                        }
+                    }
+                }
+            }
+        }
+        // Đảm bảo siêu thị đang xem (safeName) luôn có dữ liệu: nếu chưa được lưu, tìm trong industryByStore hoặc fallback từ results.industry
+        if (safeName) {
+            const cleanSafe = safeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+            const hasData = savedSafeNames.has(safeName.toLowerCase()) || 
+                            (cleanSafe ? savedSafeNames.has(cleanSafe.toLowerCase()) : false);
+            let indFallback: string | undefined;
+            if (!hasData && results.industryByStore) {
+                for (const [k, v] of Object.entries(results.industryByStore)) {
+                    if (isSupermarketMatch(k, safeName) || 
+                        k.toLowerCase().includes(safeName.toLowerCase()) || 
+                        safeName.toLowerCase().includes(k.toLowerCase()) ||
+                        (cleanSafe && (isSupermarketMatch(k, cleanSafe) || k.toLowerCase().includes(cleanSafe.toLowerCase()) || cleanSafe.toLowerCase().includes(k.toLowerCase())))) {
+                        if (isBiIndustryContentValid(v)) {
+                            indFallback = v;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!indFallback && results.industry && isBiIndustryContentValid(results.industry)) {
+                indFallback = results.industry;
+            }
+            if (indFallback) {
+                const key = `config-${safeName}-industry-realtime`;
+                await saveBiField(key, indFallback, `${key}-ts`);
+                const keyUpper = `config-${safeName.toUpperCase()}-industry-realtime`;
+                if (keyUpper !== key) await saveBiField(keyUpper, indFallback, `${keyUpper}-ts`);
+                if (cleanSafe && cleanSafe !== safeName) {
+                    const keyClean = `config-${cleanSafe}-industry-realtime`;
+                    await saveBiField(keyClean, indFallback, `${keyClean}-ts`);
+                    const keyCleanUpper = `config-${cleanSafe.toUpperCase()}-industry-realtime`;
+                    if (keyCleanUpper !== keyClean) await saveBiField(keyCleanUpper, indFallback, `${keyCleanUpper}-ts`);
+                }
+            }
+        }
+        // 3. Doanh thu nhân viên Realtime: Lưu song song Thực & Quy đổi
+        // 3a. Doanh thu Thực (config-*-employee-realtime)
+        const empThucMap = results.employeeThucByStore || results.employeeByStore;
+        if (empThucMap && Object.keys(empThucMap).length > 0) {
+            const savedSafeNames = new Set<string>();
+            for (const [stKey, empText] of Object.entries(empThucMap)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !savedSafeNames.has(stSafeName.toLowerCase())) {
+                    if (!isBiContentValid(empText)) {
+                        console.warn(`[BI-Sync] Bỏ qua dữ liệu nhân viên thực rỗng cho siêu thị ${stSafeName}`);
+                        continue;
+                    }
+                    savedSafeNames.add(stSafeName.toLowerCase());
+                    const key = `config-${stSafeName}-employee-realtime`;
+                    await saveBiField(key, empText, `${key}-ts`);
+                    const keyUpper = `config-${stSafeName.toUpperCase()}-employee-realtime`;
+                    if (keyUpper !== key) {
+                        await saveBiField(keyUpper, empText, `${keyUpper}-ts`);
+                    }
+
+                    // Lưu bổ sung cho biến thể loại bỏ tiền tố ĐMX / DMX / Điện máy XANH
+                    const cleanName = stSafeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+                    if (cleanName && cleanName.toLowerCase() !== stSafeName.toLowerCase()) {
+                        savedSafeNames.add(cleanName.toLowerCase());
+                        const keyClean = `config-${cleanName}-employee-realtime`;
+                        await saveBiField(keyClean, empText, `${keyClean}-ts`);
+                        const keyCleanUpper = `config-${cleanName.toUpperCase()}-employee-realtime`;
+                        if (keyCleanUpper !== keyClean) {
+                            await saveBiField(keyCleanUpper, empText, `${keyCleanUpper}-ts`);
+                        }
+                    }
+                }
+            }
+        } else if ((results.employeeThuc || results.employee) && safeName && isBiContentValid(results.employeeThuc || results.employee)) {
+            const empVal = (results.employeeThuc || results.employee)!;
+            const key = `config-${safeName}-employee-realtime`;
+            await saveBiField(key, empVal, `${key}-ts`);
+            const keyUpper = `config-${safeName.toUpperCase()}-employee-realtime`;
+            if (keyUpper !== key) await saveBiField(keyUpper, empVal, `${keyUpper}-ts`);
+            const cleanSafe = safeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+            if (cleanSafe && cleanSafe !== safeName) {
+                const keyClean = `config-${cleanSafe}-employee-realtime`;
+                await saveBiField(keyClean, empVal, `${keyClean}-ts`);
+                const keyCleanUpper = `config-${cleanSafe.toUpperCase()}-employee-realtime`;
+                if (keyCleanUpper !== keyClean) await saveBiField(keyCleanUpper, empVal, `${keyCleanUpper}-ts`);
+            }
+        }
+
+        // 3b. Doanh thu Quy đổi (config-*-employee-realtime-qd)
+        if (results.employeeQdByStore && Object.keys(results.employeeQdByStore).length > 0) {
+            const savedSafeNamesQd = new Set<string>();
+            for (const [stKey, empText] of Object.entries(results.employeeQdByStore)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !savedSafeNamesQd.has(stSafeName.toLowerCase())) {
+                    if (!isBiContentValid(empText)) {
+                        console.warn(`[BI-Sync] Bỏ qua dữ liệu nhân viên quy đổi rỗng cho siêu thị ${stSafeName}`);
+                        continue;
+                    }
+                    savedSafeNamesQd.add(stSafeName.toLowerCase());
+                    const key = `config-${stSafeName}-employee-realtime-qd`;
+                    await saveBiField(key, empText, `${key}-ts`);
+                    const keyUpper = `config-${stSafeName.toUpperCase()}-employee-realtime-qd`;
+                    if (keyUpper !== key) {
+                        await saveBiField(keyUpper, empText, `${keyUpper}-ts`);
+                    }
+
+                    const cleanName = stSafeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+                    if (cleanName && cleanName.toLowerCase() !== stSafeName.toLowerCase()) {
+                        savedSafeNamesQd.add(cleanName.toLowerCase());
+                        const keyClean = `config-${cleanName}-employee-realtime-qd`;
+                        await saveBiField(keyClean, empText, `${keyClean}-ts`);
+                        const keyCleanUpper = `config-${cleanName.toUpperCase()}-employee-realtime-qd`;
+                        if (keyCleanUpper !== keyClean) {
+                            await saveBiField(keyCleanUpper, empText, `${keyCleanUpper}-ts`);
+                        }
+                    }
+                }
+            }
+        } else if (results.employeeQd && safeName && isBiContentValid(results.employeeQd)) {
+            const key = `config-${safeName}-employee-realtime-qd`;
+            await saveBiField(key, results.employeeQd, `${key}-ts`);
+            const keyUpper = `config-${safeName.toUpperCase()}-employee-realtime-qd`;
+            if (keyUpper !== key) await saveBiField(keyUpper, results.employeeQd, `${keyUpper}-ts`);
+            const cleanSafe = safeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+            if (cleanSafe && cleanSafe !== safeName) {
+                const keyClean = `config-${cleanSafe}-employee-realtime-qd`;
+                await saveBiField(keyClean, results.employeeQd, `${keyClean}-ts`);
+                const keyCleanUpper = `config-${cleanSafe.toUpperCase()}-employee-realtime-qd`;
+                if (keyCleanUpper !== keyClean) await saveBiField(keyCleanUpper, results.employeeQd, `${keyCleanUpper}-ts`);
+            }
+        }
+        // 4. Thi đua Realtime
+        if (results.competition && isBiContentValid(results.competition)) {
+            await saveBiField('competition-realtime', results.competition, 'competition-realtime-ts');
+        }
+    } else {
+        // LUỸ KẾ
+        // Bản 7.7+ chạy Direct API → có industryByStore/employeeByStore: lưu theo TỪNG siêu thị như Realtime.
+        // Đường UI cũ (không có *ByStore) giữ cách lưu cũ theo siêu thị đang chọn.
+        const quaApi = Boolean(results.industryByStore || results.employeeByStore);
+        // 1. Doanh thu hợp nhất Luỹ kế
+        if (results.summary && isBiContentValid(results.summary)) {
+            await saveBiField('summary-luy-ke', results.summary, 'summary-luy-ke-ts');
+        }
+        // 2. Siêu thị ngành hàng Luỹ kế
+        const daLuuIndLk = new Set<string>();
+        if (results.industryByStore && Object.keys(results.industryByStore).length > 0) {
+            for (const [stKey, indText] of Object.entries(results.industryByStore)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !daLuuIndLk.has(stSafeName.toLowerCase())) {
+                    if (!isBiIndustryContentValid(indText)) {
+                        console.warn(`[BI-Sync] Bỏ qua dữ liệu ngành hàng luỹ kế rỗng hoặc không hợp lệ cho siêu thị ${stSafeName}`);
+                        continue;
+                    }
+                    daLuuIndLk.add(stSafeName.toLowerCase());
+                    const key = `config-${stSafeName}-industry-luyke`;
+                    await saveBiField(key, indText, `${key}-ts`);
+                    const keyUpper = `config-${stSafeName.toUpperCase()}-industry-luyke`;
+                    if (keyUpper !== key) {
+                        await saveBiField(keyUpper, indText, `${keyUpper}-ts`);
+                    }
+
+                    // Lưu bổ sung cho biến thể đã loại bỏ tiền tố ĐMX / DMX / Điện máy XANH
+                    const cleanName = stSafeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+                    if (cleanName && cleanName.toLowerCase() !== stSafeName.toLowerCase()) {
+                        daLuuIndLk.add(cleanName.toLowerCase());
+                        const keyClean = `config-${cleanName}-industry-luyke`;
+                        await saveBiField(keyClean, indText, `${keyClean}-ts`);
+                        const keyCleanUpper = `config-${cleanName.toUpperCase()}-industry-luyke`;
+                        if (keyCleanUpper !== keyClean) {
+                            await saveBiField(keyCleanUpper, indText, `${keyCleanUpper}-ts`);
+                        }
+                    }
+                }
+            }
+        }
+        // Đảm bảo siêu thị đang xem (safeName) luôn có dữ liệu ngành hàng luỹ kế
+        if (safeName) {
+            const cleanSafe = safeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+            const hasDataLk = daLuuIndLk.has(safeName.toLowerCase()) || 
+                              (cleanSafe ? daLuuIndLk.has(cleanSafe.toLowerCase()) : false);
+            let indFallbackLk: string | undefined;
+            if (!hasDataLk && results.industryByStore) {
+                for (const [k, v] of Object.entries(results.industryByStore)) {
+                    if (isSupermarketMatch(k, safeName) || 
+                        k.toLowerCase().includes(safeName.toLowerCase()) || 
+                        safeName.toLowerCase().includes(k.toLowerCase()) ||
+                        (cleanSafe && (isSupermarketMatch(k, cleanSafe) || k.toLowerCase().includes(cleanSafe.toLowerCase()) || cleanSafe.toLowerCase().includes(k.toLowerCase())))) {
+                        if (isBiIndustryContentValid(v)) {
+                            indFallbackLk = v;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!indFallbackLk && results.industry && isBiIndustryContentValid(results.industry)) {
+                indFallbackLk = results.industry;
+            }
+            if (indFallbackLk) {
+                const key = `config-${safeName}-industry-luyke`;
+                await saveBiField(key, indFallbackLk, `${key}-ts`);
+                const keyUpper = `config-${safeName.toUpperCase()}-industry-luyke`;
+                if (keyUpper !== key) await saveBiField(keyUpper, indFallbackLk, `${keyUpper}-ts`);
+                if (cleanSafe && cleanSafe !== safeName) {
+                    const keyClean = `config-${cleanSafe}-industry-luyke`;
+                    await saveBiField(keyClean, indFallbackLk, `${keyClean}-ts`);
+                    const keyCleanUpper = `config-${cleanSafe.toUpperCase()}-industry-luyke`;
+                    if (keyCleanUpper !== keyClean) await saveBiField(keyCleanUpper, indFallbackLk, `${keyCleanUpper}-ts`);
+                }
+            }
+        }
+        // 3. Doanh thu nhân viên Luỹ kế: Lưu song song Thực & Quy đổi
+        // 3a. Doanh thu Thực: lưu cả employee-luyke và danhsach
+        const lkThucMap = results.employeeThucByStore || results.employeeByStore;
+        if (lkThucMap && Object.keys(lkThucMap).length > 0) {
+            const daLuu = new Set<string>();
+            for (const [stKey, empText] of Object.entries(lkThucMap)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !daLuu.has(stSafeName.toLowerCase())) {
+                    if (!isBiContentValid(empText)) {
+                        console.warn(`[BI-Sync] Bỏ qua dữ liệu nhân viên luỹ kế thực rỗng cho siêu thị ${stSafeName}`);
+                        continue;
+                    }
+                    daLuu.add(stSafeName.toLowerCase());
+
+                    // employee-luyke
+                    const keyLk = `config-${stSafeName}-employee-luyke`;
+                    await saveBiField(keyLk, empText, `${keyLk}-ts`);
+                    const keyLkUpper = `config-${stSafeName.toUpperCase()}-employee-luyke`;
+                    if (keyLkUpper !== keyLk) await saveBiField(keyLkUpper, empText, `${keyLkUpper}-ts`);
+
+                    // danhsach (khóa chính ô LUỸ KẾ Thực)
+                    const keyDs = `config-${stSafeName}-danhsach`;
+                    await saveBiField(keyDs, empText, `${keyDs}-ts`);
+                    const keyDsUpper = `config-${stSafeName.toUpperCase()}-danhsach`;
+                    if (keyDsUpper !== keyDs) await saveBiField(keyDsUpper, empText, `${keyDsUpper}-ts`);
+
+                    // Biến thể không tiền tố ĐMX
+                    const cleanName = stSafeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+                    if (cleanName && cleanName.toLowerCase() !== stSafeName.toLowerCase()) {
+                        daLuu.add(cleanName.toLowerCase());
+                        const keyCleanLk = `config-${cleanName}-employee-luyke`;
+                        await saveBiField(keyCleanLk, empText, `${keyCleanLk}-ts`);
+                        const keyCleanLkUpper = `config-${cleanName.toUpperCase()}-employee-luyke`;
+                        if (keyCleanLkUpper !== keyCleanLk) await saveBiField(keyCleanLkUpper, empText, `${keyCleanLkUpper}-ts`);
+
+                        const keyCleanDs = `config-${cleanName}-danhsach`;
+                        await saveBiField(keyCleanDs, empText, `${keyCleanDs}-ts`);
+                        const keyCleanDsUpper = `config-${cleanName.toUpperCase()}-danhsach`;
+                        if (keyCleanDsUpper !== keyCleanDs) await saveBiField(keyCleanDsUpper, empText, `${keyCleanDsUpper}-ts`);
+                    }
+                }
+            }
+        } else if ((results.employeeThuc || results.employee) && safeName && isBiContentValid(results.employeeThuc || results.employee)) {
+            const empVal = (results.employeeThuc || results.employee)!;
+            const keyLk = `config-${safeName}-employee-luyke`;
+            await saveBiField(keyLk, empVal, `${keyLk}-ts`);
+            const keyLkUpper = `config-${safeName.toUpperCase()}-employee-luyke`;
+            if (keyLkUpper !== keyLk) await saveBiField(keyLkUpper, empVal, `${keyLkUpper}-ts`);
+
+            const keyDs = `config-${safeName}-danhsach`;
+            await saveBiField(keyDs, empVal, `${keyDs}-ts`);
+            const keyDsUpper = `config-${safeName.toUpperCase()}-danhsach`;
+            if (keyDsUpper !== keyDs) await saveBiField(keyDsUpper, empVal, `${keyDsUpper}-ts`);
+
+            const cleanSafe = safeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+            if (cleanSafe && cleanSafe !== safeName) {
+                const keyCleanLk = `config-${cleanSafe}-employee-luyke`;
+                await saveBiField(keyCleanLk, empVal, `${keyCleanLk}-ts`);
+                const keyCleanLkUpper = `config-${cleanSafe.toUpperCase()}-employee-luyke`;
+                if (keyCleanLkUpper !== keyCleanLk) await saveBiField(keyCleanLkUpper, empVal, `${keyCleanLkUpper}-ts`);
+
+                const keyCleanDs = `config-${cleanSafe}-danhsach`;
+                await saveBiField(keyCleanDs, empVal, `${keyCleanDs}-ts`);
+                const keyCleanDsUpper = `config-${cleanSafe.toUpperCase()}-danhsach`;
+                if (keyCleanDsUpper !== keyCleanDs) await saveBiField(keyCleanDsUpper, empVal, `${keyCleanDsUpper}-ts`);
+            }
+        }
+
+        // 3b. Doanh thu Quy đổi: lưu cả employee-luyke-qd và danhsach-qd
+        if (results.employeeQdByStore && Object.keys(results.employeeQdByStore).length > 0) {
+            const daLuuQd = new Set<string>();
+            for (const [stKey, empText] of Object.entries(results.employeeQdByStore)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !daLuuQd.has(stSafeName.toLowerCase())) {
+                    if (!isBiContentValid(empText)) {
+                        console.warn(`[BI-Sync] Bỏ qua dữ liệu nhân viên luỹ kế quy đổi rỗng cho siêu thị ${stSafeName}`);
+                        continue;
+                    }
+                    daLuuQd.add(stSafeName.toLowerCase());
+
+                    // employee-luyke-qd
+                    const keyLkQd = `config-${stSafeName}-employee-luyke-qd`;
+                    await saveBiField(keyLkQd, empText, `${keyLkQd}-ts`);
+                    const keyLkQdUpper = `config-${stSafeName.toUpperCase()}-employee-luyke-qd`;
+                    if (keyLkQdUpper !== keyLkQd) await saveBiField(keyLkQdUpper, empText, `${keyLkQdUpper}-ts`);
+
+                    // danhsach-qd (khóa chính ô LUỸ KẾ QĐ)
+                    const keyDsQd = `config-${stSafeName}-danhsach-qd`;
+                    await saveBiField(keyDsQd, empText, `${keyDsQd}-ts`);
+                    const keyDsQdUpper = `config-${stSafeName.toUpperCase()}-danhsach-qd`;
+                    if (keyDsQdUpper !== keyDsQd) await saveBiField(keyDsQdUpper, empText, `${keyDsQdUpper}-ts`);
+
+                    // Biến thể không tiền tố ĐMX
+                    const cleanName = stSafeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+                    if (cleanName && cleanName.toLowerCase() !== stSafeName.toLowerCase()) {
+                        daLuuQd.add(cleanName.toLowerCase());
+                        const keyCleanLkQd = `config-${cleanName}-employee-luyke-qd`;
+                        await saveBiField(keyCleanLkQd, empText, `${keyCleanLkQd}-ts`);
+                        const keyCleanLkQdUpper = `config-${cleanName.toUpperCase()}-employee-luyke-qd`;
+                        if (keyCleanLkQdUpper !== keyCleanLkQd) await saveBiField(keyCleanLkQdUpper, empText, `${keyCleanLkQdUpper}-ts`);
+
+                        const keyCleanDsQd = `config-${cleanName}-danhsach-qd`;
+                        await saveBiField(keyCleanDsQd, empText, `${keyCleanDsQd}-ts`);
+                        const keyCleanDsQdUpper = `config-${cleanName.toUpperCase()}-danhsach-qd`;
+                        if (keyCleanDsQdUpper !== keyCleanDsQd) await saveBiField(keyCleanDsQdUpper, empText, `${keyCleanDsQdUpper}-ts`);
+                    }
+                }
+            }
+        } else if (results.employeeQd && safeName && isBiContentValid(results.employeeQd)) {
+            const keyLkQd = `config-${safeName}-employee-luyke-qd`;
+            await saveBiField(keyLkQd, results.employeeQd, `${keyLkQd}-ts`);
+            const keyLkQdUpper = `config-${safeName.toUpperCase()}-employee-luyke-qd`;
+            if (keyLkQdUpper !== keyLkQd) await saveBiField(keyLkQdUpper, results.employeeQd, `${keyLkQdUpper}-ts`);
+
+            const keyDsQd = `config-${safeName}-danhsach-qd`;
+            await saveBiField(keyDsQd, results.employeeQd, `${keyDsQd}-ts`);
+            const keyDsQdUpper = `config-${safeName.toUpperCase()}-danhsach-qd`;
+            if (keyDsQdUpper !== keyDsQd) await saveBiField(keyDsQdUpper, results.employeeQd, `${keyDsQdUpper}-ts`);
+
+            const cleanSafe = safeName.replace(/^(ĐMX|DMX|Điện\s*máy\s*XANH)\s+/i, '').trim();
+            if (cleanSafe && cleanSafe !== safeName) {
+                const keyCleanLkQd = `config-${cleanSafe}-employee-luyke-qd`;
+                await saveBiField(keyCleanLkQd, results.employeeQd, `${keyCleanLkQd}-ts`);
+                const keyCleanLkQdUpper = `config-${cleanSafe.toUpperCase()}-employee-luyke-qd`;
+                if (keyCleanLkQdUpper !== keyCleanLkQd) await saveBiField(keyCleanLkQdUpper, results.employeeQd, `${keyCleanLkQdUpper}-ts`);
+
+                const keyCleanDsQd = `config-${cleanSafe}-danhsach-qd`;
+                await saveBiField(keyCleanDsQd, results.employeeQd, `${keyCleanDsQd}-ts`);
+                const keyCleanDsQdUpper = `config-${cleanSafe.toUpperCase()}-danhsach-qd`;
+                if (keyCleanDsQdUpper !== keyCleanDsQd) await saveBiField(keyCleanDsQdUpper, results.employeeQd, `${keyCleanDsQdUpper}-ts`);
+            }
+        }
+        // 4. Thi đua Luỹ kế (cụm). Đường UI cũ còn ghi thêm vào Thi đua siêu thị; dữ liệu API cụm là bảng theo chương
+        // trình (không có nhân viên) nên KHÔNG ghi vào ô Thi đua nhân viên — ô đó lấy từ competitionByStore (7.10+).
+        if (results.competition) {
+            await saveBiField('competition-luy-ke', results.competition, 'competition-luy-ke-ts');
+            if (!quaApi && safeName) {
+                const key = `config-${safeName}-thidua`;
+                await saveBiField(key, results.competition, `${key}-ts`);
+                const keyUpper = `config-${safeName.toUpperCase()}-thidua`;
+                if (keyUpper !== key) await saveBiField(keyUpper, results.competition, `${keyUpper}-ts`);
+            }
+        }
+        // 4b. Thi đua theo nhân viên từng siêu thị (7.10+) → ô "THI ĐUA" của Cấu hình siêu thị
+        if (results.competitionByStore && Object.keys(results.competitionByStore).length > 0) {
+            const daLuu = new Set<string>();
+            for (const [stKey, tdText] of Object.entries(results.competitionByStore)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !/^\d+$/.test(stSafeName) && !daLuu.has(stSafeName)) {
+                    daLuu.add(stSafeName);
+                    const key = `config-${stSafeName}-thidua`;
+                    await saveBiField(key, tdText, `${key}-ts`);
+                    const keyUpper = `config-${stSafeName.toUpperCase()}-thidua`;
+                    if (keyUpper !== key) {
+                        await saveBiField(keyUpper, tdText, `${keyUpper}-ts`);
+                    }
+                }
+            }
+        }
+        // 5. Trả chậm Luỹ kế theo nhân viên — 7.9+ có installmentByStore (từng siêu thị); đường UI cũ theo siêu thị đang chọn
+        if (results.installmentByStore && Object.keys(results.installmentByStore).length > 0) {
+            const daLuu = new Set<string>();
+            for (const [stKey, tcText] of Object.entries(results.installmentByStore)) {
+                const stSafeName = shortenSupermarketName(stKey);
+                if (stSafeName && !daLuu.has(stSafeName)) {
+                    daLuu.add(stSafeName);
+                    const key = `config-${stSafeName}-tragop`;
+                    await saveBiField(key, tcText, `${key}-ts`);
+                    const keyUpper = `config-${stSafeName.toUpperCase()}-tragop`;
+                    if (keyUpper !== key) {
+                        await saveBiField(keyUpper, tcText, `${keyUpper}-ts`);
+                    }
+                }
+            }
+        } else if (results.installment && safeName) {
+            const key = `config-${safeName}-tragop`;
+            await saveBiField(key, results.installment, `${key}-ts`);
+            const keyUpper = `config-${safeName.toUpperCase()}-tragop`;
+            if (keyUpper !== key) await saveBiField(keyUpper, results.installment, `${keyUpper}-ts`);
+        }
+    }
+
+    return { successCount, errors };
+}
+
+/** Đường dẫn userscript (cùng domain Dashboard) — mở link này thì Tampermonkey hiện trang Cài đặt / Cập nhật. */
+export const USERSCRIPT_URL = '/scripts/mwg-auto-thu-thap-diem-thuong.user.js';
+
+/** Bản tối thiểu khi KHÔNG đọc được bản mới nhất (mất mạng…): cần Bước 3 GROUPBY BICAT & DT quy đổi + Trả góp. */
+export const USERSCRIPT_MIN_VERSION = '6.3';
+
+/** So phiên bản theo SỐ từng đoạn ("7.10" > "7.9"; so chuỗi thì sai). Trả <0, 0, >0. */
+export function compareVersions(a: string, b: string): number {
+    const pa = String(a || '0').split('.').map(n => parseInt(n, 10) || 0);
+    const pb = String(b || '0').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const d = (pa[i] || 0) - (pb[i] || 0);
+        if (d !== 0) return d;
+    }
+    return 0;
+}
+
+/** Đọc dòng `// @version` của userscript đang phát trên Dashboard (bản mới nhất). null nếu không đọc được. */
+export async function fetchLatestUserscriptVersion(): Promise<string | null> {
+    try {
+        const res = await fetch(`${USERSCRIPT_URL}?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return null;
+        const m = (await res.text()).match(/^\/\/\s*@version\s+([\d.]+)/m);
+        return m ? m[1] : null;
+    } catch {
+        return null;
+    }
+}
+
+// ====== TỰ CHẠY TIẾP SAU KHI CẬP NHẬT USERSCRIPT ======
+// Tampermonkey KHÔNG nạp bản mới vào trang đang mở sẵn: trang Dashboard vẫn giữ bản cũ tới khi tải lại → bấm Cập nhật
+// xong quay lại vẫn báo "bản cũ" (chủ dự án gặp 2026-10-01). Nên: ghi nhớ lượt dở vào sessionStorage (sống qua tải lại,
+// riêng từng tab) → quay lại tab thì tự tải lại → BiWrapper mở mục Cập nhật → DataUpdater tự chạy tiếp.
+const PENDING_KEY = 'ycx-bi-auto-pending';
+const PENDING_TTL_MS = 10 * 60 * 1000;
+/** Tự tải lại tối đa ngần này lần cho một lượt dở (chưa cập nhật mà cứ quay lại tab thì không tải lại mãi). */
+export const PENDING_MAX_RELOADS = 2;
+
+export interface PendingAutoSync { mode: BiSyncMode; ts: number; reloads: number; month?: string }
+
+export function readPendingAutoSync(): PendingAutoSync | null {
+    try {
+        const raw = sessionStorage.getItem(PENDING_KEY);
+        if (!raw) return null;
+        const p = JSON.parse(raw) as PendingAutoSync;
+        if ((p.mode !== 'realtime' && p.mode !== 'luyke') || Date.now() - p.ts > PENDING_TTL_MS) return null;
+        return p;
+    } catch {
+        return null;
+    }
+}
+export function savePendingAutoSync(p: PendingAutoSync): void {
+    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(p)); } catch { /* chế độ riêng tư chặn storage */ }
+}
+export function clearPendingAutoSync(): void {
+    try { sessionStorage.removeItem(PENDING_KEY); } catch { /* bỏ qua */ }
+}
+/**
+ * Đọc VÀ xoá lượt dở trong cùng một bước (đồng bộ) — chỉ MỘT nơi được tự chạy tiếp. Trang Report BI có 2 nơi cùng
+ * nghe lượt dở (DataUpdater + nút nhanh ở Dashboard qua useBiAutoSync): cả 2 dùng readPendingAutoSync thì cả 2 tự chạy
+ * → mở 2+ tab MWG sau mỗi lần cập nhật userscript (chủ dự án gặp 2026-10-01). Lượt vẫn "cũ" thì nơi nhận sẽ ghi lại.
+ */
+export function claimPendingAutoSync(): PendingAutoSync | null {
+    const p = readPendingAutoSync();
+    // Chỉ chạy tiếp lượt dở được lưu ở LẦN TẢI TRANG TRƯỚC (vừa tải lại để nạp userscript mới). Lượt lưu trong chính
+    // lần tải này — vd bấm nút ở khung Auto Sync Pro chung lúc mục Cập nhật còn đang tải — thì không phải lượt dở: nhận
+    // nó là chạy lượt thứ 2 song song → 2 hộp thoại / 2 tab MWG (đo thật 2026-10-01 sau khi khung chuyển ra App).
+    const taiTrangLuc = typeof performance !== 'undefined' && performance.timeOrigin ? performance.timeOrigin : 0;
+    if (!p || (taiTrangLuc && p.ts >= taiTrangLuc)) return null;
+    clearPendingAutoSync();
+    return p;
+}
+
+/**
+ * Mở tab MWG. Lượt tự chạy tiếp (sau tải lại) KHÔNG có cú bấm của người dùng → window.open bị trình duyệt chặn, nên
+ * nhờ userscript (≥ 7.5) mở bằng GM_openInTab (không bị chặn); không có phản hồi thì mới thử window.open.
+ */
+async function moTabMwg(url: string, nhoUserscript: boolean): Promise<Window | 'userscript' | null> {
+    if (nhoUserscript) {
+        const ok = await new Promise<boolean>((resolve) => {
+            const onOk = () => { window.removeEventListener(EVT_BI_OPEN_WORKER_OK, onOk); resolve(true); };
+            window.addEventListener(EVT_BI_OPEN_WORKER_OK, onOk);
+            window.dispatchEvent(new CustomEvent(EVT_BI_OPEN_WORKER, { detail: { source: 'ycx-bi-automation', url } }));
+            setTimeout(() => { window.removeEventListener(EVT_BI_OPEN_WORKER_OK, onOk); resolve(false); }, 600);
+        });
+        if (ok) return 'userscript';
+    }
+    try {
+        return window.open(url, 'mwg_bi_worker');
+    } catch (e) {
+        console.warn('[BiAutoSync] Không mở được popup tab:', e);
+        return null;
+    }
+}
+
+/**
+ * Khởi chạy chuỗi tự động thu thập: Kiểm tra userscript, mở tab worker, bắn event.
+ * Userscript cũ hơn bản đang phát → TỰ MỞ trang cập nhật (Tampermonkey) và dừng, không chạy bằng bản cũ.
+ * `tuChayTiep`: lượt chạy lại tự động sau khi tải trang (không có cú bấm) — không mở lại trang cập nhật, chờ ping lâu hơn
+ * (userscript có thể chưa kịp nạp), mở tab MWG qua userscript.
+ */
+type StartResult = { jobId: string; workerWindow: Window | null; workerOpened: boolean };
+/** Chống mở trùng: lượt đang khởi chạy / vừa khởi chạy (≤ 8s) thì trả lại đúng lượt đó, KHÔNG mở thêm tab MWG.
+ *  Đặt trên globalThis (không phải biến module) — bundler từng tách module thành 2 bản (xem contexts/AuthContext.tsx). */
+const START_DEDUPE_MS = 8000;
+type StartLock = { key: string; ts: number; promise: Promise<StartResult> };
+export function startBiAutoSyncSession(mode: BiSyncMode, opts: { tuChayTiep?: boolean; month?: string; onJobId?: (jobId: string) => void } = {}): Promise<StartResult> {
+    const g = globalThis as unknown as { __ycxBiStartLock?: StartLock };
+    const key = `${mode}:${mode === 'luyke' ? (opts.month || '') : ''}`;
+    const cu = g.__ycxBiStartLock;
+    if (cu && cu.key === key && Date.now() - cu.ts < START_DEDUPE_MS) return cu.promise;
+    const promise = startBiAutoSyncSessionThat(mode, opts);
+    const lock: StartLock = { key, ts: Date.now(), promise };
+    g.__ycxBiStartLock = lock;
+    // Lỗi (vd bản cũ) thì bỏ khoá ngay để lần bấm sau kiểm lại từ đầu
+    promise.catch(() => { if (g.__ycxBiStartLock === lock) g.__ycxBiStartLock = undefined; });
+    return promise;
+}
+
+async function startBiAutoSyncSessionThat(mode: BiSyncMode, opts: { tuChayTiep?: boolean; month?: string; onJobId?: (jobId: string) => void }): Promise<StartResult> {
+    // Chạy song song để vẫn nằm trong thời hạn "người dùng vừa bấm" (trình duyệt mới cho mở tab mới)
+    const [isInstalled, latest] = await Promise.all([detectUserscript(opts.tuChayTiep ? 4000 : 800), fetchLatestUserscriptVersion()]);
+    if (!isInstalled.installed) {
+        throw new Error('USERSCRIPT_NOT_INSTALLED');
+    }
+
+    const ver = isInstalled.version || '0';
+    const canDat = latest || USERSCRIPT_MIN_VERSION;
+    if (compareVersions(ver, canDat) < 0) {
+        if (!opts.tuChayTiep) {
+            try { window.open(USERSCRIPT_URL, '_blank'); } catch { /* trình duyệt chặn → modal có nút mở tay */ }
+        }
+        throw new Error(`USERSCRIPT_OUTDATED:${ver}:${latest || ''}`);
+    }
+
+    const jobId = makeJobId();
+    // Luỹ kế: tháng chọn (YYYYMM); không truyền → tháng mặc định (ngày 1 thì tháng trước)
+    const month = mode === 'luyke' ? (opts.month && /^\d{6}$/.test(opts.month) ? opts.month : thangLuyKeMacDinh()) : undefined;
+    // Báo mã lượt cho nơi gọi TRƯỚC khi phát lệnh bắt đầu (2026-10-30): trước đây nơi gọi chỉ biết mã sau khi mở xong tab MWG —
+    // tín hiệu "xong" về trong khoảng đó bị bỏ qua (chưa khớp mã) → hộp thoại kẹt "đang chạy" (e2e bi-auto-sync-xong-dong-modal đỏ ~1/10).
+    opts.onJobId?.(jobId);
+    sendStartBiJob(jobId, mode, month);
+
+    // Mở tab worker kèm URL query + hash để userscript trên tab MWG đọc được ngay lập tức
+    const extra = month ? `&ycx_month=${month}` : '';
+    const targetUrl = `https://baocao.dienmayxanh.com/dashboard/revenue-consolidated?ycx_mode=${mode}&job_id=${jobId}${extra}#ycx_mode=${mode}&job_id=${jobId}${extra}`;
+    const tab = await moTabMwg(targetUrl, Boolean(opts.tuChayTiep));
+    const workerWindow = tab && tab !== 'userscript' ? tab : null;
+    return { jobId, workerWindow, workerOpened: Boolean(tab) };
+}

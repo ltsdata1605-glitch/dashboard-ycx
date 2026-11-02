@@ -1,0 +1,474 @@
+features/tax-calculator/components/TaxHistorySidebar.tsx:183
+                    <Tabs
+                        variant="chips"
+                        size="sm"
+                        activeId={selectedMonthFilter}
+                        onChange={setSelectedMonthFilter}
+                        items={[
+                            { id: 'all', label: `Tất cả (${filteredRecords.length})` },
+                            ...monthGroups.map((group) => ({ id: group.key, label: `${group.label} (${group.records.length})` })),
+                        ]}
+                    />
+                </div>
+            )}
+
+            {/* Danh sách bản ghi */}
+            <div className="overflow-y-auto p-2.5 sm:p-3 space-y-2 flex-1 divide-y divide-transparent">
+                {records.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400 text-xs px-2">
+
+components/kpis/modals/KpiCardConfigModal.tsx:259
+                <Tabs
+                    variant="segment"
+                    fullWidth
+                    activeId={editingCard.type || 'metric'}
+                    onChange={(id) => {
+                        const tab = id as 'metric' | 'data' | 'calculated';
+                        setActiveTab(tab);
+                        updateEditingCard({ type: tab });
+                    }}
+                    items={[
+                        { id: 'metric', label: 'Chỉ số gốc' },
+                        { id: 'data', label: 'Tạo dữ liệu' },
+                        { id: 'calculated', label: 'Công thức' },
+                    ]}
+                />
+            </div>
+
+
+features/tax-calculator/components/TaxInputPanel.tsx:887
+            <Tabs
+              variant="chips"
+              size="sm"
+              activeId={bonusFilter}
+              onChange={(id) => setBonusFilter(id as typeof bonusFilter)}
+              items={[
+                { id: 'hot', label: `Nóng (${hotBonusItems.length})`, icon: 'flame' },
+                ...(mainBonusItems.length > 0 ? [{ id: 'main', label: `Chính (${mainBonusItems.length})`, icon: 'briefcase' as const }] : []),
+                { id: 'all', label: `Tất cả (${allBonusItems.length})` },
+              ]}
+            />
+          )}
+
+          {/* DANH SÁCH CHECKBOX CÁC KHOẢN THƯỞNG */}
+          {visibleBonusItems.length > 0 ? (
+            <div className="space-y-1 max-h-64 overflow-y-auto pr-0.5">
+              {visibleBonusItems.map((item) => {
+
+components/charts/TrendChart.tsx:488
+                      <Tabs
+                          variant="segment"
+                          size="sm"
+                          activeId={trendState.view}
+                          onChange={(id) => setTrendState(prev => ({ ...prev, view: id as typeof prev.view }))}
+                          items={(['shift', 'daily', 'weekly', 'monthly'] as const).map(v => ({ id: v, label: NHAN_KY[v] }))}
+                      />
+                  </div>
+              </>
+          )}
+
+          <Button
+              variant="unstyled" size="none"
+              onClick={() => setDisplayMode(prev => prev === 'chart' ? 'calendar' : 'chart')}
+              className={`ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control transition-colors ${
+                  displayMode === 'calendar'
+                      ? 'text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 font-bold'
+
+features/khai-thac/components/DashboardTab.tsx:73
+                <Tabs items={RANGE_ITEMS} activeId={range} onChange={id => onRangeChange(id as DashboardRange)} variant="segment" size="sm" />
+                <Button variant="secondary" size="sm" className="h-8" leftIcon={<AppIcon name="share" size="sm" />}
+                    onClick={() => shareElementAsImage(captureRef.current, `bieu-do-${new Date().toISOString().slice(0, 10)}.png`, 'Báo cáo doanh số cá nhân')}>
+                    Xuất ảnh
+                </Button>
+            </div>
+
+            <div ref={captureRef} className="space-y-3 bg-white lg:bg-transparent">
+                <div className="flex items-baseline justify-between border-b border-slate-200 pb-1">
+                    <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-[family-name:var(--console-font-label)]">Doanh số cá nhân · {RANGE_LABEL[range]}</span>
+                        {staffName && <span className="ml-2 text-[12px] font-semibold text-sky-700">{staffName}</span>}
+                    </div>
+                    <span className="text-[12px] text-slate-400 tabular-nums">{new Date().toLocaleDateString('vi-VN')} · {s.orders} đơn</span>
+                </div>
+
+                {filtered.length === 0 ? (
+
+components/views/UserManagementView.tsx:828
+                    <Tabs
+                        variant="segment"
+                        size="sm"
+                        fullWidth={laDienThoai}
+                        activeId={isPermissionsMode ? 'phan-quyen' : listMode}
+                        onChange={id => (id === 'phan-quyen' ? setListMode(lastPermissionTab) : setListMode(id as 'config' | 'approval_settings'))}
+                        items={[
+                            { id: 'phan-quyen', label: 'Phân quyền' },
+                            { id: 'config', label: laDienThoai ? 'Ngành hàng' : 'Khai báo ngành hàng' },
+                            { id: 'approval_settings', label: laDienThoai ? 'Duyệt' : 'Cài đặt duyệt' },
+                        ]}
+                    />
+
+                    {/* Bộ lọc trạng thái + làm mới, rồi sắp xếp + tìm kiếm (chỉ ở nhánh Phân quyền) */}
+                    {isPermissionsMode && (
+                        <div className="pt-2 border-t border-slate-100 space-y-2">
+                            <div className="flex items-center gap-2">
+
+components/views/UserManagementView.tsx:845
+                                <Tabs
+                                    variant="segment"
+                                    size="sm"
+                                    fullWidth
+                                    className="flex-1 min-w-0"
+                                    activeId={listMode}
+                                    onChange={id => { const m = id as 'pending' | 'active' | 'expired'; setListMode(m); setLastPermissionTab(m); }}
+                                    items={[
+                                        { id: 'pending', label: 'Chờ duyệt', badge: tabCounts.pending },
+                                        { id: 'active', label: 'Hoạt động', badge: tabCounts.active },
+                                        { id: 'expired', label: 'Hết hạn', badge: tabCounts.expired },
+                                    ]}
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => fetchRequests(true)}
+
+features/tax-calculator/components/TaxHistoryModal.tsx:158
+                        <Tabs
+                            variant="chips"
+                            size="sm"
+                            activeId={selectedMonthFilter}
+                            onChange={setSelectedMonthFilter}
+                            items={[
+                                { id: 'all', label: `Tất cả (${records.length})` },
+                                ...monthGroups.map((group) => ({ id: group.key, label: `${group.label} (${group.records.length})` })),
+                            ]}
+                        />
+                    </div>
+                )}
+
+                {/* Thanh công cụ Xuất Excel & Google Sheets cho thủ quỹ */}
+                {records.length > 0 && (
+                    <div className="px-3.5 py-2 bg-gradient-to-r from-emerald-50 to-emerald-50 dark:from-emerald-950/40 dark:to-emerald-950/40 border-b border-emerald-100 dark:border-emerald-800/60 flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-900 dark:text-emerald-200 font-semibold">
+
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:184
+            <Tabs
+                items={tabItems}
+                activeId={activeSubTab}
+                onChange={(id) => setActiveSubTab(id as 'data' | 'queue' | 'history')}
+                variant="underline"
+                size="sm"
+                fullWidth
+                className="mb-4 shrink-0"
+            />
+
+            {/* Tab Content (Scrollable Area) */}
+            <div className={`flex-1 pr-1 -mr-1 scrollbar-thin ${activeSubTab === 'queue' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto space-y-2'}`}>
+                {activeSubTab === 'data' && (
+                    <div className="space-y-2.5 animate-in fade-in duration-200 pb-2">
+                        {stickerType === 'draw' ? (
+                            /* Cấu hình phiếu rút thăm chuyên nghiệp */
+                            <div className="p-4 bg-rose-50 dark:bg-rose-900/10 rounded-popup border border-rose-100 dark:border-rose-800/30 space-y-4">
+
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:260
+                                    <Tabs
+                                        variant="segment"
+                                        size="sm"
+                                        fullWidth
+                                        activeId={bgImage}
+                                        onChange={setBgImage}
+                                        items={[
+                                            { id: '/frame/bg_phieu.png', label: 'ĐMX' },
+                                            { id: '/frame/bg_phieutgd.png', label: 'TGĐ' },
+                                        ]}
+                                    />
+                                </div>
+
+                                <div className="bg-white/80 dark:bg-slate-900/40 p-2.5 rounded-control border border-slate-100 dark:border-slate-800/40 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    <span className="font-bold text-sky-600 dark:text-sky-400">Gợi ý in:</span> {localTotalTickets} phiếu rút thăm sẽ được in trên <span className="font-bold text-slate-800 dark:text-white">{Math.ceil(localTotalTickets / 4)} trang A4</span> (mỗi trang 4 phiếu). Các số thứ tự sẽ tự động điền từ <span className="font-bold text-slate-800 dark:text-white">{localStartNumber}</span> đến <span className="font-bold text-slate-800 dark:text-white">{localStartNumber + localTotalTickets - 1}</span>.
+                                </div>
+                            </div>
+
+features/line-bot/LineBotView.tsx:306
+                <Tabs
+                    variant="segment"
+                    size="sm"
+                    activeId={activeSubTab}
+                    onChange={(id) => setActiveSubTab(id as LineBotTab)}
+                    items={tabs}
+                    className="w-full"
+                />
+
+                {/* Tab Contents */}
+                <div className="min-h-[400px]">
+                    {activeSubTab === 'coupons' && (
+                        <CouponManagerTab
+                            coupons={couponHook.coupons}
+                            filteredCoupons={couponHook.filteredCoupons}
+                            isLoading={couponHook.isLoading}
+                            searchQuery={couponHook.searchQuery}
+
+features/khai-thac/KhaiThacView.tsx:281
+                <Tabs items={tabItems} activeId={tab} onChange={id => setTab(id as SubTab)} variant="underline" size="sm" />
+                <div className="flex items-center gap-1.5">
+                    <AppIcon name="user" size="sm" className="text-slate-400" />
+                    {editingName ? (
+                        <>
+                            <Input autoFocus placeholder="Mã - Tên (VD: 21707 - Sơn)" value={nameInput} onChange={e => setNameInput(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') commitName(); }} fullWidth={false} aria-label="Tên nhân viên"
+                                className="h-8 w-56 text-[13px]" data-testid="staff-name-input" />
+                            <Button variant="primary" size="icon" className="h-8 w-8 rounded" onClick={commitName} aria-label="Lưu tên"><AppIcon name="check" size="sm" /></Button>
+                        </>
+                    ) : (
+                        <Button variant="secondary" size="sm" className="h-8 gap-1.5" onClick={() => { setNameInput(draft.staffName); setEditingName(true); }} title="Đổi tên nhân viên" data-testid="staff-name">
+                            <span className="font-semibold text-slate-800">{draft.staffName || 'Chưa có tên'}</span>
+                            <AppIcon name="edit" size="xs" className="text-slate-400" />
+                        </Button>
+                    )}
+                </div>
+
+features/sticker-event/stickerprinter/StickerModeToolbar.tsx:55
+                <Tabs
+                    variant="segment"
+                    size="sm"
+                    fullWidth
+                    activeId={activeId}
+                    onChange={id => chon[id]?.()}
+                    items={[
+                        { id: 'gia_soc', label: 'Giá sốc' },
+                        { id: 'gio_vang', label: 'Giờ vàng' },
+                        { id: 'draw', label: 'Phiếu' },
+                        { id: 'event', label: 'Sticker' },
+                    ]}
+                />
+                {stickerMode === 'sticker' && (
+                    <div className="flex items-center justify-between gap-3 pl-1">
+                        {/* Ô đang chọn trên bản xem trước. Nhãn Phiếu đã có sẵn "Cỡ chữ …", nhãn tem thì không → bỏ tiền tố rồi
+                            ghép một lần, tránh "Cỡ chữ Cỡ chữ Thông tin trái". */}
+
+components/shared/ui/Tabs.tsx:33
+export const Tabs = React.memo<TabsProps>(({
+  items,
+  activeId,
+  onChange,
+  variant = 'underline',
+  size = 'md',
+  fullWidth = false,
+  className,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Mục đang chọn luôn nằm giữa dải khi dải cuộn ngang (điện thoại) — chỉ cuộn ngang, trang không nhảy.
+  useCenterActiveInStrip(containerRef, activeId);
+
+  const handleClick = useCallback((id: string) => {
+    onChange(id);
+  }, [onChange]);
+
+
+components/filters/FilterSection.tsx:317
+                        <Tabs
+                            variant="segment"
+                            fullWidth
+                            className="[&>button]:px-2"
+                            activeId={localFilters.dateRange || ''}
+                            onChange={handleDateRangeClick}
+                            items={[
+                                { id: 'today', label: 'Hôm nay' },
+                                { id: 'yesterday', label: 'Hôm qua' },
+                                { id: 'week', label: 'Tuần' },
+                                { id: 'month', label: 'Tháng' },
+                                { id: 'all', label: 'Tất cả' },
+                            ]}
+                        />
+                        <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
+                            <div>
+                                <NhanO htmlFor="loc-tu-ngay">Từ ngày</NhanO>
+
+features/line-bot/components/CouponManagerTab.tsx:523
+                    <Tabs
+                        variant="segment"
+                        size="sm"
+                        activeId={statusFilter}
+                        onChange={(id) => setStatusFilter(id as typeof statusFilter)}
+                        items={[
+                            { id: 'ALL', label: 'Tất cả', badge: stockSummary.total },
+                            { id: 'UNUSED', label: 'Chưa dùng', badge: stockSummary.unused },
+                            { id: 'SENT', label: 'Đã phát', badge: stockSummary.sent },
+                            { id: 'REVOKED', label: 'Thu hồi', badge: stockSummary.revoked },
+                        ]}
+                        className="min-w-0 max-w-full lg:shrink-0 lg:max-w-none"
+                    />
+
+                    {availableTypes.length > 0 && (
+                        <Select
+                            dense
+
+features/bi-dashboard/components/NhanVien.tsx:524
+                        <Tabs
+                            items={NAV_TABS.map(({ tab, label }) => ({ id: tab, label }))}
+                            activeId={activeTab}
+                            onChange={(id) => setActiveTab(id as Tab)}
+                            variant="underline"
+                        />
+                    </div>
+
+                {visitedTabs.has('revenue') && (
+                    <div className={activeTab === 'revenue' ? 'block' : 'hidden'}>
+                        <RevenueView rows={revenueRows} realtimeRows={realtimeRevenueRows} supermarketName={activeSupermarkets.length === 1 ? activeSupermarkets[0] : 'Tổng hợp'} activeSupermarkets={activeSupermarkets} departmentNames={effectiveActiveDepartments} highlightedEmployees={highlightedEmployees} setHighlightedEmployees={setHighlightedEmployees} supermarketTarget={totalAggregatedTarget} departmentWeights={aggregatedWeights} deptEmployeeCounts={deptEmployeeCounts} employeeInstallmentMap={employeeInstallmentMap} isActive={isActive && activeTab === 'revenue'} bonusData={aggregatedData.bonusData} competitionData={competitionData} employeeCompetitionTargets={employeeCompetitionTargets} />
+                    </div>
+                )}
+                {visitedTabs.has('installment') && (
+                    <div className={activeTab === 'installment' ? 'block' : 'hidden'}>
+                        <InstallmentTab rows={installmentRows} supermarketName={activeSupermarkets.length === 1 ? activeSupermarkets[0] : 'Tổng hợp'} activeSupermarkets={activeSupermarkets} activeDepartments={effectiveActiveDepartments} highlightedEmployees={highlightedEmployees} setHighlightedEmployees={setHighlightedEmployees} isActive={isActive && activeTab === 'installment'} />
+                    </div>
+
+features/sticker-event/Login.tsx:414
+              <Tabs
+                  variant="segment"
+                  size="sm"
+                  fullWidth
+                  activeId={role}
+                  onChange={(id) => setRole(id as 'staff' | 'admin')}
+                  items={[
+                      { id: 'staff', label: 'Nhân viên' },
+                      { id: 'admin', label: 'Admin (Quản lý)' },
+                  ]}
+              />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tên đăng nhập (User)</label>
+            <Input
+              type="text"
+
+features/sticker-event/LayoutSelectionModal.tsx:61
+                    <Tabs
+                        variant="segment"
+                        fullWidth
+                        activeId={stickerStyle}
+                        onChange={(id) => onStickerStyleChange(id as 'default' | 'modern')}
+                        items={[
+                            { id: 'default', label: 'Kiểu có sẵn' },
+                            { id: 'modern', label: 'Kiểu hiện đại' },
+                        ]}
+                    />
+                </div>
+
+                <div className="space-y-3 pt-2">
+                    <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">2. Chọn Bố Cục Trang In</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {options.map(option => (
+                            <LayoutOptionButton
+
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:103
+                    <Tabs
+                        variant="chips"
+                        size="sm"
+                        activeId={activeMainTab}
+                        onChange={(id) => setActiveMainTab(id as MainTab)}
+                        items={[{ id: 'realtime', label: 'Realtime' }, { id: 'cumulative', label: 'Luỹ kế' }]}
+                        className="shrink-0"
+                    />
+                    {/* Pill chọn siêu thị: con nhộng bo tròn đồng bộ với các chip tabs */}
+                    <div className="flex flex-row items-center w-auto rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 h-7 sm:h-7.5">
+                        <MultiSelectDropdown
+                            triggerClassName="ycx-hit rounded-full whitespace-nowrap min-h-0 h-7 sm:h-7.5 px-2.5 sm:px-3 py-0 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                            icon={<AppIcon name="store" size="sm" className="text-sky-500 scale-90" />}
+                            triggerLabel={activeSupermarket === 'Tổng' ? 'CỤM' : shortenSupermarketName(activeSupermarket)}
+                            count={activeSupermarket === 'Tổng' ? supermarkets.length : 1}
+                            allLabel="Chọn tất cả"
+                            allChecked={activeSupermarket === 'Tổng'}
+
+features/bi-dashboard/components/dashboard/DashboardHeader.tsx:136
+                    <Tabs
+                        items={SUB_TABS.map(({ tab, label }) => ({ id: tab, label }))}
+                        activeId={activeSubTab}
+                        onChange={(id) => setActiveSubTab(id as SubTab)}
+                        variant="underline"
+                    />
+                </div>
+
+                {/* Content Title + Inline Actions + Quote + TimeProgressBar */}
+                <div className="px-3 sm:px-5 py-2.5 sm:py-4">
+                    {/* flex-wrap: trên iPhone cụm 5–6 nút icon (mỗi nút 44px) không còn chỗ chung hàng
+                        với tiêu đề → tự xuống hàng riêng, dạt phải, thay vì ép tiêu đề gãy vụn. */}
+                    <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+                        <div className="min-w-0">
+                            <h2 className="js-report-title text-base sm:text-[25px] font-normal uppercase text-slate-800 dark:text-white leading-normal py-0.5">
+                                {contentTitle}
+                            </h2>
+
+features/check-thuong/components/CheckThuongFilterBar.tsx:94
+                        <Tabs
+                            variant="segment"
+                            size="sm"
+                            activeId={String(exportLimit)}
+                            onChange={(id) => onExportLimitChange(Number(id))}
+                            items={[{ id: '25', label: '25' }, { id: '50', label: '50' }]}
+                        />
+                    </div>
+
+                    {/* NÚT XUẤT ẢNH */}
+                    <Button
+                        variant="unstyled"
+                        size="none"
+                        onClick={onExportImage}
+                        disabled={isExporting}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold text-xs rounded-control shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                        title={`Xuất ảnh Top ${exportLimit} siêu thị`}
+
+features/product-config/components/ProductConfigManagerTab.tsx:681
+                <Tabs
+                    variant="segment"
+                    size="sm"
+                    fullWidth={laDienThoai}
+                    activeId={configType}
+                    onChange={(id) => setConfigType(id as typeof configType)}
+                    items={[
+                        { id: 'category', label: laDienThoai ? 'Ngành hàng' : 'Khai báo ngành hàng', icon: 'table' },
+                        { id: 'productCode', label: laDienThoai ? 'Mã SP' : 'Cấu hình theo Mã sản phẩm', icon: 'template' },
+                        { id: 'htx', label: laDienThoai ? 'HT xuất' : 'Hình thức xuất', icon: 'viewList' },
+                        { id: 'template', label: laDienThoai ? 'File mẫu' : 'Tải file mẫu', icon: 'download' },
+                    ]}
+                />
+
+                {/* Cụm 3 nút chức năng gom gọn: Tải file Excel, Xuất Excel, Lưu (Ẩn khi ở tab Tải file mẫu) */}
+                {configType !== 'template' && (
+                    <div className="flex items-center gap-1.5 self-end sm:self-center">
+
+features/check-thuong/components/CheckThuongStatusSummary.tsx:86
+                <Tabs
+                    variant="chips"
+                    size="sm"
+                    className="py-1"
+                    activeId={activeFilter}
+                    onChange={(id) => onSelectFilter(id !== 'all' && id === activeFilter ? 'all' : id)}
+                    items={[
+                        { id: 'all', label: `Tất cả (${totalCount})` },
+                        ...groups.map(group => ({ id: group.key, label: group.shortTitle, badge: group.data.length })),
+                    ]}
+                />
+
+                {/* View Mode & Export Tools */}
+                <div className="flex items-center gap-1.5 shrink-0 no-print hide-on-export">
+                    <Button
+                        variant="tinted"
+                        size="none"
+
+features/bi-dashboard/components/SupermarketConfig.tsx:1226
+                <Tabs
+                        items={[
+                            { id: 'data', label: 'Dữ liệu' },
+                            { id: 'revenueTarget', label: 'Target Doanh thu' },
+                            { id: 'competitionTarget', label: 'Target Thi đua' }
+                        ]}
+                        activeId={activeTab}
+                        onChange={(id) => setActiveTab(id as ConfigTab)}
+                        variant="underline"
+                        className="border-b-0 shrink-0 max-w-full overflow-x-auto scrollbar-hide"
+                    />
+                    <div className="shrink-0 flex items-center pr-1 pb-1 ml-auto">
+                        <a
+                            ref={bookmarkletRef}
+                            href={AUTO_CLICK_BOOKMARKLET_CODE}
+                            draggable
+                            className="h-8 group relative inline-flex items-center gap-1.5 px-3 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-medium text-xs rounded-control shadow-xs shadow-sky-600/20 hover:shadow-sm hover:shadow-sky-600/30 border border-sky-500/40 transition-all duration-150 cursor-grab active:cursor-grabbing hover:scale-[1.02] active:scale-[0.98] shrink-0"

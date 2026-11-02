@@ -1,0 +1,5 @@
+{
+  "components/shared/ui/Button.tsx": "eb340b6f097c1e2a9d00aa4c5e5733b9ce9eafc731b169026427df5b6e8f8656",
+  "components/shared/ui/Select.tsx": "d6f1e0f6afdde41d9f66292b0f6310413489ce7a42978ea27ec5141e062e8b64",
+  "tests/e2e/helpers/materialHarness.html": "e177a22c319718c79789b5f39d09c13706f08a62d09fb8d4b869eab5af8b2e33"
+}

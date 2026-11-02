@@ -1,0 +1,48 @@
+[WebServer] (node:2818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-form-states.spec.ts:53:1 › loading button exposes busy state independently of form validation (11.6s)
+
+
+  1) [chromium] › tests/e2e/shared-form-states.spec.ts:53:1 › loading button exposes busy state independently of form validation 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('button', { name: 'Lưu', exact: true })
+    Expected: "true"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Lưu', exact: true }) with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Lưu', exact: true })
+        24 × locator resolved to <button disabled data-ui="shared" class="inline-flex items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-9 max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control gap-1.5">…</button>
+           - unexpected value "null"
+
+
+      56 |     await save.click();
+      57 |     await expect(save).toBeDisabled();
+    > 58 |     await expect(save).toHaveAttribute('aria-busy', 'true');
+         |                        ^
+      59 | });
+      60 |
+        at /Users/ltson/dashboardycx/tests/e2e/shared-form-states.spec.ts:58:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c9-busy-before/shared-form-states-loading-1510c-endently-of-form-validation-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c9-busy-before/shared-form-states-loading-1510c-endently-of-form-validation-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c9-busy-before/shared-form-states-loading-1510c-endently-of-form-validation-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c9-busy-before/shared-form-states-loading-1510c-endently-of-form-validation-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/shared-form-states.spec.ts:53:1 › loading button exposes busy state independently of form validation 

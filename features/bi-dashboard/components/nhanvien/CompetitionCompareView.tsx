@@ -1,0 +1,604 @@
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { AppIcon } from '../../../../components/shared/ui/icon/AppIcon';
+import { useNgayDuLieu } from '../../hooks/useNgayDuLieu';
+import { startExportJob } from '../../../../components/shared/export';
+import { Employee, Criterion, CompetitionHeader, RevenueRow, InstallmentRow, BonusMetrics } from '../../types/nhanVienTypes';
+import { shortenName, isSameEmployee } from '../../utils/nhanVienHelpers';
+import { getCartoonAvatar } from '../../utils/cartoonAvatars';
+import { getBonusForEmployee } from '../../utils/bonusParser';
+import { useIndexedDBState } from '../../hooks/useIndexedDBState';
+import { useEmployeeAvatar } from '../../hooks/useEmployeeAvatar';
+import { Button } from '../../../../components/shared/ui/Button';
+import { Input } from '../../../../components/shared/ui/Input';
+import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { useExportOptionsContext } from '../../contexts/ExportOptionsContext';
+import { calculateRunRate, getMonthProgress } from '../../services/metricService';
+import { resolveEmployeeTarget } from '../../services/competitionSummaryCalc';
+import { Tabs } from '../../../../components/shared/ui/Tabs';
+
+interface CompetitionCompareViewProps {
+    allEmployees: Employee[];
+    allCompetitionsByCriterion: Record<Criterion, { headers: CompetitionHeader[] }>;
+    employeeDataMap: Map<string, { name: string; department: string; values: Record<string, number | null> }>;
+    employeeCompetitionTargets: Map<string, Map<string, number>>;
+    selectedCompetitions: Set<string>;
+    setSelectedCompetitions: (updater: React.SetStateAction<Set<string>>) => void;
+    supermarketName?: string;
+    revenueRows?: RevenueRow[];
+    installmentRows?: InstallmentRow[];
+    bonusData?: Record<string, BonusMetrics | null>;
+}
+
+const f = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+const fMoney = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+const pct = (v?: number) => v != null && !isNaN(v) ? `${Math.round(v)}%` : '-';
+
+const TugOfWar: React.FC<{
+    label: string;
+    valA: number;
+    valB: number;
+    formatter: (v: number) => string;
+    colorA?: string;
+    textA?: string;
+    colorB?: string;
+    textB?: string;
+}> = ({ label, valA, valB, formatter, colorA = 'bg-sky-600', textA = 'text-sky-700 dark:text-sky-400', colorB = 'bg-rose-600', textB = 'text-rose-700 dark:text-rose-400' }) => {
+    const total = valA + valB;
+    const pctA = total > 0 ? (valA / total) * 100 : 50;
+    /* Chuẩn "Bảng điều khiển ca trực": vạch 2.5-3px, không bo, không gradient phủ, không shadow-inner.
+       Mỗi người MỘT màu xuyên suốt (A = sky, B = rose) để mắt học một lần rồi đọc mọi thanh */
+    return (
+        <div className="flex flex-col gap-0.5 sm:gap-1 w-full py-1.5 sm:py-2 px-2 sm:px-4 border-b border-slate-100 dark:border-slate-800 last:border-b-0">
+            <div className="flex justify-between text-xs sm:text-[14px] font-bold items-end tabular-nums">
+                <span className={textA}>{formatter(valA)}</span>
+                <span className="text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] font-bold pb-0.5">{label}</span>
+                <span className={textB}>{formatter(valB)}</span>
+            </div>
+            <div className="h-[2.5px] sm:h-[3px] w-full bg-slate-200 dark:bg-slate-700 flex">
+                <div className={`${colorA} h-full`} style={{ width: `${pctA}%` }} />
+                <div className={`${colorB} h-full flex-1`} />
+            </div>
+        </div>
+    );
+};
+
+const DeltaBadge: React.FC<{ a: number, b: number, mode?: 'pct' | 'actual' }> = ({ a, b, mode = 'pct' }) => {
+    const diff = a - b;
+    const formatDiff = (v: number) => mode === 'pct' ? `${v.toFixed(0)}%` : fMoney.format(v);
+
+    // Epsilon tránh sai số dấu phẩy động (vd 2000/3000*100 vs 4000/6000*100) hiển thị nhầm
+    // "+0%" thay vì "Hòa" dù 2 tỉ lệ về mặt toán học là bằng nhau.
+    if (diff > 1e-9) return <span className="text-[11px] font-bold text-sky-700 dark:text-sky-400 tabular-nums whitespace-nowrap">◀ +{formatDiff(diff)}</span>;
+    if (diff < -1e-9) return <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 tabular-nums whitespace-nowrap">+{formatDiff(Math.abs(diff))} ▶</span>;
+    return <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">Hòa</span>;
+};
+
+const ProfileAvatar: React.FC<{ emp: Employee; colorClass: string; fallbackEmployees?: RevenueRow[] }> = ({ emp, colorClass, fallbackEmployees }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { avatarSrc, uploadAvatar } = useEmployeeAvatar({
+        employeeName: emp.name,
+        originalName: emp.originalName,
+        fallbackEmployees: fallbackEmployees?.filter(r => r.type === 'employee')
+    });
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            await uploadAvatar(file);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    return (
+        <div 
+            className={`relative group w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full border-2 sm:border-4 ${colorClass} overflow-hidden mx-auto bg-white flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity preserve-rounded`}
+            style={{
+                borderRadius: '50%',
+                clipPath: 'circle(50% at 50% 50%)',
+                WebkitClipPath: 'circle(50% at 50% 50%)'
+            }}
+            onClick={() => fileInputRef.current?.click()}
+            title="Bấm để tải lên hoặc đổi ảnh đại diện"
+        >
+            {avatarSrc ? (
+                <img 
+                    src={avatarSrc} 
+                    alt={emp.name} 
+                    data-avatar="true"
+                    style={{
+                        borderRadius: '50%',
+                        clipPath: 'circle(50% at 50% 50%)',
+                        WebkitClipPath: 'circle(50% at 50% 50%)',
+                        objectFit: 'cover'
+                    }}
+                    className="w-full h-full object-cover rounded-full" 
+                />
+            ) : (
+                <img 
+                    src={getCartoonAvatar(emp.originalName || emp.name).dataUrl} 
+                    alt={emp.name} 
+                    data-avatar="true"
+                    style={{
+                        borderRadius: '50%',
+                        clipPath: 'circle(50% at 50% 50%)',
+                        WebkitClipPath: 'circle(50% at 50% 50%)',
+                        objectFit: 'cover'
+                    }}
+                    className="w-full h-full object-cover rounded-full" 
+                />
+            )}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white no-print">
+                <AppIcon name="exportImage" size="md" className="drop-shadow-md" />
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        </div>
+    );
+};
+
+const EmployeeSelector: React.FC<{
+    allEmployees: Employee[];
+    selectedEmployee: Employee | null;
+    onSelect: (emp: Employee) => void;
+    placeholder: string;
+    alignRight?: boolean;
+}> = ({ allEmployees, selectedEmployee, onSelect, placeholder, alignRight = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filtered = allEmployees.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    return (
+        <div className="relative w-full max-w-[200px]" ref={ref}>
+            <Button variant="row" size="none" onClick={() => setIsOpen(!isOpen)} className="ycx-hit justify-between px-2.5 sm:px-3 py-1 sm:py-1.5 h-7.5 sm:h-8 text-[11px] sm:text-[12px] font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-all rounded-full shadow-2xs">
+                <span className="truncate">{selectedEmployee ? selectedEmployee.name : placeholder}</span>
+                <AppIcon name="chevronDown" size="sm" className="ml-1 sm:ml-2 text-slate-400 shrink-0" />
+            </Button>
+            {isOpen && (
+                <div className={`absolute top-full ${alignRight ? 'right-0' : 'left-0'} mt-1 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-none shadow-xl z-50 overflow-hidden flex flex-col max-h-72`}>
+                    <div className="p-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 sticky top-0">
+                        <Input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Tìm nhân viên..." leftIcon="search" autoFocus />
+                    </div>
+                    <div className="overflow-y-auto flex-1">
+                        {filtered.length > 0 ? filtered.map(emp => (
+                            <Button variant="row" size="none" key={emp.originalName} onClick={() => { onSelect(emp); setIsOpen(false); setSearchTerm(''); }} className={`justify-start px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 ${selectedEmployee?.originalName === emp.originalName ? 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
+                                {emp.name}
+                            </Button>
+                        )) : <div className="p-3 text-center text-sm text-slate-500">Không tìm thấy</div>}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const formatEmpHeaderName = (fullName: string) => {
+    if (!fullName) return '';
+    // Bỏ phần mã nhân viên ở đầu (ví dụ: "107617 - A.NHÂN" -> "A.NHÂN")
+    let clean = fullName.replace(/^\d+\s*[-_:]\s*/, '').trim();
+    if (!clean) clean = fullName;
+
+    // Nếu có dấu chấm viết tắt (ví dụ: "A.NHÂN", "A. NHÂN", "T.ÚT", "V.THẮNG")
+    const dotMatch = clean.match(/^([A-ZÀ-Ỹ]\.(?:\s*[A-ZÀ-Ỹ]\.)*)\s*(.+)$/i);
+    if (dotMatch) {
+        return (
+            <span className="inline-flex flex-col items-center justify-center leading-tight">
+                <span className="block text-[11px] font-bold opacity-80">{dotMatch[1].replace(/\s+/g, '')}</span>
+                <span className="block text-[11px] sm:text-[12px] font-black">{dotMatch[2]}</span>
+            </span>
+        );
+    }
+
+    // Nếu là tên thông thường nhiều từ, lấy từ cuối hoặc cho xuống dòng tự nhiên
+    const words = clean.split(/\s+/).filter(Boolean);
+    const displayName = words.length > 2 ? words[words.length - 1] : clean;
+
+    return <span className="block text-[11px] sm:text-[12px] font-black leading-tight break-words">{displayName}</span>;
+};
+
+const CompetitionCompareView: React.FC<CompetitionCompareViewProps> = ({
+    allEmployees,
+    allCompetitionsByCriterion,
+    employeeDataMap,
+    employeeCompetitionTargets,
+    selectedCompetitions,
+    revenueRows,
+    installmentRows,
+    bonusData,
+    supermarketName
+}) => {
+    const ngayDuLieu = useNgayDuLieu(supermarketName);
+    const [empAId, setEmpAId] = useIndexedDBState<string | null>('global-compare-emp-a', null);
+    const [empBId, setEmpBId] = useIndexedDBState<string | null>('global-compare-emp-b', null);
+    
+    const empA = useMemo(() => allEmployees.find(e => e.originalName === empAId) || allEmployees[0] || null, [allEmployees, empAId]);
+    const empB = useMemo(() => allEmployees.find(e => e.originalName === empBId) || (allEmployees.length > 1 ? allEmployees[1] : null), [allEmployees, empBId]);
+
+    const setEmpA = (emp: Employee) => setEmpAId(emp.originalName);
+    const setEmpB = (emp: Employee) => setEmpBId(emp.originalName);
+
+    const [displayMode, setDisplayMode] = useIndexedDBState<'pct' | 'actual'>('global-compare-display-mode', 'actual');
+    const cardRef = useRef<HTMLDivElement>(null);
+    const { showExportOptions } = useExportOptionsContext();
+    const [nameOverrides] = useIndexedDBState<Record<string, string>>('competition-name-overrides', {});
+    const [isBatchExporting, setIsBatchExporting] = useState(false);
+
+    const autoPairs = useMemo(() => {
+        const employeeByName = new Map(allEmployees.map(e => [e.originalName, e]));
+        const empRows = (revenueRows || []).filter(r => r.type === 'employee').sort((a, b) => (b.dtqd || 0) - (a.dtqd || 0));
+        const sortedEmps = empRows.map(r => (r.originalName ? employeeByName.get(r.originalName) : undefined)).filter(Boolean) as Employee[];
+        const pairs: { a: Employee, b: Employee, label: string }[] = [];
+        for (let i = 0; i < sortedEmps.length - 1; i += 2) {
+            pairs.push({ a: sortedEmps[i], b: sortedEmps[i+1], label: `Top ${i+1} vs ${i+2}` });
+        }
+        return pairs;
+    }, [revenueRows, allEmployees]);
+
+    useEffect(() => {
+        if (!empAId && !empBId && autoPairs.length > 0) {
+            setEmpAId(autoPairs[0].a.originalName);
+            setEmpBId(autoPairs[0].b.originalName);
+        }
+    }, [empAId, empBId, autoPairs, setEmpAId, setEmpBId]);
+
+    const getEmpStats = (emp: Employee | null) => {
+        if (!emp) return { dtqd: 0, dtlk: 0, tg: 0, thuong: 0, dtRank: 0, tgRank: 0, compStats: { total: 0, dkhtDat: 0, noSale: 0 } };
+        
+        const rev = revenueRows?.find(r => r.type === 'employee' && isSameEmployee(r.originalName, emp.originalName));
+        const inst = installmentRows?.find(r => r.type === 'employee' && isSameEmployee(r.originalName, emp.originalName));
+        const bns = getBonusForEmployee(bonusData, emp.originalName, emp.name);
+
+        const getRank = (rows: (RevenueRow | InstallmentRow)[], key: string) => {
+            const empRows = (rows || []).filter(r => r.type === 'employee');
+            const sorted = [...empRows].sort((a, b) => ((b as unknown as Record<string, unknown>)[key] as number || 0) - ((a as unknown as Record<string, unknown>)[key] as number || 0));
+            const idx = sorted.findIndex(r => isSameEmployee(r.originalName, emp.originalName));
+            return idx >= 0 ? idx + 1 : empRows.length;
+        };
+
+        let dkhtDat = 0, noSale = 0, total = 0, dkhtNotDat = 0;
+        // Tiến độ tháng qua hàm chuẩn (2026-10-29): bản cũ tự tính `hôm nay - 1` → ngày mùng 1 ra 0 ngày, mọi nhóm thi đua rơi vào
+        // "không doanh số" (đúng lỗi đã sửa ở Thi đua cá nhân 2026-09-10) và lệch màn Tổng hợp (vốn dùng getMonthProgress).
+        const { daysPassed, daysInMonth } = getMonthProgress(new Date(), ngayDuLieu);
+
+        (['SLLK', 'DTLK', 'DTQĐ'] as Criterion[]).forEach(crit => {
+            const headers = allCompetitionsByCriterion[crit]?.headers || [];
+            headers.filter(h => selectedCompetitions.has(h.originalTitle)).forEach(comp => {
+                const target = resolveEmployeeTarget(employeeCompetitionTargets, comp.originalTitle, emp.originalName);
+                const actual = employeeDataMap.get(emp.name)?.values[comp.title] ?? 0;
+                if (target > 0 || actual > 0) {
+                    total++;
+                    const dkht = target > 0 ? (calculateRunRate(actual, daysPassed, daysInMonth) / target) * 100 : 0;
+                    if (dkht >= 100) dkhtDat++;
+                    else if (dkht === 0) noSale++;
+                    else dkhtNotDat++;
+                }
+            });
+        });
+
+        return {
+            dtqd: rev?.dtqd || 0,
+            dtlk: rev?.dtlk || 0,
+            tg: inst?.totalPercent || 0,
+            thuong: bns ? (bns.tong || ((bns.erp || 0) + (bns.tNong || 0))) : 0,
+            dtRank: getRank(revenueRows || [], 'dtlk'),
+            tgRank: getRank(installmentRows || [], 'totalPercent'),
+            compStats: { total, dkhtDat, dkhtNotDat, noSale }
+        };
+    };
+
+    const statsA = useMemo(() => getEmpStats(empA), [empA, revenueRows, installmentRows, bonusData, allCompetitionsByCriterion, selectedCompetitions, employeeDataMap, employeeCompetitionTargets, ngayDuLieu]);
+    const statsB = useMemo(() => getEmpStats(empB), [empB, revenueRows, installmentRows, bonusData, allCompetitionsByCriterion, selectedCompetitions, employeeDataMap, employeeCompetitionTargets, ngayDuLieu]);
+
+    const compRows = useMemo(() => {
+        if (!empA || !empB) return [];
+        const rows: { criterion: Criterion; originalTitle: string; name: string; pctA: number; pctB: number; actualA: number; actualB: number }[] = [];
+        (['SLLK', 'DTLK', 'DTQĐ'] as Criterion[]).forEach(crit => {
+            const headers = allCompetitionsByCriterion[crit]?.headers || [];
+            const headerMap = new Map(headers.map(h => [h.originalTitle, h]));
+            const filteredHeaders = Array.from(selectedCompetitions)
+                .map(title => headerMap.get(title))
+                .filter((h): h is CompetitionHeader => !!h);
+            if (filteredHeaders.length === 0) return;
+
+            filteredHeaders.forEach(comp => {
+                const targetA = resolveEmployeeTarget(employeeCompetitionTargets, comp.originalTitle, empA.originalName);
+                const actualA = employeeDataMap.get(empA.name)?.values[comp.title] ?? 0;
+                const pctA = targetA > 0 ? (actualA / targetA) * 100 : 0;
+
+                const targetB = resolveEmployeeTarget(employeeCompetitionTargets, comp.originalTitle, empB.originalName);
+                const actualB = employeeDataMap.get(empB.name)?.values[comp.title] ?? 0;
+                const pctB = targetB > 0 ? (actualB / targetB) * 100 : 0;
+
+                if (targetA > 0 || actualA > 0 || targetB > 0 || actualB > 0) {
+                    rows.push({
+                        criterion: crit,
+                        originalTitle: comp.originalTitle,
+                        name: shortenName(comp.originalTitle, nameOverrides),
+                        pctA,
+                        pctB,
+                        actualA,
+                        actualB
+                    });
+                }
+            });
+        });
+        return rows;
+    }, [empA, empB, allCompetitionsByCriterion, selectedCompetitions, employeeDataMap, employeeCompetitionTargets, nameOverrides]);
+
+    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+        if (!cardRef.current) return null;
+        try {
+            const defaultFilename = `So Sánh - ${empA?.name.replace(/[\\/:*?"<>|]/g, '')} vs ${empB?.name.replace(/[\\/:*?"<>|]/g, '')}.png`;
+            const filename = customFilename || defaultFilename;
+            const blob = await exportElementAsImage(cardRef.current, filename, { mode: 'blob-only', elementsToHide: ['.no-print'] });
+            if (blob) {
+                if (autoAction === 'download') {
+                    downloadBlob(blob, filename);
+                    return 'download';
+                } else if (autoAction === 'share') {
+                    await shareBlob(blob, filename);
+                    return 'share';
+                } else {
+                    return await showExportOptions(blob, filename);
+                }
+            }
+            return null;
+        } catch (err) {
+            console.error(err);
+            return null;
+        }
+    };
+
+    const performBatchExport = async () => {
+        if (isBatchExporting) return;
+        setIsBatchExporting(true);
+        const originalEmpAId = empAId;
+        const originalEmpBId = empBId;
+        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        const job = startExportJob({ title: 'Xuất ảnh so sánh từng cặp', total: autoPairs.length });
+        try {
+            for (const [i, pair] of autoPairs.entries()) {
+                if (job.cancelled) break;
+                const nhan = `${pair.a.name} vs ${pair.b.name}`;
+                job.item(i, nhan);
+                setEmpAId(pair.a.originalName);
+                setEmpBId(pair.b.originalName);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                const filename = `So Sánh - ${pair.a.name.replace(/[\\/:*?"<>|]/g, '')} vs ${pair.b.name.replace(/[\\/:*?"<>|]/g, '')}.png`;
+                const action = await handleExportPNG(filename, autoAction);
+                job.result(nhan, action === null ? 'failed' : action === 'cancel' ? 'skipped' : 'ok', action === null ? 'Không tạo được ảnh' : undefined);
+                if (action === 'cancel') break;
+                autoAction = action;
+            }
+        } finally {
+            job.finish();
+            setEmpAId(originalEmpAId);
+            setEmpBId(originalEmpBId);
+            setIsBatchExporting(false);
+        }
+    };
+
+    const getCriterionStyle = (crit: Criterion) => {
+        switch (crit) {
+            case 'SLLK': return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300', badge: 'bg-slate-200 dark:bg-slate-700', border: 'border-slate-300 dark:border-slate-600' };
+            case 'DTLK': return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300', badge: 'bg-slate-200 dark:bg-slate-700', border: 'border-slate-300 dark:border-slate-600' };
+            case 'DTQĐ': return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300', badge: 'bg-slate-200 dark:bg-slate-700', border: 'border-slate-300 dark:border-slate-600' };
+            default: return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300', badge: 'bg-slate-200 dark:bg-slate-700', border: 'border-slate-300 dark:border-slate-600' };
+        }
+    };
+
+    return (
+        <div className="space-y-2.5 sm:space-y-4 pb-8 sm:pb-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-none shadow-sm p-2 sm:p-6 mt-2 sm:mt-4">
+            {/* Auto Pairing Quick Select - Dãy tab trượt ngang */}
+            {autoPairs.length > 0 && (
+                <div className="flex items-center gap-1.5 sm:gap-2 px-1 sm:px-2 no-print overflow-hidden">
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0 whitespace-nowrap flex items-center gap-1">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0"></span>
+                        <span className="sm:hidden">Cặp nhanh:</span>
+                        <span className="hidden sm:inline">Cặp So Sánh Nhanh (Theo DTQĐ):</span>
+                    </span>
+                    <Tabs
+                        variant="chips"
+                        size="sm"
+                        className="flex-1 min-w-0"
+                        activeId={autoPairs.find(p => empA?.originalName === p.a.originalName && empB?.originalName === p.b.originalName)?.label ?? ''}
+                        onChange={(id) => {
+                            const pair = autoPairs.find(p => p.label === id);
+                            if (pair) { setEmpA(pair.a); setEmpB(pair.b); }
+                        }}
+                        items={autoPairs.map(pair => ({ id: pair.label, label: pair.label }))}
+                    />
+                </div>
+            )}
+
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 px-1 sm:px-2 no-print relative z-50">
+                <div className="flex flex-1 items-center gap-2 sm:gap-4 max-w-2xl">
+                    <div className="flex-1 flex justify-end">
+                        <EmployeeSelector allEmployees={allEmployees} selectedEmployee={empA} onSelect={setEmpA} placeholder="Chọn đối thủ 1" />
+                    </div>
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-800 text-white font-black italic flex items-center justify-center shrink-0 border-2 border-slate-700 text-xs sm:text-sm">VS</div>
+                    <div className="flex-1 flex justify-start">
+                        <EmployeeSelector allEmployees={allEmployees} selectedEmployee={empB} onSelect={setEmpB} placeholder="Chọn đối thủ 2" alignRight />
+                    </div>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <Tabs
+                        variant="segment"
+                        size="sm"
+                        activeId={displayMode}
+                        onChange={(id) => setDisplayMode(id as typeof displayMode)}
+                        items={[
+                            { id: 'pct', label: "%HT" },
+                            { id: 'actual', label: "Thực hiện" },
+                        ]}
+                    />
+                    <Button
+                        variant="ghost" size="icon"
+                        onClick={performBatchExport}
+                        disabled={isBatchExporting || autoPairs.length === 0}
+                        title="Xuất tất cả cặp so sánh"
+                        aria-label="Xuất tất cả cặp so sánh"
+                        className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-control disabled:opacity-40 transition-colors"
+                    >
+                        <AppIcon name="exportBatch" size="md" className={isBatchExporting ? 'animate-pulse text-sky-500' : ''} />
+                    </Button>
+                    <Button
+                        variant="ghost" size="icon"
+                        onClick={() => handleExportPNG()}
+                        title="Xuất ảnh"
+                        aria-label="Xuất ảnh"
+                        className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-control transition-colors"
+                    >
+                        <AppIcon name="exportImage" size="md" />
+                    </Button>
+                </div>
+            </div>
+
+            {(!empA || !empB) ? (
+                <div className="py-20 text-center text-slate-500 font-bold bg-slate-50 dark:bg-slate-900/50 rounded-none border-2 border-dashed border-slate-200 dark:border-slate-800">
+                    Vui lòng chọn 2 nhân viên để bắt đầu so sánh.
+                </div>
+            ) : (
+                <div ref={cardRef} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-none overflow-hidden shadow-sm">
+                    {/* Header Banner */}
+                    <div className="bg-slate-800 p-3 sm:p-6 lg:p-8 flex items-center justify-between relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+                        
+                        {/* NV A */}
+                        <div className="flex-1 flex flex-col items-center relative z-10 min-w-0">
+                            <ProfileAvatar emp={empA} colorClass="border-sky-500" fallbackEmployees={revenueRows} />
+                            <h3 className="text-xs sm:text-base lg:text-xl font-black text-white mt-1.5 sm:mt-3 text-center uppercase tracking-tight leading-tight line-clamp-1">{empA.name}</h3>
+                            <p className="text-[11px] text-sky-300 font-bold uppercase tracking-wider truncate max-w-[120px] sm:max-w-none">{empA.department}</p>
+                            <div className="flex items-center gap-1 mt-1.5 sm:mt-3 flex-wrap justify-center">
+                                <div className="px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 rounded text-emerald-400 text-[11px] font-bold sm:font-black">{statsA.compStats.dkhtDat} Đạt 100%</div>
+                                {(statsA.compStats.dkhtNotDat ?? 0) > 0 && <div className="px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded text-amber-400 text-[11px] font-bold sm:font-black">{statsA.compStats.dkhtNotDat} &lt;100%</div>}
+                                {statsA.compStats.noSale > 0 && <div className="px-1.5 py-0.5 bg-rose-500/20 border border-rose-500/30 rounded text-rose-400 text-[11px] font-bold sm:font-black">{statsA.compStats.noSale} No Sale</div>}
+                            </div>
+                        </div>
+
+                        {/* VS Center */}
+                        <div className="flex flex-col items-center justify-center shrink-0 px-1 sm:px-4 lg:px-6 relative z-10">
+                            <div className="text-[25px] sm:text-[34px] font-black italic text-slate-200 leading-8 sm:leading-10 lg:leading-none" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.1)' }}>VS</div>
+                        </div>
+
+                        {/* NV B */}
+                        <div className="flex-1 flex flex-col items-center relative z-10 min-w-0">
+                            <ProfileAvatar emp={empB} colorClass="border-rose-500" fallbackEmployees={revenueRows} />
+                            <h3 className="text-xs sm:text-base lg:text-xl font-black text-white mt-1.5 sm:mt-3 text-center uppercase tracking-tight leading-tight line-clamp-1">{empB.name}</h3>
+                            <p className="text-[11px] text-rose-300 font-bold uppercase tracking-wider truncate max-w-[120px] sm:max-w-none">{empB.department}</p>
+                            <div className="flex items-center gap-1 mt-1.5 sm:mt-3 flex-wrap justify-center">
+                                <div className="px-1.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 rounded text-emerald-400 text-[11px] font-bold sm:font-black">{statsB.compStats.dkhtDat} Đạt 100%</div>
+                                {(statsB.compStats.dkhtNotDat ?? 0) > 0 && <div className="px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded text-amber-400 text-[11px] font-bold sm:font-black">{statsB.compStats.dkhtNotDat} &lt;100%</div>}
+                                {statsB.compStats.noSale > 0 && <div className="px-1.5 py-0.5 bg-rose-500/20 border border-rose-500/30 rounded text-rose-400 text-[11px] font-bold sm:font-black">{statsB.compStats.noSale} No Sale</div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tug of war bars */}
+                    <div className="px-1 sm:px-4 py-0.5 sm:py-1 border-b border-slate-200 dark:border-slate-800">
+                        <TugOfWar label="Thưởng Thu Nhập" valA={statsA.thuong} valB={statsB.thuong} formatter={fMoney.format} />
+                        <TugOfWar label="Doanh Thu QĐ" valA={statsA.dtqd} valB={statsB.dtqd} formatter={f.format} />
+                        <TugOfWar label="Trả Chậm" valA={statsA.tg} valB={statsB.tg} formatter={pct} />
+                    </div>
+
+                    {/* Ranks Strip */}
+                    <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                        <div className="py-1.5 sm:py-3 px-1 sm:px-4 flex justify-around items-center">
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">Rank DT</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-sky-600 lg:leading-7">#{statsA.dtRank}</span></div>
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">≥100%</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-sky-600 lg:leading-7">{statsA.compStats.dkhtDat}</span></div>
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">&lt;100%</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-sky-600 lg:leading-7">{statsA.compStats.dkhtNotDat}</span></div>
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">% NH Đạt</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-emerald-600 lg:leading-7">{statsA.compStats.total > 0 ? Math.round((statsA.compStats.dkhtDat / statsA.compStats.total) * 100) : 0}%</span></div>
+                        </div>
+                        <div className="py-1.5 sm:py-3 px-1 sm:px-4 flex justify-around items-center">
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">Rank DT</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-rose-600 lg:leading-7">#{statsB.dtRank}</span></div>
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">≥100%</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-rose-600 lg:leading-7">{statsB.compStats.dkhtDat}</span></div>
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">&lt;100%</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-rose-600 lg:leading-7">{statsB.compStats.dkhtNotDat}</span></div>
+                            <div className="text-center"><p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5">% NH Đạt</p><span className="text-xs sm:text-base lg:text-[17px] font-black text-amber-600 lg:leading-7">{statsB.compStats.total > 0 ? Math.round((statsB.compStats.dkhtDat / statsB.compStats.total) * 100) : 0}%</span></div>
+                        </div>
+                    </div>
+
+                    {/* Detailed Competition Table */}
+                    <div className="overflow-x-auto hide-scrollbar touch-auto">
+                        <table className="w-full table-fixed text-left border-collapse compact-export-table">
+                            <thead>
+                                <tr className="bg-slate-100 dark:bg-slate-800 text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                                    <th className="px-1 py-1.5 sm:py-2 border-b-2 sm:border-b-[3px] border-b-slate-300 w-7 sm:w-8 text-center align-middle">#</th>
+                                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 border-b-2 sm:border-b-[3px] border-b-slate-300 min-w-0 align-middle leading-tight">
+                                        <span className="block sm:inline">CHƯƠNG TRÌNH </span>
+                                        <span className="block sm:inline">THI ĐUA</span>
+                                    </th>
+                                    <th className="px-0.5 sm:px-1 py-1.5 sm:py-2 border-b-2 sm:border-b-[3px] border-b-slate-300 text-center text-sky-700 dark:text-sky-300 w-[52px] sm:w-[60px] align-middle" title={empA.name}>
+                                        {formatEmpHeaderName(empA.name)}
+                                    </th>
+                                    <th className="px-0.5 sm:px-1 py-1.5 sm:py-2 border-b-2 sm:border-b-[3px] border-b-slate-300 text-center text-slate-600 dark:text-slate-300 w-[56px] sm:w-[66px] align-middle">
+                                        <span className="block leading-tight">CHÊNH</span>
+                                        <span className="block leading-tight">LỆCH</span>
+                                    </th>
+                                    <th className="px-0.5 sm:px-1 py-1.5 sm:py-2 border-b-2 sm:border-b-[3px] border-b-slate-300 text-center text-rose-700 dark:text-rose-300 w-[52px] sm:w-[60px] align-middle" title={empB.name}>
+                                        {formatEmpHeaderName(empB.name)}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {compRows.length > 0 ? (
+                                    (['SLLK', 'DTLK', 'DTQĐ'] as Criterion[]).map(crit => {
+                                        const critRows = compRows.filter(r => r.criterion === crit);
+                                        if (critRows.length === 0) return null;
+                                        const cStyle = getCriterionStyle(crit);
+                                        return (
+                                            <React.Fragment key={crit}>
+                                                <tr className={`${cStyle.bg}`}>
+                                                    <td colSpan={5} className={`px-2.5 sm:px-4 py-1 text-[11px] font-black uppercase ${cStyle.text} tracking-wider border-y ${cStyle.border}`}>
+                                                        <span className={`px-2 py-0.5 rounded mr-2 ${cStyle.badge}`}>Tiêu chí</span> {crit}
+                                                    </td>
+                                                </tr>
+                                                {critRows.map((row, idx) => (
+                                                    <tr key={`${row.criterion}-${row.originalTitle}`} className="border-b border-slate-100 dark:border-slate-800/60 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                                                        <td className="px-1 py-1 text-[11px] font-bold text-slate-400 text-center border-r border-slate-100 dark:border-slate-800/50 tabular-nums">#{idx + 1}</td>
+                                                        <td className="px-1.5 sm:px-2 py-1 border-r border-slate-100 dark:border-slate-800/50 min-w-0 overflow-hidden">
+                                                            <span className="block truncate text-[11px] sm:text-[12px] font-bold text-slate-800 dark:text-slate-200 uppercase leading-snug" title={row.originalTitle}>
+                                                                {row.name}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-0.5 sm:px-1 py-1 text-center text-[12px] sm:text-[13px] font-black text-sky-600 dark:text-sky-400 bg-sky-50/30 dark:bg-sky-900/10 tabular-nums whitespace-nowrap">
+                                                            {displayMode === 'pct' ? `${row.pctA.toFixed(0)}%` : fMoney.format(row.actualA)}
+                                                        </td>
+                                                        <td className="px-0.5 sm:px-1 py-1 text-center tabular-nums whitespace-nowrap">
+                                                            <div className="flex justify-center">
+                                                                <DeltaBadge a={displayMode === 'pct' ? row.pctA : row.actualA} b={displayMode === 'pct' ? row.pctB : row.actualB} mode={displayMode} />
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-0.5 sm:px-1 py-1 text-center text-[12px] sm:text-[13px] font-black text-rose-600 dark:text-rose-400 bg-rose-50/30 dark:bg-rose-900/10 tabular-nums whitespace-nowrap">
+                                                            {displayMode === 'pct' ? `${row.pctB.toFixed(0)}%` : fMoney.format(row.actualB)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="py-8 text-center text-slate-500 font-medium">Không có dữ liệu thi đua chung giữa 2 nhân viên.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default CompetitionCompareView;

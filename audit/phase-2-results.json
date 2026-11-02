@@ -1,0 +1,154 @@
+[
+  {
+    "name": "build",
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "started_utc": "2026-10-24T07:26:03.168000+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "seconds": 16.46,
+    "log": "audit/evidence/phase2-build.txt"
+  },
+  {
+    "name": "build-functions",
+    "command": [
+      "npm",
+      "run",
+      "build",
+      "--prefix",
+      "functions"
+    ],
+    "started_utc": "2026-10-24T07:26:03.168494+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "seconds": 6.66,
+    "log": "audit/evidence/phase2-build-functions.txt"
+  },
+  {
+    "name": "budget",
+    "command": [
+      "npm",
+      "run",
+      "check:budget"
+    ],
+    "started_utc": "2026-10-24T07:26:39.540366+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "seconds": 0.2,
+    "log": "audit/evidence/phase2-budget.txt"
+  },
+  {
+    "name": "typecheck",
+    "seconds": 28.63,
+    "command": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "started_utc": "2026-10-24T07:25:44.667498+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "log": "audit/evidence/phase2-typecheck.txt",
+    "record_note": "Restored from exec session output after concurrent report writer overwrite; raw logs intact"
+  },
+  {
+    "name": "typecheck-functions",
+    "seconds": 3.3,
+    "command": [
+      "npm",
+      "run",
+      "typecheck:functions"
+    ],
+    "started_utc": "2026-10-24T07:25:44.667655+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "log": "audit/evidence/phase2-typecheck-functions.txt",
+    "record_note": "Restored from exec session output after concurrent report writer overwrite; raw logs intact"
+  },
+  {
+    "name": "eslint",
+    "seconds": 10.1,
+    "command": [
+      "npm",
+      "run",
+      "lint:eslint"
+    ],
+    "started_utc": "2026-10-24T07:25:47.964867+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "log": "audit/evidence/phase2-eslint.txt",
+    "record_note": "Restored from exec session output after concurrent report writer overwrite; raw logs intact"
+  },
+  {
+    "name": "ratchet",
+    "seconds": 0.44,
+    "command": [
+      "npm",
+      "run",
+      "lint:ratchet:ci"
+    ],
+    "started_utc": "2026-10-24T07:25:58.063475+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "log": "audit/evidence/phase2-ratchet.txt",
+    "record_note": "Restored from exec session output after concurrent report writer overwrite; raw logs intact"
+  },
+  {
+    "name": "unit",
+    "seconds": 12.07,
+    "command": [
+      "npm",
+      "run",
+      "test:unit",
+      "--",
+      "--reporter=default",
+      "--reporter=json",
+      "--outputFile=audit/evidence/unit-results.json"
+    ],
+    "started_utc": "2026-10-24T07:25:58.502704+00:00",
+    "exit_code": 0,
+    "status": "PASS",
+    "log": "audit/evidence/phase2-unit.txt",
+    "record_note": "Restored from exec session output after concurrent report writer overwrite; raw logs intact"
+  },
+  {
+    "name": "e2e-chromium",
+    "command": "AUDIT_ENGINE=chromium BROWSER=none ./node_modules/.bin/playwright test --config=audit/tools/playwright-baseline.config.mjs",
+    "status": "FAIL",
+    "exit_code": 1,
+    "stats": {
+      "startTime": "2026-10-24T07:26:24.317Z",
+      "duration": 193603.225,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "log": "audit/evidence/e2e-chromium.json"
+  },
+  {
+    "name": "e2e-webkit",
+    "command": "AUDIT_ENGINE=webkit AUDIT_PORT=5190 PLAYWRIGHT_BROWSERS_PATH=/private/tmp/ycx-playwright-browsers BROWSER=none ./node_modules/.bin/playwright test tests/e2e/smoke.spec.ts tests/e2e/modal-ngan-xep.spec.ts --config=audit/tools/playwright-baseline.config.mjs",
+    "status": "FAIL",
+    "exit_code": 1,
+    "stats": {
+      "startTime": "2026-10-24T07:29:13.435Z",
+      "duration": 9189.484,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "log": "audit/evidence/e2e-webkit.json"
+  },
+  {
+    "name": "benchmark-measured",
+    "command": "BENCH=1 ./node_modules/.bin/vitest run tests/bench/filter-100k.test.ts --disableConsoleIntercept --silent=false",
+    "status": "PASS",
+    "exit_code": 0,
+    "log": "audit/evidence/phase2-benchmark-measured.txt"
+  }
+]

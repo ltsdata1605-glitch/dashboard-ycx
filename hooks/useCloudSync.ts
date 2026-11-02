@@ -1,0 +1,354 @@
+import { useState, useEffect, useRef, useCallback, createElement } from 'react';
+import { AppIcon } from '../components/shared/ui/icon/AppIcon';
+import { useAuth } from '../contexts/AuthContext';
+import { HEAVY_SYNC_KEYS, isHeavySyncKey, syncHeavySettingToCloudQueued, isHeavyKeyInFlight, restoreNestedArraysFromFirestore, assembleChunkedHeavyValue } from '../services/firestoreService';
+import { getSetting, saveSetting, saveSettingFromCloud, touchLastModified } from '../services/dbService/core';
+import { rememberLightCloud, pullNewerLightKeys, pushNewerLightKeys } from '../services/lightSync';
+import { cloudKeyTime } from '../services/lightSyncPlan';
+import { doc, collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
+import { toast } from '../components/shared/ui/toast';
+import { getErrorMessage, getErrorCode } from '../utils/basicHelpers';
+// Các lớp chặn của đường "lấy khoá nặng từ Cloud về" đã tách ra module thuần để test được.
+// ĐỌC comment đầu services/heavySyncPolicy.ts trước khi sửa: đây là chỗ đã sinh 3 bug user báo.
+import { considerCloudDoc, isCloudNewer, LIGHT_CLOUD_PULLED_KEY } from '../services/heavySyncPolicy';
+import { cungNoiDungCauHinh, fromCloudProductConfig, isProductConfigComplete } from '../services/productConfigSerialization';
+import { isLightSyncKey } from '../utils/localDbScope';
+
+type SyncState = 'idle' | 'syncing' | 'synced' | 'error';
+
+// isLocalOnlyKey / isLightSyncKey: utils/localDbScope.ts (dùng chung với nơi đóng dấu thời gian).
+
+export const useCloudSync = () => {
+    const { user, isDemoMode } = useAuth();
+    const [syncState, setSyncState] = useState<SyncState>('idle');
+    const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+    const [lastError, setLastError] = useState<string | null>(null);
+    const hasUnsavedChanges = useRef(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const debounceSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const heavyTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+    // BUG FIX: onSnapshot(configsCollRef) luôn bắn 1 lượt 'added' cho TOÀN BỘ doc hiện có ngay khi
+    // listener vừa gắn (hành vi chuẩn của Firestore, không phải thay đổi thật) — nếu không phân biệt,
+    // lượt đồng bộ khởi động bình thường (mở app 1 tab duy nhất) cũng bị hiểu nhầm thành "tab khác vừa
+    // sửa", hiện toast hỏi xác nhận dù không có gì để tải lại (data đã đúng sẵn). Chỉ lượt bắn ĐẦU
+    // TIÊN của listener mới coi là đồng bộ khởi động (áp dụng ngay, không hỏi); các lượt SAU mới là
+    // thay đổi thật từ tab/thiết bị khác đang mở sống cùng lúc.
+    const isInitialConfigsSnapshotRef = useRef(true);
+    // Coalesce (in-flight/pending) + hàng đợi ghi tuần tự dùng chung cho MỌI khóa nặng đã chuyển
+    // xuống services/firestoreService.ts (syncHeavySettingToCloudQueued/isHeavyKeyInFlight) —
+    // module-level singleton, không phải React ref, để hooks/useDataManagement.ts (hook khác,
+    // mount riêng) cũng tự động qua ĐÚNG 1 hàng đợi này thay vì gọi thẳng syncHeavySettingToCloud
+    // và có thể ghi song song ngoài tầm kiểm soát (từng gây "Write stream exhausted maximum
+    // allowed queued writes" — xem comment ở nơi định nghĩa).
+
+    // Clear timeout helper to prevent memory leaks
+    const clearSyncTimeout = useCallback(() => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        if (debounceSyncTimeoutRef.current) {
+            clearTimeout(debounceSyncTimeoutRef.current);
+            debounceSyncTimeoutRef.current = null;
+        }
+        Object.values(heavyTimeoutsRef.current).forEach(clearTimeout);
+        heavyTimeoutsRef.current = {};
+    }, []);
+
+    const forceSync = useCallback(async () => {
+        if (!user || isDemoMode || (typeof window !== 'undefined' && (window as any).__ycx_is_resetting_all_data)) return;
+        // Máy CHƯA kéo cấu hình nhẹ của tài khoản về lần nào: KHÔNG đẩy lên. Những gì có trên máy lúc này
+        // chỉ là giá trị mặc định vừa lưu lúc khởi động — đẩy lên là đè cấu hình thật trên Cloud (đo thật
+        // 2026-09-28: sidebar_collapsed, dashboard_global_filters_v2 lưu ở giây 1–3, kéo về ở giây ~6).
+        // Lần kéo đầu do listener cấu hình bên dưới (hoặc useDataManagement) làm rồi đặt dấu.
+        if (!(await getSetting<boolean>(LIGHT_CLOUD_PULLED_KEY))) {
+            console.info('[Cloud Sync] Hoãn đẩy cấu hình nhẹ: máy chưa kéo cấu hình của tài khoản về lần nào.');
+            hasUnsavedChanges.current = false;
+            return;
+        }
+        setSyncState('syncing');
+        setLastError(null);
+        clearSyncTimeout();
+        
+        try {
+            // CHỈ khoá máy này sửa mới hơn Cloud, mỗi khoá kèm mốc riêng (services/lightSyncPlan.ts) — trước 2026-10-14
+            // đẩy NGUYÊN bộ cấu hình, đè mất khoá máy khác vừa sửa.
+            const daDay = await pushNewerLightKeys(user);
+            if (daDay.length) console.info(`[Cloud Sync] Đẩy ${daDay.length} khoá cấu hình nhẹ lên Cloud: ${daDay.join(', ')}`);
+            hasUnsavedChanges.current = false;
+            setSyncState('synced');
+            setLastSyncTime(new Date());
+
+            timeoutRef.current = setTimeout(() => {
+                setSyncState('idle');
+            }, 5000);
+        } catch (err: unknown) {
+            setSyncState('error');
+            const errMsg = getErrorMessage(err).toLowerCase();
+            const errCode = getErrorCode(err) || '';
+            setLastError(getErrorMessage(err) || 'Đồng bộ dữ liệu thất bại. Lỗi mạng hoặc hết phiên.');
+            
+            if (errCode === 'resource-exhausted' || errMsg.includes('quota') || errMsg.includes('429')) {
+                toast('Đã lưu cài đặt vào máy. Đồng bộ lên đám mây sẽ tự động thử lại sau.', { 
+                    id: 'quota-limit',
+                    icon: createElement(AppIcon, { name: 'cloud', size: 'md', className: 'text-amber-600' }),
+                    duration: 4000
+                });
+            } else if (errMsg.includes('unauthenticated') || errMsg.includes('permission-denied')) {
+                toast('Phiên đăng nhập hết hạn. Đăng nhập lại để đồng bộ cài đặt.', { 
+                    id: 'auth-expired',
+                    icon: createElement(AppIcon, { name: 'apiKey', size: 'md', className: 'text-amber-600' }),
+                    duration: 5000
+                });
+            }
+            // All errors: data is safe in IndexedDB, will sync when possible
+            timeoutRef.current = setTimeout(() => {
+                setSyncState('idle');
+                setLastError(null);
+            }, 8000);
+        }
+    }, [user, isDemoMode, clearSyncTimeout]);
+
+    useEffect(() => {
+        if (!user || isDemoMode) return;
+
+        let unsubConfig: (() => void) | null = null;
+        let unsubConfigs: (() => void) | null = null;
+
+        // PERF FIX: Hoãn khởi tạo Firestore Listeners 2s sau khi mở app
+        // Giúp 2s đầu trình duyệt tập trung 100% CPU đọc IndexedDB cục bộ cực nhanh,
+        // render giao diện mượt mà tuyệt đối mà không bị giật lag/đơ do network/JSON.parse từ Cloud.
+        const bootTimer = setTimeout(() => {
+            // 1. Setup real-time Firestore listeners
+            const configRef = doc(db, 'users', user.uid, 'setting', 'configuration');
+            unsubConfig = onSnapshot(configRef, async (snapshot) => {
+                if (typeof window !== 'undefined' && (window as any).__ycx_is_resetting_all_data) return;
+                if (snapshot.metadata.hasPendingWrites) return;
+
+                // Lần kéo ĐẦU TIÊN trên máy này: Cloud thắng bất kể dấu thời gian / thay đổi đang chờ (đó
+                // chỉ là mặc định lúc khởi động — xem forceSync). Làm ở đây (listener cấp app) để không phụ
+                // thuộc người dùng có mở tab Phân tích (nơi useDataManagement cũng làm việc này) hay không.
+                if (!(await getSetting<boolean>(LIGHT_CLOUD_PULLED_KEY))) {
+                    const dauTien = snapshot.exists() ? snapshot.data() : undefined;
+                    const dauTienState = rememberLightCloud(user.uid, dauTien);
+                    const saoLuu = dauTien?.settingsStoreBackup as Record<string, unknown> | undefined;
+                    if (saoLuu) {
+                        console.warn('[Cloud Sync] Máy mới với tài khoản này — lấy cấu hình nhẹ từ Cloud về (listener).');
+                        for (const [k, v] of Object.entries(saoLuu)) {
+                            if (isLightSyncKey(k)) await saveSettingFromCloud(k, v, cloudKeyTime(dauTienState, k));
+                        }
+                    }
+                    await saveSetting(LIGHT_CLOUD_PULLED_KEY, true);
+                    hasUnsavedChanges.current = false;
+                    if (debounceSyncTimeoutRef.current) {
+                        clearTimeout(debounceSyncTimeoutRef.current);
+                        debounceSyncTimeoutRef.current = null;
+                    }
+                    return;
+                }
+                if (!snapshot.exists()) return;
+
+                // So TỪNG khoá (services/lightSyncPlan.ts): lấy khoá Cloud mới hơn máy. Khoá máy đang sửa dở có mốc
+                // mới hơn nên tự được giữ — KHÔNG bỏ qua cả lượt như trước (bỏ qua là mất luôn thay đổi của máy khác,
+                // vì Firestore không bắn lại lượt đó).
+                const state = rememberLightCloud(user.uid, snapshot.data());
+                const daLay = await pullNewerLightKeys(state);
+                if (daLay.length) console.info(`[Cloud Sync] Real-time: lấy ${daLay.length} khoá cấu hình mới hơn từ máy khác: ${daLay.join(', ')}`);
+            }, (err) => {
+                console.error('[Cloud Sync] Error in configuration listener:', err);
+            });
+
+            const configsCollRef = collection(db, 'users', user.uid, 'configs');
+            unsubConfigs = onSnapshot(configsCollRef, async (snapshot) => {
+                if (typeof window !== 'undefined' && (window as any).__ycx_is_resetting_all_data) return;
+                // Chốt ngay đầu lượt gọi: lượt NÀY có phải lượt bắn đầu tiên của listener không (đồng
+                // bộ khởi động) — xem giải thích ở khai báo isInitialConfigsSnapshotRef phía trên.
+                const isInitialSnapshot = isInitialConfigsSnapshotRef.current;
+                isInitialConfigsSnapshotRef.current = false;
+                for (const change of snapshot.docChanges()) {
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const docSnap = change.doc;
+                        const key = docSnap.id;
+                        
+                        if (!isHeavySyncKey(key)) continue;
+
+                        // BUG FIX (self-echo — user báo cáo LẠI lần 3 dù đã có 2 lớp phòng thủ dưới
+                        // đây): cả `heavyTimeoutsRef`/`isHeavyKeyInFlight` (so sánh trạng thái "đang
+                        // ghi") lẫn `touchLastModified` (so sánh mốc thời gian, xem
+                        // services/dbService/core.ts) đều là giải pháp SUY LUẬN GIÁN TIẾP, vẫn còn cửa
+                        // sổ đua do lệch đồng hồ client/server hoặc độ trễ round-trip — với payload lớn
+                        // (checkthuong_data, ghi chunked nhiều batch) cửa sổ đua này lộ rõ nhất.
+                        // `docChange.doc.metadata.hasPendingWrites` là tín hiệu TRỰC TIẾP từ chính SDK
+                        // Firestore: `true` nghĩa là snapshot NÀY đến từ cache cục bộ của CHÍNH TAB này
+                        // cho 1 lượt ghi CHƯA được server xác nhận — tức chắc chắn 100% đây là tiếng
+                        // vọng của chính mình, không phải tab/thiết bị khác (ứng dụng KHÔNG bật
+                        // multi-tab IndexedDB persistence — đã xác nhận trong services/firebase.ts —
+                        // nên cache của tab khác không lẫn vào đây). Kiểm tra cờ này TRƯỚC, đáng tin
+                        // cậy hơn nên đặt làm lớp chặn đầu tiên; 2 lớp cũ bên dưới giữ nguyên làm dự
+                        // phòng cho trường hợp hiếm `includeMetadataChanges` hành xử khác dự kiến.
+                        // Toàn bộ 3 lớp chặn dưới đây giờ nằm trong `considerCloudDoc()`
+                        // (services/heavySyncPolicy.ts) — nguyên văn giải thích từng lớp đã chuyển
+                        // sang đó cùng với test cho từng nhánh. Giữ ĐÚNG thứ tự cũ: chỉ đọc
+                        // IndexedDB sau khi đã qua hết các lớp chặn rẻ này.
+                        const verdict = considerCloudDoc({
+                            isHeavyKey: true, // đã lọc bằng isHeavySyncKey(key) ở trên
+                            hasPendingWrites: docSnap.metadata.hasPendingWrites,
+                            localWritePendingOrInFlight:
+                                Boolean(heavyTimeoutsRef.current[key]) || isHeavyKeyInFlight(key),
+                            data: docSnap.data(),
+                        });
+                        if (verdict.consider === false) { // `=== false` để TypeScript thu hẹp đúng union
+                            if (verdict.reason === 'local-write-pending-or-in-flight') {
+                                console.warn(`[Cloud Sync] Real-time configs: Skip heavy key "${key}" update because a local write is pending or in flight.`);
+                            }
+                            continue;
+                        }
+
+                        const data = docSnap.data()!;
+                        const cloudTime = verdict.cloudTimeMs;
+
+                        const localValue = await getSetting<unknown>(key);
+                        const localTime = await getSetting<number>(`lastModified_${key}`) || 0;
+
+                        if (isCloudNewer(cloudTime, localValue !== null, localTime)) {
+                            console.warn(`[Cloud Sync] Real-time: Cloud has newer version for heavy key "${key}" (${cloudTime} > ${localTime}). Writing to local DB...`);
+
+                            let val: typeof data.value;
+                            if (data.chunked) {
+                                val = await assembleChunkedHeavyValue(docSnap.ref) as typeof data.value;
+                                if (val === undefined) continue;
+                            } else {
+                                val = restoreNestedArraysFromFirestore(data.value) as typeof data.value;
+                            }
+                            if (key === 'productConfig' && val && val.config && val.config.groups) {
+                                val = { ...val, config: fromCloudProductConfig(val.config) };
+                                // Bản Cloud đã hỏng (2 tập hình thức xuất rỗng — lỗi lưu Set cũ): KHÔNG lấy về
+                                // đè bản đầy đủ trên máy. Xem services/productConfigSerialization.ts.
+                                if (!isProductConfigComplete(val.config)) {
+                                    console.warn('[Cloud Sync] Bỏ qua productConfig trên Cloud: thiếu tập hình thức xuất (bản lưu cũ bị hỏng).');
+                                    continue;
+                                }
+                                // Bản dự phòng chép lại SAU bản chung máy vừa tải — cùng nội dung thì chỉ chỉnh mốc, khỏi ghi đè (2026-10-27).
+                                if (localValue !== null && cungNoiDungCauHinh((localValue as { config?: unknown }).config, val.config)) {
+                                    console.info('[Cloud Sync] Real-time: productConfig trên Cloud cùng nội dung bản trên máy — chỉ chỉnh mốc.');
+                                    await touchLastModified(key, cloudTime);
+                                    continue;
+                                }
+                            }
+                            
+                            await saveSettingFromCloud(key, val, cloudTime || Date.now());
+                            
+                            if (key === 'checkthuong_data') {
+                                try {
+                                    const { saveCheckThuongDataToIframeDb } = await import('../services/checkThuongIframeService');
+                                    await saveCheckThuongDataToIframeDb(val);
+                                    // Tự động đồng bộ ngay vào iframe Check Thưởng không cần hỏi
+                                    window.dispatchEvent(new CustomEvent('check-thuong-cloud-sync', { detail: { payload: val } }));
+                                } catch (err) {
+                                    console.error('[Cloud Sync CheckThuong] Error writing to iframe DB:', err);
+                                }
+                            }
+                        }
+                    }
+                }
+            }, (err) => {
+                console.error('[Cloud Sync] Error in configs collection listener:', err);
+            });
+        }, 2000);
+
+        // 2. Setup local change handlers
+        const handleSettingChanged = (e: CustomEvent<{ key: string; source?: string; unchanged?: boolean }>) => {
+            const key = e.detail?.key;
+            // Lưu lại đúng giá trị đang có (services/dbService/core.ts) — không có gì để đẩy lên.
+            if (e.detail?.unchanged) return;
+
+            // Nếu là khóa nặng, kích hoạt đồng bộ riêng biệt qua subcollection
+            if (key && isHeavySyncKey(key)) {
+                if (isHeavyKeyInFlight(key)) {
+                    // Đã có 1 lượt ghi khóa này đang bay lên Firestore — không xếp chồng thêm,
+                    // chỉ nhớ để đồng bộ lại 1 lần nữa ngay sau khi lượt hiện tại xong (xử lý bên
+                    // trong syncHeavySettingToCloudQueued).
+                    syncHeavySettingToCloudQueued(user, key);
+                    return;
+                }
+                if (heavyTimeoutsRef.current[key]) {
+                    clearTimeout(heavyTimeoutsRef.current[key]);
+                }
+                heavyTimeoutsRef.current[key] = setTimeout(() => {
+                    delete heavyTimeoutsRef.current[key];
+                    syncHeavySettingToCloudQueued(user, key);
+                    console.warn(`[Cloud Sync] Tự động đồng bộ khóa nặng "${key}" lên Firestore.`);
+                }, 2000); // Debounce 2 giây
+                return;
+            }
+
+            // Bỏ qua khoá không thuộc bộ đồng bộ nhẹ (lớn/tạm/riêng máy) để tránh đồng bộ liên tục.
+            if (key && !isLightSyncKey(key)) {
+                return;
+            }
+
+            hasUnsavedChanges.current = true;
+            if (debounceSyncTimeoutRef.current) {
+                clearTimeout(debounceSyncTimeoutRef.current);
+            }
+            debounceSyncTimeoutRef.current = setTimeout(() => {
+                if (hasUnsavedChanges.current) {
+                    forceSync();
+                }
+            }, 2000);
+        };
+
+        const syncPendingHeavySettings = () => {
+            // Qua đúng hàng đợi dùng chung (syncHeavySettingToCloudQueued) như nhánh debounce
+            // chính — trước đây gọi thẳng syncHeavySettingToCloud() ở đây, có thể chạy song song
+            // ngoài hàng đợi nếu đúng lúc 1 khóa khác đang được ghi (xem comment ở nơi định nghĩa).
+            for (const [key, timeout] of Object.entries(heavyTimeoutsRef.current)) {
+                if (timeout) {
+                    clearTimeout(timeout);
+                    syncHeavySettingToCloudQueued(user, key);
+                    console.warn(`[Cloud Sync] Đồng bộ khẩn cấp khóa nặng "${key}" trước khi đóng trang.`);
+                }
+            }
+            heavyTimeoutsRef.current = {};
+        };
+
+        const syncIfChanged = () => {
+            if (typeof window !== 'undefined' && (window as any).__ycx_is_resetting_all_data) return;
+            if (hasUnsavedChanges.current) forceSync();
+            syncPendingHeavySettings();
+        };
+
+        window.addEventListener('ycx-setting-changed', handleSettingChanged as EventListener);
+        
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') syncIfChanged();
+        };
+        const handleBeforeUnload = () => {
+            syncIfChanged();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        // Có mạng lại: đẩy ngay thay đổi đang chờ (đẩy cấu hình nhẹ chạy trong transaction — mất mạng là lỗi chứ không
+        // tự xếp hàng như setDoc, nên phải tự thử lại).
+        window.addEventListener('online', syncIfChanged);
+
+        // Periodic check every 15 minutes to save if there are unsaved changes
+        const intervalId = window.setInterval(syncIfChanged, 15 * 60 * 1000);
+
+        return () => {
+            clearTimeout(bootTimer);
+            if (unsubConfig) unsubConfig();
+            if (unsubConfigs) unsubConfigs();
+            window.removeEventListener('ycx-setting-changed', handleSettingChanged as EventListener);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('online', syncIfChanged);
+            window.clearInterval(intervalId);
+            clearSyncTimeout(); // Prevent memory leak when component unmounts
+        };
+    }, [user, isDemoMode, forceSync, clearSyncTimeout]);
+
+    return { syncState, lastSyncTime, forceSync, lastError };
+};

@@ -1,0 +1,136 @@
+
+import React, { useState, useRef, useEffect, useMemo, useId } from 'react';
+import { AppIcon } from './icon/AppIcon';
+import { Button } from './Button';
+import { Input } from './Input';
+
+interface SearchableSelectProps {
+    label: string;
+    options: string[];
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    allowCustom?: boolean;
+}
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({ label, options, value, onChange, placeholder, allowCustom = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const id = useId();
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        }
+    }, []);
+
+    const filteredOptions = useMemo(
+        () => options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase())),
+        [options, searchTerm]
+    );
+
+    const handleSelect = (selectedValue: string) => {
+        onChange(selectedValue);
+        setIsOpen(false);
+        setSearchTerm('');
+        triggerRef.current?.focus({ preventScroll: true });
+    };
+    
+    const displayValue = value || placeholder;
+
+    return (
+        <div ref={wrapperRef} onKeyDown={(event) => {
+            if (isOpen && event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsOpen(false);
+                triggerRef.current?.focus({ preventScroll: true });
+            }
+        }}>
+            <label id={`${id}-label`} htmlFor={id} className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
+            <div className="relative">
+                <Button
+                    ref={triggerRef}
+                    id={id}
+                    aria-labelledby={`${id}-label ${id}-value`}
+                    aria-expanded={isOpen}
+                    aria-controls={isOpen ? `${id}-panel` : undefined}
+                    type="button"
+                    variant="row" size="none"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="w-full h-9 sm:h-11 block rounded-control border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 pl-2.5 sm:pl-3 pr-8 sm:pr-10 text-left shadow-sm focus:border-sky-500 focus:ring-sky-500 text-xs sm:text-sm"
+                >
+                    <span id={`${id}-value`} className={`truncate ${value ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'}`}>
+                        {displayValue}
+                    </span>
+                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                        <AppIcon name="expandAll" size="md" className="text-slate-400" />
+                    </span>
+                </Button>
+                {isOpen && (
+                    <div id={`${id}-panel`} role="region" aria-labelledby={`${id}-label`} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 rounded-popup shadow-lg border border-slate-200 dark:border-slate-700 max-h-60 flex flex-col">
+                        <div className="p-1.5 sm:p-2 border-b border-slate-200 dark:border-slate-700">
+                            <Input
+                                aria-label={`Tìm kiếm ${label}`}
+                                type="text"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="Tìm kiếm..."
+                                className="text-xs sm:text-sm"
+                                autoFocus
+                            />
+                        </div>
+                        <ul className="overflow-y-auto flex-grow">
+                             <li><Button type="button" variant="row" size="none" aria-pressed={!value}
+                                onClick={() => handleSelect('')}
+                                className="w-full justify-start text-left min-h-11 cursor-pointer select-none relative py-1.5 sm:py-2 pl-2.5 sm:pl-3 pr-8 sm:pr-9 text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-sky-100 dark:hover:bg-slate-700"
+                            ><span className="block truncate italic">{placeholder}</span>
+                                {!value && (
+                                    <span className="absolute inset-y-0 right-0 flex items-center pr-3 sm:pr-4 text-sky-700">
+                                        <AppIcon name="check" size="md" />
+                                    </span>
+                                )}
+                            </Button></li>
+                            {filteredOptions.length > 0 ? (
+                                filteredOptions.map(opt => (
+                                    <li key={opt}><Button type="button" variant="row" size="none" aria-pressed={value === opt}
+                                        onClick={() => handleSelect(opt)}
+                                        className="w-full justify-start text-left min-h-11 cursor-pointer select-none relative py-1.5 sm:py-2 pl-2.5 sm:pl-3 pr-8 sm:pr-9 text-xs sm:text-sm text-slate-800 dark:text-slate-200 hover:bg-sky-100 dark:hover:bg-slate-700"
+                                    ><span className="block truncate">{opt}</span>
+                                        {value === opt && (
+                                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 sm:pr-4 text-sky-700">
+                                                <AppIcon name="check" size="md" />
+                                            </span>
+                                        )}
+                                    </Button></li>
+                                ))
+                            ) : (
+                                allowCustom && searchTerm.trim() ? (
+                                    <li><Button type="button" variant="row" size="none"
+                                        onClick={() => handleSelect(searchTerm.trim())}
+                                        className="w-full justify-start text-left min-h-11 cursor-pointer select-none relative py-2 pl-3 pr-9 text-sky-700 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-slate-700 font-medium"
+                                    ><span className="block truncate">Sử dụng "{searchTerm.trim()}"</span>
+                                    </Button></li>
+                                ) : (
+                                    <li className="text-center text-slate-500 py-2 text-xs">Không có kết quả.</li>
+                                )
+                            )}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default SearchableSelect;

@@ -1,0 +1,3 @@
+{
+  "components/shared/ui/index.ts": "Full barrel read:9target exports resolved to definitions with TS checker; public API shape retained. Otherexports not newly reviewed. No semantic review credit for scannedfiles."
+}

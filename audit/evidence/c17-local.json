@@ -1,0 +1,757 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c17-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c17-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c17-local",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "sidebar-hover-flyout.spec.ts",
+          "menu-khac-xoay-ngang.spec.ts",
+          "bi-deep-link-khong-vong-lap.spec.ts",
+          "bi-chuyen-che-do-khong-sap.spec.ts",
+          "phan-tich-mat-mang-cau-hinh.spec.ts",
+          "bi-competition.spec.ts",
+          "xss-header-sanitization.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c17-local.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "bi-chuyen-che-do-khong-sap.spec.ts",
+      "file": "bi-chuyen-che-do-khong-sap.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Report BI: bấm qua lại Realtime/Luỹ kế và Doanh thu/Thi đua không sập, URL theo đúng lựa chọn",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9451,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:46:25.042Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "edb53793654c95d7947c-a9398247de88df36e68b",
+          "file": "bi-chuyen-che-do-khong-sap.spec.ts",
+          "line": 9,
+          "column": 1
+        },
+        {
+          "title": "Report BI: mở link sâu ?mode=cumulative&sub=competition → đúng chế độ",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5761,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:46:34.857Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "edb53793654c95d7947c-77cd231b698edc616943",
+          "file": "bi-chuyen-che-do-khong-sap.spec.ts",
+          "line": 28,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "bi-competition.spec.ts",
+      "file": "bi-competition.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Report BI — bảng Thi đua Luỹ kế",
+          "file": "bi-competition.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "bộ cột mặc định: đủ số cột, có nhóm Vượt trội và cột Còn Lại",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10735,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "CỘT MẶC ĐỊNH: [\"#\",\"NHÓM THI ĐUA\",\"LUỸ KẾ\",\"TAR V.TRỘI\",\"%HT V.TRỘI\",\"%DKHT V.TRỘI\",\"C.LẠI\"]\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:25673) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:46:40.632Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-6ca92fdace56349d8869",
+              "file": "bi-competition.spec.ts",
+              "line": 15,
+              "column": 5
+            },
+            {
+              "title": "2 cột vượt trội có số liệu (không còn \"-\")",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11170,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:46:51.373Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-d512f0b6ab2b0416e5ad",
+              "file": "bi-competition.spec.ts",
+              "line": 39,
+              "column": 5
+            },
+            {
+              "title": "mặc định sắp xếp giảm dần theo %DKHT",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11408,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:47:02.548Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-453cce038fc733cd2489",
+              "file": "bi-competition.spec.ts",
+              "line": 46,
+              "column": 5
+            },
+            {
+              "title": "popup Bộ lọc thi đua mở được và có nút gạt cột",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11276,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "SỐ NÚT GẠT: \u001b[33m13\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:47:13.964Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-9edf2fcf053c839d4bc5",
+              "file": "bi-competition.spec.ts",
+              "line": 60,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "bi-deep-link-khong-vong-lap.spec.ts",
+      "file": "bi-deep-link-khong-vong-lap.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Siêu thị: gạt Realtime ↔ Luỹ kế, mở Thi đua — không sập, URL theo đúng chế độ",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11412,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:25.260Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f94f82043ce957b50f5b-82c3d101d3054b000988",
+          "file": "bi-deep-link-khong-vong-lap.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "Nhân viên: bấm lần lượt 4 tab con → tab đổi thật, URL ?sub= theo, không sập",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6335,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:36.678Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f94f82043ce957b50f5b-8f5abb0e150cfa4329b6",
+          "file": "bi-deep-link-khong-vong-lap.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "deep link: mở thẳng ?tab=employees&view=employee&sub=bonus → đúng mục Nhân viên, tab Thưởng",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2824,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:43.018Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f94f82043ce957b50f5b-5f3df2534e5b97ec64e8",
+          "file": "bi-deep-link-khong-vong-lap.spec.ts",
+          "line": 46,
+          "column": 1
+        },
+        {
+          "title": "deep link: ?tab=employees&view=dashboard&mode=cumulative&sub=competition → Siêu thị, Luỹ kế, Thi đua",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3498,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:45.848Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f94f82043ce957b50f5b-6400cb0462d988419af4",
+          "file": "bi-deep-link-khong-vong-lap.spec.ts",
+          "line": 56,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "menu-khac-xoay-ngang.spec.ts",
+      "file": "menu-khac-xoay-ngang.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "iPhone ngang 844×390: thấy nút đóng, cuộn tới được mục đầu và cuối, Esc đóng",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4499,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "844×390 — khung menu: top 20, cao 351 (màn 390)\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:49.370Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05e29ef16a2d36c5cdfe-2e655a97676b92f69951",
+          "file": "menu-khac-xoay-ngang.spec.ts",
+          "line": 8,
+          "column": 5
+        },
+        {
+          "title": "iPhone ngang 667×375: thấy nút đóng, cuộn tới được mục đầu và cuối, Esc đóng",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4350,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "667×375 — khung menu: top 19, cao 338 (màn 375)\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:53.875Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05e29ef16a2d36c5cdfe-150529d9007d7f038569",
+          "file": "menu-khac-xoay-ngang.spec.ts",
+          "line": 8,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "phan-tich-mat-mang-cau-hinh.spec.ts",
+      "file": "phan-tich-mat-mang-cau-hinh.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "mất mạng khi tải cấu hình: báo lỗi rõ ràng, không treo ở 95%",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2333,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:58.285Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2d448a50c90011aed99-6b8ca4e17838720fbd06",
+          "file": "phan-tich-mat-mang-cau-hinh.spec.ts",
+          "line": 17,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "sidebar-hover-flyout.spec.ts",
+      "file": "sidebar-hover-flyout.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "laptop: hover vào menu Công cụ và rê chuột sang submenu không bị mất",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4243,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:48:00.637Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58fdad0e1fa39abba2f5-628675699df8a41c0162",
+          "file": "sidebar-hover-flyout.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "laptop: hover vào User Profile avatar và rê chuột sang flyout card không bị mất",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3450,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:48:04.886Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58fdad0e1fa39abba2f5-5b179c46ca6de163a00e",
+          "file": "sidebar-hover-flyout.spec.ts",
+          "line": 43,
+          "column": 1
+        },
+        {
+          "title": "laptop: bấm vào nút Công cụ chỉ mở menu phụ, không chuyển sang trang trống",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3705,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:48:08.341Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "58fdad0e1fa39abba2f5-b71c30c8ba4ea21e30e8",
+          "file": "sidebar-hover-flyout.spec.ts",
+          "line": 72,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "xss-header-sanitization.spec.ts",
+      "file": "xss-header-sanitization.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "dán tên cột chứa HTML/script độc vào dữ liệu Thi đua KHÔNG thực thi trên trang",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10939,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:48:12.057Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e1905c0702f586b41ef1-37e41d5ddfa744fa117a",
+          "file": "xss-header-sanitization.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:46:23.350Z",
+    "duration": 120424.37,
+    "expected": 17,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

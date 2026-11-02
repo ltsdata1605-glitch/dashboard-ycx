@@ -1,0 +1,5 @@
+{
+  "features/bi-dashboard/hooks/useCheckThuongBonus.ts": "Full source re-read. Missing return after resolve(null)/close in legacy absent settings store causes uncaught async transaction closing error. Added return only; valid legacy payload and no-store nativeIDB tested. Real auth/cloud scope and migration semantics pending.",
+  "tests/e2e/helpers/materialHarness.html": "Added real useCheckThuongBonus enabled fixture, local fake UID scope with inheritfalse, Firebase auth guest, actual local legacyDB missing or present settings seeded before hook; no service writes.",
+  "tests/e2e/bonus-legacy-fallback.spec.ts": "Full authored safety read. Native IDBDatabase.close wrapper only observes/delegates real close to await fallback completion; asserts pageerrors empty and actual hook source. Newprofile, synthetic data; no production credentials."
+}

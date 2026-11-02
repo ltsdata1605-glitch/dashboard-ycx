@@ -1,0 +1,118 @@
+import React from 'react';
+
+// Base component for the pulsing animation
+export const SkeletonPulse: React.FC<{ className?: string }> = ({ className = '' }) => (
+    <div className={`animate-pulse bg-slate-200 dark:bg-slate-700 rounded ${className}`}></div>
+);
+
+// Skeleton for a single KPI card
+const KpiCardSkeleton: React.FC = () => (
+    <div className="rounded-card border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 p-3.5 flex flex-col justify-between gap-2 overflow-hidden shadow-xs">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <div className="flex-shrink-0 w-7 h-7 rounded-popup bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+                <SkeletonPulse className="h-3.5 w-20" />
+            </div>
+            <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+        </div>
+        <div className="my-1 flex justify-center">
+            <SkeletonPulse className="h-8 w-28" />
+        </div>
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center">
+            <SkeletonPulse className="h-3 w-14" />
+            <SkeletonPulse className="h-3.5 w-16 rounded-md" />
+        </div>
+    </div>
+);
+
+// Skeleton for the entire KPI cards section
+export const KpiCardsSkeleton: React.FC = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 lg:gap-4 mb-3 lg:mb-8">
+        <KpiCardSkeleton />
+        <KpiCardSkeleton />
+        <KpiCardSkeleton />
+        <KpiCardSkeleton />
+        <KpiCardSkeleton />
+    </div>
+);
+
+// Skeleton for chart-like components (TrendChart, IndustryGrid)
+export const ChartSkeleton: React.FC<{ height?: string }> = ({ height = 'h-[442px]' }) => (
+    <div className={`bg-white dark:bg-slate-900 rounded-none border-y lg:border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-3 lg:mb-8 flex flex-col ${height}`}>
+        <div className="px-2 py-1.5 lg:px-4 lg:py-2.5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <div>
+                <SkeletonPulse className="h-5 lg:h-6 w-40 lg:w-48 mb-2" />
+                <SkeletonPulse className="h-3 lg:h-4 w-52 lg:w-64" />
+            </div>
+            <div className="flex items-center gap-2">
+                <SkeletonPulse className="h-8 lg:h-9 w-20 lg:w-24 rounded-control" />
+                <SkeletonPulse className="h-8 lg:h-9 w-28 lg:w-32 rounded-control" />
+            </div>
+        </div>
+        <div className="p-3 lg:p-6 flex-grow">
+            <SkeletonPulse className="w-full h-full" />
+        </div>
+    </div>
+);
+
+// Generic Skeleton for table-like components (SummaryTable, WarehouseSummary)
+export const TableSkeleton: React.FC<{rows?: number}> = ({ rows = 5 }) => (
+    <div className="bg-white dark:bg-slate-900 rounded-none border-y lg:border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-3 lg:mb-8">
+        <div className="px-2 py-1.5 lg:px-4 lg:py-2.5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <SkeletonPulse className="h-6 lg:h-7 w-44 lg:w-56 mb-2" />
+                <SkeletonPulse className="h-3 lg:h-4 w-60 lg:w-72" />
+            </div>
+            <div className="flex items-center gap-3">
+                <SkeletonPulse className="h-9 lg:h-10 w-24 lg:w-28 rounded-md" />
+                <SkeletonPulse className="h-9 lg:h-10 w-24 lg:w-28 rounded-md" />
+            </div>
+        </div>
+        <div className="p-3 lg:p-6">
+            <div className="space-y-3">
+                {/* Header */}
+                <div className="grid grid-cols-5 gap-4 px-4">
+                    <SkeletonPulse className="h-5 col-span-2" />
+                    <SkeletonPulse className="h-5" />
+                    <SkeletonPulse className="h-5" />
+                    <SkeletonPulse className="h-5" />
+                </div>
+                {/* Body */}
+                {Array.from({ length: rows }).map((_, i) => (
+                    <SkeletonPulse key={i} className="h-12 w-full rounded-control" />
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
+// A more specific skeleton for the EmployeeAnalysis component which has tabs
+export const TabbedTableSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) => (
+    <div className="bg-white dark:bg-slate-900 rounded-none border-y lg:border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-3 lg:mb-8 flex flex-col flex-grow">
+        {/* Tab headers */}
+        <div className="flex justify-between items-center gap-y-2 border-b-2 border-slate-200 dark:border-slate-700 px-2 lg:px-4 pt-3 lg:pt-4">
+            <div className="flex items-center gap-4">
+                <SkeletonPulse className="h-5 w-24 pb-2" />
+                <SkeletonPulse className="h-5 w-28 pb-2" />
+                <SkeletonPulse className="h-5 w-20 pb-2" />
+            </div>
+            <div className="flex items-center gap-3 pb-2">
+                <SkeletonPulse className="h-10 w-48 rounded-md" />
+                <SkeletonPulse className="h-10 w-10 rounded-md" />
+            </div>
+        </div>
+        {/* Table content */}
+        <div className="p-3 lg:p-6 flex-grow">
+            <div className="space-y-3">
+                 <div className="flex justify-between items-center mb-4">
+                    <SkeletonPulse className="h-6 w-48" />
+                    <SkeletonPulse className="h-8 w-24 rounded-md" />
+                 </div>
+                 {/* Table Body */}
+                {Array.from({ length: rows }).map((_, i) => (
+                    <SkeletonPulse key={i} className="h-16 w-full rounded-popup" />
+                ))}
+            </div>
+        </div>
+    </div>
+);

@@ -1,0 +1,50 @@
+tests/e2e/nhan-giu-xem-chu-thich.spec.ts:4: * Audit A14 (2026-09-30) — components/shared/ui/TouchTitleHint.tsx: màn cảm ứng không hiện `title`
+tests/e2e/nhan-giu-xem-chu-thich.spec.ts:10:    await page.waitForTimeout(800); // App gắn TouchTitleHint trong effect
+components/views/CheckThuongView.tsx:10:import { usePageActions } from '../shared/ui/PageActions';
+components/views/CheckThuongView.tsx:286:    usePageActions(mounted && activeTab === 'check-thuong' && hasData ? {
+components/views/settings/SettingsAccountTab.tsx:11:import { usePageActions } from '../../shared/ui/PageActions';
+components/views/settings/SettingsAccountTab.tsx:30:    usePageActions(activeTab === 'settings'
+components/views/settings/SettingsAccountTab.tsx:415:                iPhone dùng usePageActions ở trên (thanh trên của khung app). */}
+tests/e2e/khung-app-gd4.spec.ts:7: *    `usePageActions` → [Tải YCX lên] [Bộ lọc] [⋯] — không còn 5 nút 32px đè chuông, không tràn ngang ở iPhone SE.
+tests/e2e/mobile-settings-compact.spec.ts:49:    // 1. Đăng xuất: nút trên thanh trên của khung app (usePageActions), VÙNG CHẠM 44×44. Từ 57656d7 (2026-10-15) chủ dự án giữ cỡ
+components/shared/README.md:23:| Nút trên thanh trên | `usePageActions({ scope, primary, quick, items })` | KHÔNG `createPortal` thủ công. `scope: 'mobile'` khi laptop đã có thanh công cụ riêng |
+tests/e2e/helpers/appleUiHarness.tsx:13:import { PageActionsProvider, usePageActions, useCurrentPageActions } from '../../../components/shared/ui/PageActions';
+tests/e2e/helpers/appleUiHarness.tsx:20:    usePageActions(hien ? {
+tests/e2e/helpers/appleUiHarness.tsx:32:    const c = useCurrentPageActions();
+tests/e2e/helpers/appleUiHarness.tsx:50:        <PageActionsProvider>
+tests/e2e/helpers/appleUiHarness.tsx:109:        </PageActionsProvider>
+App.tsx:40:const TouchTitleHint = lazyWithRetry(() => import('./components/shared/ui/TouchTitleHint').then(m => ({ default: m.TouchTitleHint })), 'TouchTitleHint');
+App.tsx:47:import { PageActionsProvider } from './components/shared/ui/PageActions';
+App.tsx:378:                                {/* Màn khai báo bằng usePageActions (phạm vi 'all'/'desktop') — màn cũ vẫn portal vào khe bên cạnh. */}
+App.tsx:432:                        <PageActionsProvider>
+App.tsx:434:                        </PageActionsProvider>
+App.tsx:438:                        <Suspense fallback={null}><TouchTitleHint /></Suspense>
+features/line-bot/LineBotView.tsx:9:import { usePageActions } from '../../components/shared/ui/PageActions';
+features/line-bot/LineBotView.tsx:73:    usePageActions(activeTab === 'tools-line-bot' && isManagerOrAdmin ? {
+features/bi-dashboard/components/BiWrapper.tsx:9:import { usePageActions } from '../../../components/shared/ui/PageActions';
+features/bi-dashboard/components/BiWrapper.tsx:312:    usePageActions(isTabActive && isMobile ? {
+features/tax-calculator/TaxCalculatorView.tsx:4:import { usePageActions } from '../../components/shared/ui/PageActions';
+features/tax-calculator/TaxCalculatorView.tsx:104:  usePageActions(activeTab === 'tools-tax' ? {
+features/tax-calculator/TaxCalculatorView.tsx:376:          {/* Action buttons — laptop; iPhone/iPad dùng thanh trên (usePageActions ở trên) */}
+components/shared/ui/BatchShareToast.tsx:21:export function canShareBatch(files: BatchShareFile[]): boolean {
+components/shared/ui/BatchShareToast.tsx:26:export function offerBatchShare(files: BatchShareFile[], onFallback: () => void): void {
+components/shared/ui/BatchShareToast.tsx:27:    if (!canShareBatch(files)) { onFallback(); return; }
+components/shared/ui/imageDelivery.ts:2:import { offerShareRetry } from './ShareRetryToast';
+components/shared/ui/imageDelivery.ts:87:                offerShareRetry(shareData, () => {
+components/layout/MobileNavBar.tsx:23: * `usePageActions()` → `PageActionsBar` tự xếp (tối đa 1 nút chính + 1 nút nhanh + "⋯"), hết cảnh 7 nút đè nhau (lỗi #1).
+components/shared/ui/TouchTitleHint.tsx:18:export function TouchTitleHint(): null {
+components/layout/PageActionsBar.tsx:5:import { useCurrentPageActions } from '../shared/ui/PageActions';
+components/layout/PageActionsBar.tsx:9: * Nút của MÀN ĐANG HIỆN trên khung app (GĐ4, KE_HOACH_GIAO_DIEN_APPLE.md mục 3.2) — màn khai báo bằng `usePageActions()`,
+components/layout/PageActionsBar.tsx:12: *    (giữ nhấn để đọc tên — TouchTitleHint), như thanh điều hướng iOS.
+components/layout/PageActionsBar.tsx:16:    const c = useCurrentPageActions();
+components/shared/ui/PageActions.tsx:13: *   usePageActions(isActive ? { title: 'Phân tích', primary: {…}, items: [...] } : null);
+components/shared/ui/PageActions.tsx:65:export const PageActionsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+components/shared/ui/PageActions.tsx:84:export function usePageActions(config: PageActionsConfig | null): void {
+components/shared/ui/PageActions.tsx:101:export function useCurrentPageActions(): PageActionsConfig | null {
+components/shared/ui/index.ts:38:export { PageActionsProvider, usePageActions, useCurrentPageActions } from './PageActions';
+components/shared/ui/ShareRetryToast.tsx:13:export function offerShareRetry(shareData: ShareData, onFail: () => void): void {
+features/phan-ca/components/PhanCaToolbar.tsx:6:import { usePageActions } from '../../../components/shared/ui/PageActions';
+features/phan-ca/components/PhanCaToolbar.tsx:31:    usePageActions(activeTab === 'tools-phanca' ? {
+components/filters/FilterBar.tsx:4:import { usePageActions } from '../shared/ui/PageActions';
+components/filters/FilterBar.tsx:20: * `usePageActions` thay vì portal 5 nút 32px vào `#mobile-topbar-actions` (đè chuông, đẩy trang tràn ngang ở iPhone SE — lỗi #1).
+components/filters/FilterBar.tsx:39:    usePageActions(activeTab === 'analysis' ? {

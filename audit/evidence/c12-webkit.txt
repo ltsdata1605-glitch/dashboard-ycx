@@ -1,0 +1,9 @@
+[WebServer] (node:9732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 390 › Escape cancels a pending hover timer (1.7s)
+  ✓  2 [webkit] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 1366 › Escape cancels a pending hover timer (528ms)
+
+  2 passed (5.3s)

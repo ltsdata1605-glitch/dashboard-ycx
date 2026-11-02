@@ -1,0 +1,467 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c15-playwright.config.mjs",
+      "shared-dropdown.spec.ts"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c15-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c15-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "shared-dropdown.spec.ts",
+          "bi-bonus-compare.spec.ts",
+          "shared-tooltip.spec.ts",
+          "shared-form-states.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c15-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "shared-dropdown.spec.ts",
+      "file": "shared-dropdown.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Dropdown 390",
+          "file": "shared-dropdown.spec.ts",
+          "line": 4,
+          "column": 10,
+          "specs": [
+            {
+              "title": "span icon trigger has a name without nested interactive controls",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 882,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T03:45:55.889Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-63c5196d968221253803",
+              "file": "shared-dropdown.spec.ts",
+              "line": 6,
+              "column": 9
+            },
+            {
+              "title": "keyboard selection skips disabled items and restores focus to trigger",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10312,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-dropdown-trigger]')\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" locator('[data-dropdown-trigger]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-dropdown-trigger]')\u001b[22m\n\u001b[2m    24 × locator resolved to <div tabindex=\"0\" role=\"button\" aria-haspopup=\"true\" aria-expanded=\"false\" data-dropdown-trigger=\"\" class=\"ycx-hit cursor-pointer\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-dropdown-trigger]')\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" locator('[data-dropdown-trigger]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-dropdown-trigger]')\u001b[22m\n\u001b[2m    24 × locator resolved to <div tabindex=\"0\" role=\"button\" aria-haspopup=\"true\" aria-expanded=\"false\" data-dropdown-trigger=\"\" class=\"ycx-hit cursor-pointer\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:28:35",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                          "column": 35,
+                          "line": 28
+                        },
+                        "snippet": "  26 |             await expect(page.locator('output')).toHaveText('previous');\n  27 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);\n> 28 |             await expect(trigger).toBeFocused();\n     |                                   ^\n  29 |             await page.keyboard.press('ArrowDown');\n  30 |             await expect(page.getByRole('button', { name:'Kỳ trước', exact:true })).toBeFocused();\n  31 |             await page.screenshot({path:`audit/evidence/c15-dropdown-${width}.png`, animations:'disabled'});"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                            "column": 35,
+                            "line": 28
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-dropdown-trigger]')\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" locator('[data-dropdown-trigger]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-dropdown-trigger]')\u001b[22m\n\u001b[2m    24 × locator resolved to <div tabindex=\"0\" role=\"button\" aria-haspopup=\"true\" aria-expanded=\"false\" data-dropdown-trigger=\"\" class=\"ycx-hit cursor-pointer\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n\n\n  26 |             await expect(page.locator('output')).toHaveText('previous');\n  27 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);\n> 28 |             await expect(trigger).toBeFocused();\n     |                                   ^\n  29 |             await page.keyboard.press('ArrowDown');\n  30 |             await expect(page.getByRole('button', { name:'Kỳ trước', exact:true })).toBeFocused();\n  31 |             await page.screenshot({path:`audit/evidence/c15-dropdown-${width}.png`, animations:'disabled'});\n    at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:28:35"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T03:45:57.011Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-3-189ef-d-restores-focus-to-trigger-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                        "column": 35,
+                        "line": 28
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-2790e1c974c14a49ccf5",
+              "file": "shared-dropdown.spec.ts",
+              "line": 12,
+              "column": 9
+            },
+            {
+              "title": "Escape returns focus but outside click preserves the destination focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 60095,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                            "column": 27,
+                            "line": 43
+                          },
+                          "message": "Error: locator.click: Test timeout of 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Bên ngoài' })\u001b[22m\n\u001b[2m    - locator resolved to <button data-ui=\"shared\" class=\"items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-[var(--btn-height-md)] max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control block mt-16\">Bên ngoài</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"py-1 max-h-[280px] overflow-y-auto custom-scrollbar\">…</div> from <div class=\"relative inline-flex\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"py-1 max-h-[280px] overflow-y-auto custom-scrollbar\">…</div> from <div class=\"relative inline-flex\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    115 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <div class=\"py-1 max-h-[280px] overflow-y-auto custom-scrollbar\">…</div> from <div class=\"relative inline-flex\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n\n\n  41 |             await trigger.click();\n  42 |             const outside = page.getByRole('button', {name:'Bên ngoài'});\n> 43 |             await outside.click();\n     |                           ^\n  44 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);\n  45 |             await expect(outside).toBeFocused();\n  46 |         });\n    at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:43:27"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T03:46:07.664Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-3-97eb4-erves-the-destination-focus-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-c73f3f1c386f7a3ac692",
+              "file": "shared-dropdown.spec.ts",
+              "line": 33,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Dropdown 1366",
+          "file": "shared-dropdown.spec.ts",
+          "line": 4,
+          "column": 10,
+          "specs": [
+            {
+              "title": "span icon trigger has a name without nested interactive controls",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 321,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T03:47:08.235Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-59bbd1731c14184b0470",
+              "file": "shared-dropdown.spec.ts",
+              "line": 6,
+              "column": 9
+            },
+            {
+              "title": "keyboard selection skips disabled items and restores focus to trigger",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10340,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-dropdown-trigger]')\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" locator('[data-dropdown-trigger]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-dropdown-trigger]')\u001b[22m\n\u001b[2m    24 × locator resolved to <div tabindex=\"0\" role=\"button\" aria-haspopup=\"true\" aria-expanded=\"false\" data-dropdown-trigger=\"\" class=\"ycx-hit cursor-pointer\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-dropdown-trigger]')\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" locator('[data-dropdown-trigger]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-dropdown-trigger]')\u001b[22m\n\u001b[2m    24 × locator resolved to <div tabindex=\"0\" role=\"button\" aria-haspopup=\"true\" aria-expanded=\"false\" data-dropdown-trigger=\"\" class=\"ycx-hit cursor-pointer\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:28:35",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                          "column": 35,
+                          "line": 28
+                        },
+                        "snippet": "  26 |             await expect(page.locator('output')).toHaveText('previous');\n  27 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);\n> 28 |             await expect(trigger).toBeFocused();\n     |                                   ^\n  29 |             await page.keyboard.press('ArrowDown');\n  30 |             await expect(page.getByRole('button', { name:'Kỳ trước', exact:true })).toBeFocused();\n  31 |             await page.screenshot({path:`audit/evidence/c15-dropdown-${width}.png`, animations:'disabled'});"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                            "column": 35,
+                            "line": 28
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('[data-dropdown-trigger]')\nExpected: focused\nReceived: inactive\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeFocused\" locator('[data-dropdown-trigger]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-dropdown-trigger]')\u001b[22m\n\u001b[2m    24 × locator resolved to <div tabindex=\"0\" role=\"button\" aria-haspopup=\"true\" aria-expanded=\"false\" data-dropdown-trigger=\"\" class=\"ycx-hit cursor-pointer\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n\n\n  26 |             await expect(page.locator('output')).toHaveText('previous');\n  27 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);\n> 28 |             await expect(trigger).toBeFocused();\n     |                                   ^\n  29 |             await page.keyboard.press('ArrowDown');\n  30 |             await expect(page.getByRole('button', { name:'Kỳ trước', exact:true })).toBeFocused();\n  31 |             await page.screenshot({path:`audit/evidence/c15-dropdown-${width}.png`, animations:'disabled'});\n    at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:28:35"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T03:47:08.689Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-1-f3c27-d-restores-focus-to-trigger-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                        "column": 35,
+                        "line": 28
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-121043e38f93dd7420e6",
+              "file": "shared-dropdown.spec.ts",
+              "line": 12,
+              "column": 9
+            },
+            {
+              "title": "Escape returns focus but outside click preserves the destination focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 60105,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts",
+                            "column": 27,
+                            "line": 43
+                          },
+                          "message": "Error: locator.click: Test timeout of 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Bên ngoài' })\u001b[22m\n\u001b[2m    - locator resolved to <button data-ui=\"shared\" class=\"items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-600 hover:bg-sky-700 text-white border border-transparent h-[var(--btn-height-md)] max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control block mt-16\">Bên ngoài</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <button disabled class=\"outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed justify-start w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 opacity-40 cursor-not-allowed\">…</button> from <div class=\"relative inline-flex\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <button disabled class=\"outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed justify-start w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 opacity-40 cursor-not-allowed\">…</button> from <div class=\"relative inline-flex\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    114 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m        - element is visible, enabled and stable\u001b[22m\n\u001b[2m        - scrolling into view if needed\u001b[22m\n\u001b[2m        - done scrolling\u001b[22m\n\u001b[2m        - <button disabled class=\"outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed justify-start w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 opacity-40 cursor-not-allowed\">…</button> from <div class=\"relative inline-flex\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m      - retrying click action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\n\n  41 |             await trigger.click();\n  42 |             const outside = page.getByRole('button', {name:'Bên ngoài'});\n> 43 |             await outside.click();\n     |                           ^\n  44 |             await expect(page.locator('[data-dropdown-panel]')).toHaveCount(0);\n  45 |             await expect(outside).toBeFocused();\n  46 |         });\n    at /Users/ltson/dashboardycx/tests/e2e/shared-dropdown.spec.ts:43:27"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T03:47:19.488Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c15-before/shared-dropdown-Dropdown-1-b79ea-erves-the-destination-focus-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "042264e8edd1c82fb310-cbf53a00366d6994b3a3",
+              "file": "shared-dropdown.spec.ts",
+              "line": 33,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T03:45:54.024Z",
+    "duration": 145782.82,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 4,
+    "flaky": 0
+  }
+}

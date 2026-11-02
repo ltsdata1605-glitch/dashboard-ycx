@@ -1,0 +1,317 @@
+/**
+ * Test hồi quy cho firestore.rules — collection khoData/{maKho}/salesFiles (mục 37
+ * implementation_plan.md, "Chia sẻ dữ liệu doanh số theo Kho") + collection
+ * biSupermarketMap/{maKho} (mục "Quản lý tự cấu hình bảng map Siêu thị → Mã Kho"). Chạy hoàn
+ * toàn LOCAL qua Firestore Emulator (@firebase/rules-unit-testing) — không đụng gì đến Firebase
+ * production.
+ *
+ * Chạy: npm run test:rules
+ * (cần Java Runtime cho Firestore Emulator — nếu máy chưa có: `brew install openjdk`,
+ * xem Caveats khi cài để biết cách thêm vào PATH nếu `java -version` báo không tìm thấy)
+ *
+ * Khi sửa firestore.rules (đặc biệt block khoData/biSupermarketMap hoặc hàm
+ * myKhos()/isManager()/isAdmin()), hãy chạy lại file này để chắc chắn không vô tình mở/khoá
+ * nhầm quyền.
+ */
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import {
+    initializeTestEnvironment,
+    assertSucceeds,
+    assertFails,
+} from '@firebase/rules-unit-testing';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ID = 'dashboa-7e20b-ruletest';
+const rules = readFileSync(resolve(__dirname, '..', 'firestore.rules'), 'utf8');
+
+let pass = 0;
+let fail = 0;
+
+// `resultPromise` phải là kết quả của assertSucceeds(op) hoặc assertFails(op) — 2 hàm này
+// TỰ resolve/reject đúng theo kỳ vọng rồi (assertSucceeds reject nếu op bị Rules chặn,
+// assertFails reject nếu op KHÔNG bị chặn dù đáng lẽ phải bị chặn). check() chỉ cần biết
+// promise đó có throw hay không — KHÔNG truyền thêm cờ "allow/deny" riêng (dễ viết sai,
+// chồng chéo 2 lớp kỳ vọng, có thể báo PASS nhầm khi rules thực ra đang sai).
+async function check(label, resultPromise) {
+    try {
+        await resultPromise;
+        console.log(`✅ PASS: ${label}`);
+        pass++;
+    } catch (e) {
+        console.log(`❌ FAIL: ${label} -- ${e.message?.split('\n')[0]}`);
+        fail++;
+    }
+}
+
+async function main() {
+    const testEnv = await initializeTestEnvironment({
+        projectId: PROJECT_ID,
+        firestore: { rules },
+    });
+
+    // --- Seed data (bypass rules) để có sẵn 1 file trong TESTKHO cho các test đọc ---
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await db.doc('khoData/TESTKHO/salesFiles/seedfile').set({
+            maKho: 'TESTKHO', filename: 'seed.xlsx', uploadedByUid: 'seeder', uploadedByName: 'Seeder',
+            uploadedAt: Date.now(), fileLastModified: Date.now(), totalRows: 1, chunkCount: 1,
+            isRealtime: false, isActive: true, version: 1,
+        });
+        await db.doc('khoData/TESTKHO/salesFiles/seedfile/chunks/chunk_0').set({ rows: [{ foo: 'bar' }] });
+    });
+
+    const managerA = testEnv.authenticatedContext('managerA', { role: 'manager', departmentId: 'TESTKHO' });
+    const managerMulti = testEnv.authenticatedContext('managerMulti', { role: 'manager', departmentId: 'TESTKHO,OTHERKHO' });
+    const managerOther = testEnv.authenticatedContext('managerOther', { role: 'manager', departmentId: 'OTHERKHO' });
+    const employeeSame = testEnv.authenticatedContext('employeeSame', { role: 'employee', departmentId: 'TESTKHO' });
+    const employeeOther = testEnv.authenticatedContext('employeeOther', { role: 'employee', departmentId: 'OTHERKHO' });
+    const adminUser = testEnv.authenticatedContext('adminUser', { role: 'admin', departmentId: 'ALL (Super Admin)' });
+    const anon = testEnv.unauthenticatedContext();
+
+    const fileDoc = (ctx, fileId = 'file1') => ctx.firestore().doc(`khoData/TESTKHO/salesFiles/${fileId}`);
+    const chunkDoc = (ctx, fileId = 'file1') => ctx.firestore().doc(`khoData/TESTKHO/salesFiles/${fileId}/chunks/chunk_0`);
+    const seedDoc = (ctx) => ctx.firestore().doc('khoData/TESTKHO/salesFiles/seedfile');
+    const seedChunk = (ctx) => ctx.firestore().doc('khoData/TESTKHO/salesFiles/seedfile/chunks/chunk_0');
+    const filesCol = (ctx) => ctx.firestore().collection('khoData/TESTKHO/salesFiles');
+
+    const sampleMeta = {
+        maKho: 'TESTKHO', filename: 'test.xlsx', uploadedByUid: 'managerA', uploadedByName: 'Manager A',
+        uploadedAt: Date.now(), fileLastModified: Date.now(), totalRows: 1, chunkCount: 1,
+        isRealtime: true, isActive: true, version: 1,
+    };
+
+    console.log('\n=== KHO DATA — GHI (write) ===');
+    await check('Manager A ghi file vào Kho của chính mình (TESTKHO)',
+        assertSucceeds(fileDoc(managerA).set(sampleMeta)));
+    await check('Manager A ghi chunk vào file của chính mình',
+        assertSucceeds(chunkDoc(managerA).set({ rows: [{ a: 1 }] })));
+    await check('Manager nhiều Kho (TESTKHO,OTHERKHO) ghi được vào TESTKHO',
+        assertSucceeds(fileDoc(managerMulti, 'file2').set(sampleMeta)));
+    await check('Manager Kho khác (OTHERKHO) KHÔNG ghi được vào TESTKHO',
+        assertFails(fileDoc(managerOther, 'hack1').set(sampleMeta)));
+    await check('Nhân viên cùng Kho KHÔNG được ghi (chỉ đọc)',
+        assertFails(fileDoc(employeeSame, 'hack2').set(sampleMeta)));
+    await check('Nhân viên KHÔNG được ghi chunk',
+        assertFails(chunkDoc(employeeSame, 'seedfile').set({ rows: [] })));
+    await check('Admin (không map Kho cụ thể) KHÔNG ghi được vào TESTKHO',
+        assertFails(fileDoc(adminUser, 'adminhack').set(sampleMeta)));
+    await check('Chưa đăng nhập KHÔNG ghi được',
+        assertFails(fileDoc(anon, 'anonhack').set(sampleMeta)));
+
+    console.log('\n=== KHO DATA — ĐỌC (get 1 file cụ thể) ===');
+    await check('Manager A đọc được file (get) trong Kho của mình',
+        assertSucceeds(seedDoc(managerA).get()));
+    await check('Nhân viên cùng Kho đọc được file (get)',
+        assertSucceeds(seedDoc(employeeSame).get()));
+    await check('Nhân viên cùng Kho đọc được chunk (get)',
+        assertSucceeds(seedChunk(employeeSame).get()));
+    await check('Nhân viên Kho KHÁC KHÔNG đọc được file của TESTKHO',
+        assertFails(seedDoc(employeeOther).get()));
+    await check('Manager Kho khác KHÔNG đọc được file của TESTKHO',
+        assertFails(seedDoc(managerOther).get()));
+    await check('Chưa đăng nhập KHÔNG đọc được',
+        assertFails(seedDoc(anon).get()));
+
+    console.log('\n=== KHO DATA — LIST (getKhoAllFilesMeta / getKhoActiveFilesMeta) ===');
+    await check('Manager A list được salesFiles của Kho mình',
+        assertSucceeds(filesCol(managerA).get()));
+    await check('Nhân viên cùng Kho list được salesFiles',
+        assertSucceeds(filesCol(employeeSame).get()));
+    await check('Nhân viên Kho khác KHÔNG list được salesFiles của TESTKHO',
+        assertFails(filesCol(employeeOther).get()));
+
+    console.log('\n=== KHO DATA — CẬP NHẬT/XOÁ (setKhoSalesFileActive / deleteKhoSalesFile) ===');
+    await check('Manager A tự cập nhật isActive file của Kho mình',
+        assertSucceeds(seedDoc(managerA).update({ isActive: false })));
+    await check('Nhân viên KHÔNG được cập nhật isActive',
+        assertFails(seedDoc(employeeSame).update({ isActive: false })));
+    await check('Manager Kho khác KHÔNG được xoá file của TESTKHO',
+        assertFails(seedDoc(managerOther).delete()));
+    await check('Manager A xoá được file của Kho mình',
+        assertSucceeds(fileDoc(managerA, 'file2').delete()));
+
+    // --- Seed data (bypass rules) cho biSupermarketMap/TESTKHO ---
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc('biSupermarketMap/TESTKHO').set({ names: ['ĐM_TEST - 1 Test Street'] });
+    });
+
+    const khoMapDoc = (ctx, maKho = 'TESTKHO') => ctx.firestore().doc(`biSupermarketMap/${maKho}`);
+
+    console.log('\n=== BI SUPERMARKET MAP — GHI (write), khác biệt CỐ Ý với KHO DATA: admin ghi được mọi maKho ===');
+    await check('Manager A ghi được vào đúng Kho của mình (TESTKHO)',
+        assertSucceeds(khoMapDoc(managerA).set({ names: ['ĐM_TEST - 1 Test Street', 'ĐM_TEST - 2 New Street'] })));
+    await check('Manager Kho khác (OTHERKHO) KHÔNG ghi được vào TESTKHO',
+        assertFails(khoMapDoc(managerOther).set({ names: ['hack'] })));
+    await check('Nhân viên KHÔNG được ghi (chỉ đọc)',
+        assertFails(khoMapDoc(employeeSame).set({ names: ['hack'] })));
+    await check('Admin ghi được vào TESTKHO dù departmentId không map Kho này (bảng tra cứu toàn hệ thống)',
+        assertSucceeds(khoMapDoc(adminUser).set({ names: ['ĐM_TEST - 1 Test Street'] })));
+    await check('Admin ghi được vào Kho hoàn toàn mới (OTHERKHO2, chưa từng có ai map)',
+        assertSucceeds(khoMapDoc(adminUser, 'OTHERKHO2').set({ names: ['ĐM_KHÁC - 3 Another Street'] })));
+    await check('Manager A KHÔNG ghi được vào Kho khác (OTHERKHO) dù chỉ thêm 1 tên',
+        assertFails(khoMapDoc(managerA, 'OTHERKHO').set({ names: ['hack'] })));
+    await check('Chưa đăng nhập KHÔNG ghi được',
+        assertFails(khoMapDoc(anon).set({ names: ['hack'] })));
+
+    console.log('\n=== BI SUPERMARKET MAP — ĐỌC (get) — ai đăng nhập cũng đọc được, kể cả Kho không phải của mình ===');
+    await check('Manager Kho khác vẫn đọc được map của TESTKHO (đọc công khai cho user đăng nhập)',
+        assertSucceeds(khoMapDoc(managerOther).get()));
+    await check('Nhân viên đọc được',
+        assertSucceeds(khoMapDoc(employeeSame).get()));
+    await check('Chưa đăng nhập KHÔNG đọc được',
+        assertFails(khoMapDoc(anon).get()));
+
+    // --- Seed doc đếm lượt truy cập (bypass rules) ---
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc('_system/stats').set({ totalVisits: 10 });
+    });
+    const statsDoc = (ctx) => ctx.firestore().doc('_system/stats');
+
+    console.log('\n=== _SYSTEM/STATS — bộ đếm lượt truy cập (siết lại 2026-09-09, mục 2.6) ===');
+    await check('User đăng nhập TĂNG được đúng 1 đơn vị (luồng thật của useSystemTraffic)',
+        assertSucceeds(statsDoc(employeeSame).update({ totalVisits: 11 })));
+    await check('KHÔNG được nhảy cóc nhiều đơn vị (bơm số)',
+        assertFails(statsDoc(employeeSame).update({ totalVisits: 9999 })));
+    await check('KHÔNG được giảm số',
+        assertFails(statsDoc(employeeSame).update({ totalVisits: 1 })));
+    await check('KHÔNG được ghi đè cả document (mất bộ đếm)',
+        assertFails(statsDoc(employeeSame).set({ totalVisits: 11 })));
+    await check('KHÔNG được thêm field lạ kèm theo',
+        assertFails(statsDoc(employeeSame).update({ totalVisits: 11, hacked: true })));
+    await check('KHÔNG được XOÁ document đếm',
+        assertFails(statsDoc(employeeSame).delete()));
+    await check('Admin cũng KHÔNG được ghi đè (ràng buộc áp cho mọi vai trò)',
+        assertFails(statsDoc(adminUser).set({ totalVisits: 500 })));
+    await check('Chưa đăng nhập KHÔNG ghi được',
+        assertFails(statsDoc(anon).update({ totalVisits: 11 })));
+    await check('User đăng nhập vẫn ĐỌC được tổng lượt truy cập',
+        assertSucceeds(statsDoc(employeeSame).get()));
+
+    // ═══ Audit 2026-10-07 GĐ1b — Bot LINE theo Mã Kho (S13) ═══
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await db.doc('line_bots/ownerA').set({ userId: 'ownerA', departmentId: 'TESTKHO', active: true, channelAccessToken: 'secret-A', isWarehouseShared: true });
+        await db.doc('line_bots/ownerA/coupons/c1').set({ code: 'X1', status: 'UNUSED' });
+        await db.doc('line_bots/ownerMulti').set({ userId: 'ownerMulti', departmentId: 'ALL (Super Admin),TESTKHO', active: true, channelAccessToken: 'secret-M' });
+        await db.doc('bot_media/old1').set({ base64: 'AAAA', ownerUid: 'managerA' });
+        await db.doc('report_commands/bc').set({ imageUrl: 'https://x' });
+        await db.doc('line_bot_secrets/ownerA').set({ channelAccessToken: 'secret-A', channelSecret: 'sec-A' });
+        await db.doc('stores/K1/savedLists/l1').set({ name: 'list K1' });
+        await db.doc('stores/SUPERADMIN/savedLists/g1').set({ name: 'chung' });
+    });
+    const bot = (ctx, id = 'ownerA') => ctx.firestore().doc(`line_bots/${id}`);
+    const botCoupon = (ctx, id = 'ownerA') => ctx.firestore().doc(`line_bots/${id}/coupons/c1`);
+
+    await check('Bot: manager CÙNG Kho đọc được bot (kế thừa Bot Kho)', assertSucceeds(bot(managerA).get()));
+    await check('Bot: manager KHÁC Kho KHÔNG đọc được bot (token/secret)', assertFails(bot(managerOther).get()));
+    await check('Bot: manager khác Kho KHÔNG đọc được coupon', assertFails(botCoupon(managerOther).get()));
+    await check('Bot: manager khác Kho KHÔNG ghi được coupon', assertFails(botCoupon(managerOther).set({ status: 'USED' })));
+    await check('Bot: manager cùng Kho đọc/ghi coupon', assertSucceeds(botCoupon(managerA).set({ code: 'X1', status: 'UNUSED' })));
+    await check('Bot: nhân viên cùng Kho KHÔNG đọc bot', assertFails(bot(employeeSame).get()));
+    await check('Bot: bot nhiều Kho ("ALL (Super Admin),TESTKHO") — manager TESTKHO đọc được', assertSucceeds(bot(managerA, 'ownerMulti').get()));
+    await check('Bot: manager cùng Kho KHÔNG đổi được departmentId bot người khác',
+        assertFails(bot(managerA).update({ departmentId: 'OTHERKHO' })));
+    await check('Bot: manager cùng Kho sửa cấu hình thường được', assertSucceeds(bot(managerA).update({ autoApprove: false })));
+    await check('Bot: list theo đúng Kho của mình được',
+        assertSucceeds(managerA.firestore().collection('line_bots').where('departmentId', '==', 'TESTKHO').where('active', '==', true).get()));
+    await check('Bot: list theo nhiều Kho (in) của mình được',
+        assertSucceeds(managerMulti.firestore().collection('line_bots').where('departmentId', 'in', ['TESTKHO', 'OTHERKHO']).where('active', '==', true).get()));
+    await check('Bot: list Kho khác bị chặn',
+        assertFails(managerOther.firestore().collection('line_bots').where('departmentId', '==', 'TESTKHO').get()));
+    await check('Bot: list MỌI bot (quét toàn hệ thống) bị chặn',
+        assertFails(managerA.firestore().collection('line_bots').where('active', '==', true).get()));
+    await check('Bot: chủ bot tạo bot của chính mình', assertSucceeds(bot(managerOther, 'managerOther').set({ userId: 'managerOther', departmentId: 'OTHERKHO' })));
+    await check('Bot: KHÔNG tạo bot dưới uid người khác', assertFails(bot(managerA, 'someoneElse').set({ departmentId: 'TESTKHO' })));
+
+    // bot_media (S07) + report_commands toàn hệ thống (S09)
+    const media = (ctx, id) => ctx.firestore().doc(`bot_media/${id}`);
+    await check('Media: chưa đăng nhập KHÔNG đọc được', assertFails(media(anon, 'old1').get()));
+    await check('Media: user đăng nhập tạo ảnh mới', assertSucceeds(media(employeeSame, 'new1').set({ base64: 'AAAA', ownerUid: 'employeeSame' })));
+    await check('Media: KHÔNG ghi đè ảnh của người khác', assertFails(media(employeeOther, 'old1').set({ base64: 'BBBB' })));
+    await check('Media: KHÔNG xoá ảnh của người khác', assertFails(media(employeeOther, 'old1').delete()));
+    await check('Media: người tạo xoá được ảnh của mình', assertSucceeds(media(managerA, 'old1').delete()));
+    await check('Media: ảnh > 1MB bị chặn', assertFails(media(employeeSame, 'big').set({ base64: 'A'.repeat(1048001) })));
+    await check('report_commands toàn hệ thống: KHÔNG đọc công khai', assertFails(anon.firestore().doc('report_commands/bc').get()));
+    await check('report_commands toàn hệ thống: KHÔNG ghi', assertFails(managerA.firestore().doc('report_commands/bc').set({ imageUrl: 'https://evil' })));
+
+    // line_bots: client KHÔNG được ghi lại 3 field bí mật (chặn tab cũ làm lộ lại token)
+    await check('line_bots: chủ bot KHÔNG ghi lại channelAccessToken', assertFails(managerA.firestore().doc('line_bots/ownerA').set({ channelAccessToken: 'x' }, { merge: true })));
+    await check('line_bots: chủ bot KHÔNG ghi lại channelSecret/pmhRelayToken', assertFails(managerA.firestore().doc('line_bots/ownerA').set({ channelSecret: 'x', pmhRelayToken: 'y' }, { merge: true })));
+    await check('line_bots: admin cũng KHÔNG ghi bí mật', assertFails(adminUser.firestore().doc('line_bots/ownerA').set({ channelAccessToken: 'x' }, { merge: true })));
+    await check('line_bots: vẫn lưu cấu hình thường + cờ hasToken', assertSucceeds(managerA.firestore().doc('line_bots/ownerA').set({ autoApprove: true, hasToken: true }, { merge: true })));
+
+    // line_bot_secrets (S13): bí mật bot — không ai ở client đọc/ghi được, kể cả chủ bot và admin
+    for (const [ten, ctx] of [['chủ bot/manager cùng Kho', managerA], ['nhân viên', employeeSame], ['admin', adminUser], ['chưa đăng nhập', anon]]) {
+        await check(`line_bot_secrets: ${ten} KHÔNG đọc`, assertFails(ctx.firestore().doc('line_bot_secrets/ownerA').get()));
+        await check(`line_bot_secrets: ${ten} KHÔNG ghi`, assertFails(ctx.firestore().doc('line_bot_secrets/ownerA').set({ channelAccessToken: 'x' })));
+    }
+
+    // In Sticker savedLists (S14)
+    const stickerStaffK1 = testEnv.authenticatedContext('sK1', { stickerRole: 'staff', stickerStoreId: 'K1' });
+    const stickerStaffK2 = testEnv.authenticatedContext('sK2', { stickerRole: 'staff', stickerStoreId: 'K2' });
+    const stickerSuper = testEnv.authenticatedContext('sSA', { stickerRole: 'superadmin', stickerStoreId: 'SUPERADMIN' });
+    const list = (ctx, store, id) => ctx.firestore().doc(`stores/${store}/savedLists/${id}`);
+    await check('Sticker: nhân viên K1 đọc danh sách K1', assertSucceeds(list(stickerStaffK1, 'K1', 'l1').get()));
+    await check('Sticker: nhân viên K2 KHÔNG đọc danh sách K1', assertFails(list(stickerStaffK2, 'K1', 'l1').get()));
+    await check('Sticker: nhân viên K2 KHÔNG ghi đè danh sách K1', assertFails(list(stickerStaffK2, 'K1', 'l1').set({ name: 'x' })));
+    await check('Sticker: nhân viên K2 KHÔNG ghi itemChunks của K1', assertFails(stickerStaffK2.firestore().doc('stores/K1/savedLists/l1/itemChunks/chunk_0').set({ items: '[]' })));
+    await check('Sticker: mọi người vẫn ĐỌC danh sách dùng chung SUPERADMIN', assertSucceeds(list(stickerStaffK2, 'SUPERADMIN', 'g1').get()));
+    await check('Sticker: nhân viên KHÔNG ghi vào kho SUPERADMIN', assertFails(list(stickerStaffK2, 'SUPERADMIN', 'g1').set({ name: 'x' })));
+    await check('Sticker: superadmin ghi kho SUPERADMIN', assertSucceeds(list(stickerSuper, 'SUPERADMIN', 'g2').set({ name: 'y' })));
+    await check('Sticker: user app gốc CHƯA duyệt (không có departmentId) KHÔNG vào kho K1',
+        assertFails(testEnv.authenticatedContext('pend', { role: 'pending', departmentId: null }).firestore().doc('stores/K1/metadata/sync').get()));
+
+    // ── Quyền XEM chức năng theo vai trò (2026-10-30) ──
+    // Đọc featureRoles từ shared_configs/system_menu_config. Thiếu khoá = mọi vai trò được; admin luôn được.
+    console.log('\n=== QUYỀN XEM CHỨC NĂNG THEO VAI TRÒ ===');
+    const setMenuCfg = (featureRoles) => testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        const ref = db.doc('shared_configs/system_menu_config');
+        if (featureRoles === null) await ref.delete();
+        else await ref.set({ features: {}, featureRoles });
+    });
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc('biData/TESTKHO/employees_doc/row1').set({ ten: 'x' });
+    });
+    const biDoc = (ctx) => ctx.firestore().doc('biData/TESTKHO/employees_doc/row1');
+    await setMenuCfg({ employees: ['manager'] });
+    await check('Report BI bị giới hạn: quản lý cùng Kho đọc được', assertSucceeds(biDoc(managerA).get()));
+    await check('Report BI bị giới hạn: nhân viên cùng Kho KHÔNG đọc được', assertFails(biDoc(employeeSame).get()));
+    // Quản trị hệ thống thuộc đúng Kho của dữ liệu (quy tắc biData có sẵn: phải nằm trong myKhos()) vẫn đọc được.
+    await check('Report BI bị giới hạn: quản trị hệ thống (thuộc Kho) vẫn đọc được', assertSucceeds(biDoc(testEnv.authenticatedContext('adminK', { role: 'admin', departmentId: 'TESTKHO' })).get()));
+    await check('Report BI bị giới hạn: nhân viên KHÔNG ghi được', assertFails(biDoc(employeeSame).set({ ten: 'y' })));
+
+    await setMenuCfg({ 'tools-phanca': ['manager'] });
+    const lichNV = (ctx) => ctx.firestore().doc('users/employeeSame/schedules/s1');
+    await check('Phân ca bị giới hạn: nhân viên KHÔNG ghi lịch của chính mình', assertFails(lichNV(employeeSame).set({ x: 1 })));
+    await check('Phân ca bị giới hạn: quản lý ghi được lịch của chính mình', assertSucceeds(
+        testEnv.authenticatedContext('managerA', { role: 'manager', departmentId: 'TESTKHO' }).firestore().doc('users/managerA/schedules/s1').set({ x: 1 })));
+
+    await setMenuCfg({ 'tools-tax': ['manager'] });
+    const taxDoc = (ctx) => ctx.firestore().doc('users/employeeSame/setting/tax_calculator_history');
+    const cauHinh = (ctx) => ctx.firestore().doc('users/employeeSame/setting/configuration');
+    await check('Tính thuế bị giới hạn: nhân viên KHÔNG ghi lịch sử thuế', assertFails(taxDoc(employeeSame).set({ x: 1 })));
+    await check('Tính thuế bị giới hạn: cấu hình chung (không phải thuế) vẫn ghi được', assertSucceeds(cauHinh(employeeSame).set({ x: 1 })));
+
+    await setMenuCfg({ 'check-thuong': ['manager'] });
+    const ctDoc = (ctx) => ctx.firestore().doc('users/employeeSame/configs/checkthuong_data');
+    await check('Check thưởng bị giới hạn: nhân viên KHÔNG ghi dữ liệu thưởng', assertFails(ctDoc(employeeSame).set({ x: 1 })));
+
+    await setMenuCfg({ analysis: ['manager'] });
+    await check('Phân tích bị giới hạn: nhân viên cùng Kho KHÔNG đọc được sales file', assertFails(seedDoc(employeeSame).get()));
+    await check('Phân tích bị giới hạn: quản lý cùng Kho đọc được', assertSucceeds(seedDoc(managerA).get()));
+
+    await setMenuCfg(null);
+    await check('Chưa đặt quyền xem (không có cấu hình): nhân viên cùng Kho vẫn đọc được Report BI', assertSucceeds(biDoc(employeeSame).get()));
+    await check('Chưa đặt quyền xem: nhân viên ghi được lịch Phân ca của mình', assertSucceeds(lichNV(employeeSame).set({ x: 2 })));
+
+    await testEnv.cleanup();
+
+    console.log(`\n=== KẾT QUẢ: ${pass} pass / ${fail} fail (tổng ${pass + fail}) ===`);
+    if (fail > 0) process.exit(1);
+}
+
+main().catch(e => { console.error('Lỗi chạy test:', e); process.exit(1); });
+

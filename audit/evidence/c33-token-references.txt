@@ -1,0 +1,11 @@
+styles/tokens.css:314:  --card-radius: var(--p-radius-2xl);
+styles/tokens.css:316:  --card-shadow: var(--shadow-card);
+styles/tokens.css:317:  --card-shadow-hover: var(--shadow-card-hover);
+styles.css:17:  --radius-card: var(--card-radius);
+styles.css:18:  --radius-popup: var(--popup-radius);
+styles.css:277:  .ycx-list-row + .ycx-list-row::before {
+styles.css:287:  .ycx-list-row.ycx-list-row--icon + .ycx-list-row::before,
+styles.css:288:  .ycx-list-row + .ycx-list-row.ycx-list-row--icon::before {
+styles.css:292:    .ycx-list-row + .ycx-list-row::before {
+styles.css:691:  .premium-card-shadow {
+styles.css:695:  .premium-card-shadow:active {

@@ -1,0 +1,109 @@
+import React, { useState, useCallback } from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { Button } from '../shared/ui/Button';
+import { Tabs } from '../shared/ui/Tabs';
+
+interface UploadSectionProps {
+    onProcessFile: (files: File[], isCloudSync?: boolean, isHistorical?: boolean) => void;
+}
+
+const UploadSection: React.FC<UploadSectionProps> = ({ onProcessFile }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [uploadType, setUploadType] = useState<'realtime' | 'historical'>('realtime');
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            onProcessFile(files, false, uploadType === 'historical');
+        }
+    }, [onProcessFile, uploadType]);
+
+    const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            onProcessFile(Array.from(e.target.files), false, uploadType === 'historical');
+        }
+    }, [onProcessFile, uploadType]);
+
+    return (
+        <div className="flex flex-col">
+            {/* Switch/Segmented Control */}
+            <Tabs
+                variant="segment"
+                size="sm"
+                fullWidth
+                className="mb-4"
+                activeId={uploadType}
+                onChange={(id) => setUploadType(id as typeof uploadType)}
+                items={[
+                    { id: 'realtime', label: "Tệp Realtime (Xem nhanh)" },
+                    { id: 'historical', label: "Lũy kế / Quá khứ" },
+                ]}
+            />
+
+            <div className="flex items-center gap-3 mb-4 relative z-10">
+                <div className="w-9 h-9 rounded-control bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-100/50 dark:border-sky-500/20">
+                    <AppIcon name="database" size="md" />
+                </div>
+                <div className="text-left flex-1">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-[13px]">
+                        {uploadType === 'realtime' ? 'Nhập dữ liệu Realtime' : 'Nhập dữ liệu Lũy kế'}
+                    </h3>
+                    <p className="text-[11px] font-medium text-slate-500">Hỗ trợ Excel (.xlsx, .xls)</p>
+                </div>
+            </div>
+            <label
+                htmlFor="file-upload"
+                className={`relative group/dropzone flex flex-col items-center justify-center w-full min-h-[120px] border-2 border-dashed rounded-popup cursor-pointer transition-all duration-300 overflow-hidden
+                    ${isDragging 
+                        ? 'bg-sky-50/50 dark:bg-sky-900/20 border-sky-500 scale-[1.01] shadow-inner' 
+                        : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 hover:border-sky-400/50 hover:bg-sky-50/30 dark:hover:bg-sky-900/10'
+                    }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-800/50 pointer-events-none"></div>
+                <div className="flex flex-col items-center justify-center p-4 relative z-10">
+                    <div className={`w-10 h-10 mb-3 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-slate-100 dark:border-slate-700 group-hover/dropzone:scale-110 transition-transform duration-300 group-hover/dropzone:shadow-sky-100 dark:group-hover/dropzone:shadow-none group-hover/dropzone:border-sky-200 dark:group-hover/dropzone:border-sky-500/30 text-slate-400 dark:text-slate-500 group-hover/dropzone:text-sky-500 dark:group-hover/dropzone:text-sky-400`}>
+                        <AppIcon name="upload" size="lg" />
+                    </div>
+                    <p className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300 text-center">
+                        <span className="text-sky-700 dark:text-sky-400 font-semibold">
+                            {uploadType === 'realtime' ? 'Chọn file Realtime' : 'Chọn file Lũy kế'}
+                        </span> hoặc thả các file Excel vào đây
+                    </p>
+                    <p className="text-[11px] text-slate-400 font-medium text-center">
+                        {uploadType === 'realtime' 
+                            ? 'Phân tích nhanh tức thời, không lưu lưu trữ lâu dài' 
+                            : 'Lưu kho dữ liệu lũy kế dài hạn và gộp báo cáo'
+                        }
+                    </p>
+                </div>
+                <input
+                    id="file-upload"
+                    type="file"
+                    className="hidden"
+                    accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    multiple
+                    onClick={(e) => (e.currentTarget.value = '')}
+                    onChange={handleFileChange}
+                />
+            </label>
+            <p className="mt-3 text-[12px] font-medium text-slate-500 text-center">Chưa có file nào được chọn.</p>
+        </div>
+    );
+};
+
+export default UploadSection;

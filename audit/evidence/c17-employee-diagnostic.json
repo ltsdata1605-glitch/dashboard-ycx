@@ -1,0 +1,155 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c17-employees.config.mjs",
+      "bi-nhan-vien-theo-sieu-thi.spec.ts"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c17-employees.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c17-employee-diagnostic",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "sidebar-hover-flyout.spec.ts",
+          "menu-khac-xoay-ngang.spec.ts",
+          "bi-deep-link-khong-vong-lap.spec.ts",
+          "bi-chuyen-che-do-khong-sap.spec.ts",
+          "phan-tich-mat-mang-cau-hinh.spec.ts",
+          "bi-competition.spec.ts",
+          "xss-header-sanitization.spec.ts",
+          "analysis-employees-sync.spec.ts",
+          "analysis-only-all-in-one.spec.ts",
+          "bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+          "bi-nhan-vien-theo-sieu-thi.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c17-employee-diagnostic.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "bi-nhan-vien-theo-sieu-thi.spec.ts",
+      "file": "bi-nhan-vien-theo-sieu-thi.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14321,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "STORE_TAB_STATE Tân Hiệp { tab: \u001b[32m'revenueTarget'\u001b[39m, store: \u001b[32m'Tân Hiệp'\u001b[39m }\n"
+                    },
+                    {
+                      "text": "STORE_TAB_STATE Thạnh An { tab: \u001b[32m'revenueTarget'\u001b[39m, store: \u001b[32m'Thạnh An'\u001b[39m }\n"
+                    },
+                    {
+                      "text": "SỐ NV — Tân Hiệp: 2 NV | Thạnh An: 1 NV\n"
+                    }
+                  ],
+                  "stderr": [
+                    {
+                      "text": "(node:26449) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:51:07.234Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9dd90d559c6eab5055da-7abffd558a259a857a64",
+          "file": "bi-nhan-vien-theo-sieu-thi.spec.ts",
+          "line": 36,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:51:04.612Z",
+    "duration": 17302.081000000002,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

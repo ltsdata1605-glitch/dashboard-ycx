@@ -1,0 +1,784 @@
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import './phanca.css';
+import { exportToImage, generateBusyTemplateTSV } from './utils/exportUtils';
+import { startExportJob } from '../../components/shared/export';
+import { recalculateStatsForStaff, calculateTotalHours, calculateSpecialHours, findAutomaticReplacement, autoRefineSchedule, generateBalancingFeedback } from './utils/scheduleUtils';
+import { parseStaffFromExcelBuffer } from './utils/excelImport';
+import { splitCalendarWeeks } from './utils/weekUtils';
+import * as idb from './db/idb';
+import Controls from './components/Controls';
+import Legend from './components/Legend';
+import ScheduleTable from './components/ScheduleTable';
+import VerticalIndividualSchedule from './components/VerticalIndividualSchedule';
+import MobileStaffDayView from './components/MobileStaffDayView';
+import { Tabs } from '../../components/shared/ui/Tabs';
+import EditRulesModal from './components/EditRulesModal';
+import EditShiftModal from './components/EditShiftModal';
+import DailyStatsTable from './components/DailyStatsTable';
+import ImportStaffModal from './components/ImportStaffModal';
+import EditPatternModal from './components/EditPatternModal';
+import SuggestionModal from './components/SuggestionModal';
+import HistoryModal from './components/HistoryModal';
+import GoogleSheetExportModal from './components/GoogleSheetExportModal';
+import ConflictListModal from './components/ConflictListModal';
+import BusyReportModal from './components/BusyReportModal';
+import AiSuggestPatternModal from './components/AiSuggestPatternModal';
+import { PhanCaToolbar } from './components/PhanCaToolbar';
+import { ConfirmDialog } from '../../components/shared/ui/ConfirmDialog';
+import { Button } from '../../components/shared/ui/Button';
+import { SectionCard } from '../../components/shared/ui/SectionCard';
+import { SectionHeader } from '../../components/shared/ui/SectionHeader';
+import { Banner } from '../../components/shared/ui/Banner';
+import { EmptyState } from '../../components/shared/ui/EmptyState';
+import { exportScheduleToGoogleSheet } from './services/googleSheetsExport';
+import { usePhanCaData } from './hooks/usePhanCaData';
+import {
+  StaffMember,
+  ScheduleInfo,
+  SchedulingRules,
+  BalancingFeedback,
+  EditShiftModalInfo,
+  ImportedStaff,
+  StaffWithGender,
+  BusySchedule,
+  MonthlyStats,
+  ScheduleConfig,
+  StaffInitialData,
+  SbhGenderBoost
+} from './types';
+import { createFullSchedule, lichKhopSoNgay } from './services/scheduleService';
+import { abbreviateVietnameseName } from './utils/stringUtils';
+import { DEFAULT_DEPARTMENT_PATTERNS, rotateArray } from './constants';
+const App: React.FC = () => {
+  const {
+    isImportingRef,
+    hydratedScopeRef,
+    monthYear, setMonthYear,
+    startDay, setStartDay,
+    duration, setDuration,
+    supermarkets, setSupermarkets,
+    currentSupermarket, setCurrentSupermarket,
+    staffList, setStaffList,
+    targets, setTargets,
+    scheduleHistory, setScheduleHistory,
+    nams, setNams,
+    nus, setNus,
+    rules, setRules,
+    departmentPatterns, setDepartmentPatterns,
+    dailyRequirements, setDailyRequirements,
+    busySchedule,
+    departmentFilter, setDepartmentFilter,
+    includeTnInSbh, setIncludeTnInSbh,
+    autoAddWeekendShifts, setAutoAddWeekendShifts,
+    autoAddWeekendShift1, setAutoAddWeekendShift1,
+    sbhGenderBoost, setSbhGenderBoost,
+    shiftDefinitions, setShiftDefinitions,
+    unresolvedConflicts, setUnresolvedConflicts,
+    isDbLoaded,
+    isDataLoadedForSupermarket, setIsDataLoadedForSupermarket,
+    year, month,
+    uniqueDepartments,
+    staffCountByDept,
+    getKey,
+    showToast,
+    handleSupermarketChange,
+    confirmDeleteStaffList,
+    logHistory,
+  } = usePhanCaData();
+  const [onboardingStep, setOnboardingStep] = useState<number>(0);
+  // Điện thoại: 'bang' = bảng cả nhóm (như cũ) · 'nhanVien' = xem từng nhân viên theo ngày (2026-10-30). Trên máy tính luôn là bảng.
+  const [cheDoXem, setCheDoXem] = useState<'bang' | 'nhanVien'>('bang');
+  const [isEditRulesModalOpen, setEditRulesModalOpen] = useState(false);
+  const [isEditShiftModalOpen, setEditShiftModalOpen] = useState(false);
+  const [isImportModalOpen, setImportModalOpen] = useState(false);
+  const [isEditPatternModalOpen, setEditPatternModalOpen] = useState(false);
+  const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
+  const [isConflictModalOpen, setConflictModalOpen] = useState(false);
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      variant?: 'danger' | 'warning' | 'info' | 'success';
+      confirmText?: string;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const showConfirm = (options: { title: string; message: string; onConfirm: () => void; variant?: 'danger' | 'warning' | 'info' | 'success'; confirmText?: string; }) => {
+      setConfirmDialog({ ...options, isOpen: true });
+  };
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+  const [balancingFeedback, setBalancingFeedback] = useState<BalancingFeedback | null>(null);
+  const [editingRuleKey, setEditingRuleKey] = useState<'kho' | 'tn' | 'gh' | null>(null);
+  const [editingCellInfo, setEditingCellInfo] = useState<EditShiftModalInfo | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+  const [importedStaff, setImportedStaff] = useState<ImportedStaff[]>([]);
+  const [statsDay, setStatsDay] = useState<number>(1);
+  const [isExportingImage, setIsExportingImage] = useState(false);
+  const [staffListForExport, setStaffListForExport] = useState<StaffMember[] | null>(null);
+  const [weeklyExportConfig, setWeeklyExportConfig] = useState<{start: number, end: number} | null>(null);
+  const [currentHighlightedId, setCurrentHighlightedId] = useState<string | null>(null);
+  const [exportTitle, setExportTitle] = useState<string>('');
+  const tableRef = useRef<HTMLTableElement>(null);
+  const exportContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const busyFileInputRef = useRef<HTMLInputElement>(null);
+  const durationDebounceTimer = useRef<number | null>(null);
+  const handleDeleteStaffList = () => {
+      showConfirm({
+          title: 'Xóa danh sách nhân viên',
+          message: 'Bạn có chắc chắn muốn xóa danh sách nhân viên hiện tại? Lịch phân ca, mẫu ca, và lịch bận cũng sẽ bị xóa.',
+          variant: 'danger',
+          confirmText: 'Xác nhận Xóa',
+          onConfirm: () => { closeConfirm(); confirmDeleteStaffList(); },
+      });
+  };
+  const handleImportClick = () => fileInputRef.current?.click();
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const imported = await parseStaffFromExcelBuffer(data);
+            if (imported.length > 0) { setImportedStaff(imported); setImportModalOpen(true); }
+            else showToast("Không tìm thấy dữ liệu nhân viên hợp lệ.", 'error');
+        } catch (error) { showToast("Lỗi khi xử lý file Excel.", 'error'); }
+        finally { if (fileInputRef.current) fileInputRef.current.value = ''; }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  const generateNewSchedule = useCallback((options: {
+    forDepartment?: string;
+    allDepartments?: boolean;
+    busyScheduleOverride?: BusySchedule;
+    patternsOverride?: { [key: string]: string[] };
+    rulesOverride?: SchedulingRules;
+    namsOverride?: StaffInitialData[];
+    nusOverride?: StaffInitialData[];
+    autoAddWeekendShiftsOverride?: boolean;
+    autoAddWeekendShift1Override?: boolean;
+    sbhGenderBoostOverride?: SbhGenderBoost;
+  } = {}) => {
+      const { forDepartment, allDepartments, busyScheduleOverride, patternsOverride, rulesOverride, namsOverride, nusOverride, autoAddWeekendShiftsOverride, autoAddWeekendShift1Override, sbhGenderBoostOverride } = options;
+      const currentNams = namsOverride || nams;
+      const currentNus = nusOverride || nus;
+      if (!monthYear || isNaN(startDay) || isNaN(duration) || !(rulesOverride || rules) || (currentNams.length === 0 && currentNus.length === 0)) return;
+      const [yearVal, monthVal] = monthYear.split('-').map(Number);
+      (async () => {
+        const d = new Date(yearVal, monthVal - 1, 1); d.setMonth(d.getMonth() - 1);
+        const prevMonthYear = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const prevStatsKey = getKey(`monthly_stats-${prevMonthYear}`);
+        const previousMonthStats = await idb.loadData<MonthlyStats>(prevStatsKey) || {};
+        const config: ScheduleConfig = { 
+            year: yearVal, 
+            month: monthVal, 
+            startDay, 
+            duration, 
+            includeTn: includeTnInSbh,
+            autoAddWeekendShifts: autoAddWeekendShiftsOverride !== undefined ? autoAddWeekendShiftsOverride : autoAddWeekendShifts,
+            autoAddWeekendShift1: autoAddWeekendShift1Override !== undefined ? autoAddWeekendShift1Override : autoAddWeekendShift1,
+            sbhGenderBoost: sbhGenderBoostOverride !== undefined ? sbhGenderBoostOverride : sbhGenderBoost
+        };
+        const targetDepartment = allDepartments ? undefined : (forDepartment || departmentFilter);
+        const effectiveRules = rulesOverride || rules;
+        const effectivePatterns = patternsOverride || departmentPatterns;
+        const effectiveBusySchedule = busyScheduleOverride || busySchedule;
+        let namsToSchedule = currentNams; let nusToSchedule = currentNus;
+        if (targetDepartment) {
+            namsToSchedule = currentNams.filter(n => n.department === targetDepartment);
+            nusToSchedule = currentNus.filter(n => n.department === targetDepartment);
+        }
+        if (namsToSchedule.length === 0 && nusToSchedule.length === 0) return;
+        const { staffList: newStaffListForDept, targets: newTargets } = createFullSchedule({ config, nams: namsToSchedule, nus: nusToSchedule, rules: effectiveRules, departmentPatterns: effectivePatterns, busySchedule: effectiveBusySchedule, previousMonthStats });
+        const refinedStaffListForDept = autoRefineSchedule(newStaffListForDept, config, newTargets, effectiveBusySchedule);
+        let finalStaffList;
+        if (targetDepartment && staffList.length > 0) {
+            const otherDeptsStaff = staffList.filter(s => s.department !== targetDepartment);
+            finalStaffList = [...otherDeptsStaff, ...refinedStaffListForDept];
+        } else {
+            finalStaffList = refinedStaffListForDept;
+        }
+        setStaffList(finalStaffList); setTargets(newTargets); setStatsDay(1);
+        if (!targetDepartment) { setScheduleHistory([]); setUnresolvedConflicts([]); }
+        setOnboardingStep(0);
+        const currentStatsToSave: MonthlyStats = {};
+        finalStaffList.forEach(staff => currentStatsToSave[staff.id] = { gh: staff.stats.gh, kho: staff.stats.kho, tn: staff.stats.tn, totalSpecialHours: calculateSpecialHours(staff, includeTnInSbh) });
+        const currentStatsKey = getKey(`monthly_stats-${monthYear}`);
+        await idb.saveData(currentStatsKey, currentStatsToSave);
+        setBalancingFeedback(generateBalancingFeedback(currentStatsToSave, previousMonthStats));
+      })();
+  }, [monthYear, startDay, duration, nams, nus, rules, departmentPatterns, busySchedule, includeTnInSbh, autoAddWeekendShifts, autoAddWeekendShift1, sbhGenderBoost, staffList, departmentFilter, getKey]);
+  useEffect(() => {
+    if (durationDebounceTimer.current) clearTimeout(durationDebounceTimer.current);
+    // Audit D06: trước đây chạy mỗi khi nams/nus/duration đổi — kể cả lúc NẠP dữ liệu đã lưu (mở tính
+    // năng, đổi tháng) → 1 giây sau tự sinh lịch mới đè lên lịch đã sửa tay. Chỉ tự sinh khi CHƯA có
+    // lịch cho phạm vi đang xem, hoặc lịch hiện có không khớp số ngày (người dùng đổi số ngày).
+    const scheduleFitsDuration = lichKhopSoNgay(staffList, duration);
+    if (isDbLoaded && isDataLoadedForSupermarket && (nams.length > 0 || nus.length > 0) && !scheduleFitsDuration) {
+        durationDebounceTimer.current = window.setTimeout(() => generateNewSchedule({ allDepartments: true }), 1000);
+    }
+    return () => { if (durationDebounceTimer.current) clearTimeout(durationDebounceTimer.current); };
+  }, [duration, isDbLoaded, isDataLoadedForSupermarket, nams, nus, staffList, generateNewSchedule]);
+  const getSortedStaffForExport = (): StaffMember[] => {
+    const staffListCopy = structuredClone(staffList) as StaffMember[];
+    const hasImportIndex = staffListCopy.some(s => s.importIndex !== undefined);
+    let depts: string[];
+    if (hasImportIndex) {
+        const getDeptMinIndex = (dept: string) => {
+            const deptStaff = staffListCopy.filter(s => s.department === dept);
+            return Math.min(...deptStaff.map(s => s.importIndex ?? 999999));
+        };
+        depts = [...new Set(staffListCopy.map(s => s.department))].sort((a, b) => {
+            return getDeptMinIndex(a) - getDeptMinIndex(b);
+        });
+    } else {
+        depts = [...new Set(staffListCopy.map(s => s.department))].sort();
+    }
+    let result: StaffMember[] = [];
+    depts.forEach(dept => {
+        const deptStaff = staffListCopy.filter(s => s.department === dept);
+        if (hasImportIndex) {
+            const sortedDeptStaff = deptStaff.sort((a, b) => {
+                const indexA = a.importIndex ?? 999999;
+                const indexB = b.importIndex ?? 999999;
+                if (indexA !== indexB) return indexA - indexB;
+                return a.name.localeCompare(b.name);
+            });
+            result.push(...sortedDeptStaff);
+        } else {
+            const namsInDept = deptStaff.filter(s => s.gender === 'Nam').sort((a: StaffMember, b: StaffMember) => a.name.localeCompare(b.name));
+            const nusInDept = deptStaff.filter(s => s.gender === 'Nu').sort((a: StaffMember, b: StaffMember) => a.name.localeCompare(b.name));
+            let i = 0, j = 0;
+            while (i < namsInDept.length || j < nusInDept.length) {
+                if (i < namsInDept.length) result.push(namsInDept[i++]);
+                if (j < nusInDept.length) result.push(nusInDept[j++]);
+            }
+        }
+    });
+    return result;
+  };
+  const handleAutoAddWeekendShiftsChange = useCallback((checked: boolean) => {
+    setAutoAddWeekendShifts(checked);
+    logHistory(checked ? "Tự động tăng ca 2,5 T7-CN" : "Gỡ tự động tăng ca 2,5 T7-CN");
+    generateNewSchedule({ autoAddWeekendShiftsOverride: checked });
+  }, [generateNewSchedule, logHistory]);
+  const handleAutoAddWeekendShift1Change = useCallback((checked: boolean) => {
+    setAutoAddWeekendShift1(checked);
+    logHistory(checked ? "Tự động tăng ca 1 T7-CN" : "Gỡ tự động tăng ca 1 T7-CN");
+    generateNewSchedule({ autoAddWeekendShift1Override: checked });
+  }, [generateNewSchedule, logHistory, setAutoAddWeekendShift1]);
+  const handleSbhGenderBoostChange = useCallback((boost: SbhGenderBoost) => {
+    setSbhGenderBoost(boost);
+    logHistory(boost.gender ? `Ưu tiên SBH ${boost.gender === 'Nu' ? 'Nữ' : 'Nam'} (+${boost.hours}h)` : "Bỏ ưu tiên SBH giới tính");
+    generateNewSchedule({ sbhGenderBoostOverride: boost });
+  }, [generateNewSchedule, logHistory, setSbhGenderBoost]);
+  // --- XUẤT ẢNH ---
+  const handleExportAll = async () => {
+    setIsExportingImage(true);
+    setStaffListForExport(getSortedStaffForExport());
+    setExportTitle(`Lịch Công Tác: ${currentSupermarket || 'Cửa Hàng'}`);
+    setWeeklyExportConfig(null);
+    const [yearVal, monthVal] = monthYear.split('-').map(Number);
+    const filename = `Lịch Toàn Bộ - Tháng ${monthVal}-${yearVal}.png`;
+    setTimeout(() => {
+        exportToImage(exportContainerRef, filename).finally(() => {
+            setIsExportingImage(false);
+            setStaffListForExport(null);
+            setExportTitle('');
+        });
+    }, 400);
+  };
+  const handleExportWeekly = async () => {
+    const list = getSortedStaffForExport();
+    if (list.length === 0) return showToast("Chưa có lịch để xuất.", 'error');
+    setIsExportingImage(true);
+    setStaffListForExport(list);
+    const [yearVal, monthVal] = monthYear.split('-').map(Number);
+    const weeks = splitCalendarWeeks(yearVal, monthVal, startDay, duration);
+    // Bảng tiến trình chung (components/shared/export): thanh %, Huỷ, tổng kết tuần lỗi
+    const job = startExportJob({ title: 'Xuất lịch theo tuần', total: weeks.length });
+    try {
+        for (let i = 0; i < weeks.length; i++) {
+            if (job.cancelled) break;
+            const week = weeks[i];
+            const nhan = `Tuần ${i + 1} (ngày ${week.start}–${week.end})`;
+            job.item(i, nhan);
+            setWeeklyExportConfig(week);
+            setExportTitle(`Lịch Tuần ${i + 1} - ${currentSupermarket}`);
+            await new Promise(resolve => setTimeout(resolve, 800));
+            try {
+                await exportToImage(exportContainerRef, `Lịch Tuần ${i + 1} - Tháng ${monthVal}-${yearVal}.png`);
+                job.result(nhan, 'ok');
+            } catch (err) {
+                job.result(nhan, 'failed', err instanceof Error ? err.message : undefined);
+            }
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+    } finally {
+        job.finish();
+        setWeeklyExportConfig(null);
+        setStaffListForExport(null);
+        setIsExportingImage(false);
+        setExportTitle('');
+    }
+  };
+  const handleExportIndividual = () => {
+    const list = getSortedStaffForExport();
+    if (list.length === 0) return showToast("Chưa có lịch để xuất.", 'error');
+    showConfirm({
+        title: 'Xuất Lịch Cá Nhân',
+        message: 'Hệ thống sẽ tiến hành xuất file cho từng nhân viên. Bạn có đồng ý?',
+        variant: 'info',
+        confirmText: 'Đồng ý',
+        onConfirm: async () => {
+            closeConfirm();
+            setIsExportingImage(true);
+            setWeeklyExportConfig(null);
+            const [yearVal, monthVal] = monthYear.split('-').map(Number);
+            const job = startExportJob({ title: 'Xuất lịch cá nhân', total: list.length });
+            try {
+                for (let i = 0; i < list.length; i++) {
+                    if (job.cancelled) break;
+                    const staff = list[i];
+                    const nhan = staff.name.split(' - ')[1] || staff.name;
+                    job.item(i, nhan);
+                    setStaffListForExport([staff]);
+                    setExportTitle(staff.name);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const sanitizedStaffName = staff.name.replace(/[\\/:*?"<>|]/g, '').trim();
+                    try {
+                        await exportToImage(exportContainerRef, `Lịch Cá Nhân - ${sanitizedStaffName} - Tháng ${monthVal}-${yearVal}.png`);
+                        job.result(nhan, 'ok');
+                    } catch (err) {
+                        console.warn("Export error:", err);
+                        job.result(nhan, 'failed', err instanceof Error ? err.message : undefined);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                }
+            } finally {
+                job.finish();
+                setStaffListForExport(null);
+                setIsExportingImage(false);
+                setExportTitle('');
+            }
+        }
+    });
+  };
+  const handleExportExcel = async () => {
+    if (!nams.length && !nus.length) return showToast("Chưa có dữ liệu.", 'error');
+    const XLSX = await import('xlsx');
+    const sortedList = getSortedStaffForExport();
+    const [yearVal, monthVal] = monthYear.split('-').map(Number);
+    const data: (string | number)[][] = [['LỊCH PHÂN CA'], ['HỌ VÀ TÊN', 'SBH', 'TỔNG', ...Array.from({length: duration}, (_, i) => `Ngày ${i+1}`)]];
+    sortedList.forEach(staff => {
+        const row = [staff.name, Math.round(calculateSpecialHours(staff, includeTnInSbh)), Math.round(calculateTotalHours(staff))];
+        for (let d = 1; d <= duration; d++) row.push(staff.schedule[d]?.role || '');
+        data.push(row);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lich");
+    XLSX.writeFile(wb, `Lich_${monthVal}_${yearVal}.xlsx`);
+  };
+  const handleExportGoogleSheet = async () => {
+    await exportScheduleToGoogleSheet({
+        nams, nus, monthYear, duration, startDay, includeTnInSbh,
+        getSortedStaffForExport, showToast,
+    });
+  };
+  const handleSaveShift = (newShiftData: ScheduleInfo) => {
+    if (!editingCellInfo) return;
+    const { employeeId, dayIndex } = editingCellInfo;
+    setStaffList(currentStaffList => {
+      const newStaffList = structuredClone(currentStaffList);
+      const staff = newStaffList.find((s: StaffMember) => s.id === employeeId);
+      if (staff) {
+        const originalShift = staff.schedule[dayIndex] || { role: 'Trống', shift: 'Trống' };
+        if (JSON.stringify(originalShift) !== JSON.stringify(newShiftData)) {
+            staff.stats.swapCount++;
+            addChangeHistory(staff, dayIndex, originalShift.role, newShiftData.role);
+        }
+        staff.schedule[dayIndex] = { ...newShiftData, isManual: true };
+        staff.stats = recalculateStatsForStaff(staff);
+      }
+      return newStaffList;
+    });
+    setUnresolvedConflicts(prev => prev.filter(c => !(c.employeeId === employeeId && c.dayIndex === dayIndex)));
+    setEditShiftModalOpen(false); setEditingCellInfo(null);
+  };
+  const addChangeHistory = (staff: StaffMember, dayIndex: number, fromRole: string, toRole: string) => {
+      const [yearVal, monthVal] = monthYear.split('-').map(Number);
+      const dateString = `${new Date(yearVal, monthVal - 1, startDay + dayIndex - 1).getDate()}/${monthVal}`;
+      staff.changeHistory.push({ dayIndex, date: dateString, from: fromRole, to: toRole });
+  };
+  const handleDeleteEmployee = useCallback((id: string) => {
+      setEmployeeToDelete(id);
+  }, []);
+  const handleEditShift = useCallback((id: string, d: number) => {
+      setStaffList(currentList => {
+          const staff = currentList.find(s => s.id === id);
+          if (!staff) return currentList;
+          const [yearVal, monthVal] = monthYear.split('-').map(Number);
+          const dateString = `${new Date(yearVal, monthVal - 1, startDay + d - 1).getDate()}/${monthVal}`;
+          const currentShift = staff.schedule[d] || { shift: 'Trống', role: 'Trống' };
+          const isSpecialShift = (currentShift.role || '').includes('(');
+          setEditingCellInfo({
+              employeeId: id,
+              dayIndex: d,
+              employeeName: staff.name,
+              department: staff.department,
+              gender: staff.gender,
+              date: dateString,
+              currentShift,
+              isSpecialShift,
+              employeeStats: staff.stats,
+              changeHistory: staff.changeHistory
+          });
+          setEditShiftModalOpen(true);
+          return currentList;
+      });
+  }, [monthYear, startDay]);
+  const scheduleConfig = useMemo(() => ({
+    year,
+    month,
+    startDay,
+    duration
+  }), [year, month, startDay, duration]);
+  const handleEditRule = useCallback((k: 'kho' | 'tn' | 'gh') => {
+    setEditingRuleKey(k);
+    setEditRulesModalOpen(true);
+  }, []);
+  const handleShowConflicts = useCallback(() => {
+    setConflictModalOpen(true);
+  }, []);
+  const handleGenerateClick = useCallback(() => {
+    generateNewSchedule();
+  }, [generateNewSchedule]);
+  const handleDateControlClick = useCallback(() => {
+    if (onboardingStep === 3) setOnboardingStep(4);
+  }, [onboardingStep]);
+  const handleSwapShifts = useCallback((id1: string, id2: string, dayIndex: number) => {
+      setStaffList(prev => {
+          const idx1 = prev.findIndex(s => s.id === id1);
+          const idx2 = prev.findIndex(s => s.id === id2);
+          if (idx1 === -1 || idx2 === -1) return prev;
+          const newList = [...prev];
+          // Clone deep targets
+          const s1 = { ...newList[idx1], schedule: [...newList[idx1].schedule], stats: { ...newList[idx1].stats }, changeHistory: [...(newList[idx1].changeHistory || [])] };
+          const s2 = { ...newList[idx2], schedule: [...newList[idx2].schedule], stats: { ...newList[idx2].stats }, changeHistory: [...(newList[idx2].changeHistory || [])] };
+          const raw1 = s1.schedule[dayIndex];
+          const raw2 = s2.schedule[dayIndex];
+          // Handle empty shifts with empty string for cleanliness
+          const shift1 = raw1 ? { ...raw1 } : { shift: '', role: '', isManual: false };
+          const shift2 = raw2 ? { ...raw2 } : { shift: '', role: '', isManual: false };
+          // Swap
+          s1.schedule[dayIndex] = { 
+              ...shift2, 
+              isManual: true, 
+              manualChangeInfo: { 
+                  type: 'swap-initiator', 
+                  originalShiftRole: shift1.role || 'Trống', 
+                  partnerId: id2 
+              } 
+          };
+          s2.schedule[dayIndex] = { 
+              ...shift1, 
+              isManual: true, 
+              manualChangeInfo: { 
+                  type: 'swap-partner', 
+                  originalShiftRole: shift2.role || 'Trống', 
+                  partnerId: id1 
+              } 
+          };
+          // Update stats
+          s1.stats = recalculateStatsForStaff(s1);
+          s2.stats = recalculateStatsForStaff(s2);
+          s1.stats.swapCount = (s1.stats.swapCount || 0) + 1;
+          s2.stats.swapCount = (s2.stats.swapCount || 0) + 1;
+          // History
+          const [y, m] = monthYear.split('-').map(Number);
+          const dateStr = `${new Date(y, m - 1, startDay + dayIndex - 1).getDate()}/${m}`;
+          if (!s1.changeHistory) s1.changeHistory = [];
+          s1.changeHistory.push({ 
+              dayIndex, 
+              date: dateStr, 
+              from: shift1.role || 'Trống', 
+              to: shift2.role || 'Trống',
+              description: `Đổi ca với ${s2.name}`
+          });
+          if (!s2.changeHistory) s2.changeHistory = [];
+          s2.changeHistory.push({ 
+              dayIndex, 
+              date: dateStr, 
+              from: shift2.role || 'Trống', 
+              to: shift1.role || 'Trống',
+              description: `Đổi ca với ${s1.name}`
+          });
+          newList[idx1] = s1;
+          newList[idx2] = s2;
+          return newList;
+      });
+      setUnresolvedConflicts(prev => prev.filter(c => !((c.employeeId === id1 || c.employeeId === id2) && c.dayIndex === dayIndex)));
+  }, [monthYear, startDay]);
+  const handleConfirmImport = async (staffWithGenders: StaffWithGender[], supermarketName: string) => {
+    isImportingRef.current = true; 
+    try {
+        const newNams = staffWithGenders.filter(s => s.gender === 'Nam').map(s => ({ name: s.name, department: s.department, importIndex: s.importIndex }));
+        const newNus = staffWithGenders.filter(s => s.gender === 'Nu').map(s => ({ name: s.name, department: s.department, importIndex: s.importIndex }));
+        const depts = [...new Set(staffWithGenders.map(s => s.department))];
+        const patternsToSet: { [key: string]: string[] } = {};
+        depts.forEach(dept => {
+            if (dept.includes("Quản Lý") || dept.includes("Trưởng Ca")) patternsToSet[dept] = DEFAULT_DEPARTMENT_PATTERNS['BP Quản lý/Trưởng Ca'];
+            else if (dept.includes("Tiếp Đón") || dept.includes("Thu Ngân")) patternsToSet[dept] = DEFAULT_DEPARTMENT_PATTERNS['BP Tiếp Đón Khách Hàng'];
+            else patternsToSet[dept] = DEFAULT_DEPARTMENT_PATTERNS['BP All In One'];
+        });
+        const keyPrefix = `${supermarketName}::`;
+        await idb.saveData(keyPrefix + 'nams', newNams);
+        await idb.saveData(keyPrefix + 'nus', newNus);
+        await idb.saveData(keyPrefix + 'departmentPatterns', patternsToSet);
+        if (!supermarkets.includes(supermarketName)) {
+            const updatedSupermarkets = [...supermarkets, supermarketName].sort();
+            setSupermarkets(updatedSupermarkets); 
+            await idb.saveData('meta_supermarkets', updatedSupermarkets);
+        }
+        setNams(newNams); 
+        setNus(newNus); 
+        setDepartmentPatterns(patternsToSet);
+        setCurrentSupermarket(supermarketName);
+        if (depts.length > 0) {
+            setDepartmentFilter(depts[0]);
+        } else {
+            setDepartmentFilter('');
+        }
+        hydratedScopeRef.current = `${supermarketName}|${monthYear}`; // dữ liệu nhập là bản đúng của phạm vi này
+        setIsDataLoadedForSupermarket(true);
+        setImportModalOpen(false); 
+        setTimeout(() => {
+            generateNewSchedule({ 
+                forDepartment: depts.length > 0 ? depts[0] : '',
+                namsOverride: newNams, 
+                nusOverride: newNus, 
+                patternsOverride: patternsToSet 
+            });
+            isImportingRef.current = false;
+        }, 300);
+    } catch (error) {
+        console.warn("Import error:", error);
+        showToast("Có lỗi xảy ra khi lưu dữ liệu nhân viên.", 'error');
+        isImportingRef.current = false;
+    }
+  };
+  const hasStaff = nams.length > 0 || nus.length > 0;
+  // LUÔN ĐẢM BẢO listForTable ĐƯỢC GOM NHÓM THEO BỘ PHẬN VÀ XEN KẼ GIỚI TÍNH
+  const listForTable = useMemo(() => {
+    if (staffListForExport) return staffListForExport;
+    const baseList = staffList.filter(s => !departmentFilter || s.department === departmentFilter);
+    const depts = [...new Set(baseList.map(s => s.department))].sort();
+    let result: StaffMember[] = [];
+    depts.forEach(dept => {
+        const deptStaff = baseList.filter(s => s.department === dept);
+        const namsInDept = deptStaff.filter(s => s.gender === 'Nam').sort((a: StaffMember, b: StaffMember) => a.name.localeCompare(b.name));
+        const nusInDept = deptStaff.filter(s => s.gender === 'Nu').sort((a: StaffMember, b: StaffMember) => a.name.localeCompare(b.name));
+        let i = 0, j = 0;
+        while (i < namsInDept.length || j < nusInDept.length) {
+            if (i < namsInDept.length) result.push(namsInDept[i++]);
+            if (j < nusInDept.length) result.push(nusInDept[j++]);
+        }
+    });
+    return result;
+  }, [staffListForExport, staffList, departmentFilter]);
+  const isIndividualExport = isExportingImage && staffListForExport && staffListForExport.length === 1 && !weeklyExportConfig;
+  return (
+    <div className="phanca-root phan-ca-layout min-h-dvh bg-slate-50 pb-20">
+      {/* Bảng chờ / tiến trình xuất ảnh: dùng bảng chung components/shared/export (tự gắn vào trang) */}
+      <PhanCaToolbar
+          hasStaff={hasStaff}
+          onImportClick={handleImportClick}
+          onDeleteStaffList={handleDeleteStaffList}
+          onOpenEditPattern={() => setEditPatternModalOpen(true)}
+          onExportAll={handleExportAll}
+          onExportWeekly={handleExportWeekly}
+          onExportIndividual={handleExportIndividual}
+          onExportExcel={handleExportExcel}
+          onExportGoogleSheet={handleExportGoogleSheet}
+      />
+      <main className="max-w-[1600px] [--trang-max:1600px] mx-auto ycx-tranh-dock mt-3 lg:mt-6">
+        {/* Chưa có nhân viên: nói rõ bước tiếp theo (trước chỉ thấy form mờ 40% và khối "DỮ LIỆU ĐANG TRỐNG" ở cuối trang). */}
+        {!hasStaff && !isExportingImage && (
+          <Banner
+            tone="info"
+            title="Bắt đầu bằng danh sách nhân viên"
+            action={{ label: 'Nhập nhân viên', onClick: handleImportClick }}
+            className="mb-3 lg:mb-4 mx-3 lg:mx-0"
+            data-testid="phanca-chua-co-nv"
+          >
+            Chọn file Excel danh sách nhân viên (tải ở trang Quản lý phân ca của hệ thống), tạo ca xoay rồi bấm “Tạo lịch”.
+          </Banner>
+        )}
+        <SectionCard className={`p-3 lg:p-6 mb-3 lg:mb-6 ${isExportingImage ? 'export-hidden' : ''}`}>
+          <Controls
+            monthYear={monthYear} setMonthYear={setMonthYear} startDay={startDay} setStartDay={setStartDay} duration={duration} setDuration={setDuration}
+            onGenerate={handleGenerateClick} departments={uniqueDepartments} departmentFilter={departmentFilter} setDepartmentFilter={setDepartmentFilter}
+            supermarkets={supermarkets} currentSupermarket={currentSupermarket} setSupermarket={handleSupermarketChange} onboardingStep={onboardingStep}
+            hasStaff={hasStaff} hasPatternsForCurrentDept={!!departmentPatterns[departmentFilter]} onDateControlClick={handleDateControlClick}
+          />
+        </SectionCard>
+        <SectionCard ref={exportContainerRef} className={isIndividualExport ? 'max-w-5xl mx-auto' : ''}>
+          {!isIndividualExport && (
+            <SectionHeader
+              title={exportTitle || `LỊCH PHÂN CA - ${currentSupermarket || 'Cửa Hàng'}`}
+              icon="calendar"
+            >
+              {!isExportingImage && (
+                <Button variant="ghost" size="icon" onClick={() => setHistoryModalOpen(true)} title="Lịch sử thay đổi" className="text-slate-400">
+                  <AppIcon name="clock" size="md" />
+                </Button>
+              )}
+            </SectionHeader>
+          )}
+          
+          <div className="p-3 lg:p-6 space-y-4">
+            {!isIndividualExport && (
+              <div>
+                 <Legend 
+                   targets={targets} 
+                   onEditRule={handleEditRule} 
+                   includeTnInSbh={includeTnInSbh} 
+                   onIncludeTnInSbhChange={setIncludeTnInSbh} 
+                   onboardingStep={onboardingStep} 
+                   autoAddWeekendShifts={autoAddWeekendShifts}
+                   onAutoAddWeekendShiftsChange={handleAutoAddWeekendShiftsChange}
+                   autoAddWeekendShift1={autoAddWeekendShift1}
+                   onAutoAddWeekendShift1Change={handleAutoAddWeekendShift1Change}
+                   sbhGenderBoost={sbhGenderBoost}
+                   onSbhGenderBoostChange={handleSbhGenderBoostChange}
+                 />
+              </div>
+            )}
+
+            <div className={isExportingImage ? 'export-hidden' : ''}>
+               <DailyStatsTable 
+                  staffList={staffList} config={scheduleConfig} requirements={dailyRequirements} setRequirements={setDailyRequirements}
+                  selectedDay={statsDay} setSelectedDay={setStatsDay} departmentFilter={departmentFilter} unresolvedConflicts={unresolvedConflicts} onShowUnresolvedConflicts={handleShowConflicts}
+               />
+            </div>
+
+            <div>
+              {hasStaff && targets && (
+                <div className="lg:hidden mb-3">
+                  <Tabs
+                    variant="segment" size="sm" activeId={cheDoXem}
+                    onChange={(id) => setCheDoXem(id as 'bang' | 'nhanVien')}
+                    items={[{ id: 'bang', label: 'Bảng' }, { id: 'nhanVien', label: 'Theo NV' }]}
+                  />
+                </div>
+              )}
+              {hasStaff && targets && cheDoXem === 'nhanVien' && (
+                <div className="lg:hidden">
+                  <MobileStaffDayView staffList={listForTable} config={scheduleConfig} />
+                </div>
+              )}
+              {hasStaff && targets ? (
+                isIndividualExport ? (
+                   <VerticalIndividualSchedule 
+                      staff={listForTable[0]} 
+                      config={scheduleConfig} 
+                      targets={targets} 
+                      includeTnInSbh={includeTnInSbh} 
+                   />
+                ) : (
+                  <div className={cheDoXem === 'nhanVien' ? 'hidden lg:block' : ''}>
+                  <ScheduleTable 
+                      staffList={listForTable} 
+                      config={scheduleConfig} 
+                      targets={targets} 
+                      tableRef={tableRef}
+                      includeTnInSbh={includeTnInSbh}
+                      onDeleteEmployee={handleDeleteEmployee} 
+                      onEditShift={handleEditShift}
+                      onDayClick={setStatsDay}
+                      weekRange={weeklyExportConfig} 
+                      highlightId={currentHighlightedId}
+                      onSwapShift={handleSwapShifts}
+                  />
+                  </div>
+                )
+              ) : hasStaff ? (
+                <div className="py-32 flex flex-col items-center justify-center">
+                  <div className="spinner !w-10 !h-10"></div>
+                  <p className="mt-4 font-semibold text-slate-400 text-sm">Đang khởi tạo mục tiêu...</p>
+                </div>
+              ) : (
+                <EmptyState icon="calendar" title="Chưa có lịch" description="Lịch hiện ở đây sau khi nhập nhân viên và bấm “Tạo lịch”." />
+              )}
+            </div>
+            
+            {/* Footer signature for official exports */}
+            {!isIndividualExport && isExportingImage && (
+                <div className="py-8 flex justify-end">
+                    <div className="text-center w-56 border-t-2 border-slate-200 pt-4">
+                        <p className="font-bold text-slate-800 uppercase text-[11px] tracking-wider mb-10">Quản Lý Duyệt</p>
+                        <p className="font-semibold text-slate-400 text-[11px] italic">(Ký và ghi rõ họ tên)</p>
+                    </div>
+                </div>
+            )}
+          </div>
+        </SectionCard>
+      </main>
+      {/* Modals & Inputs */}
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xlsx, .xls" />
+      {isEditRulesModalOpen && <EditRulesModal ruleKey={editingRuleKey!} currentRules={rules} availableShifts={[]} onClose={() => setEditRulesModalOpen(false)} onSave={(r) => { setRules(r); setEditRulesModalOpen(false); generateNewSchedule({rulesOverride: r}); }} />}
+      {isEditPatternModalOpen && <EditPatternModal 
+        allDepartments={uniqueDepartments} 
+        currentPatterns={departmentPatterns} 
+        onClose={() => setEditPatternModalOpen(false)} 
+        onSave={(p) => { 
+          setDepartmentPatterns(p); 
+          setEditPatternModalOpen(false); 
+          generateNewSchedule({patternsOverride: p}); 
+        }} 
+        staffCountByDept={staffCountByDept} 
+        dailyRequirements={dailyRequirements} 
+        onRequirementsUpdate={setDailyRequirements}
+        shiftDefinitions={shiftDefinitions}
+        onShiftDefinitionsUpdate={(sd) => {
+            setShiftDefinitions(sd);
+            idb.saveData(getKey('shiftDefinitions'), sd);
+        }}
+        nams={nams}
+        nus={nus}
+        rules={rules}
+      />}
+      {isImportModalOpen && <ImportStaffModal staffList={importedStaff} onClose={() => setImportModalOpen(false)} onConfirm={handleConfirmImport} existingSupermarkets={supermarkets} />}
+      {isEditShiftModalOpen && editingCellInfo && <EditShiftModal info={editingCellInfo} onClose={() => setEditShiftModalOpen(false)} onSave={handleSaveShift} onFindSolution={() => null} onConfirmReplacement={() => {}} onConfirmDaySwap={() => {}} onFindSolutionForDemotion={() => null} onConfirmSwapAndChange={() => {}} rules={rules} allStaff={staffList} dailyRequirements={dailyRequirements} busySchedule={busySchedule} onConfirmCutShift={()=>{}} onConfirmNormalSwap={handleSwapShifts} onConfirmCutAndSwap={()=>{}} onConfirmMultipleChanges={(a) => {
+          setStaffList(prev => {
+             const newList = [...prev];
+             a.forEach(act => {
+                const idx = newList.findIndex(s => s.id === act.staff.id);
+                if (idx !== -1) {
+                    const s = { ...newList[idx], schedule: [...newList[idx].schedule], stats: { ...newList[idx].stats } };
+                    s.schedule[editingCellInfo.dayIndex] = { ...act.newShift, isManual: true };
+                    s.stats = recalculateStatsForStaff(s);
+                    newList[idx] = s;
+                }
+             });
+             return newList;
+          });
+          setEditShiftModalOpen(false);
+      }} />}
+      {isHistoryModalOpen && <HistoryModal history={scheduleHistory} onClose={() => setHistoryModalOpen(false)} onRestore={(i) => { setStaffList(scheduleHistory[i].scheduleSnapshot); setHistoryModalOpen(false); }} />}
+      {isConflictModalOpen && <ConflictListModal conflicts={unresolvedConflicts} onClose={() => setConflictModalOpen(false)} />}
+      <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={closeConfirm}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          variant={confirmDialog.variant}
+          confirmText={confirmDialog.confirmText}
+      />
+    </div>
+  );
+};
+export default App;

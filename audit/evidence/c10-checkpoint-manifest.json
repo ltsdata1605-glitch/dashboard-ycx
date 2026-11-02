@@ -1,0 +1,10 @@
+{
+  "styles/tokens.css": "536921944532e64f348e2de72c213b5a901135d8ac369853c7400d996e9a46db",
+  "components/shared/ui/Button.tsx": "91e32869b9eac39117e0e96f49d9f3434bed6a0556b5a1c1b0f70509fe11fca6",
+  "components/shared/ui/Input.tsx": "86f0c08639a0d4765e6daee158ad489f3ad39fcd928164a3b63f6f0948f66848",
+  "components/shared/ui/Select.tsx": "100f3ae9c9cd95bd9eb7d36bf3ef7d86e3c602593c182a5a95ca98fcc70fcb64",
+  "components/shared/ui/Select.test.ts": "1f000ef1e9fd446556730459760be827590c54d0693389d57681792e9c43e6d9",
+  "tests/e2e/shared-form-states.spec.ts": "f527896865c70aecefc9eb6d4ef3aacccf0b39971e74368df766bd4d4a45033e",
+  "tests/e2e/helpers/materialHarness.html": "12b2afa88b6221a97006b8a6d43de5f6d2c41756666948fc07c73b13e3754615",
+  "components/shared/ui/TextareaCheckbox.test.ts": "610493f3a31a6ce4270a4129b337033d00f6373c8e5585a2d170e2557a0712da"
+}

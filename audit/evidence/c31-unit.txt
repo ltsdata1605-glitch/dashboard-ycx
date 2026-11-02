@@ -1,0 +1,617 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+ ✓ tests/unit/userscript-khong-bien-chua-khai-bao.test.ts (3 tests) 722ms
+     ✓ mwg-auto-thu-thap-diem-thuong.user.js  597ms
+stderr | features/bi-dashboard/utils/dashboardHelpers.test.ts > formatIndustryDisplayName > loại bỏ số mã ở đầu và viết hoa chữ cái đầu
+[2026-10-26T08:40:57.910Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/pending-approvals-store.test.ts (10 tests) 1017ms
+     ✓ 1 giờ với 3 subscriber: 30 lượt gọi (trước bản sửa: 240)  668ms
+ ✓ tests/unit/no-hardcoded-api-keys.test.ts (1 test) 254ms
+stdout | tests/unit/audit-gd3-phanca-load.test.ts > Phân ca — nạp phạm vi song song > chờ ~1 vòng mạng thay vì 10; dữ liệu nạp ra giống hệt
+[đo] tuần tự 1520ms → song song 152ms (trễ giả 150ms/khoá)
+
+ ✓ tests/unit/audit-gd3-phanca-load.test.ts (1 test) 1679ms
+     ✓ chờ ~1 vòng mạng thay vì 10; dữ liệu nạp ra giống hệt  1677ms
+ ✓ tests/unit/eslint-cam-hop-thoai-trinh-duyet.test.ts (9 tests) 1532ms
+     ✓ confirm("x")  1461ms
+ ✓ features/bi-dashboard/utils/dashboardHelpers.test.ts (38 tests) 1651ms
+     ✓ loại bỏ số mã ở đầu và viết hoa chữ cái đầu  1606ms
+ ✓ tests/unit/light-sync-keys.test.ts (59 tests) 156ms
+stderr | tests/unit/pkce-handoff-concurrency.test.ts
+[2026-10-26T08:40:59.035Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/eslint-cam-nut-tho.test.ts (3 tests) 1948ms
+     ✓ <button> thô là LỖI (severity 2) ở mọi khu vực  1459ms
+     ✓ không bắt nhầm: <Button> dùng chung, chữ "<button>" trong chuỗi  419ms
+ ✓ tests/unit/eslint-ngoai-le-cach-ly.test.ts (5 tests) 1886ms
+     ✓ Dashboard.tsx + useBiAutoSync.tsx được import autoReportExportService  1816ms
+(node:45480) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/unit/sales-json-chunks.test.ts (4 tests) 381ms
+     ✓ ghép khúc == JSON.stringify(rows) sau khi luồng chính xử lý (Lịch sử)  375ms
+ ✓ tests/unit/pkce-handoff-concurrency.test.ts (9 tests) 130ms
+stderr | tests/unit/line-bot-webhook-chu-ky.test.ts > webhook LINE: kiểm chữ ký trước khi xử lý sự kiện > không có chữ ký → 401, không xử lý sự kiện nào
+[lineBotWebhook] Bot uid1: chữ ký x-line-signature KHÔNG khớp → từ chối 1 sự kiện (giả mạo, hoặc Channel secret nhập sai).
+
+ ✓ services/managedUsersCache.test.ts (6 tests) 155ms
+stderr | tests/unit/line-bot-webhook-chu-ky.test.ts > webhook LINE: kiểm chữ ký trước khi xử lý sự kiện > chữ ký ký bằng secret khác (kẻ giả mạo) → 401
+[lineBotWebhook] Bot uid1: chữ ký x-line-signature KHÔNG khớp → từ chối 1 sự kiện (giả mạo, hoặc Channel secret nhập sai).
+
+ ✓ tests/unit/session-ownership-claim.test.ts (6 tests) 103ms
+stderr | tests/unit/line-bot-webhook-chu-ky.test.ts > webhook LINE: kiểm chữ ký trước khi xử lý sự kiện > thân bị sửa sau khi ký → 401
+[lineBotWebhook] Bot uid1: chữ ký x-line-signature KHÔNG khớp → từ chối 1 sự kiện (giả mạo, hoặc Channel secret nhập sai).
+
+stderr | tests/unit/line-bot-webhook-chu-ky.test.ts > webhook LINE: kiểm chữ ký trước khi xử lý sự kiện > bot CHƯA nhập Channel secret → bỏ qua sự kiện (200 để LINE không báo lỗi webhook), không xử lý
+[lineBotWebhook] Bot uid1: CHƯA nhập Channel secret → bỏ qua 1 sự kiện (không kiểm được chữ ký). Nhập ở Bot LINE › Cài đặt.
+
+ ✓ features/bi-dashboard/services/competitionSummaryCalc.parity.test.ts (7 tests) 144ms
+stderr | tests/unit/line-bot-webhook-chu-ky.test.ts > webhook LINE: kiểm chữ ký trước khi xử lý sự kiện > chữ ký đúng → đi tiếp vào xử lý sự kiện
+[lineBotWebhook] Lỗi lưu group: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13392:13
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/functions/src/lineBotWebhook.ts:2667:34
+    at file:///Users/ltson/dashboardycx/functions/node_modules/firebase-functions/lib/esm/common/providers/https.mjs:600:4
+    at goi (/Users/ltson/dashboardycx/tests/unit/line-bot-webhook-chu-ky.test.ts:49:5)
+    at /Users/ltson/dashboardycx/tests/unit/line-bot-webhook-chu-ky.test.ts:83:19
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20 {
+  [cause]: Error: getaddrinfo ENOTFOUND api.line.me
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.line.me'
+  }
+}
+
+stderr | features/product-config/services/firebaseProductConfigService.test.ts
+[2026-10-26T08:40:59.587Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/line-bot-webhook-chu-ky.test.ts (5 tests) 236ms
+stderr | features/product-config/services/firebaseProductConfigService.test.ts > firebaseProductConfigService & serialization > parseProductConfigFromWorkbook parses product code sheets (Bảo Hiểm ĐMX) with full attributes
+[Config] Đã tải 2 hệ số từ sheet 'Bảo Hiểm ĐMX'.
+
+ ✓ tests/unit/icon-registry.test.ts (20 tests) 150ms
+ ✓ tests/unit/tax-sync-giao-dich.test.ts (4 tests) 81ms
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > tải lên rồi tải xuống đủ dòng; lần tải lên sau dọn hết chunk phiên bản cũ
+[CloudData] Starting upload: 2500 rows, file: a.xlsx
+[CloudData] Split into 3 chunks
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > tải lên rồi tải xuống đủ dòng; lần tải lên sau dọn hết chunk phiên bản cũ
+[CloudData] Upload complete in 25ms (3 chunks, 2500 rows)
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > tải lên rồi tải xuống đủ dòng; lần tải lên sau dọn hết chunk phiên bản cũ
+[CloudData] Starting upload: 10 rows, file: b.xlsx
+[CloudData] Split into 1 chunks
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > tải lên rồi tải xuống đủ dòng; lần tải lên sau dọn hết chunk phiên bản cũ
+[CloudData] Cleaned up 3 stale chunks
+[CloudData] Upload complete in 1ms (1 chunks, 10 rows)
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > tải lên rồi tải xuống đủ dòng; lần tải lên sau dọn hết chunk phiên bản cũ
+[CloudData] Found cloud data: 10 rows in 1 chunks
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > tải lên rồi tải xuống đủ dòng; lần tải lên sau dọn hết chunk phiên bản cũ
+[CloudData] Downloaded 10 rows from cloud
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > thiếu 1 chunk → báo lỗi, KHÔNG trả về nửa dữ liệu như thành công
+[CloudData] Starting upload: 2500 rows, file: a.xlsx
+[CloudData] Split into 3 chunks
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > thiếu 1 chunk → báo lỗi, KHÔNG trả về nửa dữ liệu như thành công
+[CloudData] Upload complete in 15ms (3 chunks, 2500 rows)
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > thiếu 1 chunk → báo lỗi, KHÔNG trả về nửa dữ liệu như thành công
+[CloudData] Found cloud data: 2500 rows in 3 chunks
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > meta cũ (không rev) vẫn đọc được chunk_* kiểu cũ; số dòng lệch metadata → báo lỗi
+[CloudData] Found cloud data: 3 rows in 1 chunks
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > meta cũ (không rev) vẫn đọc được chunk_* kiểu cũ; số dòng lệch metadata → báo lỗi
+[CloudData] Downloaded 3 rows from cloud
+
+stderr | tests/unit/audit-gd2b-cloud-chunks.test.ts > D03 — dữ liệu cá nhân trên cloud luôn toàn vẹn > meta cũ (không rev) vẫn đọc được chunk_* kiểu cũ; số dòng lệch metadata → báo lỗi
+[CloudData] Found cloud data: 3 rows in 1 chunks
+
+ ✓ tests/unit/audit-gd2b-cloud-chunks.test.ts (5 tests) 72ms
+ ✓ features/product-config/services/firebaseProductConfigService.test.ts (10 tests) 241ms
+stdout | tests/unit/audit-gd3-kho-concurrency.test.ts > Tải dữ liệu Kho — giới hạn request đồng thời > 24 tháng × 5 chunk: đủ 120 dòng, đỉnh đồng thời ≤ 32 (HTTP/2 tối ưu, trước: 120)
+[đo] 120 chunk — đỉnh request đồng thời: 20
+
+ ✓ tests/unit/audit-gd3-kho-concurrency.test.ts (2 tests) 52ms
+ ✓ tests/unit/userscript-probe.test.ts (4 tests) 93ms
+ ✓ tests/unit/heavy-sync-chunk-cleanup.test.ts (6 tests) 70ms
+stderr | tests/unit/sticker-firestore-quota.test.ts > Hạn mức Firestore — phân trang "DS đã lưu" (mục 3b) > orderBy thất bại (index chưa sẵn) → quay về ĐÚNG hành vi cũ, không mất tính năng
+[SavedLists] Phân trang theo createdAt thất bại, quay về 1 query limit(500): Error: FAILED_PRECONDITION: The query requires an index.
+    at getDocs (/Users/ltson/dashboardycx/tests/unit/sticker-firestore-quota.test.ts:82:19)
+    at fetchSavedListsFromFirestore (/Users/ltson/dashboardycx/features/sticker-event/services/firebaseService.ts:496:29)
+    at /Users/ltson/dashboardycx/tests/unit/sticker-firestore-quota.test.ts:523:29
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+
+stderr | tests/unit/sticker-firestore-quota.test.ts > Hạn mức Firestore — phân trang "DS đã lưu" (mục 3b) > orderBy thất bại (index chưa sẵn) → quay về ĐÚNG hành vi cũ, không mất tính năng
+[SavedLists] Phân trang theo createdAt thất bại, quay về 1 query limit(500): Error: FAILED_PRECONDITION: The query requires an index.
+    at getDocs (/Users/ltson/dashboardycx/tests/unit/sticker-firestore-quota.test.ts:82:19)
+    at fetchSavedListsFromFirestore (/Users/ltson/dashboardycx/features/sticker-event/services/firebaseService.ts:496:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/sticker-firestore-quota.test.ts:523:23
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+ ✓ tests/unit/sticker-firestore-quota.test.ts (31 tests) 98ms
+ ✓ components/shared/ui/toast/khongToastTuVe.test.ts (1 test) 95ms
+ ✓ features/bi-dashboard/services/kpiOverviewCalc.test.ts (39 tests) 137ms
+ ✓ components/shared/export/khongBanSao.test.ts (1 test) 88ms
+ ✓ components/shared/ui/modalBleed.test.ts (1 test) 85ms
+ ✓ components/shared/ui/khongCongTacTuVe.test.ts (1 test) 150ms
+ ✓ components/shared/ui/Input.test.ts (2 tests) 66ms
+ ✓ tests/unit/cho-the-nhan-vien.test.ts (4 tests) 26ms
+(node:45500) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ services/periodService.test.ts (23 tests) 28ms
+ ✓ components/shared/ui/CapsuleBar.test.ts (7 tests) 84ms
+ ✓ tests/unit/line-bot-coupon-lookup.test.ts (9 tests) 34ms
+ ✓ tests/unit/light-sync-hai-may.test.ts (3 tests) 55ms
+ ✓ components/shared/ui/taiLaiKhiLoiChunk.test.ts (6 tests) 157ms
+ ✓ tests/unit/coupon-parser.test.ts (48 tests) 173ms
+stderr | tests/unit/lazy-with-retry.test.ts > lazyWithRetry > triggers page reload if module is undefined or missing default export
+[lazyWithRetry] Error loading lazy module "FailedComponent": Error: Module "FailedComponent" failed to load or has no default export.
+    at Object._result (/Users/ltson/dashboardycx/utils/lazyWithRetry.ts:41:23)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+stderr | tests/unit/lazy-with-retry.test.ts > lazyWithRetry > trang đang rời đi (WebKit huỷ import dở dang lúc điều hướng) → KHÔNG tự tải lại, không đánh dấu đã thử
+[lazyWithRetry] Error loading lazy module "DangRoiTrang": TypeError: Importing a module script failed.
+    at /Users/ltson/dashboardycx/tests/unit/lazy-with-retry.test.ts:65:55
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2956:64
+
+stderr | tests/unit/lazy-with-retry.test.ts > lazyWithRetry > throws error on second failure after reload to allow ErrorBoundary fallback
+[lazyWithRetry] Error loading lazy module "FailedComponent": Error: Module "FailedComponent" failed to load or has no default export.
+    at Object._result (/Users/ltson/dashboardycx/utils/lazyWithRetry.ts:41:23)
+
+(node:45505) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/unit/lazy-with-retry.test.ts (7 tests) 23ms
+stderr | tests/unit/audit-gd1c-webhook.test.ts > S07 — uploadMedia > có token: tạo ảnh mới; KHÔNG ghi đè ID có sẵn; KHÔNG nhận HTML giả ảnh
+Lỗi uploadMedia: Error: ALREADY_EXISTS
+    at Object.create (/Users/ltson/dashboardycx/tests/unit/audit-gd1c-webhook.test.ts:19:60)
+    at /Users/ltson/dashboardycx/functions/src/lineBotWebhook.ts:2208:63
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at file:///Users/ltson/dashboardycx/functions/node_modules/firebase-functions/lib/esm/common/providers/https.mjs:600:4
+    at call (/Users/ltson/dashboardycx/tests/unit/audit-gd1c-webhook.test.ts:68:5)
+    at /Users/ltson/dashboardycx/tests/unit/audit-gd1c-webhook.test.ts:130:22
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > người không phải Admin gõ DUYỆT: bị từ chối, yêu cầu vẫn chờ
+[lineBotWebhook] Received message "DUYỆT" from GROUP:Cgroup
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > người không phải Admin gõ DUYỆT: bị từ chối, yêu cầu vẫn chờ
+[LINE Reply] Sent 1 msg(s). Status: 200
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > không trả mã ĐÃ DÙNG về kho; người lạ không trả được mã của người khác
+[lineBotWebhook] Received message "huy CODE22" from GROUP:Cgroup
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > không trả mã ĐÃ DÙNG về kho; người lạ không trả được mã của người khác
+[LINE Reply] Sent 1 msg(s). Status: 200
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > không trả mã ĐÃ DÙNG về kho; người lạ không trả được mã của người khác
+[lineBotWebhook] Received message "huy CODE33" from GROUP:Cgroup
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > không trả mã ĐÃ DÙNG về kho; người lạ không trả được mã của người khác
+[LINE Reply] Sent 1 msg(s). Status: 200
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > không trả mã ĐÃ DÙNG về kho; người lạ không trả được mã của người khác
+[lineBotWebhook] Received message "huy CODE33" from GROUP:Cgroup
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > S08 — lệnh DUYỆT / huỷ mã trong nhóm LINE > không trả mã ĐÃ DÙNG về kho; người lạ không trả được mã của người khác
+[LINE Reply] Sent 1 msg(s). Status: 200
+
+stdout | tests/unit/audit-gd1c-webhook.test.ts > D09 — 2 lệnh DUYỆT cùng lúc không cấp 1 mã cho 2 người > chỉ 1 yêu cầu nhận mã, yêu cầu kia được báo gửi lại
+[lineBotWebhook] Received message "DUYỆT ORDER111" from GROUP:Cgroup
+[lineBotWebhook] Received message "DUYỆT ORDER222" from GROUP:Cgroup
+
+ ✓ tests/unit/analytics-worker-set-data-khuc.test.ts (3 tests) 24ms
+ ✓ features/check-thuong/services/checkThuongCalc.test.ts (13 tests) 32ms
+ ✓ components/shared/ui/Select.test.ts (2 tests) 17ms
+stdout | tests/unit/audit-gd1c-webhook.test.ts > D09 — 2 lệnh DUYỆT cùng lúc không cấp 1 mã cho 2 người > chỉ 1 yêu cầu nhận mã, yêu cầu kia được báo gửi lại
+[LINE Reply] Sent 1 msg(s). Status: 200
+[LINE Reply] Sent 1 msg(s). Status: 200
+
+ ✓ tests/unit/audit-gd1c-webhook.test.ts (9 tests) 119ms
+ ✓ features/bi-dashboard/services/competitionCommentaryCalc.test.ts (9 tests) 55ms
+ ✓ features/sticker-event/services/fileParser.test.ts (9 tests) 69ms
+ ✓ features/bi-dashboard/services/competitionGroupCalc.test.ts (20 tests) 35ms
+ ✓ features/bi-dashboard/utils/directApiSerializer.test.ts (4 tests) 20ms
+ ✓ tests/unit/cloud-sync-banner.test.ts (4 tests) 18ms
+ ✓ utils/dataUtils.test.ts (68 tests) 30ms
+ ✓ features/bi-dashboard/services/checkThuongBonus.test.ts (18 tests) 19ms
+ ✓ features/bi-dashboard/services/individualCompetitionCalc.test.ts (21 tests) 60ms
+stderr | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > gửi lịch đến giờ vào đúng nhóm, thay biến; bỏ qua nhóm tắt và lịch chưa tới giờ
+[autoRevokeStaleCouponsForBot] Lỗi xử lý bot uid1: TypeError: __vite_ssr_import_0__.db.collection(...).doc(...).collection is not a function
+    at autoRevokeStaleCouponsForBot (/Users/ltson/dashboardycx/functions/src/couponAutoRevoke.ts:110:63)
+    at autoRevokeAllBotsStaleCoupons (/Users/ltson/dashboardycx/functions/src/couponAutoRevoke.ts:187:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Function.run (/Users/ltson/dashboardycx/functions/src/lineBotScheduler.ts:77:13)
+    at /Users/ltson/dashboardycx/tests/unit/line-bot-notify-may-chu.test.ts:58:9
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > gửi lịch đến giờ vào đúng nhóm, thay biến; bỏ qua nhóm tắt và lịch chưa tới giờ
+[Scheduler Push Success] Đã gửi 1 tin nhắn đến nhóm C_A
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > gửi lịch đến giờ vào đúng nhóm, thay biến; bỏ qua nhóm tắt và lịch chưa tới giờ
+[Scheduler Push Success] Đã gửi 1 tin nhắn đến nhóm C_B
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > gửi lịch đến giờ vào đúng nhóm, thay biến; bỏ qua nhóm tắt và lịch chưa tới giờ
+[Scheduler Notify] Bot uid1 lịch "Sáng" (2026-10-02 06:00): gửi 2/2 nhóm.
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > gửi lịch đến giờ vào đúng nhóm, thay biến; bỏ qua nhóm tắt và lịch chưa tới giờ
+[Scheduler Push Success] Đã gửi 1 tin nhắn đến nhóm C_X
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > gửi lịch đến giờ vào đúng nhóm, thay biến; bỏ qua nhóm tắt và lịch chưa tới giờ
+[Scheduler Notify] Bot uid1 lịch "Một lần" (2026-10-02 06:00): gửi 1/1 nhóm.
+
+stderr | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[autoRevokeStaleCouponsForBot] Lỗi xử lý bot uid1: TypeError: __vite_ssr_import_0__.db.collection(...).doc(...).collection is not a function
+    at autoRevokeStaleCouponsForBot (/Users/ltson/dashboardycx/functions/src/couponAutoRevoke.ts:110:63)
+    at autoRevokeAllBotsStaleCoupons (/Users/ltson/dashboardycx/functions/src/couponAutoRevoke.ts:187:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Function.run (/Users/ltson/dashboardycx/functions/src/lineBotScheduler.ts:77:13)
+    at /Users/ltson/dashboardycx/tests/unit/line-bot-notify-may-chu.test.ts:70:9
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[Scheduler Push Success] Đã gửi 1 tin nhắn đến nhóm C_A
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[Scheduler Push Success] Đã gửi 1 tin nhắn đến nhóm C_B
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[Scheduler Notify] Bot uid1 lịch "Sáng" (2026-10-02 06:00): gửi 2/2 nhóm.
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[Scheduler Push Success] Đã gửi 1 tin nhắn đến nhóm C_X
+
+stdout | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[Scheduler Notify] Bot uid1 lịch "Một lần" (2026-10-02 06:00): gửi 1/1 nhóm.
+
+stderr | tests/unit/line-bot-notify-may-chu.test.ts > lịch Gửi Notify tự gửi trên máy chủ > chạy lần 2 (5 phút sau) → KHÔNG gửi trùng; ONCE đã tự tắt
+[autoRevokeStaleCouponsForBot] Lỗi xử lý bot uid1: TypeError: __vite_ssr_import_0__.db.collection(...).doc(...).collection is not a function
+    at autoRevokeStaleCouponsForBot (/Users/ltson/dashboardycx/functions/src/couponAutoRevoke.ts:110:63)
+    at autoRevokeAllBotsStaleCoupons (/Users/ltson/dashboardycx/functions/src/couponAutoRevoke.ts:187:31)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Function.run (/Users/ltson/dashboardycx/functions/src/lineBotScheduler.ts:77:13)
+    at /Users/ltson/dashboardycx/tests/unit/line-bot-notify-may-chu.test.ts:72:9
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+ ✓ tests/unit/sticker-roles-and-cross-device.test.ts (12 tests) 54ms
+ ✓ tests/unit/line-bot-notify-may-chu.test.ts (2 tests) 31ms
+ ✓ tests/unit/audit-gd2a-kho-sync.test.ts (8 tests) 42ms
+ ✓ tests/unit/product-config-serialization.test.ts (6 tests) 6ms
+ ✓ tests/unit/phan-ca-google-sheet-mau-o.test.ts (5 tests) 21ms
+ ✓ tests/unit/bi-worker-phuc-hoi.test.ts (3 tests) 43ms
+ ✓ tests/unit/getLocalDateString.test.ts (6 tests) 8ms
+stderr | features/bi-dashboard/services/employeeParser.test.ts
+[2026-10-26T08:41:02.026Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+(node:45556) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stderr | tests/unit/bi-industry-sync-robustness.test.ts > BI Industry Sync Robustness Tests > does NOT overwrite existing valid industry data if incoming store data is empty/invalid
+[BI-Sync] Bỏ qua dữ liệu ngành hàng rỗng hoặc không hợp lệ cho siêu thị ĐMX HÙNG VƯƠNG
+
+ ✓ tests/unit/bi-industry-sync-robustness.test.ts (6 tests) 44ms
+ ✓ features/bi-dashboard/services/employeeParser.test.ts (3 tests) 13ms
+ ✓ features/tax-calculator/services/taxHistoryGrouping.test.ts (5 tests) 20ms
+ ✓ tests/unit/line-bot-schedule-due.test.ts (8 tests) 21ms
+ ✓ tests/unit/line-bot-used-confirm-text.test.ts (13 tests) 13ms
+ ✓ components/shared/ui/TextareaCheckbox.test.ts (5 tests) 19ms
+ ✓ tests/unit/line-bot-relist-unused.test.ts (7 tests) 26ms
+ ✓ features/bi-dashboard/utils/danhSachSieuThi.test.ts (4 tests) 43ms
+ ✓ features/bi-dashboard/services/competitionSortAndCalc.test.ts (28 tests) 17ms
+ ✓ features/bi-dashboard/components/dataValidationAndSafety.test.ts (3 tests) 9ms
+(node:45560) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/unit/lint-ratchet-patterns.test.ts (20 tests) 6ms
+stderr | tests/unit/audit-s13-line-secrets.test.ts > S1 — đọc bí mật có dự phòng > webhook chữ ký đọc Channel secret từ line_bot_secrets
+[lineBotWebhook] Bot owner1: chữ ký x-line-signature KHÔNG khớp → từ chối 1 sự kiện (giả mạo, hoặc Channel secret nhập sai).
+
+ ✓ tests/unit/audit-s13-line-secrets.test.ts (11 tests) 9ms
+stderr | features/bi-dashboard/services/biCloudSyncService.test.ts
+[2026-10-26T08:41:02.622Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ features/bi-dashboard/services/biCloudSyncService.test.ts (5 tests) 4ms
+ ✓ features/bi-dashboard/services/summaryTableCalc.test.ts (22 tests) 11ms
+stderr | tests/unit/tax-merge-overwrite.test.ts > merge with overwrite-capable local storage > failed cloud import preserves and returns existing local record
+[TaxSync] Không lưu được bản cloud vào máy, giữ bản local: Error: fixture aborted save
+    at Object.save (/Users/ltson/dashboardycx/tests/unit/tax-merge-overwrite.test.ts:39:33)
+    at Object.getAllRecords (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:214:67)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/tax-merge-overwrite.test.ts:71:24
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stderr | tests/unit/tax-merge-overwrite.test.ts > merge with overwrite-capable local storage > offline overwrite replay has same cloud replacement semantics as online save
+[TaxSync] Lỗi đồng bộ Firestore: Error: fixture offline
+    at runTransaction (/Users/ltson/dashboardycx/tests/unit/tax-merge-overwrite.test.ts:25:28)
+    at suaMangTrenCloud (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:63:15)
+    at Object.saveRecord (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:261:30)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/tax-merge-overwrite.test.ts:77:17
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+ ✓ tests/unit/tax-merge-overwrite.test.ts (6 tests) 22ms
+ ✓ features/tax-calculator/services/hrmSlipTextParser.test.ts (27 tests) 12ms
+ ✓ features/bi-dashboard/utils/nhanVienHelpers.test.ts (13 tests) 7ms
+ ✓ features/bi-dashboard/hooks/useRevenueMatching.test.ts (5 tests) 15ms
+ ✓ tests/unit/phan-ca-can-bang-thieu-gioi-tinh.test.ts (2 tests) 34ms
+stderr | tests/unit/target-employee-supermarket-filter.test.ts
+[2026-10-26T08:41:03.035Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/target-employee-supermarket-filter.test.ts (6 tests) 6ms
+stdout | tests/unit/coupon-auto-revoke.test.ts > couponAutoRevoke — Tự động hoàn kho sau thời gian chờ > autoRevokeStaleCouponsForBot > thu hồi mã SENT quá 30 phút về UNUSED và gửi thông báo nhẹ vào nhóm
+[autoRevokeStaleCouponsForBot] Bot bot123: Đã tự động hoàn kho 1 mã SENT quá 30 phút.
+
+ ✓ tests/unit/coupon-auto-revoke.test.ts (8 tests) 11ms
+stderr | tests/unit/column-settings-firebase-sync.test.ts
+[2026-10-26T08:41:03.220Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+stderr | tests/unit/audit-d11-tax-hang-cho.test.ts > D11 — hàng chờ cloud lịch sử Thuế > lưu lúc mất mạng: báo "pending", có mạng lại thì lần mở sau tự đẩy lên cloud
+[TaxSync] Lỗi đồng bộ Firestore: Error: Failed to get document because the client is offline.
+    at offline (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:19:44)
+    at runTransaction (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:29:9)
+    at suaMangTrenCloud (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:63:15)
+    at Object.saveRecord (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:261:30)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:62:19
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stderr | tests/unit/audit-d11-tax-hang-cho.test.ts > D11 — hàng chờ cloud lịch sử Thuế > xoá lúc mất mạng: mở lại KHÔNG kéo bản đã xoá về; có mạng thì xoá luôn trên cloud
+[TaxSync] Lỗi đồng bộ Firestore: Error: Failed to get document because the client is offline.
+    at offline (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:19:44)
+    at runTransaction (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:29:9)
+    at suaMangTrenCloud (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:63:15)
+    at Object.deleteRecord (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:279:30)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:74:9
+
+stderr | tests/unit/audit-d11-tax-hang-cho.test.ts > D11 — hàng chờ cloud lịch sử Thuế > xoá lúc mất mạng: mở lại KHÔNG kéo bản đã xoá về; có mạng thì xoá luôn trên cloud
+[TaxSync] Lỗi đồng bộ Firestore: Error: Failed to get document because the client is offline.
+    at offline (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:19:44)
+    at runTransaction (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:29:9)
+    at suaMangTrenCloud (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:63:15)
+    at guiHangCho (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:121:22)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.getAllRecords (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:177:28)
+    at /Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:77:16
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stderr | tests/unit/audit-d11-tax-hang-cho.test.ts > D11 — hàng chờ cloud lịch sử Thuế > xoá lúc mất mạng: mở lại KHÔNG kéo bản đã xoá về; có mạng thì xoá luôn trên cloud
+[TaxSync] Không thể tải từ Firestore, sử dụng IndexedDB: Error: Failed to get document because the client is offline.
+    at offline (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:19:44)
+    at getDoc (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:26:27)
+    at Object.getAllRecords (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:181:32)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:77:16
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+stderr | tests/unit/audit-d11-tax-hang-cho.test.ts > D11 — hàng chờ cloud lịch sử Thuế > đổi tháng lúc mất mạng: mở lại giữ tháng MỚI (không bị bản cloud đè), rồi đẩy tháng mới lên cloud
+[TaxSync] Lỗi đồng bộ Firestore: Error: Failed to get document because the client is offline.
+    at offline (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:19:44)
+    at runTransaction (/Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:29:9)
+    at suaMangTrenCloud (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:63:15)
+    at Object.updateRecordMonth (/Users/ltson/dashboardycx/features/tax-calculator/services/taxSyncService.ts:293:30)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /Users/ltson/dashboardycx/tests/unit/audit-d11-tax-hang-cho.test.ts:87:9
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20
+
+ ✓ tests/unit/audit-d11-tax-hang-cho.test.ts (3 tests) 14ms
+ ✓ tests/unit/column-settings-firebase-sync.test.ts (89 tests) 9ms
+ ✓ features/bi-dashboard/components/nhanvien/revenue/colorSettings.test.ts (12 tests) 4ms
+ ✓ features/bi-dashboard/services/biSupermarketMapService.test.ts (7 tests) 16ms
+stderr | tests/unit/autoReportExportService.test.ts
+[2026-10-26T08:41:03.379Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/industry-colors.test.ts (4 tests) 6ms
+ ✓ features/sticker-event/services/batchImageExportService.test.ts (8 tests) 12ms
+ ✓ features/bi-dashboard/components/nhanvien/bonus/bonusRevenueMatching.test.ts (13 tests) 8ms
+ ✓ tests/unit/tax-deduplicate-overwrite.test.ts (6 tests) 9ms
+ ✓ components/shared/ui/Overlay.test.ts (4 tests) 45ms
+stderr | tests/unit/autoReportExportService.test.ts > autoReportExportService > cập nhật cấu hình khu vực chính xác
+[IDB] Failed to get database for key "auto_report_export_config": Error: IndexedDB is not supported/enabled in this environment.
+    at getDb (/Users/ltson/dashboardycx/services/dbService/core.ts:23:31)
+    at getSetting (/Users/ltson/dashboardycx/services/dbService/core.ts:580:26)
+    at loadAutoExportSettings (/Users/ltson/dashboardycx/services/autoReportExportService.ts:114:24)
+    at setAreaExportSetting (/Users/ltson/dashboardycx/services/autoReportExportService.ts:144:11)
+    at /Users/ltson/dashboardycx/tests/unit/autoReportExportService.test.ts:33:15
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///Users/ltson/dashboardycx/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+
+stderr | tests/unit/autoReportExportService.test.ts > autoReportExportService > cập nhật cấu hình khu vực chính xác
+[IDB] Retry save 'auto_report_export_config' after error: IndexedDB is not supported/enabled in this environment.
+
+stderr | tests/unit/autoReportExportService.test.ts > autoReportExportService > cập nhật cấu hình khu vực chính xác
+[IDB] Permanent failure saving key 'auto_report_export_config': Error: IndexedDB is not supported/enabled in this environment.
+    at getDb (/Users/ltson/dashboardycx/services/dbService/core.ts:23:31)
+    at saveSettingInternal (/Users/ltson/dashboardycx/services/dbService/core.ts:206:30)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+stderr | tests/unit/autoReportExportService.test.ts > autoReportExportService > hỗ trợ cấu hình lệnh realtimeCommand và luykeCommand tùy chỉnh cho khu vực
+[IDB] Retry save 'auto_report_export_config' after error: IndexedDB is not supported/enabled in this environment.
+
+stderr | tests/unit/autoReportExportService.test.ts > autoReportExportService > hỗ trợ cấu hình lệnh realtimeCommand và luykeCommand tùy chỉnh cho khu vực
+[IDB] Permanent failure saving key 'auto_report_export_config': Error: IndexedDB is not supported/enabled in this environment.
+    at getDb (/Users/ltson/dashboardycx/services/dbService/core.ts:23:31)
+    at saveSettingInternal (/Users/ltson/dashboardycx/services/dbService/core.ts:206:30)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+ ✓ tests/unit/autoReportExportService.test.ts (6 tests) 12ms
+ ✓ tests/unit/coupon-template.test.ts (2 tests) 11ms
+(node:45615) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | tests/unit/audit-gd2e-pmh-relay.test.ts > D18 — hàng đợi PMH relay > gửi kết quả 2 lần: chỉ đẩy LINE 1 lần
+[pmhRelayComplete] docId=job1, codes=1, errors=0, groupId=Cg
+
+stderr | tests/unit/audit-gd2e-pmh-relay.test.ts > D18 — hàng đợi PMH relay > gửi kết quả 2 lần: chỉ đẩy LINE 1 lần
+[pmhSequence] Không cấp được số thứ tự: TypeError: tx.set is not a function
+    at /Users/ltson/dashboardycx/functions/src/pmhSequence.ts:53:16
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+stdout | tests/unit/audit-gd2e-pmh-relay.test.ts > D18 — hàng đợi PMH relay > gửi kết quả 2 lần: chỉ đẩy LINE 1 lần
+[pmhRelayComplete] Saved 1 codes to filtered_coupons for uid=botA
+[pmhRelayComplete] Pushing to LINE, groupId=Cg
+
+ ✓ tests/unit/audit-gd2e-pmh-relay.test.ts (3 tests) 7ms
+ ✓ tests/unit/check-thuong-search.test.ts (4 tests) 4ms
+ ✓ tests/unit/line-bot-user-name.test.ts (15 tests) 4ms
+ ✓ features/tax-calculator/services/taxExportExcelService.test.ts (2 tests) 23ms
+ ✓ tests/unit/phan-ca-nap-du-bo-phan.test.ts (2 tests) 16ms
+ ✓ services/autoSyncSchedule.test.ts (10 tests) 5ms
+ ✓ tests/unit/ycx-realtime-luyke-isolation.test.ts (4 tests) 24ms
+(node:45623) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ features/bi-dashboard/services/industryKpiCalc.test.ts (6 tests) 11ms
+ ✓ tests/unit/reset-du-lieu-bao-cao-chung.test.ts (3 tests) 16ms
+ ✓ tests/unit/audit-gd1c-liff-ticket.test.ts (3 tests) 42ms
+stderr | tests/unit/pwa-standalone-auth.test.ts
+[2026-10-26T08:41:04.547Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/pwa-standalone-auth.test.ts (5 tests) 5ms
+ ✓ features/bi-dashboard/services/competitionSummaryCalc.test.ts (33 tests) 16ms
+(node:45625) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ services/ycxAutoSyncService.test.ts (8 tests) 4ms
+ ✓ features/bi-dashboard/utils/bonusDateRange.test.ts (9 tests) 9ms
+ ✓ tests/unit/audit-gd0-xac-thuc.test.ts (10 tests) 62ms
+ ✓ tests/unit/khai-thac.test.ts (20 tests) 103ms
+ ✓ tests/unit/sticker-upload-timeout.test.ts (7 tests) 8ms
+stderr | features/bi-dashboard/services/tileLinkService.test.ts
+[2026-10-26T08:41:05.156Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/interacted-users.test.ts (3 tests) 8ms
+ ✓ components/shared/ui/toast/toast.test.ts (11 tests) 52ms
+ ✓ features/bi-dashboard/services/tileLinkService.test.ts (5 tests) 6ms
+ ✓ tests/unit/line-bot-pmh-sequence-theo-loai.test.ts (8 tests) 22ms
+stderr | tests/unit/tax-calculator.test.ts
+[2026-10-26T08:41:05.482Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/tax-calculator.test.ts (12 tests) 6ms
+ ✓ features/bi-dashboard/services/globalBonusService.test.ts (5 tests) 13ms
+ ✓ features/bi-dashboard/services/metricService.test.ts (6 tests) 5ms
+ ✓ tests/unit/bonus-date-range.test.ts (5 tests) 6ms
+ ✓ features/bi-dashboard/utils/cartoonAvatars.test.ts (4 tests) 11ms
+ ✓ tests/unit/line-bot-uu-tien-notify.test.ts (2 tests) 5ms
+ ✓ tests/unit/light-sync-policy.test.ts (7 tests) 7ms
+ ✓ utils/departmentFilter.test.ts (4 tests) 5ms
+ ✓ tests/unit/csp-frame-src-va-cdn-pin.test.ts (10 tests) 6ms
+ ✓ tests/unit/phan-ca-realtime.test.ts (4 tests) 5ms
+ ✓ tests/unit/install-hint.test.ts (3 tests) 6ms
+ ✓ tests/unit/heavy-sync-policy.test.ts (17 tests) 4ms
+ ✓ tests/unit/cau-noi-dto-a29.test.ts (6 tests) 5ms
+(node:45662) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/unit/line-bot-signature.test.ts (5 tests) 6ms
+ ✓ components/shared/ui/cnBoGoc.test.ts (3 tests) 38ms
+ ✓ tests/unit/audit-gd2c-tax-identity.test.ts (4 tests) 26ms
+stdout | tests/unit/audit-gd1a-claims.test.ts > S03 — chưa duyệt không có quyền Kho > user pending tự chọn Kho 910: hồ sơ giữ Kho, token KHÔNG mang Kho
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":false}
+
+stdout | tests/unit/audit-gd1a-claims.test.ts > S03 — chưa duyệt không có quyền Kho > nhân viên đã duyệt vẫn có Kho trong token
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":false}
+
+stdout | tests/unit/audit-gd1a-claims.test.ts > S04 — thu hồi có hiệu lực > admin đặt status expired cho manager → token về pending, không còn Kho; đăng nhập lại vẫn vậy
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":false}
+
+stdout | tests/unit/audit-gd1a-claims.test.ts > S04 — thu hồi có hiệu lực > admin đặt status expired cho manager → token về pending, không còn Kho; đăng nhập lại vẫn vậy
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":false}
+
+stdout | tests/unit/audit-gd1a-claims.test.ts > S05 — 2 app không xoá claims của nhau > đăng nhập In Sticker rồi app gốc (và ngược lại) giữ đủ cả 2 bộ
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":false}
+
+stdout | tests/unit/audit-gd1a-claims.test.ts > Bỏ ghi claims khi token đã đúng (2026-10-21) — không được nới quyền > token cũ còn manager + Kho nhưng hồ sơ đã hết hạn → VẪN ghi claims về pending
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":false}
+
+stdout | tests/unit/audit-gd1a-claims.test.ts > Bỏ ghi claims khi token đã đúng (2026-10-21) — không được nới quyền > token đã mang đúng claims → không gọi setCustomUserClaims
+[giaiQuyetPhien] {"msDoc":0,"msTong":0,"boQuaClaims":true}
+
+ ✓ services/summaryService.test.ts (10 tests) 6ms
+ ✓ tests/unit/audit-gd1a-claims.test.ts (6 tests) 7ms
+ ✓ features/bi-dashboard/services/autoNavigationService.test.ts (5 tests) 11ms
+ ✓ tests/unit/system-announcement.test.ts (4 tests) 12ms
+ ✓ features/bi-dashboard/hooks/competitionLuyKeMerge.test.ts (2 tests) 17ms
+ ✓ features/bi-dashboard/services/competitionViewCalc.test.ts (13 tests) 13ms
+ ✓ tests/unit/sticker-background-helpers.test.ts (4 tests) 3ms
+ ✓ tests/unit/light-sync-plan.test.ts (4 tests) 4ms
+ ✓ services/filterService.test.ts (17 tests) 5ms
+ ✓ tests/unit/analysis-employees-khong-vong-lap.test.ts (2 tests) 8ms
+ ✓ utils/localDbScope.test.ts (8 tests) 14ms
+ ✓ tests/unit/expired-coupon-auto-cleanup.test.ts (3 tests) 5ms
+ ✓ tests/unit/ios-xuat-anh.test.ts (8 tests) 23ms
+ ✓ tests/unit/line-flex-gia-tri-hop-le.test.ts (1 test) 4ms
+ ✓ tests/unit/line-bot-pmh-form-strict.test.ts (5 tests) 4ms
+ ✓ features/bi-dashboard/utils/thiDuaNhanVienApi.test.ts (7 tests) 5ms
+ ✓ tests/unit/competition-filter-default.test.ts (4 tests) 4ms
+ ✓ features/tax-calculator/services/bankCatalog.test.ts (5 tests) 15ms
+ ✓ tests/unit/super-admin-kho.test.ts (9 tests) 5ms
+ ✓ tests/unit/center-active-strip.test.ts (3 tests) 5ms
+ ✓ tests/unit/line-bot-group-features.test.ts (6 tests) 6ms
+ ✓ tests/unit/approval-settings.test.ts (3 tests) 5ms
+ ✓ tests/unit/sticker-session-sync-policy.test.ts (12 tests) 22ms
+ ✓ features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts (4 tests) 5ms
+ ✓ tests/unit/sticker-draw-ticket-persistence.test.ts (5 tests) 6ms
+ ✓ services/analysisExportDestinations.test.ts (7 tests | 3 skipped) 7ms
+stderr | tests/unit/report-bi-analysis-employee-only.test.ts
+[2026-10-26T08:41:07.496Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/presence-policy.test.ts (11 tests) 6ms
+ ✓ tests/unit/report-bi-analysis-employee-only.test.ts (3 tests) 15ms
+ ✓ components/shared/export/truncateExport.test.ts (6 tests) 6ms
+ ✓ features/bi-dashboard/services/biAutoSyncService.version.test.ts (4 tests) 7ms
+ ✓ tests/unit/check-thuong-analysis-filter-reset.test.ts (3 tests) 3ms
+stderr | tests/unit/tnbDataService.test.ts
+[2026-10-26T08:41:07.914Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/tnbDataService.test.ts (4 tests) 4ms
+ ✓ tests/unit/batch-export-result.test.ts (5 tests) 5ms
+ ✓ features/bi-dashboard/services/thangLuyKe.test.ts (4 tests) 6ms
+ ✓ tests/unit/check-thuong-table-sort.test.ts (2 tests) 5ms
+stderr | tests/unit/analysis-employees-from-dept-map.test.ts
+[2026-10-26T08:41:08.114Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+(node:45706) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/unit/audit-d16-summary-kpi-fallback.test.ts (5 tests) 22ms
+ ✓ tests/unit/line-bot-tin-co-gach-cheo.test.ts (3 tests) 4ms
+ ✓ tests/unit/analysis-employees-from-dept-map.test.ts (4 tests) 9ms
+ ✓ tests/unit/line-bot-loi-han-muc.test.ts (3 tests) 7ms
+ ✓ features/bi-dashboard/utils/traChamApi.test.ts (3 tests) 7ms
+ ✓ tests/unit/line-bot-pmh-sequence.test.ts (9 tests) 8ms
+ ✓ utils/moTaBoLoc.test.ts (4 tests) 2ms
+ ✓ tests/unit/audit-gd2e-sticker-quantity.test.ts (1 test) 2ms
+stderr | features/bi-dashboard/services/employeeTargetKeys.test.ts
+[2026-10-26T08:41:08.544Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/worker-timeout.test.ts (3 tests) 4ms
+ ✓ features/bi-dashboard/services/employeeTargetKeys.test.ts (3 tests) 3ms
+ ✓ tests/unit/bot-media-upload.test.ts (3 tests) 5ms
+ ↓ tests/bench/filter-100k.test.ts (1 test | 1 skipped)
+ ✓ tests/unit/audit-gd1d-sticker-html.test.ts (2 tests) 3ms
+
+ Test Files  172 passed | 1 skipped (173)
+      Tests  1490 passed | 4 skipped (1494)
+   Start at  15:40:56
+   Duration  12.27s (transform 6.48s, setup 0ms, import 28.80s, tests 16.22s, environment 32ms)
+
+JSON report written to /Users/ltson/dashboardycx/audit/evidence/c31-unit.json

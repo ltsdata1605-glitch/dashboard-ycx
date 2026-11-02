@@ -1,0 +1,160 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c5-playwright.config.mjs",
+      "navigation-material.spec.ts",
+      "-g",
+      "keyboard focus"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c5-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c5-webkit-empty-option",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "tax-storage-atomicity.spec.ts",
+          "navigation-material.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c5-webkit-empty-option.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "navigation-material.spec.ts",
+      "file": "navigation-material.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "system group",
+          "file": "navigation-material.spec.ts",
+          "line": 54,
+          "column": 6,
+          "specs": [
+            {
+              "title": "keyboard focus ring is not clipped by the system group",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19727,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "keyboard sequence {\"key\":\"Alt+Tab\",\"focusTrace\":[{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Phân tích YCX\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Report BI\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Check thưởng\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Bot LINE\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Công cụ\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Cài đặt & Phân quyền\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":null},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Đăng xuất\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Bấm vào để thu gọn menu\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Tải lên báo cáo YCX mới (Realtime hoặc Lũy kế)\"},{\"tag\":\"A\",\"id\":\"\",\"title\":\"Tải dữ liệu báo cáo\"},{\"tag\":\"BUTTON\",\"id\":\"btn-desktop-history\",\"title\":\"Quản lý tệp đã lưu (Lũy kế)\"},{\"tag\":\"BUTTON\",\"id\":\"\",\"title\":\"Font hiện tại: Mặc định (UTM Avo)\"}]}\n"
+                        },
+                        {
+                          "text": "focus clipping ancestors []\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:50704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-10-25T05:47:26.432Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "keyboard-sequence",
+                          "contentType": "application/json",
+                          "body": "eyJrZXkiOiJBbHQrVGFiIiwiZm9jdXNUcmFjZSI6W3sidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IlBow6JuIHTDrWNoIFlDWCJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IlJlcG9ydCBCSSJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IkNoZWNrIHRoxrDhu59uZyJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IkJvdCBMSU5FIn0seyJ0YWciOiJCVVRUT04iLCJpZCI6IiIsInRpdGxlIjoiQ8O0bmcgY+G7pSJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IkPDoGkgxJHhurd0ICYgUGjDom4gcXV54buBbiJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6bnVsbH0seyJ0YWciOiJCVVRUT04iLCJpZCI6IiIsInRpdGxlIjoixJDEg25nIHh14bqldCJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IkLhuqVtIHbDoG8gxJHhu4MgdGh1IGfhu41uIG1lbnUifSx7InRhZyI6IkJVVFRPTiIsImlkIjoiIiwidGl0bGUiOiJU4bqjaSBsw6puIGLDoW8gY8OhbyBZQ1ggbeG7m2kgKFJlYWx0aW1lIGhv4bq3YyBMxal5IGvhur8pIn0seyJ0YWciOiJBIiwiaWQiOiIiLCJ0aXRsZSI6IlThuqNpIGThu68gbGnhu4d1IGLDoW8gY8OhbyJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiJidG4tZGVza3RvcC1oaXN0b3J5IiwidGl0bGUiOiJRdeG6o24gbMO9IHThu4dwIMSRw6MgbMawdSAoTMWpeSBr4bq/KSJ9LHsidGFnIjoiQlVUVE9OIiwiaWQiOiIiLCJ0aXRsZSI6IkZvbnQgaGnhu4duIHThuqFpOiBN4bq3YyDEkeG7i25oIChVVE0gQXZvKSJ9XX0="
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "abb4894e38ecf0e582f9-753604afc4a900420327",
+              "file": "navigation-material.spec.ts",
+              "line": 56,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-25T05:47:21.423Z",
+    "duration": 26648.228,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,13 @@
+[WebServer] (node:9399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 390 › keyboard description and Escape preserve focus and caller description (2.0s)
+  ✓  2 [chromium] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 390 › Escape cancels a pending hover timer (292ms)
+  ✓  3 [chromium] › tests/e2e/shared-tooltip.spec.ts:32:9 › Tooltip 390 › hover dismissal works and leaving the pointer preserves keyboard focus tooltip (944ms)
+  ✓  4 [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 1366 › keyboard description and Escape preserve focus and caller description (559ms)
+  ✓  5 [chromium] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 1366 › Escape cancels a pending hover timer (309ms)
+  ✓  6 [chromium] › tests/e2e/shared-tooltip.spec.ts:32:9 › Tooltip 1366 › hover dismissal works and leaving the pointer preserves keyboard focus tooltip (962ms)
+
+  6 passed (6.5s)

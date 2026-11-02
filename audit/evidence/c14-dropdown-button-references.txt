@@ -1,0 +1,6 @@
+components/shared/ui/index.ts:83:export { Dropdown, DropdownButton } from './Dropdown';
+components/shared/ui/index.ts:84:export type { DropdownProps, DropdownItem, DropdownButtonProps } from './Dropdown';
+components/shared/ui/Dropdown.tsx:181:/* ─── Simple DropdownButton trigger ─── */
+components/shared/ui/Dropdown.tsx:183:export interface DropdownButtonProps {
+components/shared/ui/Dropdown.tsx:189:export const DropdownButton: React.FC<DropdownButtonProps> = ({ label, icon, className }) => (
+components/shared/ui/Dropdown.tsx:206:DropdownButton.displayName = 'DropdownButton';

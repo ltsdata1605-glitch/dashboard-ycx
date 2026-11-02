@@ -1,0 +1,877 @@
+import React, { useState } from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { Button } from '../../../components/shared/ui/Button';
+
+import { toast } from '../../../components/shared/ui/toast';
+
+interface IPhoneChatPreviewProps {
+    previewTab: 'filter' | 'tk' | 'issue' | 'hd';
+    onTabChange: (tab: 'filter' | 'tk' | 'issue' | 'hd') => void;
+    tkMode: 'all' | 'event' | 'gvgs';
+    onTkModeChange: (mode: 'all' | 'event' | 'gvgs') => void;
+    issueMode: 'event' | 'gvgs';
+    onIssueModeChange: (mode: 'event' | 'gvgs') => void;
+    filterNames?: string[];
+    selectedName?: string;
+    onSelectName?: (name: string) => void;
+}
+
+export const IPhoneChatPreview: React.FC<IPhoneChatPreviewProps> = ({
+    previewTab,
+    onTabChange,
+    tkMode,
+    onTkModeChange,
+    issueMode,
+    onIssueModeChange,
+    filterNames = [],
+    selectedName,
+    onSelectName
+}) => {
+    const activeNames = filterNames && filterNames.length > 0 ? filterNames : ['910 - ĐML_STR_STR - 99 Hùng Vương', 'STR_ Trường_21453-TC', 'STR_BOSS SƠN_21707'];
+    
+    // Tên đang được chọn xem mô phỏng: ưu tiên selectedName nếu có, nếu không thì lấy tên cuối cùng vừa thêm hoặc tên đầu
+    const targetName = (selectedName && activeNames.includes(selectedName))
+        ? selectedName
+        : (activeNames[activeNames.length - 1] || activeNames[0]);
+    
+    const otherName = activeNames.find(n => n !== targetName) || (activeNames.length > 1 ? activeNames[0] : targetName);
+    const firstName = targetName;
+    const secondName = otherName;
+    const displayTitle = activeNames.slice(0, 3).join(', ') + (activeNames.length > 3 ? '...' : '');
+
+    // Phát hiện tên có phải là định dạng Kho (như 910 - ĐML_STR_STR - 99 Hùng Vương)
+    const isStoreFormat = /910|kho|đml|hùng vương|st\d+/i.test(targetName);
+    const mockCode1 = isStoreFormat ? '9HXG6OLCO9' : 'DMXXSP8QD5RNCQM';
+    const mockType1 = isStoreFormat ? 'ICT100' : 'Event';
+    const mockTitle1 = isStoreFormat ? 'PMH ICT100' : 'MÃ PMH EVENT';
+    const mockBadge1 = isStoreFormat ? 'PMH 0072' : 'PMH 1';
+    const mockProd1 = isStoreFormat ? '🛍️ PMH ICT100' : '🛍️ Bếp điện từ đôi Sunhouse SHB81272-MD';
+
+    const mockCode2 = isStoreFormat ? 'S1UGF8TW9Z' : '1P1GU5CAS5';
+    const mockType2 = isStoreFormat ? 'MM300' : 'MM300';
+    const mockTitle2 = isStoreFormat ? 'PMH MM300' : 'MÃ PMH MM300';
+    const mockBadge2 = isStoreFormat ? 'PMH 0073' : 'PMH 2';
+    const mockProd2 = isStoreFormat ? '🛍️ PMH MM300 (Phiếu mua hàng)' : '🛍️ PMH MM300 (Phiếu mua hàng)';
+
+    // State copy mã coupon cho mô phỏng
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [usedCouponInfo, setUsedCouponInfo] = useState<{ code: string; type: string; time: string; cardIndex: number } | null>(null);
+
+    const handleCopyCode = (code: string, type: string = 'PMH', cardIndex: number = 1, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        try {
+            navigator.clipboard.writeText(code);
+            setCopiedCode(code);
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+            setUsedCouponInfo({ code, type, time: timeStr, cardIndex });
+            toast.success(`⚡ [LIFF 0.2s] Đã copy PMH ${cardIndex} & gửi trích dẫn xác nhận: ${code}`);
+            setTimeout(() => setCopiedCode(null), 3000);
+        } catch {
+            toast.success(`Đã copy mã: ${code}`);
+        }
+    };
+
+    const activeCouponCode = issueMode === 'event' ? '6W43J4BI2S' : '8K91MN39PQ';
+    return (
+        <div className="flex flex-col items-center w-full">
+            {/* Top label / Real-time badge */}
+            <div className="flex items-center justify-between w-full max-w-[390px] mb-2 px-1">
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Mô Phỏng LINE Trên iPhone Thật
+                    </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">iPhone 16 Pro • Live</span>
+            </div>
+
+            {/* Main iPhone Chassis */}
+            <div className="relative w-full max-w-[380px] p-[10px] rounded-[50px] bg-gradient-to-b from-slate-700 via-slate-900 to-black shadow-2xl shadow-slate-900/60 ring-1 ring-white/20 border border-slate-700/80">
+                
+                {/* Physical Side Buttons (Mockup) */}
+                {/* Action button (Left) */}
+                <div className="absolute -left-[4px] top-[90px] w-[3px] h-[22px] bg-slate-600 rounded-l-sm" />
+                {/* Volume Up (Left) */}
+                <div className="absolute -left-[4px] top-[125px] w-[3px] h-[40px] bg-slate-600 rounded-l-sm" />
+                {/* Volume Down (Left) */}
+                <div className="absolute -left-[4px] top-[175px] w-[3px] h-[40px] bg-slate-600 rounded-l-sm" />
+                {/* Power / Lock Button (Right) */}
+                <div className="absolute -right-[4px] top-[135px] w-[3px] h-[55px] bg-slate-600 rounded-r-sm" />
+
+                {/* Inner Screen Display */}
+                <div className="relative w-full rounded-[40px] bg-slate-100 dark:bg-[#111923] overflow-hidden flex flex-col min-h-[640px] border border-slate-800/80 shadow-inner">
+                    
+                    {/* 1. iOS Status Bar & Dynamic Island */}
+                    <div className="relative z-30 pt-3 px-6 pb-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between text-slate-900 dark:text-white select-none">
+                        {/* Time */}
+                        <div className="w-12 text-xs font-bold font-mono tracking-tight">
+                            9:41
+                        </div>
+
+                        {/* Dynamic Island */}
+                        <div className="h-[24px] w-24 bg-black rounded-full flex items-center justify-between px-2.5 shadow-md shadow-black/40 ring-1 ring-white/10">
+                            {/* Camera lens with glare */}
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-950 flex items-center justify-center ring-1 ring-slate-800">
+                                <div className="w-1 h-1 rounded-full bg-sky-900/80" />
+                            </div>
+                            {/* Proximity Sensor */}
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+                        </div>
+
+                        {/* Status Icons */}
+                        <div className="w-12 flex items-center justify-end gap-1.5 text-slate-800 dark:text-slate-200">
+                            <AppIcon name="simCard" size="xs" />
+                            <AppIcon name="wifi" size="xs" />
+                            <div className="flex items-center gap-0.5">
+                                <AppIcon name="batteryLevel" size="sm" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. LINE App Navigation Bar */}
+                    <div className="relative z-20 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="cell"
+                                size="none"
+                                type="button"
+                                className="text-slate-700 dark:text-slate-200 flex items-center -ml-1 hover:text-emerald-600"
+                            >
+                                <AppIcon name="chevronLeft" size="md" />
+                                <span className="text-[10px] font-bold px-1.5 py-0.2 bg-emerald-500 text-white rounded-full font-mono">12</span>
+                            </Button>
+                            
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white ring-2 ring-emerald-200 dark:ring-emerald-950 shadow-xs">
+                                    <AppIcon name="bot" size="md" />
+                                </div>
+                                <div className="leading-tight">
+                                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                                        <span>BOT LINE PMH</span>
+                                    </h4>
+                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                        <span>Trực tuyến • Nhóm Kho</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Header Actions */}
+                        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                            <Button variant="ghost" size="icon" icon="search" type="button" className="hover:text-emerald-600" aria-label="Tìm kiếm" />
+                            <Button variant="ghost" size="icon" icon="call" type="button" className="hover:text-emerald-600" aria-label="Gọi điện" />
+                            <Button variant="ghost" size="icon" icon="menu" type="button" className="hover:text-emerald-600" aria-label="Menu" />
+                        </div>
+                    </div>
+
+                    {/* 3. iOS Mode Segmented Tabs */}
+                    <div className="px-3 pt-2 pb-1.5 bg-slate-200/60 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-800">
+                        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-300/60 dark:bg-slate-800/80 rounded-popup text-[9px]">
+                            <Button
+                                variant="tab"
+                                size="none"
+                                type="button"
+                                onClick={() => onTabChange('filter')}
+                                className={`py-1 rounded-control font-bold transition-all text-center ${
+                                    previewTab === 'filter'
+                                        ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                🎯 Lọc PMH
+                            </Button>
+                            <Button
+                                variant="tab"
+                                size="none"
+                                type="button"
+                                onClick={() => onTabChange('tk')}
+                                className={`py-1 rounded-control font-bold transition-all text-center ${
+                                    previewTab === 'tk'
+                                        ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                📊 Lệnh &quot;tk&quot;
+                            </Button>
+                            <Button
+                                variant="tab"
+                                size="none"
+                                type="button"
+                                onClick={() => onTabChange('issue')}
+                                className={`py-1 rounded-control font-bold transition-all text-center ${
+                                    previewTab === 'issue'
+                                        ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                ⚡ Nhận mã
+                            </Button>
+                            <Button
+                                variant="tab"
+                                size="none"
+                                type="button"
+                                onClick={() => onTabChange('hd')}
+                                className={`py-1 rounded-control font-bold transition-all text-center ${
+                                    previewTab === 'hd'
+                                        ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                📖 Lệnh &quot;hd&quot;
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* 4. Chat Messages Scroll Area */}
+                    <div
+                        key={`${previewTab}-${tkMode}-${issueMode}-${activeNames.slice(0, 3).join(',')}`}
+                        className="flex-1 p-3 overflow-y-auto space-y-3 font-sans text-xs bg-[#73889b]/15 dark:bg-[#0c121c]/70 animate-in fade-in duration-200"
+                    >
+                        {/* Date badge */}
+                        <div className="flex justify-center">
+                            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-semibold bg-slate-300/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 shadow-2xs">
+                                Hôm nay 13:48
+                            </span>
+                        </div>
+
+                        {/* TAB 1: LỌC PMH (THẺ FLEX CARDS - MỖI MÃ 1 THẺ THEO HÌNH 2) */}
+                        {previewTab === 'filter' && (
+                            <>
+                                {/* Thanh chọn tên người nhận để xem trước mô phỏng */}
+                                <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+                                    <span className="text-[9px] text-slate-400 shrink-0 font-medium">Lọc theo:</span>
+                                    {activeNames.map(name => {
+                                        const isSelected = name === targetName;
+                                        return (
+                                            <Button
+                                                variant="tab"
+                                                size="none"
+                                                key={name}
+                                                type="button"
+                                                onClick={() => onSelectName?.(name)}
+                                                className={`px-2 py-0.5 rounded-full text-[9px] font-semibold transition-all ${
+                                                    isSelected
+                                                        ? 'bg-emerald-600 text-white shadow-2xs scale-102 ring-1 ring-emerald-400 font-bold'
+                                                        : 'bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 border border-slate-200 dark:border-slate-700'
+                                                }`}
+                                            >
+                                                {isSelected ? '✓ ' : ''}{name}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <div className="bg-[#06C755] text-white p-2.5 rounded-card rounded-tr-xs shadow-xs max-w-[88%] font-mono text-[10.5px] whitespace-pre-wrap leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-150">
+{`[Tin nhắn chuyển tiếp từ Nhóm]:
+${targetName}
+➜ PMH ${mockType1} : ${mockCode1}
+➜ PMH ${mockType2} : ${mockCode2}
+━━━━━━
+Nhân Viên Khác (Không trong DS lọc)
+➜ PMH KG20IH10N : ABCD1234
+━━━━━━
+${otherName}
+➜ PMH SHD4607 : VWQU13YUQX`}
+                                        <div className="text-[8px] text-emerald-100 text-right mt-1">13:48 ✓✓</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-start items-start gap-1.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs text-[10px]">
+                                        <AppIcon name="bot" size="xs" />
+                                    </div>
+                                    
+                                    <div className="w-full max-w-[92%] space-y-2.5">
+                                        <div className="text-[9.5px] font-medium text-emerald-700 dark:text-emerald-400 flex items-center justify-between px-1">
+                                            <span>🎯 ĐÃ LỌC {otherName !== targetName ? '3' : '2'} MÃ PMH (MỖI MÃ 1 THẺ):</span>
+                                            <span className="text-[8.5px] text-slate-400">13:48</span>
+                                        </div>
+
+                                        {/* Card 1: Khớp chuẩn 100% Hình 2 */}
+                                        <div className="rounded-card rounded-tl-xs overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-850">
+                                            <div className="px-3 py-2 bg-[#0284C7] text-white flex items-center justify-between shadow-2xs">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-xs">🎁</span>
+                                                    <span className="font-bold text-[11px] tracking-wide uppercase">
+                                                        LỌC {mockTitle1}
+                                                    </span>
+                                                </div>
+                                                <span className="text-[9px] font-bold bg-white text-[#0284C7] px-2 py-0.5 rounded-md font-mono shadow-2xs">
+                                                    {mockBadge1}
+                                                </span>
+                                            </div>
+
+                                            <div className="p-3 space-y-2 text-xs">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1 font-mono text-[11px] break-all">
+                                                        <span>@{targetName}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800">
+                                                    <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] line-clamp-1">
+                                                        {mockProd1}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-center pt-0.5">
+                                                    <div
+                                                        onClick={() => handleCopyCode(mockCode1, mockType1, 1)}
+                                                        className={`w-full py-2 px-3 rounded-popup transition-all cursor-pointer select-none text-center flex items-center justify-center gap-1.5 font-bold text-xs ${
+                                                            copiedCode === mockCode1
+                                                                ? 'bg-emerald-600 text-white shadow-sm'
+                                                                : 'bg-[#06C755] hover:bg-[#05b34c] text-white shadow-xs'
+                                                        }`}
+                                                        title={`Nhấp vào khung để tự động copy mã ${mockCode1}`}
+                                                    >
+                                                        {copiedCode === mockCode1 ? (
+                                                            <>
+                                                                <AppIcon name="check" size="sm" />
+                                                                <span>Đã copy {mockCode1}!</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span>➔ Chạm để copy</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Card 2: PMH MM300 */}
+                                        <div className="rounded-card rounded-tl-xs overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-850">
+                                            <div className="px-3 py-2 bg-[#0284C7] text-white flex items-center justify-between shadow-2xs">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-xs">🎁</span>
+                                                    <span className="font-bold text-[11px] tracking-wide uppercase">
+                                                        LỌC {mockTitle2}
+                                                    </span>
+                                                </div>
+                                                <span className="text-[9px] font-bold bg-white text-[#0284C7] px-2 py-0.5 rounded-md font-mono shadow-2xs">
+                                                    {mockBadge2}
+                                                </span>
+                                            </div>
+
+                                            <div className="p-3 space-y-2 text-xs">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1 font-mono text-[11px] break-all">
+                                                        <span>@{targetName}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800">
+                                                    <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] line-clamp-1">
+                                                        {mockProd2}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-center pt-0.5">
+                                                    <div
+                                                        onClick={() => handleCopyCode(mockCode2, mockType2, 2)}
+                                                        className={`w-full py-2 px-3 rounded-popup transition-all cursor-pointer select-none text-center flex items-center justify-center gap-1.5 font-bold text-xs ${
+                                                            copiedCode === mockCode2
+                                                                ? 'bg-emerald-600 text-white shadow-sm'
+                                                                : 'bg-[#06C755] hover:bg-[#05b34c] text-white shadow-xs'
+                                                        }`}
+                                                        title={`Nhấp vào khung để tự động copy mã ${mockCode2}`}
+                                                    >
+                                                        {copiedCode === mockCode2 ? (
+                                                            <>
+                                                                <AppIcon name="check" size="sm" />
+                                                                <span>Đã copy {mockCode2}!</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span>➔ Chạm để copy</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Card 3 (nếu có người thứ 2): PMH SHD4607 */}
+                                        {secondName !== firstName && (
+                                            <div className="rounded-card rounded-tl-xs overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-850">
+                                                <div className="px-3 py-2 bg-[#06C755] text-white flex items-center justify-between shadow-2xs">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs">🎁</span>
+                                                        <span className="font-bold text-[11px] tracking-wide uppercase">
+                                                            MÃ PMH SHD4607
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[9px] font-bold bg-white text-[#06C755] px-2 py-0.5 rounded-md font-mono shadow-2xs">
+                                                        PMH 3
+                                                    </span>
+                                                </div>
+
+                                                <div className="p-3 space-y-2 text-xs">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1 font-mono text-[11px]">
+                                                            <span>@{secondName}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800">
+                                                        <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] line-clamp-1">
+                                                            🛍️ Bếp hồng ngoại Sunhouse SHD4607
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex justify-center pt-0.5">
+                                                        <div
+                                                            onClick={() => handleCopyCode('VWQU13YUQX', 'SHD4607', 3)}
+                                                            className={`group relative px-4 py-1.5 rounded-popup border-2 transition-all cursor-pointer select-none text-center inline-flex flex-col items-center ${
+                                                                copiedCode === 'VWQU13YUQX'
+                                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-400/40 scale-[0.99]'
+                                                                    : 'border-emerald-500/80 hover:border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-xs'
+                                                            }`}
+                                                            title="Nhấp vào khung để tự động copy mã VWQU13YUQX"
+                                                        >
+                                                            <div className="text-[8.5px] font-normal text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
+                                                                <span>➜ PMH SHD4607</span>
+                                                                <span className="text-[7.5px] text-slate-400 dark:text-slate-500">(chạm để copy)</span>
+                                                            </div>
+
+                                                            <div className="font-mono font-bold text-sm text-slate-900 dark:text-white tracking-wider my-0.5 flex items-center justify-center gap-1.5">
+                                                                <span>VWQU13YUQX</span>
+                                                                <span className="p-0.5 rounded text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 shadow-2xs border border-emerald-200 dark:border-emerald-800">
+                                                                    {copiedCode === 'VWQU13YUQX' ? <AppIcon name="check" size="xs" /> : <AppIcon name="copy" size="xs" />}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="text-[8px] text-emerald-600/90 dark:text-emerald-400/90 font-medium flex items-center justify-center gap-1">
+                                                                {copiedCode === 'VWQU13YUQX' ? (
+                                                                    <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 animate-in zoom-in-90 duration-150">
+                                                                        <AppIcon name="check" size="xs" /> Đã copy mã!
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[7.5px] text-slate-400">📋 Chạm để copy</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {usedCouponInfo && (
+                                    <div className="flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-200 mt-2">
+                                        <div className="bg-[#06C755] text-white py-2 px-3 rounded-card rounded-tr-xs shadow-xs max-w-[85%] font-sans text-[11px] leading-relaxed border border-emerald-400/30">
+                                            <div>👉 PMH {usedCouponInfo.cardIndex} đã được sử dụng lúc <span className="font-bold">{usedCouponInfo.time}</span>!</div>
+                                            <div className="text-white/90">↳ User: <span className="font-bold">{firstName}</span></div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* TAB 2: LỆNH "tk" */}
+                        {previewTab === 'tk' && (
+                            <>
+                                {/* Sub-filters inside chat */}
+                                <div className="flex items-center gap-1 p-1 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs rounded-popup shadow-2xs text-[10px]">
+                                    <Button
+                                        variant="tab"
+                                        size="none"
+                                        type="button"
+                                        onClick={() => onTkModeChange('all')}
+                                        className={`flex-1 py-0.5 rounded-control font-bold text-center transition-all ${
+                                            tkMode === 'all'
+                                                ? 'bg-amber-500 text-white shadow-xs'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Toàn bộ (tk)
+                                    </Button>
+                                    <Button
+                                        variant="tab"
+                                        size="none"
+                                        type="button"
+                                        onClick={() => onTkModeChange('event')}
+                                        className={`flex-1 py-0.5 rounded-control font-bold text-center transition-all ${
+                                            tkMode === 'event'
+                                                ? 'bg-emerald-600 text-white shadow-xs'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Event (tk event)
+                                    </Button>
+                                    <Button
+                                        variant="tab"
+                                        size="none"
+                                        type="button"
+                                        onClick={() => onTkModeChange('gvgs')}
+                                        className={`flex-1 py-0.5 rounded-control font-bold text-center transition-all ${
+                                            tkMode === 'gvgs'
+                                                ? 'bg-sky-600 text-white shadow-xs'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Giờ Vàng (tk gvgs)
+                                    </Button>
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <div className="bg-[#06C755] text-white px-3 py-1.5 rounded-card rounded-tr-xs shadow-xs max-w-[80%] font-mono font-bold text-xs">
+                                        {tkMode === 'all' ? 'tk' : tkMode === 'event' ? 'tk event' : 'tk gvgs'}
+                                        <div className="text-[8px] text-emerald-100 text-right mt-0.5">13:48 ✓✓</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-start items-start gap-1.5">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs text-[10px]">
+                                        <AppIcon name="bot" size="xs" />
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-850 text-slate-800 dark:text-slate-200 p-2.5 rounded-card rounded-tl-xs shadow-xs border border-slate-200/80 dark:border-slate-800 max-w-[92%] space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                                                <span>BOT LINE</span>
+                                                <span className="text-[8px] px-1 py-0.2 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded font-normal font-sans">
+                                                    {tkMode === 'all' ? 'Tất cả PMH' : tkMode === 'event' ? 'Event' : 'Giờ Vàng'}
+                                                </span>
+                                            </span>
+                                            <span className="text-[9px] text-slate-400 font-mono">13:48</span>
+                                        </div>
+
+                                        <pre className="font-mono text-[10px] whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 max-h-[300px] overflow-y-auto pr-1">
+{tkMode === 'all' ? `📊 BÁO CÁO TỒN KHO THEO SẢN PHẨM
+━━━━━━━━━━━━━━━━━
+📈 Tổng tồn kho: 269 mã khả dụng / 270 tổng mã
+💡 Nhận mã Event: Gõ "e + STT" (ví dụ: e1, e2...)
+⚡ Nhận mã Giờ Vàng: Gõ "gv + STT" (ví dụ: gv1, gv2...)
+👉 Xem riêng từng loại: Gõ "tk event" hoặc "tk gvgs"
+━━━━━━━━━━━━━━━━━
+1. Bình đun siêu tốc Rapido RK2015-C 2L
+   ➜ Còn khả dụng: 29/30 mã
+2. Nồi chiên không dầu Kangaroo 6.5L KGAF65M1G
+   ➜ Còn khả dụng: 30/30 mã
+3. Bếp điện từ đơn Kangaroo KG20IH10N
+   ➜ Còn khả dụng: 30/30 mã
+4. Bếp gas đôi Sunhouse SHB3105MD
+   ➜ Còn khả dụng: 30/30 mã
+5. Bếp nướng điện Sunhouse SHD4607
+   ➜ Còn khả dụng: 30/30 mã
+6. Nồi lẩu đa năng Kangaroo KG40EH2 4 lít
+   ➜ Còn khả dụng: 30/30 mã
+7. Nồi cơm nắp gài Toshiba RC-18JH1TVN(N) 1.8L
+   ➜ Còn khả dụng: 30/30 mã
+8. Máy lọc không khí Midea KJ400GVN
+   ➜ Còn khả dụng: 30/30 mã
+9. Máy xay thịt Bear CH-5H03P36
+   ➜ Còn khả dụng: 30/30 mã` :
+tkMode === 'event' ? `📊 BÁO CÁO TỒN KHO PMH EVENT
+━━━━━━━━━━━━━━━━━
+📈 Tổng tồn kho Event: 149 mã khả dụng / 150 tổng mã
+💡 Cú pháp nhận mã Event: Gõ "e + STT" (ví dụ: e1, e2, e3...)
+━━━━━━━━━━━━━━━━━
+1. Bình đun siêu tốc Rapido RK2015-C 2L
+   ➜ Còn khả dụng: 29/30 mã
+2. Nồi chiên không dầu Kangaroo 6.5L KGAF65M1G
+   ➜ Còn khả dụng: 30/30 mã
+3. Bếp điện từ đơn Kangaroo KG20IH10N
+   ➜ Còn khả dụng: 30/30 mã
+4. Bếp gas đôi Sunhouse SHB3105MD
+   ➜ Còn khả dụng: 30/30 mã
+5. Bếp nướng điện Sunhouse SHD4607
+   ➜ Còn khả dụng: 30/30 mã` :
+`📊 BÁO CÁO TỒN KHO PMH GIỜ VÀNG GIÁ SỐC
+━━━━━━━━━━━━━━━━━
+📈 Tổng tồn kho Giờ Vàng: 120 mã khả dụng / 120 tổng mã
+💡 Cú pháp nhận mã Giờ Vàng: Gõ "gv + STT" (ví dụ: gv1, gv2, gv3...)
+━━━━━━━━━━━━━━━━━
+1. Nồi lẩu đa năng Kangaroo KG40EH2 4 lít
+   ➜ Còn khả dụng: 30/30 mã
+2. Nồi cơm nắp gài Toshiba RC-18JH1TVN(N) 1.8L
+   ➜ Còn khả dụng: 30/30 mã
+3. Máy lọc không khí Midea KJ400GVN
+   ➜ Còn khả dụng: 30/30 mã
+4. Máy xay thịt Bear CH-5H03P36
+   ➜ Còn khả dụng: 30/30 mã`}
+                                        </pre>
+
+                                        <div className="text-[9px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                            <span>⚡ Nhận diện theo STT</span>
+                                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">✓ Khả dụng</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* TAB 3: DUYỆT / NHẬN MÃ (e / gv) */}
+                        {previewTab === 'issue' && (
+                            <>
+                                {/* Sub-filters inside chat */}
+                                <div className="flex items-center gap-1 p-1 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs rounded-popup shadow-2xs text-[10px]">
+                                    <Button
+                                        variant="tab"
+                                        size="none"
+                                        type="button"
+                                        onClick={() => onIssueModeChange('event')}
+                                        className={`flex-1 py-0.5 rounded-control font-bold text-center transition-all ${
+                                            issueMode === 'event'
+                                                ? 'bg-emerald-600 text-white shadow-xs'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Event (e4 12345678)
+                                    </Button>
+                                    <Button
+                                        variant="tab"
+                                        size="none"
+                                        type="button"
+                                        onClick={() => onIssueModeChange('gvgs')}
+                                        className={`flex-1 py-0.5 rounded-control font-bold text-center transition-all ${
+                                            issueMode === 'gvgs'
+                                                ? 'bg-[#BE123C] text-white shadow-xs'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        Giờ Vàng (gv2 87654321)
+                                    </Button>
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <div className={`text-white px-3 py-1.5 rounded-card rounded-tr-xs shadow-xs max-w-[85%] font-mono text-xs font-bold ${issueMode === 'event' ? 'bg-[#06C755]' : 'bg-[#BE123C]'}`}>
+                                        {issueMode === 'event' ? 'e4 12345678' : 'gv2 87654321'}
+                                        <div className="text-[8px] text-white/80 text-right mt-0.5">13:48 ✓✓</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-start items-start gap-1.5 w-full">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs text-[10px]">
+                                        <AppIcon name="bot" size="xs" />
+                                    </div>
+                                    
+                                    {/* LINE Flex Message Card (Bubble) */}
+                                    <div className="w-full max-w-[92%] rounded-card rounded-tl-xs overflow-hidden shadow-md border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-850">
+                                        {/* Flex Header */}
+                                        <div className={`px-3 py-2 ${issueMode === 'event' ? 'bg-[#06C755]' : 'bg-[#BE123C]'} text-white flex items-center justify-between shadow-2xs`}>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs">🎁</span>
+                                                <span className="font-bold text-[11px] tracking-wide uppercase">
+                                                    {issueMode === 'event' ? 'Mã PMH Event' : 'Mã PMH Giờ Vàng'}
+                                                </span>
+                                            </div>
+                                            <span className="text-[9px] font-semibold bg-white/20 px-1.5 py-0.2 rounded-full backdrop-blur-xs font-mono">
+                                                Flex Card
+                                            </span>
+                                        </div>
+
+                                        {/* Flex Body */}
+                                        <div className="p-3 space-y-2 text-xs">
+                                            {/* Tag / Recipient */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1 font-mono text-[11px]">
+                                                    <span>@{firstName}</span>
+                                                    <span className="text-[8px] px-1 py-0.2 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 rounded font-sans">
+                                                        Đã tag tên
+                                                    </span>
+                                                </div>
+                                                <span className="text-[9px] text-slate-400 font-mono">13:48</span>
+                                            </div>
+
+                                            {/* Thông tin sản phẩm & MĐH */}
+                                            <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800 space-y-1">
+                                                <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] line-clamp-1">
+                                                    🛍️ {issueMode === 'event' ? 'Bếp gas đôi Sunhouse SHB3105MD' : 'Nồi cơm nắp gài Toshiba RC-18JH1TVN(N) 1.8L'}
+                                                </div>
+                                                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                                                    <span>MĐH: <strong className="text-slate-800 dark:text-white font-bold">{issueMode === 'event' ? '12345678' : '87654321'}</strong></span>
+                                                    <span>Kho: <strong className="text-slate-700 dark:text-slate-300 font-bold">910</strong></span>
+                                                </div>
+                                            </div>
+
+                                            {/* Khung Mã Coupon Clickable (Mô phỏng Action: Clipboard của Flex Message) */}
+                                            <div className="flex justify-center pt-0.5">
+                                                <div
+                                                    onClick={() => handleCopyCode(activeCouponCode)}
+                                                    className={`group relative px-4 py-1.5 rounded-popup border-2 transition-all cursor-pointer select-none text-center inline-flex flex-col items-center ${
+                                                        copiedCode === activeCouponCode
+                                                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-400/40 scale-[0.99]'
+                                                            : 'border-emerald-500/80 hover:border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-xs'
+                                                    }`}
+                                                    title="Nhấp vào khung để tự động copy mã coupon"
+                                                >
+                                                    <div className="text-[8.5px] font-normal text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
+                                                        <span>➜ PMH {issueMode === 'event' ? 'Event' : 'Giờ Vàng'}</span>
+                                                        <span className="text-[7.5px] text-slate-400 dark:text-slate-500">(chạm để copy)</span>
+                                                    </div>
+                                                    
+                                                    <div className="font-mono font-bold text-sm text-slate-900 dark:text-white tracking-wider my-0.5 flex items-center justify-center gap-1.5">
+                                                        <span>{activeCouponCode}</span>
+                                                        <span className="p-0.5 rounded text-emerald-600 dark:text-emerald-400 bg-white dark:bg-slate-800 shadow-2xs border border-emerald-200 dark:border-emerald-800">
+                                                            {copiedCode === activeCouponCode ? <AppIcon name="check" size="xs" /> : <AppIcon name="copy" size="xs" />}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="text-[8px] text-emerald-600/90 dark:text-emerald-400/90 font-medium flex items-center justify-center gap-1">
+                                                        {copiedCode === activeCouponCode ? (
+                                                            <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 animate-in zoom-in-90 duration-150">
+                                                                <AppIcon name="check" size="xs" /> Đã copy mã!
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[7.5px] text-slate-400">📋 Chạm để copy</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* TAB 4: HƯỚNG DẪN SỬ DỤNG (hd) */}
+                        {previewTab === 'hd' && (
+                            <>
+                                <div className="flex justify-end">
+                                    <div className="bg-[#06C755] text-white px-3 py-1.5 rounded-card rounded-tr-xs shadow-xs max-w-[80%] font-mono font-bold text-xs">
+                                        hd
+                                        <div className="text-[8px] text-emerald-100 text-right mt-0.5">13:48 ✓✓</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-start items-start gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs text-[10px]">
+                                        <AppIcon name="bot" size="xs" />
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-850 text-slate-800 dark:text-slate-200 p-2.5 rounded-card rounded-tl-xs shadow-xs border border-slate-200/80 dark:border-slate-800 max-w-[92%] space-y-2">
+                                        <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                                            <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1 font-sans">
+                                                <AppIcon name="guide" size="xs" />
+                                                <span>HƯỚNG DẪN SỬ DỤNG BOT PMH</span>
+                                            </span>
+                                            <span className="text-[9px] text-slate-400 font-mono">13:48</span>
+                                        </div>
+
+                                        <div className="space-y-2 font-mono text-[10px] leading-relaxed">
+                                            <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800 space-y-0.5">
+                                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1 font-sans text-[10.5px]">
+                                                    <span>📊 1. KIỂM TRA TỒN KHO MÃ:</span>
+                                                </div>
+                                                <div className="text-slate-600 dark:text-slate-300">
+                                                    • <strong className="text-emerald-600 dark:text-emerald-400 font-bold">tk</strong>: Xem toàn bộ kho PMH
+                                                </div>
+                                                <div className="text-slate-600 dark:text-slate-300">
+                                                    • <strong className="text-emerald-600 dark:text-emerald-400 font-bold">tk event</strong>: Xem tồn kho Event (e1, e2...)
+                                                </div>
+                                                <div className="text-slate-600 dark:text-slate-300">
+                                                    • <strong className="text-sky-600 dark:text-sky-400 font-bold">tk gvgs</strong>: Xem tồn kho Giờ Vàng (gv1, gv2...)
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800 space-y-0.5">
+                                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1 font-sans text-[10.5px]">
+                                                    <span>⚡ 2. XIN NHẬN MÃ (1-CHẠM TỰ COPY):</span>
+                                                </div>
+                                                <div className="text-slate-600 dark:text-slate-300">
+                                                    • Event: <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-emerald-600 dark:text-emerald-400 font-bold">e4 12345678</code>
+                                                </div>
+                                                <div className="text-slate-600 dark:text-slate-300">
+                                                    • Giờ Vàng: <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-sky-600 dark:text-sky-400 font-bold">gv2 87654321</code>
+                                                </div>
+                                                <div className="text-[9px] text-amber-600 dark:text-amber-400 font-sans italic pt-0.5">
+                                                    💡 Tin nhắn Flex trả về: Chạm vào khung mã là tự động copy ngay!
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50 dark:bg-slate-900/60 p-2 rounded-popup border border-slate-100 dark:border-slate-800 space-y-0.5">
+                                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1 font-sans text-[10.5px]">
+                                                    <span>🔄 3. HỦY MÃ (NẾU KHÔNG DÙNG):</span>
+                                                </div>
+                                                <div className="text-slate-600 dark:text-slate-300">
+                                                    • Gõ: <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-rose-600 dark:text-rose-400 font-bold">huy 6W43J4BI2S</code> hoặc <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-rose-600 dark:text-rose-400 font-bold">huy 12345678</code>
+                                                </div>
+                                                <div className="text-[9px] text-slate-500 dark:text-slate-400 font-sans pt-0.5">
+                                                    ➜ Bot sẽ tự động thu hồi mã về kho trạng thái &quot;Khả dụng&quot; cho bạn khác dùng!
+                                                </div>
+                                            </div>
+
+                                            <div className="text-[9px] text-slate-400 dark:text-slate-500 space-y-0.5 pt-0.5">
+                                                <div>• Lọc mã riêng: Chuyển tiếp tin nhắn gộp cho Bot (chat 1-1).</div>
+                                                <div>• Tra cứu User ID / Group ID: Gõ <strong className="text-slate-700 dark:text-slate-300">id</strong></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-[9px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                            <span>⚡ Lệnh trợ giúp tức thì</span>
+                                            <span className="text-sky-600 dark:text-sky-400 font-semibold font-mono">Gõ &quot;hd&quot;</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* 5. LINE Bottom Input Toolbar */}
+                    <div className="relative z-20 px-2 py-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800">
+                        <div className="flex items-center gap-1.5">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                className="w-7 h-7 rounded-full text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
+                            >
+                                <AppIcon name="add" size="md" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                className="w-7 h-7 rounded-full text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
+                            >
+                                <AppIcon name="exportImage" size="md" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                className="w-7 h-7 rounded-full text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
+                            >
+                                <AppIcon name="image" size="md" />
+                            </Button>
+
+                            {/* Fake input text box */}
+                            <div className="flex-1 py-1 px-3 bg-slate-100 dark:bg-slate-800 rounded-card flex items-center justify-between text-slate-400 dark:text-slate-500 text-[11px]">
+                                <span className="truncate">
+                                    {previewTab === 'filter'
+                                        ? 'Dán tin nhắn chuyển tiếp...'
+                                        : previewTab === 'tk'
+                                            ? 'Gõ "tk", "tk event"...'
+                                            : previewTab === 'issue'
+                                                ? 'Gõ "e4 [MĐH]" để nhận mã...'
+                                                : 'Gõ "hd" để xem hướng dẫn...'}
+                                </span>
+                                <AppIcon name="emoji" size="sm" className="text-slate-400" />
+                            </div>
+
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs hover:bg-emerald-600 transition-colors"
+                            >
+                                <AppIcon name="mic" size="sm" />
+                            </Button>
+                        </div>
+
+                        {/* 6. iPhone Home Indicator Bar */}
+                        <div className="pt-2 pb-0.5 flex justify-center">
+                            <div className="w-32 h-1 bg-slate-400/80 dark:bg-slate-600 rounded-full" />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+};

@@ -1,0 +1,9 @@
+[WebServer] (node:45883) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/competition-switch-labels.spec.ts:3:3 › competition switch names and row bubbling 390 (1.3s)
+  ✓  2 [chromium] › tests/e2e/competition-switch-labels.spec.ts:3:3 › competition switch names and row bubbling 1366 (660ms)
+
+  2 passed (3.3s)

@@ -1,0 +1,330 @@
+
+// BI Module Database Layer
+// Đã được chuyển sang sử dụng chung database BI_HUB_DATABASE_V2 (store: settings)
+// với hệ thống chính để đồng bộ lên Firebase qua useCloudSync.
+// 
+// Trước đây: ClusterDataDB / FormDataStore (chỉ lưu cục bộ, KHÔNG đồng bộ)
+// Bây giờ:   BI_HUB_DATABASE_V2 / settings (đồng bộ lên Firebase qua event ycx-setting-changed)
+
+import { getDb } from '../services/dbService';
+import { isSupermarketMatch } from './dashboardHelpers';
+import { isLightSyncKey } from '../../../utils/localDbScope';
+
+const SETTINGS_STORE = 'settings';
+
+// Prefix cho tất cả key của BI module để tránh xung đột với hệ thống chính
+const BI_PREFIX = 'bi_';
+
+export type BIKey =
+  | 'summary-realtime'
+  | 'summary-luy-ke'
+  | 'competition-realtime'
+  | 'competition-luy-ke'
+  | 'summary-realtime-ts'
+  | 'summary-luy-ke-ts'
+  | 'competition-realtime-ts'
+  | 'competition-luy-ke-ts'
+  | 'last-updates-list'
+  | 'supermarket-list'
+  | 'bonus-view-mode-multi'
+  | 'competition-name-overrides'
+  | 'competition-group-overrides'
+  | 'competition-custom-order'
+  | 'competition-grouping-mode'
+  | 'competition-grouping-mode-v2'
+  | 'competition-view-mode'
+  | 'global-selected-competitions'
+  | 'nhanvien-summary-tables-v1'
+  | 'rev-colors-v4'
+  | 'revenue-view-mode'
+  | 'installment-view-mode'
+  | 'bankem-view-mode'
+  | 'custom-dt-thuc-targets'
+  | 'custom-dtqd-targets'
+  | 'custom-hqqd-targets'
+  | 'custom-tracham-targets'
+  | `custom-dt-thuc-target-${string}`
+  | 'main-active-view'
+  | 'dashboard-main-tab'
+  | 'dashboard-sub-tab'
+  | 'dashboard-active-supermarket'
+  | 'nhanvien-active-supermarkets'
+  | 'nhanvien-active-depts-multi'
+  | 'nhanvien-active-tab'
+  | 'nhanvien-active-competition-tab'
+  | 'highlight-employees-multi'
+  | 'nhanvien-competition-versions'
+  | 'nhanvien-active-version'
+  | `prev-month-revenue-${string}`
+  | `prev-month-installment-${string}`
+  | `prev-month-bankem-${string}`
+  | `prev-month-target-${string}`
+  | `prev-month-detail-${string}`
+  | `avatar-${string}`
+  | `avatar-src-${string}`
+  | `targethero-${string}-tragop`
+  | `targethero-${string}-quydoi`
+  | `targethero-${string}-total`
+  | `targethero-${string}-departmentweights`
+  | `manual-dept-mapping-${string}`
+  | `hidden-employees-${string}`
+  | `config-${string}-danhsach`
+  | `config-${string}-danhsach-ts`
+  | `config-${string}-danhsach-qd`
+  | `config-${string}-danhsach-qd-ts`
+  | `config-${string}-thidua`
+  | `config-${string}-thidua-ts`
+  | `config-${string}-tragop`
+  | `config-${string}-tragop-ts`
+  | `config-${string}-bankem`
+  | `config-${string}-bankem-ts`
+  | `config-${string}-industry-realtime`
+  | `config-${string}-industry-realtime-ts`
+  | `config-${string}-industry-luyke`
+  | `config-${string}-industry-luyke-ts`
+  | `config-${string}-employee-realtime`
+  | `config-${string}-employee-realtime-ts`
+  | `config-${string}-employee-realtime-qd`
+  | `config-${string}-employee-realtime-qd-ts`
+  | `comptarget-${string}-targets`
+  | `bonus-data-${string}`
+  | `bonus-history-${string}`
+  | `bonus-monthly-${string}`
+  | `bonus-compare-${string}`
+  | `competition-history-${string}`
+  | `bonus-current-period-label-${string}`
+  | `hidden-cols-industry-${string}`
+  | `hidden-industries-${string}`
+  | `hidden-cols-summary-${string}`
+  | `hidden-supermarkets-${string}`
+  | `global-hidden-${string}`
+  | `global-industry-kpi-${string}`
+  | `global-compare-${string}`
+  | `previous-${string}`
+  | `snapshot-metadata-${string}`
+  | `snapshot-data-${string}`
+  | 'tile-custom-links'
+  | (string & {});
+
+// Thêm prefix để key BI module không xung đột với key của Dashboard chính
+const prefixKey = (key: string): string => `${BI_PREFIX}${key}`;
+
+export const set = async (key: BIKey, value: unknown, source?: string): Promise<void> => {
+  const db = await getDb();
+  const prefixed = prefixKey(key);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readwrite');
+    const store = transaction.objectStore(SETTINGS_STORE);
+    store.put(value, prefixed);
+    
+    const now = Date.now();
+    // Chỉ khoá đồng bộ nhẹ mới đóng mốc chung (utils/localDbScope.ts → isLightSyncKey); mốc riêng từng khoá giữ nguyên.
+    if (isLightSyncKey(prefixed)) store.put(now, 'localSettingsLastModified');
+    store.put(now, `lastModified_${prefixed}`);
+
+    transaction.oncomplete = () => {
+      // Bắn event cho hệ thống BI nội bộ (dùng tên key GỐC, không prefix)
+      window.dispatchEvent(new CustomEvent('indexeddb-change', { detail: { key, source } }));
+      // Bắn event cho hệ thống Cloud Sync chính
+      window.dispatchEvent(new CustomEvent('ycx-setting-changed', { detail: { key: prefixed } }));
+      resolve();
+    };
+    transaction.onerror = () => {
+      console.error('Error setting data:', transaction.error);
+      reject(transaction.error);
+    };
+    // Xem giải thích ở get() — abort không kèm error event (thiết bị sleep, lỗi trình duyệt)
+    // phải reject thay vì để Promise treo vĩnh viễn.
+    transaction.onabort = () => {
+      reject(transaction.error || new Error('Transaction aborted'));
+    };
+  });
+};
+
+// Hàm ghi nhiều mục trong 1 transaction duy nhất (Hiệu suất cao)
+
+/**
+ * Đọc 1 khoá của APP GỐC (không có tiền tố `bi_`) trong cùng store `settings` — hiện chỉ dùng cho
+ * `checkthuong_data` (dữ liệu Check Thưởng, ghi bởi components/views/CheckThuongView.tsx) để
+ * bảng Thi đua siêu thị hiện cột THƯỞNG. Đây là đọc dữ liệu chung một database, KHÔNG import
+ * code của khu vực gốc (giữ đúng quy tắc cách ly ở CLAUDE.md mục 1). Chỉ đọc, không ghi.
+ */
+export const getRootSetting = async <T = unknown>(key: string): Promise<T | undefined> => {
+  const db = await getDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readonly');
+    const request = transaction.objectStore(SETTINGS_STORE).get(key);
+    request.onsuccess = () => resolve(request.result === null || request.result === '' ? undefined : (request.result as T));
+    request.onerror = () => reject(request.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Transaction aborted'));
+  });
+};
+
+export const get = async <T = unknown>(key: BIKey): Promise<T | undefined> => {
+  const db = await getDb();
+  const prefixed = prefixKey(key);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readonly');
+    const store = transaction.objectStore(SETTINGS_STORE);
+    const request = store.get(prefixed);
+
+    request.onsuccess = () => {
+      if (request.result !== undefined && request.result !== null && request.result !== '') {
+        resolve(request.result);
+        return;
+      }
+      // Fallback cho key cấu hình siêu thị (VD: config-HÙNG VƯƠNG-industry-luyke vs bi_config-Hùng Vương-industry-luyke)
+      if (typeof key === 'string' && key.startsWith('config-')) {
+        const configTypes = ['-industry-realtime', '-industry-luyke', '-employee-realtime', '-employee-realtime-qd', '-danhsach', '-danhsach-qd', '-thidua', '-tragop', '-bankem'];
+        const matchedType = configTypes.find(t => key.endsWith(t));
+        if (matchedType) {
+          const rawSm = key.slice('config-'.length, key.length - matchedType.length);
+          const allKeysReq = store.getAllKeys();
+          allKeysReq.onsuccess = () => {
+            const allKeys = allKeysReq.result as string[];
+            const foundPrefixedKey = allKeys.find(k => {
+              if (typeof k !== 'string' || !k.startsWith('bi_config-') || !k.endsWith(matchedType)) return false;
+              const storeSm = k.slice('bi_config-'.length, k.length - matchedType.length);
+              return isSupermarketMatch(rawSm, storeSm);
+            });
+            if (foundPrefixedKey) {
+              const fallbackReq = store.get(foundPrefixedKey);
+              fallbackReq.onsuccess = () => resolve(fallbackReq.result);
+              fallbackReq.onerror = () => resolve(undefined);
+              return;
+            }
+            resolve(request.result === undefined ? undefined : request.result);
+          };
+          allKeysReq.onerror = () => resolve(undefined);
+          return;
+        }
+      }
+      resolve(request.result === undefined ? undefined : request.result);
+    };
+
+    request.onerror = () => {
+      console.error('Error getting data:', request.error);
+      reject(request.error);
+    };
+
+    // Nếu transaction bị abort trước khi request.onsuccess kịp bắn (thiết bị sleep,
+    // lỗi nội bộ trình duyệt...), Promise phải reject thay vì treo vĩnh viễn.
+    transaction.onabort = () => {
+      reject(transaction.error || new Error('Transaction aborted'));
+    };
+    transaction.onerror = () => {
+      reject(transaction.error || new Error('Transaction error'));
+    };
+  });
+};
+
+export const getAll = async (): Promise<{ key: string; value: unknown }[]> => {
+  const db = await getDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readonly');
+    const store = transaction.objectStore(SETTINGS_STORE);
+    const request = store.getAll();
+    const keysRequest = store.getAllKeys();
+
+    transaction.oncomplete = () => {
+      const keys = keysRequest.result;
+      const values = request.result;
+      const result: { key: string; value: unknown }[] = [];
+      for (let i = 0; i < keys.length; i++) {
+        const k = String(keys[i]);
+        // Chỉ trả về các key thuộc BI module (có prefix bi_)
+        if (k.startsWith(BI_PREFIX)) {
+          result.push({ key: k.slice(BI_PREFIX.length), value: values[i] });
+        }
+      }
+      resolve(result);
+    };
+
+    transaction.onerror = () => {
+      console.error('Error getting all data:', transaction.error);
+      reject(transaction.error);
+    };
+    transaction.onabort = () => {
+      reject(transaction.error || new Error('Transaction aborted'));
+    };
+  });
+};
+
+// Đọc mọi khoá bắt đầu bằng `prefix` trong 1 lượt (IDBKeyRange — không kéo các khoá khác, vốn có những chuỗi
+// báo cáo rất lớn, lên bộ nhớ như getAll()). Trả về key GỐC (đã bỏ tiền tố bi_).
+export const getAllByPrefix = async (prefix: string): Promise<{ key: string; value: unknown }[]> => {
+  const db = await getDb();
+  const lower = prefixKey(prefix);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readonly');
+    const store = transaction.objectStore(SETTINGS_STORE);
+    const range = IDBKeyRange.bound(lower, `${lower}\uffff`);
+    const request = store.getAll(range);
+    const keysRequest = store.getAllKeys(range);
+    transaction.oncomplete = () => {
+      const keys = keysRequest.result;
+      const values = request.result;
+      resolve(keys.map((k, i) => ({ key: String(k).slice(BI_PREFIX.length), value: values[i] })));
+    };
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Transaction aborted'));
+  });
+};
+
+export const clearStore = async (): Promise<void> => {
+  const db = await getDb();
+  // CHỈ xoá các key có prefix bi_, KHÔNG xoá dữ liệu của hệ thống chính
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readwrite');
+    const store = transaction.objectStore(SETTINGS_STORE);
+    const cursorRequest = store.openCursor();
+    
+    cursorRequest.onsuccess = () => {
+      const cursor = cursorRequest.result;
+      if (cursor) {
+        const k = String(cursor.key);
+        if (
+          (k.startsWith(BI_PREFIX) && !k.startsWith(`${BI_PREFIX}avatar-`)) ||
+          k.startsWith(`lastModified_${BI_PREFIX}`)
+        ) {
+          cursor.delete();
+        }
+        cursor.continue();
+      }
+    };
+
+    transaction.oncomplete = () => {
+      window.dispatchEvent(new CustomEvent('ycx-setting-changed', { detail: { key: 'bi_clear_all' } }));
+      resolve();
+    };
+    transaction.onerror = () => {
+      console.error('Error clearing store:', transaction.error);
+      reject(transaction.error);
+    };
+    transaction.onabort = () => {
+      reject(transaction.error || new Error('Transaction aborted'));
+    };
+  });
+};
+
+export const deleteEntry = async (key: BIKey): Promise<void> => {
+  const db = await getDb();
+  const prefixed = prefixKey(key);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([SETTINGS_STORE], 'readwrite');
+    const store = transaction.objectStore(SETTINGS_STORE);
+    const request = store.delete(prefixed);
+
+    transaction.oncomplete = () => {
+      window.dispatchEvent(new CustomEvent('ycx-setting-changed', { detail: { key: prefixed } }));
+      resolve();
+    };
+    request.onerror = () => {
+      console.error('Error deleting data:', request.error);
+      reject(request.error);
+    };
+    transaction.onabort = () => {
+      reject(transaction.error || new Error('Transaction aborted'));
+    };
+  });
+};

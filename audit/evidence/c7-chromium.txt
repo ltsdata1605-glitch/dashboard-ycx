@@ -1,0 +1,22 @@
+[WebServer] (node:75596) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/tax-merge-storage.spec.ts:6:5 › local-newer: displayed and durable history keep the same latest record (1.0s)
+  ✓   2 [chromium] › tests/e2e/tax-merge-storage.spec.ts:6:5 › cloud-newer: displayed and durable history keep the same latest record (283ms)
+  ✓   3 [chromium] › tests/e2e/tax-merge-storage.spec.ts:6:5 › cloud-ascending: displayed and durable history keep the same latest record (264ms)
+  ✓   4 [chromium] › tests/e2e/tax-merge-storage.spec.ts:6:5 › cloud-descending: displayed and durable history keep the same latest record (282ms)
+  ✓   5 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native add transaction aborts (216ms)
+  ✓   6 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native put transaction aborts (216ms)
+  ✓   7 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:31:1 › committed save retains overwrite behavior and stable local ID (218ms)
+  ✓   8 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › delete reports abort and preserves all rows (215ms)
+  ✓   9 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › delete reports commit and persists changes (213ms)
+  ✓  10 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › updateMonth reports abort and preserves all rows (231ms)
+  ✓  11 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › updateMonth reports commit and persists changes (211ms)
+  ✓  12 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › updateMonths reports abort and preserves all rows (212ms)
+  ✓  13 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › updateMonths reports commit and persists changes (213ms)
+  ✓  14 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › clearAll reports abort and preserves all rows (210ms)
+  ✓  15 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:48:9 › clearAll reports commit and persists changes (209ms)
+
+  15 passed (6.9s)

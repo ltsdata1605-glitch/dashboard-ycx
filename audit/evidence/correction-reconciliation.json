@@ -1,0 +1,31 @@
+{
+  "module-inventory.csv": {
+    "NO": 29
+  },
+  "component-inventory.csv": {
+    "NO": 467
+  },
+  "screen-inventory.csv": {
+    "NO": 169
+  },
+  "files": {
+    "included": 1353,
+    "reviewed": {
+      "PREFLIGHT_ONLY": 19,
+      "NO": 1334
+    },
+    "verified": {
+      "NO": 1353
+    }
+  },
+  "delta": [],
+  "new_git_visible_paths": [
+    "audit/evidence/correction-baseline/final-audit-report.md",
+    "audit/evidence/correction-baseline/progress.md",
+    "audit/evidence/correction-baseline/remaining-work.md",
+    "audit/evidence/correction-baseline/task_plan.md"
+  ],
+  "scope_note": "Hash đối soát scope cũ; git-visible delta. Không xác nhận lại ignored filesystem census.",
+  "symlink_note": "Symlinks hashed by link target text, matching inventory protocol",
+  "matched_scope_files": 1353
+}

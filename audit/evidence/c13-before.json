@@ -1,0 +1,711 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c13-playwright.config.mjs",
+      "shared-tooltip.spec.ts",
+      "-g",
+      "pointer crosses gap"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c13-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c13-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "shared-tooltip.spec.ts",
+          "shared-form-states.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c13-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "shared-tooltip.spec.ts",
+      "file": "shared-tooltip.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Tooltip lifecycle 390",
+          "file": "shared-tooltip.spec.ts",
+          "line": 53,
+          "column": 10,
+          "specs": [
+            {
+              "title": "pointer crosses gap onto top tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11640,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:40:52.017Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-91381-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-91381-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-91381-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-6c0c871ae7a1289c6dc3",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            },
+            {
+              "title": "pointer crosses gap onto bottom tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10938,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:41:04.376Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-0e7f1-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-0e7f1-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-0e7f1-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-5a799d2dcf587e54ee4c",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            },
+            {
+              "title": "pointer crosses gap onto left tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10943,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:41:15.819Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-efacb-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-efacb-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-efacb-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-1f1f5dd04dba15e20d23",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            },
+            {
+              "title": "pointer crosses gap onto right tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10991,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:41:27.335Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-ecb43-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-ecb43-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-ecb43-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-d29c28d2f166b878f622",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            }
+          ]
+        },
+        {
+          "title": "Tooltip lifecycle 1366",
+          "file": "shared-tooltip.spec.ts",
+          "line": 53,
+          "column": 10,
+          "specs": [
+            {
+              "title": "pointer crosses gap onto top tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10912,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:41:38.817Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-cb434-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-cb434-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-cb434-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-3c954e402b1aa8e7b02d",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            },
+            {
+              "title": "pointer crosses gap onto bottom tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10996,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:41:50.376Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-73bcc-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-73bcc-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-73bcc-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-58e3a2e080ef95d85b77",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            },
+            {
+              "title": "pointer crosses gap onto left tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 11004,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:42:01.914Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-db8d7-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-db8d7-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-db8d7-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-390edc2fae5026250dda",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            },
+            {
+              "title": "pointer crosses gap onto right tooltip and leaves without focus",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10944,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 39,
+                          "line": 65
+                        },
+                        "snippet": "  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 39,
+                            "line": 65
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('tooltip')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('tooltip') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('tooltip')\u001b[22m\n\n\n  63 |                 const box = (await tooltip.boundingBox())!;\n  64 |                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 16 });\n> 65 |                 await expect(tooltip).toBeVisible();\n     |                                       ^\n  66 |                 // Prove the pointer reached the real tooltip, not a stale visible sibling.\n  67 |                 await expect(tooltip).toHaveJSProperty('id', await trigger.getAttribute('aria-describedby').then(ids => ids!.split(' ')[1]));\n  68 |                 expect(await tooltip.evaluate(el => el.matches(':hover'))).toBe(true);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:65:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:42:13.418Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-fdfdf-ip-and-leaves-without-focus-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-fdfdf-ip-and-leaves-without-focus-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c13-before/shared-tooltip-Tooltip-lif-fdfdf-ip-and-leaves-without-focus-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 39,
+                        "line": 65
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-925a90bfec53adf10b86",
+              "file": "shared-tooltip.spec.ts",
+              "line": 56,
+              "column": 13
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T02:40:50.207Z",
+    "duration": 94339.49799999999,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 8,
+    "flaky": 0
+  }
+}

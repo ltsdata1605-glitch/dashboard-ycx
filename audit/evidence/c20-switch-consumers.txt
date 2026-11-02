@@ -1,0 +1,32 @@
+features/line-bot/components/KeywordLibraryTab.tsx:93:                                    <Switch size="sm" checked={kw.active} onChange={() => onToggleActive(kw)} label="Bật / tắt từ khoá" />
+features/product-config/components/HtxConfigTable.tsx:345:                                <Switch
+features/product-config/components/HtxConfigTable.tsx:463:                                                    <Switch
+features/product-config/components/HtxConfigTable.tsx:641:                            <Switch
+components/employees/EmployeeAnalysis.tsx:241:                                            <Switch size="sm" id={`vis-toggle-${tab.id}`} checked={visibleTabs.has(tab.id)} onChange={() => handleToggleTabVisibility(tab.id)} label={tab.label} />
+features/line-bot/components/LineBotSettingsTab.tsx:140:                        <Switch checked={isWarehouseShared} onChange={setIsWarehouseShared} aria-labelledby="bot-dung-chung-kho" />
+features/line-bot/components/LineBotSettingsTab.tsx:410:                    <Switch checked={autoApprove} onChange={setAutoApprove} aria-labelledby="bot-tu-duyet" className="ml-4 shrink-0" />
+features/bi-dashboard/components/nhanvien/CompetitionTab.tsx:822:                                                                <Switch checked={isSelected} onChange={() => setHighlightedEmployees(prev => { const newSet = new Set(prev); if (newSet.has(emp.originalName)) newSet.delete(emp.originalName); else newSet.add(emp.originalName); return newSet; })} />
+features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx:572:                                            <Switch
+features/line-bot/components/AdminDeclarationTab.tsx:263:                                            <Switch size="sm" checked={a.active} onChange={() => onToggleActive(a)} label="Bật / tắt quyền Admin" />
+features/line-bot/components/ScheduleManagerTab.tsx:178:                                    <Switch size="sm" checked={sched.active} onChange={() => onToggleActive(sched)} label="Bật / tắt lịch gửi" />
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:318:                                <Switch
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:357:                                <Switch
+features/bi-dashboard/components/dashboard/DashboardWidgets.tsx:9:    <SwitchChung checked={checked} onChange={() => onChange()} id={id} size="sm" />
+features/bi-dashboard/components/dashboard/IndustryView.tsx:364:                                            <Switch
+features/bi-dashboard/components/dashboard/IndustryView.tsx:418:                                                <Switch
+features/bi-dashboard/components/dashboard/IndustryView.tsx:459:                                    <Switch
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:405:                                                <Switch
+features/bi-dashboard/components/dashboard/CompetitionView.tsx:454:                                                <Switch
+components/views/settings/ApprovalSettingsTab.tsx:265:                            <Switch checked={settings.autoApproveManagers} onChange={() => handleToggleAutoApproveManagers()} disabled={savingManager} label="Tự động duyệt quản lý kho" />
+components/views/settings/ApprovalSettingsTab.tsx:337:                                        <Switch size="sm" checked={isKhoEnabled} onChange={() => handleToggleAutoApproveEmployeesForDept(kho)} disabled={isSavingThisKho} label={`Tự động duyệt nhân viên Kho ${kho}`} />
+components/views/settings/ApprovalSettingsTab.tsx:357:                            <Switch checked={settings.autoApproveEmployees} onChange={() => handleToggleAutoApproveEmployeesGlobal()} disabled={savingEmployee} label="Tự động duyệt nhân viên (toàn hệ thống)" />
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:252:                                    <Switch checked={drawAutoIncrement ?? true} onChange={setDrawAutoIncrement} aria-labelledby="phieu-tu-nhay-so" />
+components/tables/summary/SummaryTableHeader.tsx:181:                                                            <Switch size="sm" checked={visibleColumns.includes(col.key)} onChange={() => {}} tabIndex={-1} />
+components/shared/ui/ListGroup.tsx:46:  /** Phần tử bên phải tự dựng — thường là `<Switch>`. */
+components/shared/ui/Switch.tsx:11: *  - Vùng chạm ≥ 44 × 44 trên màn cảm ứng nhờ lớp `::after` vô hình (styles.css `.ycx-switch`) — không đổi bố cục.
+components/shared/ui/Switch.tsx:52:        'ycx-switch relative inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer',
+components/filters/FilterSection.tsx:367:                                    trailing={<Switch checked={bat} onChange={(v) => onVisibilityChange(opt.key, v)} label={opt.label} />}
+components/kpis/modals/KpiCardConfigModal.tsx:450:                        <Switch
+components/kpis/modals/KpiCardConfigModal.tsx:501:                        <Switch
+components/tables/summary/FilterPopover.tsx:149:                                            <Switch size="sm" checked={selected.includes(option)} onChange={() => toggleOption(option)} label={option} />
+components/tables/summary/FilterPopover.tsx:191:                                            <Switch size="sm" checked={selected.includes(option)} onChange={() => toggleOption(option)} label={option} />

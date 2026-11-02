@@ -1,0 +1,402 @@
+import { doc, getDoc, setDoc, serverTimestamp, type DocumentReference } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { getSetting, touchLastModified } from './dbService/core';
+import type { User } from 'firebase/auth';
+import type { ProductConfig } from '../types';
+import { parseKhoList } from '../utils/basicHelpers';
+import { toCloudProductConfig, fromCloudProductConfig } from './productConfigSerialization';
+
+// Nhóm ngành hàng "groups" của productConfig có thể ở dạng Set (runtime) hoặc string[] (đã phục hồi từ JSON)
+type ProductConfigGroups = Record<string, Set<string> | string[]>;
+
+export const fetchFromCloud = async (user: User) => {
+    if (!user) throw new Error("Chưa đăng nhập, không thể tải dữ liệu.");
+    
+    const configRef = doc(db, 'users', user.uid, 'setting', 'configuration');
+    const snap = await getDoc(configRef);
+    
+    if (snap.exists()) {
+        const data = snap.data();
+        if (data.productConfig && data.productConfig.groups) {
+            data.productConfig = fromCloudProductConfig(data.productConfig);
+        }
+        return data;
+    }
+    return null;
+};
+
+// BUG FIX: 'stickerSavedLists' từng nằm trong danh sách này — đây là dữ liệu RIÊNG của
+// features/sticker-event/ (đã có sync Firestore ĐÚNG đắn qua saveListToFirestore/
+// fetchSavedListsFromFirestore, dùng Firebase project CÁCH LY riêng, xem
+// firebase-applet-config.json). Vì dbService.ts của sticker-event bắn CHUNG sự kiện
+// window 'ycx-setting-changed' với root app (2 zone chia sẻ 1 IndexedDB vật lý —
+// BI_HUB_DATABASE_V2/settings), liệt kê key này vào HEAVY_SYNC_KEYS khiến
+// hooks/useCloudSync.ts (root) tưởng đây là setting của CHÍNH NÓ, tự động đồng bộ
+// 2 CHIỀU với Firebase project GỐC (dashboa-7e20b): (1) mỗi lần sticker-event lưu list
+// cục bộ, dữ liệu bị ghi thêm vào users/{uid}/configs/stickerSavedLists của project gốc
+// — rò rỉ dữ liệu sang project không nên chứa nó; (2) onSnapshot lắng nghe cùng
+// collection đó có thể ĐỌC NGƯỢC dữ liệu cũ/của tài khoản gốc rồi ghi ĐÈ vào ĐÚNG key
+// IndexedDB cục bộ mà sticker-event đang dùng (chung DB vật lý) — nguy cơ danh sách
+// sticker-event "tự đổi" không rõ nguyên nhân, đúng lớp bug im lặng đã gặp nhiều lần ở
+// module này (xem BUG FIX cached_dept_id/cached_emp_name ở StickerEventApp.tsx). Bỏ hẳn
+// khỏi HEAVY_SYNC_KEYS — đã thêm vào excludedKeys ở CẢ 2 nơi trong hooks/useCloudSync.ts
+// (giống cách 'stickerPrinterState'/'stickerPrintHistory' đã được loại trừ đúng).
+// HEAVY_SYNC_KEYS / isHeavySyncKey đã chuyển sang utils/localDbScope.ts (2026-09-28) để cả 3 khu vực
+// cùng mở BI_HUB_DATABASE_V2 dùng CHUNG một cách phân loại khoá khi đóng dấu thời gian — xem
+// isLightSyncKey ở đó. Re-export để không đổi API cho nơi đang import từ đây.
+export { HEAVY_SYNC_KEYS, isHeavySyncKey } from '../utils/localDbScope';
+
+// Firestore CẤM mảng lồng mảng trực tiếp (vd competitionData của check-thuong.html — tạo bằng
+// XLSX.utils.sheet_to_json(sheet, {header: 1}) nên là row[][], không phải row đối tượng) — setDoc
+// sẽ ném "Nested arrays are not supported". Bọc mỗi mảng con thành object {__fsArr: [...]} trước
+// khi ghi, và mở lại đúng chỗ khi đọc (fetchHeavySettingsFromCloud + listener realtime ở
+// hooks/useCloudSync.ts) để các khoá heavy-sync khác lỡ có cấu trúc tương tự cũng không bị vỡ.
+const NESTED_ARRAY_MARKER = '__fsArr';
+
+function sanitizeNestedArraysForFirestore(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(item => Array.isArray(item)
+            ? { [NESTED_ARRAY_MARKER]: sanitizeNestedArraysForFirestore(item) }
+            : sanitizeNestedArraysForFirestore(item));
+    }
+    if (value && typeof value === 'object') {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+            out[k] = sanitizeNestedArraysForFirestore(v);
+        }
+        return out;
+    }
+    return value;
+}
+
+export function restoreNestedArraysFromFirestore(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(restoreNestedArraysFromFirestore);
+    }
+    if (value && typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        if (NESTED_ARRAY_MARKER in obj && Array.isArray(obj[NESTED_ARRAY_MARKER])) {
+            return restoreNestedArraysFromFirestore(obj[NESTED_ARRAY_MARKER]);
+        }
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+            out[k] = restoreNestedArraysFromFirestore(v);
+        }
+        return out;
+    }
+    return value;
+}
+
+// Firestore giới hạn cứng 1_048_576 byte/document — checkthuong_data (bảng so sánh nhiều Kho,
+// nhiều tháng, tạo từ XLSX.utils.sheet_to_json) có thể vượt xa mốc này (đã gặp thực tế ~4MB,
+// setDoc() ném "exceeds the maximum allowed size"). Khi chuỗi JSON vượt ngưỡng an toàn, cắt
+// thành nhiều phần lưu ở subcollection configs/{key}/chunks/{n} thay vì ghi thẳng 1 document.
+// Ngưỡng tính theo KÝ TỰ (không phải byte) và chọn thấp hơn hẳn giới hạn byte thật vì tiếng Việt
+// có dấu chiếm tới 3 byte/ký tự khi encode UTF-8.
+const CHUNK_CHAR_SIZE = 300_000;
+
+/**
+ * Số chunk đã ghi gần nhất cho từng document khoá nặng, theo PHIÊN (khoá theo `docRef.path` nên
+ * không lẫn giữa các user).
+ *
+ * QUOTA FIX (2026-09-18, mục 7 — xem implementation_plan.md mục "Audit hạn mức đọc/ghi Firestore"):
+ * trước bản sửa này, MỖI lần ghi khoá nặng đều kèm 1 `getDocs(chunksRef)` để dọn chunk cũ/dư — kể
+ * cả khi dữ liệu không chunk và subcollection rỗng (query rỗng vẫn bị tính tối thiểu 1 lượt đọc).
+ * Khoá nặng được ghi lại mỗi 2 giây có thay đổi, nên đây là lượt đọc ăn theo mỗi lần ghi.
+ *
+ * Nhớ lại số chunh vừa ghi thì lần ghi sau không cần đọc nữa: biết trước đó có 0 chunk → bỏ qua
+ * hẳn việc dọn; biết trước đó có N chunk → xoá đúng khoảng dư, không phải đọc. Chỉ lần ghi ĐẦU
+ * TIÊN của mỗi khoá trong phiên còn phải `getDocs` (chưa biết trạng thái cũ) — giữ nguyên hành vi
+ * an toàn đó thay vì đoán.
+ */
+const lastKnownChunkCount = new Map<string, number>();
+
+function splitIntoChunks(serialized: string): string[] {
+    const chunks: string[] = [];
+    for (let i = 0; i < serialized.length; i += CHUNK_CHAR_SIZE) {
+        chunks.push(serialized.slice(i, i + CHUNK_CHAR_SIZE));
+    }
+    return chunks;
+}
+
+/** Ghép + parse lại dữ liệu từ subcollection chunks — dùng chung cho fetchHeavySettingsFromCloud
+ * (tải hàng loạt lúc đăng nhập) lẫn listener realtime ở hooks/useCloudSync.ts. */
+export async function assembleChunkedHeavyValue(docRef: DocumentReference): Promise<unknown> {
+    const { collection, getDocs } = await import('firebase/firestore');
+    const chunksSnap = await getDocs(collection(docRef, 'chunks'));
+    if (chunksSnap.empty) return undefined;
+
+    const serialized = chunksSnap.docs
+        .slice()
+        .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+        .map(d => (d.data() as { data?: string }).data || '')
+        .join('');
+
+    try {
+        return restoreNestedArraysFromFirestore(JSON.parse(serialized));
+    } catch (e) {
+        console.warn('[Heavy Sync] Không parse được dữ liệu ghép từ chunk:', e);
+        return undefined;
+    }
+}
+
+export const syncHeavySettingToCloud = async (user: User, key: string, value: unknown) => {
+    if (!user) return;
+    const docRef = doc(db, 'users', user.uid, 'configs', key);
+
+    // Safety check for Set conversion (like in productConfig.groups)
+    let safeValue = value;
+    const valueWithConfig = value as { config?: { groups?: ProductConfigGroups } } | undefined;
+    if (key === 'productConfig' && valueWithConfig && valueWithConfig.config && valueWithConfig.config.groups) {
+        // Đổi MỌI Set (không chỉ groups) — xem services/productConfigSerialization.ts.
+        safeValue = { ...valueWithConfig, config: toCloudProductConfig(valueWithConfig.config) };
+    }
+
+    const cleanValue = JSON.parse(JSON.stringify(safeValue, (k, v) => v === undefined ? null : v));
+    const firestoreSafeValue = sanitizeNestedArraysForFirestore(cleanValue);
+    const serialized = JSON.stringify(firestoreSafeValue);
+
+    const { collection, getDocs, deleteDoc, writeBatch } = await import('firebase/firestore');
+    const chunksRef = collection(docRef, 'chunks');
+
+    if (serialized.length <= CHUNK_CHAR_SIZE) {
+        await setDoc(docRef, {
+            value: firestoreSafeValue,
+            chunked: false,
+            updatedAt: serverTimestamp()
+        }, { merge: false });
+
+        // Dọn chunk cũ nếu khoá này từng bị chunk ở lần ghi trước — chạy nền, không chặn ghi chính.
+        const knownBefore = lastKnownChunkCount.get(docRef.path);
+        lastKnownChunkCount.set(docRef.path, 0);
+
+        if (knownBefore === 0) {
+            // Lần ghi trước cũng không chunk → chắc chắn không có gì phải dọn. 0 lượt đọc, 0 lượt xoá.
+            return;
+        }
+        if (knownBefore !== undefined) {
+            // Biết chính xác có bao nhiêu chunk → xoá đúng khoảng đó, KHÔNG cần đọc.
+            const batch = writeBatch(db);
+            for (let i = 0; i < knownBefore; i++) batch.delete(doc(chunksRef, `chunk_${i}`));
+            batch.commit().catch(err => console.warn(`[Heavy Sync] Không dọn được chunk cũ của "${key}":`, err));
+            return;
+        }
+        // Lần ghi ĐẦU TIÊN của khoá này trong phiên — chưa biết trạng thái cũ, phải quét 1 lần.
+        getDocs(chunksRef)
+            .then(snap => snap.empty ? undefined : Promise.all(snap.docs.map(d => deleteDoc(d.ref))))
+            .catch(err => console.warn(`[Heavy Sync] Không dọn được chunk cũ của "${key}":`, err));
+        return;
+    }
+
+    const parts = splitIntoChunks(serialized);
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < parts.length; i += BATCH_SIZE) {
+        const batch = writeBatch(db);
+        const slice = parts.slice(i, i + BATCH_SIZE);
+        slice.forEach((part, idx) => {
+            batch.set(doc(chunksRef, `chunk_${i + idx}`), { data: part });
+        });
+        await batch.commit();
+    }
+    await setDoc(docRef, { chunked: true, chunkCount: parts.length, updatedAt: serverTimestamp() }, { merge: false });
+
+    // Dọn chunk dư ra nếu lần ghi này ít chunk hơn lần trước — chạy nền, không chặn ghi chính.
+    const knownBefore = lastKnownChunkCount.get(docRef.path);
+    lastKnownChunkCount.set(docRef.path, parts.length);
+
+    if (knownBefore !== undefined) {
+        // Biết số chunk lần trước → chỉ xoá phần dư, KHÔNG cần đọc. Lần ghi cùng cỡ (hoặc lớn hơn)
+        // thì không có gì dư, tốn 0 lượt xoá luôn.
+        if (knownBefore > parts.length) {
+            const batch = writeBatch(db);
+            for (let i = parts.length; i < knownBefore; i++) batch.delete(doc(chunksRef, `chunk_${i}`));
+            batch.commit().catch(err => console.warn(`[Heavy Sync] Không dọn được chunk dư của "${key}":`, err));
+        }
+        return;
+    }
+    // Lần ghi ĐẦU TIÊN của khoá này trong phiên — phải quét 1 lần để biết có chunk mồ côi nào không.
+    getDocs(chunksRef)
+        .then(snap => {
+            const stale = snap.docs.filter(d => {
+                const idx = parseInt(d.id.replace('chunk_', ''), 10);
+                return Number.isNaN(idx) || idx >= parts.length;
+            });
+            return stale.length > 0 ? Promise.all(stale.map(d => deleteDoc(d.ref))) : undefined;
+        })
+        .catch(err => console.warn(`[Heavy Sync] Không dọn được chunk dư của "${key}":`, err));
+};
+
+// BUG FIX (rà soát Check Thưởng, tiếp nối Mục 60 implementation_plan.md): cơ chế coalesce +
+// hàng đợi tuần tự cho khóa nặng trước đây chỉ tồn tại dưới dạng React ref BÊN TRONG hook
+// useCloudSync() (1 instance/tab qua SyncContext). Nhưng hooks/useDataManagement.ts (hook KHÁC,
+// mount riêng ở useDashboardLogic.ts) có 1 nhánh đối chiếu lúc boot app gọi thẳng
+// syncHeavySettingToCloud() KHÔNG qua ref đó — nếu đúng lúc app khởi động, nhánh đối chiếu phát
+// hiện 1 khóa nặng cần đẩy lên (vd còn nợ đồng bộ từ phiên trước) TRÙNG thời điểm 1 khóa KHÁC vừa
+// đổi và hết debounce 2s trong useCloudSync, 2 lượt ghi Firestore (mỗi lượt có thể là batch nhiều
+// chunk) chạy THỰC SỰ song song, ngoài tầm kiểm soát của hàng đợi — tái hiện đúng lớp lỗi "Write
+// stream exhausted maximum allowed queued writes" mà Mục 60 đã fix (khi đó chỉ fix trong phạm vi
+// useCloudSync.ts). Chuyển toàn bộ cơ chế xuống đây (module-level singleton, sống hết vòng đời
+// tab, không phải React ref) để MỌI nơi gọi — dù từ hook nào — đều tự động qua ĐÚNG 1 hàng đợi
+// duy nhất. `heavyWriteQueueRef` cũ trong useCloudSync.ts nối tiếp CẢ CÁC KHÓA KHÁC NHAU thành 1
+// hàng (không cho 2 khóa bất kỳ ghi song song) — giữ nguyên đúng ngữ nghĩa đó ở đây.
+const heavyInFlight: Record<string, boolean> = {};
+const heavyPending: Record<string, boolean> = {};
+let heavyWriteQueue: Promise<void> = Promise.resolve();
+
+/** Có đang có 1 lượt ghi thật sự bay lên Firestore cho khóa này không (không tính đang chờ debounce). */
+export const isHeavyKeyInFlight = (key: string): boolean => !!heavyInFlight[key];
+
+/**
+ * Đọc giá trị mới nhất từ IndexedDB rồi đồng bộ lên Firestore qua hàng đợi tuần tự dùng chung cho
+ * MỌI khóa nặng (không cho 2 lượt ghi bất kỳ chạy song song, coalesce nhiều lần đổi liên tiếp của
+ * CÙNG 1 khóa thành đúng 1 lượt ghi cuối). Không throw — lỗi tự bắt + log, giống hệt hành vi cũ.
+ * Fire-and-forget theo đúng cách các call site hiện tại đang dùng (không ai await kết quả).
+ */
+export const syncHeavySettingToCloudQueued = (user: User, key: string): void => {
+    if (heavyInFlight[key]) {
+        // Đã có 1 lượt ghi khóa này đang bay lên Firestore — không xếp chồng thêm, chỉ nhớ để
+        // đồng bộ lại 1 lần nữa (đọc giá trị MỚI NHẤT) ngay sau khi lượt hiện tại xong.
+        // BUG FIX: KHÔNG lưu lại `user` của lượt gọi này — nếu tài khoản đã đổi (đăng xuất rồi
+        // đăng nhập tài khoản khác cùng tab, không reload) trong lúc đang chờ, dùng `user` đóng
+        // trong closure của lượt ĐẦU sẽ ghi nhầm dữ liệu tài khoản mới vào doc Firestore tài
+        // khoản cũ. Đọc lại auth.currentUser TƯƠI ngay trước khi ghi (bên dưới) thay vì tin
+        // closure cũ.
+        heavyPending[key] = true;
+        return;
+    }
+    heavyInFlight[key] = true;
+    heavyWriteQueue = heavyWriteQueue.then(async () => {
+        try {
+            do {
+                heavyPending[key] = false;
+                const currentUser = auth.currentUser || user;
+                const value = await getSetting(key);
+                if (value !== null) {
+                    await syncHeavySettingToCloud(currentUser, key, value);
+                    // Xem giải thích ở touchLastModified() trong services/dbService/core.ts —
+                    // chốt lastModified_ cục bộ về thời điểm ghi Firestore vừa xong, phòng khi
+                    // guard isHeavyKeyInFlight ở useCloudSync.ts vẫn lọt self-echo (payload lớn).
+                    await touchLastModified(key, Date.now());
+                }
+            } while (heavyPending[key]);
+        } catch (err) {
+            console.error(`[Heavy Sync] Đồng bộ khóa nặng "${key}" thất bại:`, err);
+        } finally {
+            heavyInFlight[key] = false;
+        }
+    });
+};
+
+export const fetchHeavySettingsFromCloud = async (user: User): Promise<Record<string, { value: unknown, updatedAt: number }>> => {
+    if (!user) return {};
+    const { collection, getDocs } = await import('firebase/firestore');
+    const configsRef = collection(db, 'users', user.uid, 'configs');
+    const snap = await getDocs(configsRef);
+
+    const settings: Record<string, { value: unknown, updatedAt: number }> = {};
+    for (const docSnap of snap.docs) {
+        const key = docSnap.id;
+        const data = docSnap.data();
+        if (!data) continue;
+
+        let val: unknown;
+        if (data.chunked) {
+            val = await assembleChunkedHeavyValue(docSnap.ref);
+            if (val === undefined) continue;
+        } else {
+            if (data.value === undefined) continue;
+            val = restoreNestedArraysFromFirestore(data.value);
+        }
+
+        const valWithConfig = val as { config?: { groups?: ProductConfigGroups } } | undefined;
+        if (key === 'productConfig' && valWithConfig && valWithConfig.config && valWithConfig.config.groups) {
+            val = { ...valWithConfig, config: fromCloudProductConfig(valWithConfig.config) };
+        }
+        settings[key] = {
+            value: val,
+            updatedAt: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : (data.savedAt || 0)
+        };
+    }
+    return settings;
+};
+
+// Đọc RIÊNG 1 document users/{uid}/configs/productConfig — nhanh hơn hẳn
+// fetchHeavySettingsFromCloud() (tải cả collection configs, có thể kéo theo
+// checkthuong_data/customCalendars... rất nặng) khi chỉ cần mỗi productConfig
+// (dùng cho luồng khởi động ở hooks/useDataManagement.ts, khi IndexedDB cache trống).
+export const fetchProductConfigFromCloud = async (user: User): Promise<{ config: ProductConfig; url?: string; updatedAt: number } | null> => {
+    if (!user) return null;
+    const docRef = doc(db, 'users', user.uid, 'configs', 'productConfig');
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return null;
+
+    const data = snap.data();
+    if (!data || data.value === undefined) return null;
+
+    const wrapper = data.value as { config?: { groups?: ProductConfigGroups }; url?: string };
+    if (!wrapper.config || !wrapper.config.groups) return null;
+
+    return {
+        config: fromCloudProductConfig(wrapper.config),
+        url: wrapper.url,
+        // Mốc của bản dự phòng — máy lưu bản này với ĐÚNG mốc đó (saveProductConfigFromCloud) để không đẩy ngược lên. 0 = không rõ
+        // (cùng quy ước extractCloudTimeMs: không bao giờ thắng bản trên máy).
+        updatedAt: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : (data.savedAt || 0)
+    };
+};
+
+/**
+ * Xoá sạch toàn bộ các collection cấu hình, dữ liệu bán hàng, lịch ca của người dùng trên Cloud Firestore.
+ * Giúp đưa tài khoản về trạng thái mới tinh 100%.
+ */
+export const purgeAllUserCloudData = async (uid: string): Promise<void> => {
+    if (!uid) return;
+    const { collection, getDocs, writeBatch, deleteDoc } = await import('firebase/firestore');
+
+    const subCollections = ['configs', 'setting', 'salesData', 'schedules'];
+
+    for (const subCol of subCollections) {
+        try {
+            const colRef = collection(db, 'users', uid, subCol);
+            const snap = await getDocs(colRef);
+            if (!snap.empty) {
+                for (const docSnap of snap.docs) {
+                    // Nếu là heavy key có lưu subcollection chunks, xoá sạch chunks trước
+                    try {
+                        const chunksRef = collection(docSnap.ref, 'chunks');
+                        const chunkSnap = await getDocs(chunksRef);
+                        if (!chunkSnap.empty) {
+                            const chunkBatch = writeBatch(db);
+                            chunkSnap.docs.forEach(c => chunkBatch.delete(c.ref));
+                            await chunkBatch.commit();
+                        }
+                    } catch {
+                        /* bỏ qua lỗi chunk con */
+                    }
+                    await deleteDoc(docSnap.ref);
+                }
+            }
+        } catch (err) {
+            console.warn(`[purgeAllUserCloudData] Lỗi xoá subcollection "${subCol}":`, err);
+        }
+    }
+};
+
+/**
+ * Xoá các báo cáo Report BI dùng chung (biData) của ĐÚNG các Kho được truyền vào. Nhận danh sách
+ * tường minh (không tự tách departmentId) để người gọi quyết định Kho nào được phép xoá — xem
+ * resetAllDataAsNewUser. Vẫn lọc nhãn "ALL (Super Admin)" phòng thủ (không phải Kho thật).
+ */
+export const purgeUserBiDataReports = async (khoList: string[]): Promise<void> => {
+    const { doc: firestoreDoc, deleteDoc } = await import('firebase/firestore');
+    const khos = parseKhoList(khoList.join(','));
+    for (const kho of khos) {
+        try {
+            await deleteDoc(firestoreDoc(db, 'biData', kho, 'reports', 'summaryLuyKe'));
+            await deleteDoc(firestoreDoc(db, 'biData', kho, 'reports', 'competitionLuyKe'));
+        } catch (err) {
+            console.warn(`[purgeUserBiDataReports] Lỗi xoá biData kho "${kho}":`, err);
+        }
+    }
+};
+

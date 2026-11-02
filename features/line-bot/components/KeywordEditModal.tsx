@@ -1,0 +1,379 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { Modal } from '../../../components/shared/ui/Modal';
+import { toast } from '../../../components/shared/ui/toast';
+import { Button } from '../../../components/shared/ui/Button';
+import { Textarea } from '../../../components/shared/ui/Textarea';
+import { Select } from '../../../components/shared/ui/Select';
+import { Input } from '../../../components/shared/ui/Input';
+import { KeywordReply, KeywordMatchType } from '../types/lineBot.types';
+import { uploadBotImage, deleteBotImage } from '../services/botMediaService';
+
+const MAX_IMAGES = 4;
+
+interface KeywordEditModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    keyword: Partial<KeywordReply> | null;
+    onSave: (kw: Partial<KeywordReply>) => Promise<string | null>;
+}
+
+export const KeywordEditModal: React.FC<KeywordEditModalProps> = ({
+    isOpen,
+    onClose,
+    keyword,
+    onSave
+}) => {
+    const [kwText, setKwText] = useState<string>('');
+    const [matchType, setMatchType] = useState<KeywordMatchType>('EXACT');
+    const [replyText, setReplyText] = useState<string>('');
+    const [imageUrls, setImageUrls] = useState<string[]>([]);
+    const [active, setActive] = useState<boolean>(true);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [isDragging, setIsDragging] = useState<boolean>(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (keyword) {
+            setKwText(keyword.keyword || '');
+            setMatchType(keyword.matchType || 'EXACT');
+            setReplyText(keyword.replyText || '');
+            setImageUrls(keyword.imageUrls || []);
+            setActive(keyword.active ?? true);
+        } else {
+            setKwText('');
+            setMatchType('EXACT');
+            setReplyText('');
+            setImageUrls([]);
+            setActive(true);
+        }
+        setIsUploading(false);
+        setIsDragging(false);
+    }, [keyword, isOpen]);
+
+    const handleFiles = async (files: FileList | File[]) => {
+        const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (fileArray.length === 0) {
+            toast.error('Vui lòng chọn tệp hình ảnh hợp lệ (JPG, PNG, WebP)');
+            return;
+        }
+
+        const remainingSlots = MAX_IMAGES - imageUrls.length;
+        if (remainingSlots <= 0) {
+            toast.error(`Đã đạt giới hạn tối đa ${MAX_IMAGES} ảnh cho mỗi từ khoá`);
+            return;
+        }
+
+        const toUpload = fileArray.slice(0, remainingSlots);
+        if (fileArray.length > remainingSlots) {
+            toast.warning(`Chỉ tải lên được ${remainingSlots} ảnh do giới hạn tối đa ${MAX_IMAGES} ảnh`);
+        }
+
+        setIsUploading(true);
+        const uploadedUrls: string[] = [];
+
+        try {
+            for (const file of toUpload) {
+                const toastId = toast.loading(`Đang tải ảnh "${file.name}"...`);
+                try {
+                    const url = await uploadBotImage(file);
+                    uploadedUrls.push(url);
+                    toast.success(`Đã tải xong ảnh "${file.name}"`, { id: toastId });
+                } catch (err: any) {
+                    toast.error(`Lỗi tải ảnh "${file.name}": ${err.message}`, { id: toastId });
+                }
+            }
+
+            if (uploadedUrls.length > 0) {
+                setImageUrls(prev => [...prev, ...uploadedUrls]);
+            }
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFiles(e.target.files);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
+        }
+    };
+
+    const handlePaste = (e: React.ClipboardEvent) => {
+        if (e.clipboardData && e.clipboardData.items) {
+            const items = Array.from(e.clipboardData.items);
+            const imageFiles: File[] = [];
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) imageFiles.push(file);
+                }
+            }
+            if (imageFiles.length > 0) {
+                e.preventDefault();
+                handleFiles(imageFiles);
+            }
+        }
+    };
+
+    const handleRemoveImage = (idx: number) => {
+        const removedUrl = imageUrls[idx];
+        setImageUrls(imageUrls.filter((_, i) => i !== idx));
+        // Dọn dẹp background nếu là ảnh bot_media
+        if (removedUrl) {
+            deleteBotImage(removedUrl).catch(() => {});
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!kwText.trim()) {
+            toast.error('Vui lòng nhập từ khoá');
+            return;
+        }
+        if (!replyText.trim() && imageUrls.length === 0) {
+            toast.error('Vui lòng nhập nội dung trả lời hoặc thêm ít nhất 1 ảnh');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const res = await onSave({
+                ...(keyword || {}),
+                keyword: kwText.trim().toLowerCase(),
+                matchType,
+                replyText: replyText.trim(),
+                imageUrls,
+                active
+            });
+            if (res) onClose();
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="md"
+            ariaLabel="Từ khoá tự động trả lời"
+            title={
+                <span className="flex items-center gap-2">
+                    <AppIcon name="sparkles" size="md" className="text-emerald-500" />
+                    <span>{keyword?.id ? 'Chỉnh Sửa Từ Khoá' : 'Thêm Từ Khoá Tự Động'}</span>
+                </span>
+            }
+        >
+                <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Từ khoá kích hoạt <span className="text-rose-500">*</span>
+                        </label>
+                        <Input
+                            aria-label="Từ khoá kích hoạt"
+                            type="text"
+                            value={kwText}
+                            onChange={e => setKwText(e.target.value)}
+                            placeholder="Ví dụ: hướng dẫn, xin mã, bảo hành..."
+                            className="h-auto p-2.5 bg-slate-50 border-slate-200 rounded-popup text-xs font-semibold focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all"
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                Kiểu so khớp
+                            </label>
+                            <Select
+                                aria-label="Kiểu so khớp"
+                                value={matchType}
+                                onChange={e => setMatchType(e.target.value as any)}
+                                className="h-auto pl-2.5 py-2.5 bg-slate-50 border-slate-200 rounded-popup text-xs font-semibold focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all"
+                            >
+                                <option value="EXACT">Khớp chính xác (Toàn bộ tin)</option>
+                                <option value="CONTAINS">Khớp chứa (Tin nhắn có chứa từ)</option>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                Trạng thái
+                            </label>
+                            <Select
+                                aria-label="Trạng thái"
+                                value={active ? '1' : '0'}
+                                onChange={e => setActive(e.target.value === '1')}
+                                className="h-auto pl-2.5 py-2.5 bg-slate-50 border-slate-200 rounded-popup text-xs font-semibold focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all"
+                            >
+                                <option value="1">Đang kích hoạt</option>
+                                <option value="0">Tạm tắt</option>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Nội dung tin nhắn trả lời tự động
+                        </label>
+                        <Textarea
+                            aria-label="Nội dung tin nhắn trả lời tự động"
+                            rows={3}
+                            value={replyText}
+                            onChange={e => setReplyText(e.target.value)}
+                            placeholder="Nhập nội dung bot sẽ phản hồi..."
+                            className="min-h-0 p-2.5 bg-slate-50 border-slate-200 rounded-popup text-xs focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all"
+                        />
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                Hình ảnh đính kèm ({imageUrls.length}/{MAX_IMAGES})
+                            </label>
+                            <span className="text-[11px] text-slate-400">
+                                Tự động nén & lưu trực tiếp
+                            </span>
+                        </div>
+
+                        {/* Input file ẩn */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/jpg"
+                            multiple
+                            onChange={handleFileInputChange}
+                            className="hidden"
+                        />
+
+                        {/* Khu vực Upload Kéo thả / Bấm chọn */}
+                        {imageUrls.length < MAX_IMAGES && (
+                            <div
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                onClick={() => !isUploading && fileInputRef.current?.click()}
+                                className={`group relative border-2 border-dashed rounded-popup p-4 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-1.5 ${
+                                    isDragging
+                                        ? 'border-emerald-500 bg-emerald-500/10 scale-[0.99]'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20'
+                                } ${isUploading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            >
+                                {isUploading ? (
+                                    <div className="flex items-center gap-2 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                        <AppIcon name="loading" size="md" spin />
+                                        <span>Đang xử lý và tải ảnh lên...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <AppIcon name="cloudUpload" size="lg" />
+                                        </div>
+                                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                            Bấm để chọn ảnh từ máy hoặc kéo thả vào đây
+                                        </div>
+                                        <div className="text-[11px] text-slate-400">
+                                            Hỗ trợ JPG, PNG, WebP • Dán trực tiếp (Ctrl+V)
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Danh sách ảnh đã upload */}
+                        {imageUrls.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
+                                {imageUrls.map((url, i) => (
+                                    <div
+                                        key={i}
+                                        className="group relative aspect-square rounded-popup overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-sm"
+                                    >
+                                        <img
+                                            src={url}
+                                            alt={`Ảnh ${i + 1}`}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                            onError={(e) => {
+                                                (e.target as HTMLElement).style.display = 'none';
+                                            }}
+                                        />
+
+                                        {/* Badge số thứ tự */}
+                                        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-slate-900/70 text-white text-[11px] font-bold backdrop-blur-xs">
+                                            #{i + 1}
+                                        </div>
+
+                                        {/* Lớp phủ hành động khi hover */}
+                                        <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                            <a
+                                                href={url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="p-1.5 rounded-control bg-white/90 text-slate-700 hover:text-emerald-600 hover:bg-white transition-all shadow-sm"
+                                                title="Xem ảnh gốc"
+                                                onClick={e => e.stopPropagation()}
+                                            >
+                                                <AppIcon name="externalLink" size="sm" />
+                                            </a>
+                                            <Button
+                                                variant="danger"
+                                                size="icon-xs"
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveImage(i);
+                                                }}
+                                                className=""
+                                                title="Xoá ảnh này"
+                                            >
+                                                <AppIcon name="delete" size="sm" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 bg-slate-50/50 dark:bg-slate-800/50 modal-bleed-x modal-bleed-b mt-4">
+                        <Button variant="ghost" type="button" onClick={onClose} className="px-4 py-2 text-xs font-semibold text-slate-600 rounded-control">
+                            Huỷ
+                        </Button>
+                        <Button
+                            variant="primary"
+                            type="submit"
+                            disabled={isSubmitting || isUploading}
+                            className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-control shadow-sm"
+                        >
+                            {isSubmitting ? 'Đang lưu...' : 'Lưu Từ Khoá'}
+                        </Button>
+                    </div>
+                </form>
+        </Modal>
+    );
+};

@@ -1,0 +1,5 @@
+{
+  "tests/unit/share-toast-boundaries.test.ts": "Authored/read7mocked boundary cases: API absent/empty,canShare false/throw,File normalization,synchronous share invocation,AbortError/noncancel fallback,skip,retry. No native share/useractivation or download proof.",
+  "components/shared/ui/BatchShareToast.tsx": "C38 fullread supplemented C41 with7mock boundary cases covering batch guard/File/action/cancel/fallback. No source change; native multiplefile share/device pending.",
+  "components/shared/ui/ShareRetryToast.tsx": "C38 fullread supplemented C41 mock payload/direct callback/AbortError/error fallback. No source change; native activation/share sheet/device pending."
+}

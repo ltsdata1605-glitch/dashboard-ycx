@@ -1,0 +1,30 @@
+module,files,status,reviewed,tested,verified
+.agents,177,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+.claude,4,INVENTORIED,NO,NOT_MAPPED,NO
+.github,3,INVENTORIED,NO,NOT_MAPPED,NO
+.vscode,1,INVENTORIED,NO,NOT_MAPPED,NO
+audit,14,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+auth-hosting,1,INVENTORIED,NO,NOT_MAPPED,NO
+components,106,INVENTORIED,NO,NOT_MAPPED,NO
+components/shared,79,INVENTORIED,NO,NOT_MAPPED,NO
+contexts,4,INVENTORIED,NO,NOT_MAPPED,NO
+docs,31,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+features/bi-dashboard,163,INVENTORIED,PARTIAL,PARTIAL: C16 BonusView local clipping/menu/compare only; audit/correction-batch-c16.md,NO
+features/check-thuong,21,INVENTORIED,NO,NOT_MAPPED,NO
+features/khai-thac,15,INVENTORIED,NO,NOT_MAPPED,NO
+features/line-bot,31,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+features/phan-ca,37,INVENTORIED,NO,NOT_MAPPED,NO
+features/product-config,10,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+features/sticker-event,60,INVENTORIED,NO,NOT_MAPPED,NO
+features/tax-calculator,24,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+functions,39,INVENTORIED,PARTIAL,"NOT_MAPPED; C19 only source contract review, no backend execution",NO
+hooks,19,INVENTORIED,NO,NOT_MAPPED,NO
+price-scraper-server,9,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+public,51,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+root,38,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+scratch,2,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+scripts,12,INVENTORIED,NO,NOT_MAPPED,NO
+services,56,INVENTORIED,NO,NOT_MAPPED,NO
+styles,1,INVENTORIED,NO,NOT_MAPPED,NO
+tests,355,INVENTORIED,PARTIAL,NOT_MAPPED; C18 scoped source/entry review only: audit/correction-batch-c18.md,NO
+utils,14,INVENTORIED,NO,NOT_MAPPED,NO

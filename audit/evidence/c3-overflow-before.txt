@@ -1,0 +1,99 @@
+[WebServer] (node:41998) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+overflow candidates [
+  {
+    tag: 'BUTTON',
+    id: 'tang-dem',
+    text: 'Đổi dữ liệu màn',
+    className: 'inline-flex items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-transparent h-9 max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control',
+    right: 402.8125
+  }
+]
+(node:42022) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 320px and keeps cancel in viewport (1.1s)
+overflow candidates [
+  {
+    tag: 'BUTTON',
+    id: 'tang-dem',
+    text: 'Đổi dữ liệu màn',
+    className: 'inline-flex items-center justify-center transition-colors duration-200 outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap active:opacity-80 font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-transparent h-9 max-sm:min-h-11 pointer-coarse:min-h-11 px-4 text-sm rounded-control',
+    right: 402.8125
+  }
+]
+(node:42028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 390px and keeps cancel in viewport (314ms)
+overflow candidates []
+(node:42035) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 440px and keeps cancel in viewport (1.0s)
+
+
+  1) [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 320px and keeps cancel in viewport 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 320
+    Received: 403
+
+      54 |                 return box.width > 0 && box.right > document.documentElement.clientWidth + 1;
+      55 |             }).map(el => ({ tag: el.tagName, id: el.id, text: el.textContent?.slice(0, 60), className: el.className, right: el.getBoundingClientRect().right }))));
+    > 56 |         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+         |                                                                                 ^
+      57 |         await page.getByTestId('menu-thu').click();
+      58 |         const cancel = page.getByRole('button', { name: 'Huỷ', exact: true });
+      59 |         await expect.poll(async () => {
+        at /Users/ltson/dashboardycx/tests/e2e/glass-material-foundation.spec.ts:56:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c3/glass-material-foundation--513ea-nd-keeps-cancel-in-viewport-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c3/glass-material-foundation--513ea-nd-keeps-cancel-in-viewport-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c3/glass-material-foundation--513ea-nd-keeps-cancel-in-viewport-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c3/glass-material-foundation--513ea-nd-keeps-cancel-in-viewport-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 390px and keeps cancel in viewport 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 390
+    Received: 404
+
+      54 |                 return box.width > 0 && box.right > document.documentElement.clientWidth + 1;
+      55 |             }).map(el => ({ tag: el.tagName, id: el.id, text: el.textContent?.slice(0, 60), className: el.className, right: el.getBoundingClientRect().right }))));
+    > 56 |         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+         |                                                                                 ^
+      57 |         await page.getByTestId('menu-thu').click();
+      58 |         const cancel = page.getByRole('button', { name: 'Huỷ', exact: true });
+      59 |         await expect.poll(async () => {
+        at /Users/ltson/dashboardycx/tests/e2e/glass-material-foundation.spec.ts:56:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c3/glass-material-foundation--656f8-nd-keeps-cancel-in-viewport-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c3/glass-material-foundation--656f8-nd-keeps-cancel-in-viewport-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c3/glass-material-foundation--656f8-nd-keeps-cancel-in-viewport-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c3/glass-material-foundation--656f8-nd-keeps-cancel-in-viewport-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 320px and keeps cancel in viewport 
+    [chromium] › tests/e2e/glass-material-foundation.spec.ts:47:5 › Aggregate harness fits 390px and keeps cancel in viewport 
+  1 passed (5.6s)

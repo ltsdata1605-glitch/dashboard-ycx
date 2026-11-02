@@ -1,0 +1,16 @@
+[WebServer] (node:23812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/shared-dropdown.spec.ts:8:9 › Dropdown inline 390 › span icon trigger has a name without nested interactive controls (2.1s)
+  ✓  2 [webkit] › tests/e2e/shared-dropdown.spec.ts:14:9 › Dropdown inline 390 › keyboard selection skips disabled items and restores focus to trigger (822ms)
+  ✓  3 [webkit] › tests/e2e/shared-dropdown.spec.ts:8:9 › Dropdown inline 1366 › span icon trigger has a name without nested interactive controls (546ms)
+  ✓  4 [webkit] › tests/e2e/shared-dropdown.spec.ts:14:9 › Dropdown inline 1366 › keyboard selection skips disabled items and restores focus to trigger (701ms)
+  ✓  5 [webkit] › tests/e2e/shared-dropdown.spec.ts:8:9 › Dropdown floating 390 › span icon trigger has a name without nested interactive controls (699ms)
+  ✓  6 [webkit] › tests/e2e/shared-dropdown.spec.ts:14:9 › Dropdown floating 390 › keyboard selection skips disabled items and restores focus to trigger (762ms)
+  ✓  7 [webkit] › tests/e2e/shared-dropdown.spec.ts:8:9 › Dropdown floating 1366 › span icon trigger has a name without nested interactive controls (639ms)
+  ✓  8 [webkit] › tests/e2e/shared-dropdown.spec.ts:14:9 › Dropdown floating 1366 › keyboard selection skips disabled items and restores focus to trigger (1.0s)
+  ✓  9 [webkit] › tests/e2e/shared-dropdown.spec.ts:68:1 › floating dropdown follows viewport resize and page scroll (1.3s)
+
+  9 passed (12.1s)

@@ -1,0 +1,25 @@
+[WebServer] (node:11882) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 390 › keyboard description and Escape preserve focus and caller description (1.4s)
+  ✓   2 [chromium] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 390 › Escape cancels a pending hover timer (308ms)
+  ✓   3 [chromium] › tests/e2e/shared-tooltip.spec.ts:32:9 › Tooltip 390 › hover dismissal works and leaving the pointer preserves keyboard focus tooltip (1.0s)
+  ✓   4 [chromium] › tests/e2e/shared-tooltip.spec.ts:6:9 › Tooltip 1366 › keyboard description and Escape preserve focus and caller description (556ms)
+  ✓   5 [chromium] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 1366 › Escape cancels a pending hover timer (290ms)
+  ✓   6 [chromium] › tests/e2e/shared-tooltip.spec.ts:32:9 › Tooltip 1366 › hover dismissal works and leaving the pointer preserves keyboard focus tooltip (986ms)
+  ✓   7 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto top tooltip and leaves without focus (1.1s)
+  ✓   8 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto bottom tooltip and leaves without focus (1.1s)
+  ✓   9 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto left tooltip and leaves without focus (1.1s)
+  ✓  10 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto right tooltip and leaves without focus (1.1s)
+  ✓  11 [chromium] › tests/e2e/shared-tooltip.spec.ts:74:9 › Tooltip lifecycle 390 › disabled cancels pending and visible tooltip without stale re-entry (288ms)
+  ✓  12 [chromium] › tests/e2e/shared-tooltip.spec.ts:95:9 › Tooltip lifecycle 390 › unmount while pending then remount creates a clean tooltip (363ms)
+  ✓  13 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto top tooltip and leaves without focus (1.1s)
+  ✓  14 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto bottom tooltip and leaves without focus (1.1s)
+  ✓  15 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto left tooltip and leaves without focus (1.3s)
+  ✓  16 [chromium] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto right tooltip and leaves without focus (1.2s)
+  ✓  17 [chromium] › tests/e2e/shared-tooltip.spec.ts:74:9 › Tooltip lifecycle 1366 › disabled cancels pending and visible tooltip without stale re-entry (270ms)
+  ✓  18 [chromium] › tests/e2e/shared-tooltip.spec.ts:95:9 › Tooltip lifecycle 1366 › unmount while pending then remount creates a clean tooltip (357ms)
+
+  18 passed (18.3s)

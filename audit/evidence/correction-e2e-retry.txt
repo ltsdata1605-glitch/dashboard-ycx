@@ -1,0 +1,32 @@
+[WebServer] (node:37011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 17 tests using 1 worker
+
+
+── 0 vi phạm ──
+
+(node:37023) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests/e2e/apple-tuong-thich.spec.ts:145:5 › cảm ứng (iPhone, iPad) › khung app: không tràn, không đè, vùng chạm ≥ 44px, chữ ≥ 11px (1.5m)
+
+── 0 vi phạm ──
+
+  ✓   2 [chromium] › tests/e2e/apple-tuong-thich.spec.ts:155:5 › laptop › khung app: không tràn, không đè (45.7s)
+  ✓   3 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:19:5 › iPhone 16 Pro Max › Switch: role=switch, bấm/Space bật tắt, 44×26, vùng chạm ≥ 44 (568ms)
+  ✓   4 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:40:5 › iPhone 16 Pro Max › SegmentedControl: nhóm nút aria-pressed, núm trắng trượt theo mục chọn, cao 44px trên cảm ứng (851ms)
+  ✓   5 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:57:5 › iPhone 16 Pro Max › Banner: chữ đứng yên tối đa 2 dòng, "Xem thêm" mở đủ, × đóng (464ms)
+  ✓   6 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:72:5 › iPhone 16 Pro Max › ListGroup: hàng ≥ 48px cảm ứng, có đường kẻ thụt lề, hàng bấm được (397ms)
+  ✓   7 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:83:5 › iPhone 16 Pro Max › ActionMenu trên iPhone là action sheet: nhóm nguy hiểm riêng, nút Huỷ, chọn mục chạy ngay (2.8s)
+  ✓   8 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:100:5 › iPhone 16 Pro Max › Modal sheet: đầu kiểu iOS [Huỷ — Tiêu đề — Lưu], thân chỉ cuộn dọc, kéo thanh nắm để đóng (1.5s)
+  ✓   9 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:128:5 › iPhone 16 Pro Max › SectionHeader v2 viết thường 17px; EmptyState có icon (366ms)
+  ✓  10 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:141:5 › laptop 1366×900 › ActionMenu là menu thả: ↓ di chuyển, Esc đóng và trả focus, mục nguy hiểm cuối sau vạch ngăn (671ms)
+  ✓  11 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:160:5 › laptop 1366×900 › PageActions: khung app vẽ tiêu đề/nút từ màn đang khai báo, luôn gọi hàm MỚI nhất, màn ẩn thì gỡ (806ms)
+  ✓  12 [chromium] › tests/e2e/lop-apple-gd3.spec.ts:177:5 › laptop 1366×900 › Modal giữa màn: primaryAction thành cặp nút ở chân, có nút × ở đầu (754ms)
+  ✓  13 [chromium] › tests/e2e/modal-ngan-xep.spec.ts:20:1 › khoá cuộn theo ngăn xếp: đóng dialog lồng / mount modal đóng không mở khoá modal còn mở (1.6s)
+  ✓  14 [chromium] › tests/e2e/modal-ngan-xep.spec.ts:45:1 › Escape chỉ đóng modal trên cùng (1.4s)
+  ✓  15 [chromium] › tests/e2e/modal-ngan-xep.spec.ts:59:1 › a11y: role=dialog + aria-modal + tên; focus vào trong, Tab vòng trong modal, đóng thì trả focus (743ms)
+  ✓  16 [chromium] › tests/e2e/modal-ngan-xep.spec.ts:88:1 › ConfirmDialog có tên = tiêu đề (không có header chuẩn) (831ms)
+  ✓  17 [chromium] › tests/e2e/smoke.spec.ts:7:1 › app khởi động và render giao diện (603ms)
+
+  17 passed (2.5m)

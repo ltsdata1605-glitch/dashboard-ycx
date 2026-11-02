@@ -1,0 +1,42 @@
+[
+  {
+    "original": "public/exports-audit/phan-tich-khai-thac-chi-tiet-mobile.png",
+    "current": "audit/evidence/internal-exports/phan-tich-khai-thac-chi-tiet-mobile.png",
+    "sha256": "78afcfadba5810c9084f356b70e7c4fe01096791549a7fb81c2642b0bc6182d8"
+  },
+  {
+    "original": "public/exports-audit/phan-tich-khai-thac-hieu-qua-mobile.png",
+    "current": "audit/evidence/internal-exports/phan-tich-khai-thac-hieu-qua-mobile.png",
+    "sha256": "f4ef1764223ebea5d2a18ad4bc180a7638b9b511c086034f2c57d86046505eec"
+  },
+  {
+    "original": "public/exports-audit/phan-tich-tab-hieu-suat-mobile.png",
+    "current": "audit/evidence/internal-exports/phan-tich-tab-hieu-suat-mobile.png",
+    "sha256": "c64a9995a352a79218fd141dafc98c366f7d554c04a6db590cce8e9c3e8aba80"
+  },
+  {
+    "original": "public/exports-audit/phan-tich-tab-top-mobile.png",
+    "current": "audit/evidence/internal-exports/phan-tich-tab-top-mobile.png",
+    "sha256": "4facf4db84f0e40541a07f1e0d887066b86cb18ada8cf94391dd74878f90feea"
+  },
+  {
+    "original": "public/exports-audit/report-bi-nhan-vien-doanh-thu-mobile.png",
+    "current": "audit/evidence/internal-exports/report-bi-nhan-vien-doanh-thu-mobile.png",
+    "sha256": "21e9f672aefd0b5834c19dcc5b2c6d2703daf46d9c92fa085b74eb151ed9837d"
+  },
+  {
+    "original": "public/exports-audit/report-bi-nhan-vien-thi-dua-mobile.png",
+    "current": "audit/evidence/internal-exports/report-bi-nhan-vien-thi-dua-mobile.png",
+    "sha256": "b84d52a8583a961c67b53efc0b3310e07d0adc7389caa254cf6683dea7d7e9b5"
+  },
+  {
+    "original": "public/exports-audit/report-bi-nhan-vien-thuong-mobile.png",
+    "current": "audit/evidence/internal-exports/report-bi-nhan-vien-thuong-mobile.png",
+    "sha256": "21e9f672aefd0b5834c19dcc5b2c6d2703daf46d9c92fa085b74eb151ed9837d"
+  },
+  {
+    "original": "public/exports-audit/report-bi-nhan-vien-tra-cham-mobile.png",
+    "current": "audit/evidence/internal-exports/report-bi-nhan-vien-tra-cham-mobile.png",
+    "sha256": "21e9f672aefd0b5834c19dcc5b2c6d2703daf46d9c92fa085b74eb151ed9837d"
+  }
+]

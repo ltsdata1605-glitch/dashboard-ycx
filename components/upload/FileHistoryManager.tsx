@@ -1,0 +1,220 @@
+import React, { useState } from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import type { UploadedFileRegistryItem } from '../../types';
+import { Button } from '../shared/ui/Button';
+
+interface FileHistoryManagerProps {
+    registry: UploadedFileRegistryItem[];
+    onToggleActive: (id: string) => Promise<void> | void;
+    onDelete: (id: string) => Promise<void> | void;
+    onRename?: (id: string, newFilename: string) => Promise<void> | void;
+    onViewReport?: () => void;
+    compact?: boolean;
+}
+
+export const FileHistoryManager: React.FC<FileHistoryManagerProps> = ({
+    registry,
+    onToggleActive,
+    onDelete,
+    onRename,
+    onViewReport,
+    compact = false
+}) => {
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingName, setEditingName] = useState<string>('');
+
+    const handleStartRename = (file: UploadedFileRegistryItem) => {
+        setEditingId(file.id);
+        setEditingName(file.filename);
+    };
+
+    const handleSaveRename = async (id: string) => {
+        const trimmed = editingName.trim();
+        if (trimmed && onRename) {
+            await onRename(id, trimmed);
+        }
+        setEditingId(null);
+    };
+
+    const handleCancelRename = () => {
+        setEditingId(null);
+    };
+    const activeCount = registry.filter(f => f.isActive).length;
+    const totalRows = registry.reduce((sum, f) => sum + (f.isActive ? f.rowCount : 0), 0);
+
+    const formatDate = (timestamp: number) => {
+        return new Date(timestamp).toLocaleString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    if (registry.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className={`flex flex-col text-left ${compact ? 'p-0' : 'mt-6 pt-6 border-t border-slate-200 dark:border-slate-800'}`}>
+            <div className={`flex items-center justify-between flex-wrap gap-2 ${compact ? 'mb-2' : 'mb-4'}`}>
+                <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <AppIcon name="database" size="md" className="text-sky-500" />
+                        <span>Kho Dữ Liệu Tích Lũy ({registry.length})</span>
+                    </h4>
+                    {!compact && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            Chọn các tệp tin để gộp số liệu. Dữ liệu được lưu trữ trực tiếp trên trình duyệt của bạn.
+                        </p>
+                    )}
+                </div>
+                {!compact && onViewReport && activeCount > 0 && (
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        icon="play"
+                        onClick={onViewReport}
+                        id="btn-view-historical-report"
+                    >
+                        Xem báo cáo gộp
+                    </Button>
+                )}
+            </div>
+
+            <div className="bg-slate-50/50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 rounded-popup overflow-hidden shadow-inner">
+                <div className={`overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50 scrollbar-thin ${compact ? 'max-h-[160px]' : 'max-h-[220px]'}`}>
+                    {registry.map((file) => (
+                        <div
+                            key={file.id}
+                            className={`flex items-center justify-between transition-colors ${compact ? 'p-2' : 'p-3'} ${
+                                file.isActive
+                                    ? 'bg-sky-50/20 dark:bg-sky-950/15'
+                                    : 'hover:bg-slate-100/30 dark:hover:bg-slate-800/20'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                {/* Customized Checkbox */}
+                                <label className="relative flex items-center justify-center cursor-pointer shrink-0">
+                                    <input 
+                                        type="checkbox"
+                                        id={`check-file-${file.id}`}
+                                        checked={file.isActive}
+                                        onChange={() => onToggleActive(file.id)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-5 h-5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md peer-checked:bg-sky-600 peer-checked:border-sky-600 transition-all flex items-center justify-center after:content-[''] after:w-2.5 after:h-1.5 after:border-white after:border-b-2 after:border-l-2 after:-rotate-45 after:translate-y-[-1px] after:opacity-0 peer-checked:after:opacity-100"></div>
+                                </label>
+
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {editingId === file.id ? (
+                                            <div className="flex items-center gap-1.5 flex-1 min-w-[200px] max-w-full my-0.5">
+                                                <input
+                                                    type="text"
+                                                    autoFocus
+                                                    value={editingName}
+                                                    onChange={(e) => setEditingName(e.target.value)}
+                                                    onFocus={(e) => e.target.select()}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleSaveRename(file.id);
+                                                        } else if (e.key === 'Escape') {
+                                                            e.preventDefault();
+                                                            handleCancelRename();
+                                                        }
+                                                    }}
+                                                    className="w-full text-xs font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-sky-500 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                                />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-inline"
+                                                    onClick={() => handleSaveRename(file.id)}
+                                                    className="p-1 text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
+                                                    title="Lưu tên"
+                                                >
+                                                    <AppIcon name="check" size="sm" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-inline"
+                                                    onClick={handleCancelRename}
+                                                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800"
+                                                    title="Huỷ"
+                                                >
+                                                    <AppIcon name="close" size="sm" />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span 
+                                                    className={`text-[13px] font-semibold truncate max-w-[280px] sm:max-w-md ${
+                                                        file.isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
+                                                    } ${file.isMissingLocalData ? 'text-rose-500/70 dark:text-rose-400/60 line-through' : ''}`} 
+                                                    title={file.filename + (file.isMissingLocalData ? ' (Thiếu dữ liệu gốc trên thiết bị này)' : '')}
+                                                >
+                                                    {file.filename}
+                                                </span>
+                                                <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50/50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-400 border border-sky-100/30 dark:border-sky-900/30 shrink-0">
+                                                    {file.rowCount.toLocaleString('vi-VN')} dòng
+                                                </span>
+                                                {file.isMissingLocalData && (
+                                                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-100/30 shrink-0 flex items-center gap-1" title="Tệp tin chỉ tồn tại trên đám mây, thiếu dữ liệu chi tiết trên thiết bị này. Vui lòng nạp lại tệp!">
+                                                        <AppIcon name="warning" size="xs" className="text-rose-500 animate-pulse" />
+                                                        Thiếu dữ liệu - Hãy nạp lại
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                                        <span className="flex items-center gap-1">
+                                            <AppIcon name="clock" size="xs" />
+                                            {formatDate(file.savedAt)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 ml-4 shrink-0">
+                                {onRename && editingId !== file.id && (
+                                    <Button
+                                        variant="ghost" size="icon-xs"
+                                        onClick={() => handleStartRename(file)}
+                                        id={`btn-rename-file-${file.id}`}
+                                        className="text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/20"
+                                        title="Đổi tên tệp"
+                                    >
+                                        <AppIcon name="edit" size="md" />
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost" size="icon-xs"
+                                    onClick={() => onDelete(file.id)}
+                                    id={`btn-delete-file-${file.id}`}
+                                    className="text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                                    title="Xóa tệp này"
+                                >
+                                    <AppIcon name="delete" size="md" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Footer summary bar */}
+                <div className={`bg-slate-100/40 dark:bg-slate-900/80 border-t border-slate-200/50 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 ${compact ? 'px-3 py-1.5' : 'px-3.5 py-2'}`}>
+                    <span className="flex items-center gap-1">
+                        <AppIcon name="fileCheck" size="sm" className="text-emerald-500" />
+                        Đang gộp: <strong className="text-slate-700 dark:text-slate-300 font-extrabold">{activeCount}</strong> tệp
+                    </span>
+                    <span>
+                        Tổng số: <strong className="text-slate-700 dark:text-slate-300 font-extrabold">{totalRows.toLocaleString('vi-VN')}</strong> dòng dữ liệu
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+};

@@ -1,0 +1,14 @@
+components/views/LandingPageView.tsx:3:import { FeatureLandingLayout } from '../shared/ui/FeatureLandingLayout';
+components/views/LandingPageView.tsx:19: * Màn chào của Phân tích. GĐ6 (2026-10-13): dùng CHUNG khung `FeatureLandingLayout` với Report BI — trước là 2 bản chép tay
+components/views/LandingPageView.tsx:36:        <FeatureLandingLayout>
+components/views/LandingPageView.tsx:57:        </FeatureLandingLayout>
+components/shared/README.md:32:| Màn chào chưa có dữ liệu | `FeatureLandingLayout` | Phân tích + Report BI |
+features/bi-dashboard/components/Dashboard.tsx:17:import { FeatureLandingLayout } from '../../../components/shared/ui';
+features/bi-dashboard/components/Dashboard.tsx:37:    <FeatureLandingLayout>
+features/bi-dashboard/components/Dashboard.tsx:69:    </FeatureLandingLayout>
+components/shared/ui/icon/iconRegistry.ts:43:import { LineIcon } from './brandIcons';
+components/shared/ui/icon/iconRegistry.ts:308:  lineBrand: LineIcon,
+components/shared/ui/icon/index.ts:7:export { LineIcon } from './brandIcons';
+components/shared/ui/index.ts:10:export { AppIcon, ICON_REGISTRY, ICON_SIZES, ICON_STROKE_WIDTH, ICON_TEXT_GAP_CLASS, LineIcon } from './icon';
+components/shared/ui/index.ts:101:export { FeatureLandingLayout } from './FeatureLandingLayout';
+components/shared/ui/index.ts:102:export type { FeatureLandingLayoutProps } from './FeatureLandingLayout';

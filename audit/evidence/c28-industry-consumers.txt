@@ -1,0 +1,10 @@
+features/bi-dashboard/utils/dashboardHelpers.test.ts:509:        const { formatIndustryDisplayName } = await import('../components/dashboard/IndustryView');
+features/bi-dashboard/components/Dashboard.tsx:8:import IndustryView from './dashboard/IndustryView';
+features/bi-dashboard/components/Dashboard.tsx:604:                            <IndustryView
+features/bi-dashboard/hooks/useIndustryViewLogic.ts:42:export function useIndustryViewLogic(realtimeData: ReturnType<typeof parseIndustryRealtimeData> | null, luykeData: ReturnType<typeof parseIndustryLuyKeData> | null, isRealtime: boolean) {
+features/bi-dashboard/hooks/useIndustryViewLogic.ts:47:    const data = isRealtime ? realtimeData! : luykeData!.table; // IndustryView chỉ render khi bộ đang xem khác null
+features/bi-dashboard/components/dashboard/IndustryView.tsx:9:import { useIndustryViewLogic } from '../../hooks/useIndustryViewLogic';
+features/bi-dashboard/components/dashboard/IndustryView.tsx:25:interface IndustryViewProps {
+features/bi-dashboard/components/dashboard/IndustryView.tsx:73:const IndustryView = React.forwardRef<HTMLDivElement, IndustryViewProps>((props, ref) => {
+features/bi-dashboard/components/dashboard/IndustryView.tsx:94:    const logic = useIndustryViewLogic(realtimeData, luykeData, isRealtime);
+features/bi-dashboard/components/dashboard/IndustryView.tsx:902:export default IndustryView;

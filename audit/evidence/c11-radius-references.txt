@@ -1,0 +1,6 @@
+styles.css:16:  --radius-control: var(--btn-radius);
+styles/tokens.css:320:  --btn-radius: var(--p-radius-lg);
+styles/tokens.css:334:  --input-radius: var(--p-radius-lg);
+tests/e2e/shared-form-states.spec.ts:27:            await page.evaluate(() => document.documentElement.style.setProperty('--btn-radius', '17px'));
+tests/e2e/shared-form-states.spec.ts:29:            await page.evaluate(() => document.documentElement.style.removeProperty('--btn-radius'));
+tests/e2e/login-view-redesign.spec.ts:44:        // Bo góc chuẩn rounded-control: 8px (token --btn-radius / --radius-control)

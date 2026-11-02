@@ -1,0 +1,50 @@
+                    </div>
+                </div>
+            ) : (
+                /* 3. Tab Switcher — MỘT khung viền duy nhất bọc chung tab switcher + nội dung */
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 overflow-hidden rounded-none lg:rounded-card shadow-sm">
+                    <div className="px-4 sm:px-5 pt-3">
+                        <Tabs
+                            items={NAV_TABS.map(({ tab, label }) => ({ id: tab, label }))}
+                            activeId={activeTab}
+                            onChange={(id) => setActiveTab(id as Tab)}
+                            variant="underline"
+                        />
+                    </div>
+
+                {visitedTabs.has('revenue') && (
+                    <div className={activeTab === 'revenue' ? 'block' : 'hidden'}>
+                        <RevenueView rows={revenueRows} realtimeRows={realtimeRevenueRows} supermarketName={activeSupermarkets.length === 1 ? activeSupermarkets[0] : 'Tổng hợp'} activeSupermarkets={activeSupermarkets} departmentNames={effectiveActiveDepartments} highlightedEmployees={highlightedEmployees} setHighlightedEmployees={setHighlightedEmployees} supermarketTarget={totalAggregatedTarget} departmentWeights={aggregatedWeights} deptEmployeeCounts={deptEmployeeCounts} employeeInstallmentMap={employeeInstallmentMap} isActive={isActive && activeTab === 'revenue'} bonusData={aggregatedData.bonusData} competitionData={competitionData} employeeCompetitionTargets={employeeCompetitionTargets} />
+                    </div>
+                )}
+                {visitedTabs.has('installment') && (
+                    <div className={activeTab === 'installment' ? 'block' : 'hidden'}>
+                        <InstallmentTab rows={installmentRows} supermarketName={activeSupermarkets.length === 1 ? activeSupermarkets[0] : 'Tổng hợp'} activeSupermarkets={activeSupermarkets} activeDepartments={effectiveActiveDepartments} highlightedEmployees={highlightedEmployees} setHighlightedEmployees={setHighlightedEmployees} isActive={isActive && activeTab === 'installment'} />
+                    </div>
+                )}
+                {visitedTabs.has('competition') && (
+                    <div className={activeTab === 'competition' ? 'block' : 'hidden'}>
+                        <CompetitionTab groupedData={competitionData} allCompetitionsByCriterion={competitionData} selectedCompetitions={selectedCompetitions} setSelectedCompetitions={setSelectedCompetitions} supermarket={activeSupermarkets.length === 1 ? activeSupermarkets[0] : 'Tổng hợp'} versions={versions} activeVersionName={activeVersionName} setActiveVersionName={setActiveVersionName} activeCompetitionTab={activeCompetitionTab} setActiveCompetitionTab={setActiveCompetitionTab} onVersionTabClick={handleVersionTabClick} onStartNewVersion={handleStartNewVersion} onCancelNewVersion={handleCancelNewVersion} onSaveVersion={handleSaveVersion} onDeleteVersion={handleDeleteVersion} employeeCompetitionTargets={employeeCompetitionTargets} allEmployees={allEmployees} individualViewEmployees={individualViewEmployees} selectedIndividual={selectedIndividual} onSelectIndividual={setSelectedIndividual} highlightedEmployees={highlightedEmployees} setHighlightedEmployees={setHighlightedEmployees} activeDepartments={effectiveActiveDepartments} revenueRows={revenueRows} installmentRows={installmentRows} bonusData={aggregatedData.bonusData} isActive={isActive && activeTab === 'competition'} />
+                    </div>
+                )}
+                {visitedTabs.has('bonus') && (
+                    <div className={activeTab === 'bonus' ? 'block' : 'hidden'}>
+                        <BonusView
+                            employees={allEmployees}
+                            bonusData={aggregatedData.bonusData}
+                            revenueRows={revenueRows}
+                            supermarketName={activeSupermarkets.length === 1 ? activeSupermarkets[0] : 'Tổng hợp'}
+                            activeSupermarkets={activeSupermarkets}
+                            onEmployeeClick={setEditingBonusEmployee}
+                            onBatchUpdate={startBatchBonusUpdate}
+                            autoBridge={bonusAutoBridge}
+                            multiMonthRun={bonusMultiMonthRun}
+                            bonusPeriodLabel={aggregatedData.bonusPeriodLabel}
+                            onSetBonusPeriodLabel={setBonusPeriodLabel}
+                            highlightedEmployees={highlightedEmployees}
+                            activeDepartments={effectiveActiveDepartments}
+                            isActive={isActive && activeTab === 'bonus'}
+                        />
+                    </div>
+                )}
+            </div>

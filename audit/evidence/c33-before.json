@@ -1,0 +1,170 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c33-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c33-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c33-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "section-header-keyboard.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c33-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "section-header-keyboard.spec.ts",
+      "file": "section-header-keyboard.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "section quick action keyboard does not activate header",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 11269,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('Quick count')\nExpected: \u001b[32m\"1\"\u001b[39m\nReceived: \u001b[31m\"0\"\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" getByLabel('Quick count') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Quick count')\u001b[22m\n\u001b[2m    24 × locator resolved to <output aria-label=\"Quick count\">0</output>\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('Quick count')\nExpected: \u001b[32m\"1\"\u001b[39m\nReceived: \u001b[31m\"0\"\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" getByLabel('Quick count') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Quick count')\u001b[22m\n\u001b[2m    24 × locator resolved to <output aria-label=\"Quick count\">0</output>\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/section-header-keyboard.spec.ts:12:48",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/section-header-keyboard.spec.ts",
+                      "column": 48,
+                      "line": 12
+                    },
+                    "snippet": "  10 |   await expect(quick).toBeFocused();\n  11 |   await page.keyboard.press('Enter');\n> 12 |   await expect(page.getByLabel('Quick count')).toHaveText('1');\n     |                                                ^\n  13 |   await expect(page.getByLabel('Header count')).toHaveText('0');\n  14 |   await page.keyboard.press('Space');\n  15 |   await expect(page.getByLabel('Quick count')).toHaveText('2');"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/section-header-keyboard.spec.ts",
+                        "column": 48,
+                        "line": 12
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByLabel('Quick count')\nExpected: \u001b[32m\"1\"\u001b[39m\nReceived: \u001b[31m\"0\"\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" getByLabel('Quick count') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Quick count')\u001b[22m\n\u001b[2m    24 × locator resolved to <output aria-label=\"Quick count\">0</output>\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n\n\n  10 |   await expect(quick).toBeFocused();\n  11 |   await page.keyboard.press('Enter');\n> 12 |   await expect(page.getByLabel('Quick count')).toHaveText('1');\n     |                                                ^\n  13 |   await expect(page.getByLabel('Header count')).toHaveText('0');\n  14 |   await page.keyboard.press('Space');\n  15 |   await expect(page.getByLabel('Quick count')).toHaveText('2');\n    at /Users/ltson/dashboardycx/tests/e2e/section-header-keyboard.spec.ts:12:48"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:12:08.749Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c33-before/section-header-keyboard-se-d83c9-rd-does-not-activate-header-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c33-before/section-header-keyboard-se-d83c9-rd-does-not-activate-header-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c33-before/section-header-keyboard-se-d83c9-rd-does-not-activate-header-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/section-header-keyboard.spec.ts",
+                    "column": 48,
+                    "line": 12
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d732648e65518645304d-4f4981a7c79cd588d32c",
+          "file": "section-header-keyboard.spec.ts",
+          "line": 2,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T09:12:07.264Z",
+    "duration": 13097.407000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

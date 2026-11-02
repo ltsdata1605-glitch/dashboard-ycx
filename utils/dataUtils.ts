@@ -1,0 +1,1141 @@
+
+import type { DataRow, SummaryTableNode, ProductConfig } from '../types';
+import { COL, VARIANT_TO_SHORT_KEY, HINH_THUC_XUAT_THU_HO, HINH_THUC_XUAT_TIEN_MAT, HINH_THUC_XUAT_TRA_GOP, DEFAULT_QUANTITY_MULTIPLIER_MAP, PRODUCT_NAME_COEFFICIENTS } from '../constants';
+// 4 hàm nhỏ khung app cần lúc mở (thanh bên, thanh tab, đồng bộ cloud) nằm ở basicHelpers.ts — xem chú thích đầu file đó.
+// Vẫn xuất lại ở đây: features/* chỉ được import utils/dataUtils (CLAUDE.md mục 1), không phải sửa nơi nào đang dùng.
+export { parseKhoList, getErrorMessage, getErrorCode, formatCleanDisplayName, getLocalDateString } from './basicHelpers';
+
+// Tailwind safelist (implementation_plan.md mục 61) — viền dưới 3px đổi màu theo nhóm cột ở
+// nhiều bảng biểu khắp dự án được ghép ĐỘNG qua template literal (vd `border-b-${colorName}-400`)
+// thay vì viết literal đầy đủ ở từng nơi. Tailwind v4 quét TEXT TĨNH trong source để sinh CSS —
+// không chạy JS nên không tự suy luận được giá trị biến runtime. File này (utils/dataUtils.ts)
+// là 1 trong số ít file dùng chung CẢ 4 khu vực nên chắc chắn luôn nằm trong phạm vi quét, đảm
+// bảo các class dưới đây LUÔN được sinh CSS dù nơi dùng ghép chuỗi động không có literal đầy đủ:
+// border-b-sky-400 border-b-emerald-400 border-b-amber-400 border-b-rose-400 border-b-indigo-400 border-b-slate-400
+// !border-b-sky-400 !border-b-emerald-400 !border-b-amber-400 !border-b-rose-400 !border-b-indigo-400 !border-b-slate-400
+
+
+const BORDER_ACCENT_FAMILIES = ['sky', 'emerald', 'amber', 'rose', 'indigo', 'slate'] as const;
+
+/**
+ * Suy ra viền dưới 3px đổi màu theo nhóm cột (implementation_plan.md mục 61) từ 1 class Tailwind
+ * bg-{màu}-... hoặc text-{màu}-... đã có sẵn ở component — dùng khi nơi gọi chưa lưu riêng field
+ * `border` song song với bg/text. Chỉ nhận diện đúng 6 họ màu semantic đã duyệt (CLAUDE.md), mặc
+ * định `slate` (trung tính) nếu không khớp — không tự suy ra màu ngoài bảng màu chuẩn.
+ */
+export function getBorderAccentFromColorClass(colorClass: string): string {
+    for (const family of BORDER_ACCENT_FAMILIES) {
+        if (colorClass.includes(`-${family}-`)) return `border-b-${family}-400`;
+    }
+    return 'border-b-slate-400';
+}
+
+const columnCache = new Map<string, string>();
+const normalizeCache = new Map<string, string>();
+
+// any: val là giá trị ô Excel/DataRow thô (string/number/Date/boolean...), dùng ở hàng nghìn call site — không đổi kiểu tham số/trả về
+export const cleanAndNormalize = (val: any): string => {
+    if (val === undefined || val === null) return '';
+    const raw: string = val.toString().trim();
+    const cached = normalizeCache.get(raw);
+    if (cached) return cached;
+    const normalized = raw.toLowerCase().normalize('NFC');
+    normalizeCache.set(raw, normalized);
+    return normalized;
+};
+
+// Bản chuẩn hoá (cleanAndNormalize) của 3 Set hình thức xuất tĩnh trong constants.ts — dùng làm
+// fallback phân loại tra_gop/tien_mat/thu_ho khi CHƯA có productConfig.htxClassification (chưa
+// upload Config Excel). Trước đây fallback so khớp chuỗi tuyệt đối (case/khoảng trắng nhạy cảm),
+// khiến đơn trả góp có thể âm thầm không được cộng +30% nếu dữ liệu thật lệch hoa/thường so với
+// danh sách hardcode. Tính 1 lần khi module load vì 3 Set nguồn là hằng số không đổi lúc runtime.
+const normalizedTraGopSet = new Set(Array.from(HINH_THUC_XUAT_TRA_GOP).map(v => cleanAndNormalize(v)));
+const normalizedTienMatSet = new Set(Array.from(HINH_THUC_XUAT_TIEN_MAT).map(v => cleanAndNormalize(v)));
+// Export để mọi nơi tính "doanh thu hợp lệ" (loại trừ thu hộ) dùng chung 1 bản đã chuẩn hoá,
+// thay vì so khớp trực tiếp với HINH_THUC_XUAT_THU_HO (nhạy hoa/thường, khoảng trắng).
+export const normalizedThuHoSet = new Set(Array.from(HINH_THUC_XUAT_THU_HO).map(v => cleanAndNormalize(v)));
+
+// any: trả về giá trị ô thô của DataRow (string/number/Date/...) — hàm lõi được gọi ở hàng trăm nơi khắp 4 khu vực, đổi kiểu trả về sẽ vỡ diện rộng ngoài phạm vi utils/
+export function getRowValue(row: DataRow, keys: string[]): any {
+    if (!row) return undefined;
+
+    // Đợt 4 bước 1 (KE_HOACH_TONG_THE.md mục 3.1): rows parse MỚI (từ services/worker.ts sau
+    // bản vá này) đã có khoá NGẮN cố định thay vì chuỗi tiếng Việt dài — tra thẳng O(1), không
+    // cần dò biến thể. Rows CŨ đã lưu IndexedDB/Firestore từ trước, hoặc dựng thủ công ở nơi khác
+    // (test, mock...), vẫn còn khoá tiếng Việt gốc → shortKey không khớp `row`, rơi xuống nguyên
+    // vẹn nhánh cache/dò biến thể bên dưới như trước đây — không mất dữ liệu cũ.
+    const shortKey = VARIANT_TO_SHORT_KEY[keys[0]];
+    if (shortKey !== undefined) {
+        if (row[shortKey] !== undefined && row[shortKey] !== null) {
+            return row[shortKey];
+        }
+        // Fallback giữa gia và giaGoc nếu 1 trong 2 không tồn tại trên row chuẩn hoá
+        if (shortKey === 'gia' && row.giaGoc !== undefined && row.giaGoc !== null) {
+            return row.giaGoc;
+        }
+        if (shortKey === 'giaGoc' && row.gia !== undefined && row.gia !== null) {
+            return row.gia;
+        }
+    }
+
+    // Check cache
+    const cacheKey = keys[0];
+    const cachedField = columnCache.get(cacheKey);
+    if (cachedField !== undefined && cachedField in row) {
+        return row[cachedField];
+    }
+
+    // 1. Direct match (fastest)
+    for (const key of keys) {
+        if (row[key] !== undefined && row[key] !== null) {
+            columnCache.set(cacheKey, key);
+            return row[key];
+        }
+    }
+
+    // Fallback cho raw row: nếu tìm COL.PRICE mà không có, thử tìm COL.ORIGINAL_PRICE (hoặc ngược lại)
+    if (shortKey === 'gia') {
+        for (const origKey of COL.ORIGINAL_PRICE) {
+            if (row[origKey] !== undefined && row[origKey] !== null) {
+                return row[origKey];
+            }
+        }
+    } else if (shortKey === 'giaGoc') {
+        for (const priceKey of COL.PRICE) {
+            if (row[priceKey] !== undefined && row[priceKey] !== null) {
+                return row[priceKey];
+            }
+        }
+    }
+
+    // 2. NFC/NFD normalized case-insensitive match
+    const normalizedKeys = keys.map(k => k.toLowerCase().normalize('NFC'));
+    for (const rowKey of Object.keys(row)) {
+        const normRowKey = rowKey.toLowerCase().normalize('NFC');
+        if (normalizedKeys.includes(normRowKey)) {
+            if (row[rowKey] !== undefined && row[rowKey] !== null) {
+                columnCache.set(cacheKey, rowKey);
+                return row[rowKey];
+            }
+        }
+    }
+    return undefined;
+}
+
+export function toLocalISOString(date: Date | null): string {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// any: dữ liệu ngày tháng thô từ Excel (Date | number serial | string định dạng khác nhau)
+export function parseExcelDate(excelDate: any): Date | null {
+    if (excelDate instanceof Date && !isNaN(excelDate.getTime())) return excelDate;
+    if (typeof excelDate === 'number') {
+        return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+    }
+    if (typeof excelDate === 'string') {
+        // Match dd/MM/yyyy or dd-MM-yyyy with optional time (e.g., dd/MM/yyyy HH:mm:ss)
+        const match = excelDate.trim().match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+        if (match) {
+            const day = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10) - 1; // 0-indexed
+            let year = parseInt(match[3], 10);
+            if (year < 100) year += 2000;
+            const hour = match[4] ? parseInt(match[4], 10) : 0;
+            const minute = match[5] ? parseInt(match[5], 10) : 0;
+            const second = match[6] ? parseInt(match[6], 10) : 0;
+
+            const date = new Date(year, month, day, hour, minute, second);
+            // Audit D15: ngày KHÔNG TỒN TẠI (31/02) — Date tự "lăn" sang 03/03; trả null thay vì ngày sai.
+            if (isNaN(date.getTime()) || date.getDate() !== day || date.getMonth() !== month) return null;
+            return date;
+        }
+
+        const date = new Date(excelDate);
+        if (!isNaN(date.getTime())) return date;
+    }
+    return null;
+}
+
+export function abbreviateName(fullName: string | number | null | undefined): string {
+    if (!fullName) return '';
+    const strName = String(fullName);
+
+    // Regex updated to handle:
+    // 1. Digits at start (ID)
+    // 2. Separator: dash, en-dash, dot, OR just whitespace
+    // 3. Name part
+    const match = strName.match(/^(\d+)(?:\s*[-–.]\s*|\s+)(.+)$/);
+
+    if (!match) return strName;
+
+    const id = match[1].trim();
+    const name = match[2].trim();
+
+    if (!name) return id;
+
+    const words = name.split(/\s+/);
+    const lastName = words[words.length - 1];
+
+    // Logic lấy chữ cái đệm:
+    // Tên 3 chữ trở lên (Chế Thị Út) -> Lấy chữ kế cuối (Thị -> T)
+    // Tên 2 chữ (Nguyễn Văn) -> Lấy chữ đầu (Nguyễn -> N)
+    // Tên 1 chữ -> Giữ nguyên
+
+    let initial = '';
+    if (words.length > 2) {
+        // Lấy chữ cái đầu của từ kế cuối
+        initial = words[words.length - 2].charAt(0).toUpperCase();
+    } else if (words.length === 2) {
+        // Lấy chữ cái đầu của từ đầu tiên
+        initial = words[0].charAt(0).toUpperCase();
+    }
+
+    if (initial) {
+        return `${id} - ${initial}.${lastName}`;
+    }
+
+    return `${id} - ${name}`;
+}
+
+export function formatCurrency(number: number | null | undefined, precision = 0): string {
+    if (number === null || number === undefined || isNaN(number) || number === 0) return '-';
+    // Ensure it's a number
+    const val = Number(number);
+    if (isNaN(val)) return '-';
+
+    if (Math.abs(val) >= 1000000000) return `${(val / 1000000000).toFixed(1).replace(/\.0$/, '')} Tỷ`;
+    if (Math.abs(val) >= 1000000) return `${(val / 1000000).toFixed(precision).replace(/\.0$/, '')} Tr`;
+    if (Math.abs(val) >= 1000) return `${Math.round(val / 1000)} K`;
+    return val.toLocaleString('vi-VN');
+}
+
+export function formatRevenueForHeadToHead(value: number | undefined): string {
+    if (value === undefined || isNaN(value) || value === 0) return '-';
+    const roundedValue = Math.round(value / 1000000);
+    return roundedValue.toLocaleString('vi-VN');
+}
+
+export function formatQuantity(value: number | null | undefined): string {
+    if (value == null || isNaN(value) || value === 0) return '-';
+    return value.toLocaleString('vi-VN');
+}
+
+export function formatQuantityWithFraction(value: number | null | undefined): string {
+    if (value == null || isNaN(value) || value === 0) return '-';
+    return value.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+}
+
+
+// Cache kết quả getHeSoQuyDoi theo đúng object productConfig đang dùng (WeakMap tự giải
+// phóng khi config đổi, ví dụ sau Background Sheet Check nạp bản mới — không cần tự tay
+// invalidate). Dữ liệu doanh số điện máy thực tế có rất nhiều dòng trùng
+// tên/mã/ngành/nhóm sản phẩm (cùng 1 SKU bán lặp lại hàng nghìn lần), nên cache theo tổ
+// hợp 4 input tránh phải lặp lại 2 vòng lặp .includes() (109 pattern) cho mỗi dòng trùng.
+// KHÔNG đổi bất kỳ logic/kết quả nào so với bản gốc — xem test đối chiếu
+// `_perf_test_getHeSoQuyDoi.ts` (35 kịch bản, chạy trước/sau khi thêm cache đều pass).
+const heSoQuyDoiCache = new WeakMap<NonNullable<ProductConfig>, Map<string, number>>();
+
+export function getHeSoQuyDoi(maNganhHang: string, maNhomHang: string, productConfig: ProductConfig | null, productName?: string, productCode?: string): number {
+    if (!productConfig) {
+        return computeHeSoQuyDoi(maNganhHang, maNhomHang, productConfig, productName, productCode);
+    }
+    let cache = heSoQuyDoiCache.get(productConfig);
+    if (!cache) {
+        cache = new Map();
+        heSoQuyDoiCache.set(productConfig, cache);
+    }
+    const cacheKey = `${productCode ?? ''}|${maNganhHang ?? ''}|${maNhomHang ?? ''}|${productName ?? ''}`;
+    const cached = cache.get(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const result = computeHeSoQuyDoi(maNganhHang, maNhomHang, productConfig, productName, productCode);
+    cache.set(cacheKey, result);
+    return result;
+}
+
+function computeHeSoQuyDoi(maNganhHang: string, maNhomHang: string, productConfig: ProductConfig | null, productName?: string, productCode?: string): number {
+    // 0. Nếu mã sản phẩm có cấu hình hệ số doanh thu riêng
+    const trimmedCode = String(productCode || '').trim();
+    if (trimmedCode && productConfig?.revenueMultiplierMap?.[trimmedCode] !== undefined) {
+        return productConfig.revenueMultiplierMap[trimmedCode];
+    }
+
+    const trimmedNhomHang = String(maNhomHang || '').trim();
+
+    // 1. Kiểm tra cấu hình hệ số theo nhóm hàng từ bảng Khai báo ngành hàng (originalCategoryItems)
+    if (trimmedNhomHang && productConfig?.originalCategoryItems) {
+        const item = productConfig.originalCategoryItems.find(it => it.nhomHang === trimmedNhomHang);
+        if (item && item.heSoQuyDoi !== undefined && !isNaN(item.heSoQuyDoi) && item.heSoQuyDoi > 0) {
+            return item.heSoQuyDoi;
+        }
+    }
+
+    // 2. Tra theo nhóm hàng trong quantityMultiplierMap (nếu lưu theo mã nhóm hàng)
+    if (trimmedNhomHang && productConfig?.quantityMultiplierMap?.[trimmedNhomHang] !== undefined) {
+        return productConfig.quantityMultiplierMap[trimmedNhomHang];
+    }
+    const idMatch = trimmedNhomHang.match(/^(\d+)/);
+    if (idMatch && productConfig?.quantityMultiplierMap?.[idMatch[1]] !== undefined) {
+        return productConfig.quantityMultiplierMap[idMatch[1]];
+    }
+
+    // 3. Tra theo nhóm cha / ngành hàng từ cấu hình
+    const parentGroup = getParentGroup(maNhomHang, productConfig);
+
+    // Priority 1: Use parent group from config file for primary categories
+    if (parentGroup) {
+        switch (parentGroup) {
+            case 'Phụ kiện': return 3.37;
+            case 'Wearable':
+            case 'Đồng hồ': return 3.0;
+            case 'Laptop': return 1.2;
+            case 'Tablet': return 1.2;
+            case 'Gia dụng': return 1.85;
+            case 'Sim': return 5.45;
+            case 'Bảo hiểm':
+            case 'Bảo Dưỡng':
+            case 'Bảo hiểm ĐMX': return 4.18;
+            case 'IT': return 2.0;
+            case 'Thẻ cào':
+            case 'ICT': // Smartphones are in here
+            case 'CE': // Tivi, etc.
+                return 1.0;
+            default:
+                break;
+        }
+    }
+
+    // Priority 2: Fallback to old logic for compatibility or items not in config
+    if (maNganhHang && maNganhHang.includes('Thẻ cào')) return 1.0;
+    if (maNganhHang === '164 - VAS' && (maNhomHang === '4479 - Dịch Vụ Bảo Hiểm' || maNhomHang === '4499 - Thu Hộ Phí Bảo Hiểm')) return 4.18;
+    if (maNganhHang === '304 - Điện tử' && maNhomHang === '880 - Loa Karaoke') return 1.29;
+
+    switch (maNganhHang) {
+        case '664 - Sim Online': return 5.45;
+        case '16 - Phụ kiện tiện ích':
+        case '184 - Phụ kiện trang trí':
+        case '764 - Loa vi tính': return 3.37;
+        case '23 - Wearable':
+        case '1274 - Đồng Hồ Thời Trang': return 3.0;
+        case '364 - IT': return 2.0;
+        case '1034 - Dụng cụ nhà bếp': return 1.92;
+        case '1116 - Máy lọc nước':
+        case '484 - Điện gia dụng':
+        case '1214 - Gia dụng lắp đặt': return 1.85;
+        case '22 - Laptop':
+        case '244 - Tablet': return 1.2;
+        default: return 1.0;
+    }
+}
+
+export function sortSummaryData(data: { [key: string]: SummaryTableNode }, sortKey: string, sortDir: 'asc' | 'desc'): { [key: string]: SummaryTableNode } {
+    const sortFn = (a: [string, SummaryTableNode], b: [string, SummaryTableNode]) => {
+        const nodeA = a[1];
+        const nodeB = b[1];
+        let valA, valB;
+
+        switch (sortKey) {
+            case 'aov':
+                valA = nodeA.totalQuantity > 0 ? nodeA.totalRevenue / nodeA.totalQuantity : 0;
+                valB = nodeB.totalQuantity > 0 ? nodeB.totalRevenue / nodeB.totalQuantity : 0;
+                break;
+            case 'traGopPercent':
+                valA = nodeA.totalRevenue > 0 ? (nodeA.totalTraGop / nodeA.totalRevenue) * 100 : 0;
+                valB = nodeB.totalRevenue > 0 ? (nodeB.totalTraGop / nodeB.totalRevenue) * 100 : 0;
+                break;
+            default:
+                valA = nodeA[sortKey as keyof SummaryTableNode] || 0;
+                valB = nodeB[sortKey as keyof SummaryTableNode] || 0;
+        }
+
+        if (valA === valB) return 0;
+        const result = (valA < valB) ? -1 : 1;
+        return sortDir === 'asc' ? result : -result;
+    };
+
+    const sortedEntries = Object.entries(data).sort(sortFn);
+    const sortedData = Object.fromEntries(sortedEntries);
+
+    return sortedData;
+}
+
+export function getHinhThucThanhToan(row: DataRow, productConfig?: ProductConfig | null): 'tra_gop' | 'tien_mat' | 'thu_ho' | 'khac' {
+    const hinhThucXuat = getRowValue(row, COL.HINH_THUC_XUAT);
+    if (!hinhThucXuat) return 'khac';
+    
+    if (productConfig && productConfig.htxClassification) {
+        const key = cleanAndNormalize(hinhThucXuat);
+        if (productConfig.htxClassification[key] !== undefined) {
+            return productConfig.htxClassification[key];
+        }
+    }
+    
+    // Fallback to static config — so khớp đã chuẩn hoá (không nhạy hoa/thường/khoảng trắng)
+    const normalizedHtx = cleanAndNormalize(hinhThucXuat);
+    if (normalizedTraGopSet.has(normalizedHtx)) return 'tra_gop';
+    if (normalizedTienMatSet.has(normalizedHtx)) return 'tien_mat';
+    if (normalizedThuHoSet.has(normalizedHtx)) return 'thu_ho';
+    return 'khac';
+}
+
+export const getDisplayParentGroup = (maNhomHang: string, productConfig: ProductConfig): string => {
+    const parentGroup = productConfig.childToParentMap[maNhomHang] || 'Khác';
+    const childGroup = productConfig.childToSubgroupMap[maNhomHang];
+
+    if (parentGroup === 'ICT' && ['Smartphone', 'Laptop', 'Tablet'].includes(childGroup)) {
+        return childGroup;
+    }
+    if (parentGroup === 'Gia dụng' && childGroup === 'Máy lọc nước') {
+        return 'Máy lọc nước';
+    }
+    return parentGroup;
+};
+
+export function getExportFilenamePrefix(khoFilter: string | string[] | undefined): string {
+    const khoArray = Array.isArray(khoFilter) ? khoFilter : (khoFilter ? [khoFilter] : []);
+    const khosStr = (khoArray.length > 0 && !khoArray.includes('all')) ? khoArray.join('_') : 'Tat-ca-khu-vuc';
+    return `[${khosStr.toUpperCase()}]`;
+}
+
+// Loại bỏ ký tự không hợp lệ trong tên file Windows/macOS khi xuất ảnh/báo cáo
+export function sanitizeFilename(name: string): string {
+    return name.replace(/[\\/:*?"<>|]/g, '');
+}
+
+export const roundUp = (num: number | undefined): number => {
+    // strict (2026-09-30): nhiều nơi truyền trường tuỳ chọn. Trước đây Math.ceil(undefined) = NaN —
+    // giữ nguyên kết quả đó, chỉ ghi rõ.
+    if (num === undefined) return NaN;
+    if (num > -1e-9 && num < 0) {
+        return 0;
+    }
+    return Math.ceil(num);
+};
+
+export const parseNumber = (str: unknown): number => {
+    if (str === null || str === undefined || str === '') return 0;
+    if (typeof str === 'number') return str;
+
+    let cleaned = String(str).replace(/[\s%\+]/g, '');
+
+    // Audit D15: trước đây XOÁ MỌI dấu phẩy → "45,5%" thành 455, "12,5" thành 125. Dấu phẩy là THẬP
+    // PHÂN khi: có cả chấm lẫn phẩy và phẩy đứng SAU CÙNG ("1.234,56"), hoặc chỉ có ĐÚNG 1 dấu phẩy và
+    // theo sau là 1-2 chữ số ("45,5", "12,50"). Mọi dạng ngàn quen thuộc ("1,234,567", "1,234",
+    // "1.234.567", "+1,200") đọc như cũ.
+    const hasDot = cleaned.includes('.');
+    const commaCount = (cleaned.match(/,/g) || []).length;
+    const decimalComma = (hasDot && commaCount > 0 && cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.'))
+        || (!hasDot && commaCount === 1 && /,\d{1,2}$/.test(cleaned));
+    if (decimalComma) {
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+        cleaned = cleaned.replace(/,/g, '');
+        // Xử lý dấu chấm ngàn (chuẩn VN): nếu có chấm phân cách phần ngàn
+        // "0.125" / "-0.125" là thập phân — phần nguyên 0 không bao giờ có dấu nghìn (AUD-009, 2026-10-28: trước đọc thành 125).
+        if (cleaned.indexOf('.') !== cleaned.lastIndexOf('.') || (/\.\d{3}($|\.)/.test(cleaned) && !/^-?0\./.test(cleaned))) {
+            cleaned = cleaned.replace(/\./g, '');
+        }
+    }
+
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+};
+
+export const normalizeText = (text: string): string => {
+    return text ? text.normalize("NFC").trim() : "";
+};
+
+export const shortenName = (name: string, overrides: Record<string, string> = {}): string => {
+    if (!name) return '';
+    if (overrides && overrides[name]) return overrides[name];
+
+    // Khử tiền tố tháng ở đầu (ví dụ: T10/, T09/, T09/T10, T10 , T10- ...) để tên nhóm thi đua ngắn gọn, không bị lặp
+    const cleanName = name
+        .replace(/^(?:T\d{1,2}[\/\s-]+)+/i, '')
+        .trim();
+
+    if (overrides && overrides[cleanName]) return overrides[cleanName];
+
+    const rules: { [key: string]: string } = {
+        'Thi đua Iphone 17 series': 'IPHONE 17',
+        'BÁN HÀNG PANASONIC': 'Panasonic',
+        'Tủ lạnh, tủ đông, tủ mát': 'Tủ lạnh/đông/mát',
+        'BÁN HÀNG ĐIỆN TỬ & ĐIỆN LẠNH HÃNG SAMSUNG': 'Samsung ĐT/ĐL',
+        'NH MÁY GIẶT, SẤY': 'Máy giặt/sấy',
+        'TRẢ CHẬM FECREDIT, TPBANK EVO': 'FE/TPB',
+        'PHỤ KIỆN - SIM - ĐỒNG HỒ': 'PK/Sim/ĐH',
+        'ĐIỆN THOẠI & TABLET ANDROID TRÊN 7 TRIỆU': 'Android > 7Tr',
+        'NẠP RÚT TIỀN TÀI KHOẢN NGÂN HÀNG': 'Nạp/Rút NH',
+        'Thi đua Vivo': 'Vivo',
+        'Thi đua Realme': 'Realme',
+        'Đồng hồ thời trang': 'ĐH thời trang',
+        'VÍ TRẢ SAU': 'Ví',
+        'HOMECREDIT': 'HC',
+        'TIỀN MẶT CAKE': 'Cake',
+        'Bảo hiểm': 'Bảo hiểm',
+        'Gia dụng': 'Gia dụng',
+        'Smartphone & Tablet Android': 'Android',
+        'Doanh thu đồng hồ': 'DT Đồng hồ',
+        'Máy giặt & Máy giặt đặc quyền': 'Máy giặt',
+        'Điện thoại Vivo': 'Vivo',
+        'Điện thoại Realme': 'Realme',
+        'Máy Lạnh': 'Máy Lạnh',
+        'Ví trả sau': 'Ví trả sau',
+        'Bếp các loại': 'Bếp',
+        'Nồi cơm': 'Nồi cơm',
+        'Máy lọc nước': 'Máy lọc nước',
+        'Camera': 'Camera',
+        'MOBIFONE&VINAPHONE&SIM DMX': 'Mobi/Vina/Sim',
+        'MOBIFONE&VINAPHONE&SIMDMX': 'Mobi/Vina/Sim',
+        'MANGO PLUS + ICALLME': 'Mango/iCallme',
+        'MANGO PLUS & ICALLME': 'Mango/iCallme',
+        'THI ĐUA ĐIỆN GIA DỤNG': 'TĐ Gia Dụng',
+        'THI ĐUA DỊCH VỤ': 'TĐ Dịch Vụ',
+        'CE - THI ĐUA HÃNG': 'TĐ Hãng',
+        'NẠP/RÚT TIỀN TÀI KHOẢN NGÂN HÀNG': 'Nạp/Rút NH',
+        'BẢO HIỂM THỢ ĐMX_CE': 'BH Thợ ĐMX',
+        'BẢO HIỂM THỢ ĐMX_ICT': 'BH Thợ ĐMX_ICT',
+        'TABLET ANDROID VÀ MÁY ĐỌC SÁCH': 'Tab Android/MĐS',
+        'ĐIỆN THOẠI/TABLET ANDROID': 'ĐT/Tab Android',
+        'TC FECREDIT, SHINHAN, SAMSUNG FINANCE/': 'TC FE/Shinhan/SS Fin',
+        'TC FECREDIT, SHINHAN, SAMSUNG FINANCE': 'TC FE/Shinhan/SS Fin',
+    };
+
+    if (rules[name]) return rules[name];
+    if (rules[cleanName]) return rules[cleanName];
+
+    // Dynamic replacement for common long strings and separators
+    let processed = cleanName || name;
+    const wordReplacements: Record<string, string> = {
+        'MOBIFONE': 'Mobi',
+        'VINAPHONE': 'Vina',
+        'VIETTEL': 'Viettel',
+        'SIM DMX': 'Sim',
+        'SIMDMX': 'Sim',
+        'MANGO PLUS': 'Mango',
+        'ICALLME': 'iCallme',
+        'PHỤ KIỆN': 'PK',
+        'ĐỒNG HỒ': 'ĐH',
+        'THI ĐUA': 'TĐ',
+        'DOANH THU': 'DT',
+        'TRẢ CHẬM': 'TC',
+        'TRẢ GÓP': 'TG',
+        'ĐIỆN THOẠI': 'ĐT',
+        'ĐIỆN TỬ': 'ĐTử',
+        'ĐIỆN LẠNH': 'ĐLạnh',
+        'GIA DỤNG': 'GD',
+        'BẢO HIỂM': 'BH',
+        'MÁY ĐỌC SÁCH': 'MĐS',
+        'TÀI KHOẢN NGÂN HÀNG': 'TK NH',
+        'NGÂN HÀNG': 'NH',
+        'NẠP/RÚT TIỀN': 'Nạp/Rút',
+        'NẠP RÚT TIỀN': 'Nạp/Rút',
+        'FECREDIT': 'FE',
+        'FE CREDIT': 'FE',
+        'HOMECREDIT': 'HC',
+        'HOME CREDIT': 'HC',
+        'SAMSUNG FINANCE': 'SS Fin',
+        'TABLET': 'Tab',
+        'SMARTPHONE': 'Smart',
+        'MÁY LỌC NƯỚC': 'MLN',
+    };
+
+    Object.keys(wordReplacements).forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        processed = processed.replace(regex, wordReplacements[word]);
+    });
+
+    // Replace separators with slash
+    processed = processed
+        .replace(/\s*&\s*/g, '/')
+        .replace(/\s*\+\s*/g, '/')
+        .replace(/\s*-\s*/g, '/');
+
+    processed = processed.replace(/\/+/g, '/').trim();
+
+    // Dọn dẹp SERIES và IPHONE DUO
+    processed = processed.replace(/\s*SERIES/gi, '');
+    processed = processed.replace(/\s*,?\s*IPHONE DUO/gi, '/Duo');
+
+    // Dọn dẹp dấu gạch chéo hoặc dấu phẩy thừa ở cuối chuỗi (ví dụ: SAMSUNG FINANCE/)
+    processed = processed.replace(/[\/,\-_\s]+$/, '').trim();
+
+    if (processed !== name) {
+        return processed;
+    }
+
+    if (name.toUpperCase().startsWith('BÁN HÀNG ')) {
+        return name.replace(/BÁN HÀNG /i, '').split(' ')[0];
+    }
+    if (name.toUpperCase().includes('TRẢ CHẬM')) {
+        return name.toUpperCase().replace('TRẢ CHẬM', '').trim();
+    }
+    return name;
+};
+
+export const shortenSupermarketName = (name: string): string => {
+    if (!name || !name.includes(' - ')) return name;
+    let shortName = name.split(' - ').pop()?.trim() || '';
+    shortName = shortName.replace(/^(Thửa\s*)?\d+\s*/, '').replace(/Thử/g, '').trim();
+    return shortName;
+};
+
+export function getParentGroup(maNhomHang: string | null | undefined, productConfig: ProductConfig | null): string {
+    if (!maNhomHang || !productConfig || !productConfig.childToParentMap) return '';
+    const key = String(maNhomHang).trim();
+
+    // 1. Exact match
+    if (productConfig.childToParentMap[key]) return productConfig.childToParentMap[key];
+
+    // 2. Lowercase match
+    const lowerKey = key.toLowerCase();
+    if (productConfig.childToParentMap[lowerKey]) return productConfig.childToParentMap[lowerKey];
+
+    // 3. ID match (e.g. "7161" from "7161 - Dịch vụ...")
+    const idMatch = key.match(/^(\d+)/);
+    if (idMatch && productConfig.childToParentMap[idMatch[1]]) {
+        return productConfig.childToParentMap[idMatch[1]];
+    }
+
+    return '';
+}
+
+export function getSubgroup(maNhomHang: string | null | undefined, productConfig: ProductConfig | null): string {
+    if (!maNhomHang || !productConfig || !productConfig.childToSubgroupMap) return '';
+    const key = String(maNhomHang).trim();
+
+    // 1. Exact match
+    if (productConfig.childToSubgroupMap[key]) return productConfig.childToSubgroupMap[key];
+
+    // 2. Lowercase match
+    const lowerKey = key.toLowerCase();
+    if (productConfig.childToSubgroupMap[lowerKey]) return productConfig.childToSubgroupMap[lowerKey];
+
+    // 3. ID match (e.g. "7161" from "7161 - Dịch vụ...")
+    const idMatch = key.match(/^(\d+)/);
+    if (idMatch && productConfig.childToSubgroupMap[idMatch[1]]) {
+        return productConfig.childToSubgroupMap[idMatch[1]];
+    }
+
+    return '';
+}
+
+export function normalizeSalesData(data: DataRow[]): DataRow[] {
+    if (!data) return [];
+
+    const result: (DataRow & { parsedDate: Date })[] = [];
+
+    for (let i = 0, len = data.length; i < len; i++) {
+        const row = data[i];
+        const rawDate = row.parsedDate;
+
+        // Fast path — dữ liệu đọc lại từ IndexedDB (đã tải file trước đó) hoặc từ cloud sync
+        // GẦN NHƯ LUÔN đã có parsedDate hợp lệ (được gán trực tiếp lúc xử lý file gốc trong
+        // services/worker.ts). Trả thẳng row cũ, KHÔNG spread {...row} tạo object mới — tránh
+        // cấp phát lại toàn bộ ~30 cột cho từng dòng, rất tốn kém khi dữ liệu lũy kế lên tới
+        // hàng chục/trăm nghìn dòng mỗi lần khởi động app.
+        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+            result.push(row as DataRow & { parsedDate: Date });
+            continue;
+        }
+
+        let dateObj: Date | null = null;
+        if (rawDate) {
+            if (typeof rawDate === 'object' && ('seconds' in rawDate || '_seconds' in rawDate)) {
+                // rawDate ở đây là any (kế thừa từ DataRow — ngoại lệ Excel raw data đã duyệt)
+                const seconds = rawDate.seconds ?? rawDate._seconds;
+                if (typeof seconds === 'number') {
+                    dateObj = new Date(seconds * 1000);
+                }
+            } else if (typeof rawDate === 'string' || typeof rawDate === 'number') {
+                dateObj = parseExcelDate(rawDate);
+            }
+        }
+
+        // Fallback to Ngày tạo/Ngày Tạo
+        if (!dateObj || isNaN(dateObj.getTime())) {
+            dateObj = parseExcelDate(getRowValue(row, COL.DATE_CREATED));
+        }
+
+        if (dateObj && !isNaN(dateObj.getTime())) {
+            // Chỉ những dòng thực sự cần chuẩn hoá mới bị mutate — khớp quy ước đã dùng ở
+            // services/worker.ts (mutate trực tiếp, không spread).
+            row.parsedDate = dateObj;
+            result.push(row as DataRow & { parsedDate: Date });
+        }
+    }
+
+    return result;
+}
+
+// Marker interface cho Proxy trả về từ wrapMap() bên dưới — dùng để narrow thay vì `any`
+// khi đọc 2 "magic prop" __isProxy/__target không thuộc kiểu Record<string, string> thật.
+interface ProductConfigMapProxyMarker {
+    __isProxy?: true;
+    __target?: Record<string, string>;
+}
+
+export function wrapProductConfigWithProxies(config: ProductConfig): ProductConfig {
+    if (!config) return config;
+
+    // Check if already proxied to avoid double nesting
+    if ((config.childToParentMap as ProductConfigMapProxyMarker)?.__isProxy) return config;
+
+    const wrapMap = (targetMap: Record<string, string>, isParentMap: boolean) => {
+        if (!targetMap) return targetMap;
+        return new Proxy(targetMap, {
+            get(target, prop) {
+                if (prop === '__isProxy') return true;
+                if (prop === '__target') return target;
+                if (typeof prop !== 'string') {
+                    return Reflect.get(target, prop);
+                }
+
+                // 0. Check industryBiMap first if available
+                if (config.industryBiMap) {
+                    const cleanProp = prop.trim();
+                    const mapInfo = config.industryBiMap[cleanProp.toLowerCase()] || config.industryBiMap[cleanProp];
+                    if (mapInfo) {
+                        return isParentMap ? mapInfo.parent : mapInfo.child;
+                    }
+                }
+
+                // 1. Exact match
+                if (prop in target) {
+                    return target[prop];
+                }
+
+                // 2. Lowercase match
+                const lowerProp = prop.toLowerCase();
+                if (lowerProp in target) {
+                    return target[lowerProp];
+                }
+
+                // 3. ID match (extracting e.g. "4383" from "4383 - Camera IT")
+                const idMatch = prop.match(/^(\d+)/);
+                if (idMatch && idMatch[1] in target) {
+                    return target[idMatch[1]];
+                }
+
+                return undefined;
+            },
+            ownKeys(target) {
+                const targetKeys = Reflect.ownKeys(target);
+                if (config.industryBiMap) {
+                    const biKeys = Object.keys(config.industryBiMap);
+                    const uniqueKeys = new Set([...targetKeys, ...biKeys]);
+                    return Array.from(uniqueKeys);
+                }
+                return targetKeys;
+            },
+            getOwnPropertyDescriptor(target, prop) {
+                return {
+                    enumerable: true,
+                    configurable: true,
+                    writable: true
+                };
+            }
+        });
+    };
+
+    return {
+        ...config,
+        childToParentMap: wrapMap(config.childToParentMap || {}, true),
+        childToSubgroupMap: wrapMap(config.childToSubgroupMap || {}, false)
+    };
+}
+
+
+
+export function unwrapProductConfigProxies(config: ProductConfig): ProductConfig {
+    if (!config) return config;
+    if (!(config.childToParentMap as ProductConfigMapProxyMarker)?.__isProxy) return config;
+
+    return {
+        ...config,
+        childToParentMap: (config.childToParentMap as ProductConfigMapProxyMarker).__target || config.childToParentMap,
+        childToSubgroupMap: (config.childToSubgroupMap as ProductConfigMapProxyMarker).__target || config.childToSubgroupMap
+    };
+}
+
+// PERF FIX (Mục 65b): 3 hàm dưới đây trước là useMemo chạy đồng bộ trên main thread trong
+// hooks/useDataManagement.ts, duyệt lại toàn bộ originalData (hàng chục/trăm nghìn dòng) mỗi
+// khi dữ liệu thay đổi — startTransition không ngắt quãng được vòng lặp for đồng bộ đang chạy
+// dở chừng bên trong 1 useMemo, chỉ né được tranh chấp độ ưu tiên giữa các state update, nên
+// dù đã dùng startTransition vẫn đo được 1-3s đứng hình main thread thật (Playwright, throttle
+// mobile). Port nguyên văn sang đây để Worker (services/analytics.worker.ts) gọi được — dataUtils.ts
+// không import React/DOM nên an toàn dùng trong Worker (đã được Worker import gián tiếp qua
+// filterService.ts từ trước). KHÔNG đổi cách đọc cột/logic so khớp — rbacData liên quan bảo mật.
+
+export const EMPTY_UNIQUE_FILTER_OPTIONS = { kho: [] as string[], trangThai: [] as string[], nguoiTao: [] as string[], department: [] as string[], hangSX: [] as string[] };
+
+export interface RbacParams {
+    isDemoMode: boolean;
+    userRole: string | null | undefined;
+    departmentId: string | null | undefined;
+    employeeName: string | null | undefined;
+    userEmail: string | null | undefined;
+}
+
+// Port nguyên văn từ `rbacData` useMemo cũ (hooks/useDataManagement.ts).
+export function computeRbacFilteredData(originalData: DataRow[], params: RbacParams): DataRow[] {
+    let data = originalData;
+    const { isDemoMode, userRole, departmentId, employeeName, userEmail } = params;
+    if (!isDemoMode && (userRole === 'employee' || userRole === 'manager') && userEmail !== 'nguyendangkhoafit2@gmail.com') {
+        const allowedKhos = (departmentId || '').split(',').map(k => k.trim()).filter(Boolean);
+        data = originalData.filter(row => {
+            const kho = String(getRowValue(row, COL.KHO) || '').trim();
+            if (!allowedKhos.includes(kho)) return false;
+
+            if (userRole === 'employee') {
+                // "Người tạo" trong Excel có dạng "Mã số - Tên" (vd "107617 - Nguyễn Văn A"),
+                // trong khi employeeName (nhập lúc đăng ký, PendingApprovalView.tsx) CHỈ là mã
+                // số thuần (validate /^\d+$/). So khớp toàn bộ chuỗi trước đây sẽ KHÔNG BAO GIỜ
+                // khớp — nhân viên đăng nhập xong thấy Dashboard trống dù đã được duyệt quyền
+                // đúng. Trích mã số đứng đầu "Người tạo" rồi so với employeeName thay vì so cả chuỗi.
+                const nguoiTaoRaw = String(getRowValue(row, COL.NGUOI_TAO) || '').trim();
+                const empIdMatch = nguoiTaoRaw.match(/^(\d+)/);
+                const empId = empIdMatch ? empIdMatch[1] : nguoiTaoRaw;
+                if (empId !== employeeName?.trim()) return false;
+            }
+
+            return true;
+        });
+    }
+    return data;
+}
+
+// Port nguyên văn từ `uniqueFilterOptions` useMemo cũ. `departmentMap` gõ kiểu cấu trúc thay vì
+// import type DepartmentMap từ services/dataService.ts — tránh thêm cạnh import utils→services
+// (dataUtils.ts vốn không phụ thuộc services/*), 2 kiểu vẫn khớp cấu trúc { [id]: string }.
+export function computeUniqueFilterOptions(rbacData: DataRow[], departmentMap: Record<string, string> | null) {
+    if (rbacData.length === 0) return EMPTY_UNIQUE_FILTER_OPTIONS;
+
+    const khos = new Set<string>();
+    const trangThais = new Set<string>();
+    const nguoiTaos = new Set<string>();
+    const hangSxs = new Set<string>();
+
+    const len = rbacData.length;
+    for (let i = 0; i < len; i++) {
+        const r = rbacData[i];
+
+        const kho = getRowValue(r, COL.KHO);
+        if (kho) khos.add(String(kho));
+
+        const tt = getRowValue(r, COL.TRANG_THAI);
+        if (tt) trangThais.add(String(tt));
+
+        const tao = getRowValue(r, COL.NGUOI_TAO);
+        if (tao) nguoiTaos.add(String(tao));
+
+        const hsx = getRowValue(r, COL.MANUFACTURER);
+        if (hsx) hangSxs.add(String(hsx));
+    }
+
+    const khoOptions = Array.from(khos).sort();
+    const trangThaiOptions = Array.from(trangThais).sort();
+    const nguoiTaoOptions = Array.from(nguoiTaos).sort();
+    const hangSXOptions = Array.from(hangSxs).sort();
+
+    let deptOptions: string[] = [];
+    if (departmentMap) {
+        // Chỉ xét phòng ban của các nhân viên THỰC SỰ xuất hiện trong nguoiTaoOptions (đã
+        // scope theo rbacData ở trên) — tránh lộ tên phòng ban của nhân viên Kho khác qua
+        // toàn bộ departmentMap (vốn là bản đồ toàn công ty, không theo Kho).
+        const deptsSet = new Set<string>();
+        const excludedKeywords = ['quản lý', 'trưởng ca', 'kế toán', 'tiếp đón khách hàng'];
+        for (let i = 0, len = nguoiTaoOptions.length; i < len; i++) {
+            const empStr = nguoiTaoOptions[i];
+            const dashIdx = empStr.indexOf(' - ');
+            const id = dashIdx !== -1 ? empStr.substring(0, dashIdx).trim() : empStr.trim();
+            const val = departmentMap[id] as string;
+            if (!val) continue;
+            const sepIdx = val.indexOf(';;');
+            const deptName = sepIdx !== -1 ? val.substring(0, sepIdx) : val;
+            if (deptName) {
+                const deptLower = deptName.toLowerCase();
+                let isExcluded = false;
+                for (let j = 0; j < excludedKeywords.length; j++) {
+                    if (deptLower.includes(excludedKeywords[j])) {
+                        isExcluded = true;
+                        break;
+                    }
+                }
+                if (!isExcluded) {
+                    deptsSet.add(deptName);
+                }
+            }
+        }
+        deptOptions = Array.from(deptsSet).sort();
+
+        // Check for unassigned employees
+        let hasUnassigned = false;
+        for (let i = 0, len = nguoiTaoOptions.length; i < len; i++) {
+            const empStr = nguoiTaoOptions[i];
+            const dashIdx = empStr.indexOf(' - ');
+            const id = dashIdx !== -1 ? empStr.substring(0, dashIdx).trim() : empStr.trim();
+            if (!departmentMap[id]) {
+                hasUnassigned = true;
+                break;
+            }
+        }
+        if (hasUnassigned && !deptOptions.includes('Chưa xác định')) {
+            deptOptions.push('Chưa xác định');
+        }
+    }
+
+    return { kho: khoOptions, trangThai: trangThaiOptions, nguoiTao: nguoiTaoOptions, department: deptOptions, hangSX: hangSXOptions };
+}
+
+// Port nguyên văn từ `allUnconfiguredGroups` useMemo cũ.
+export function computeUnconfiguredGroups(originalData: DataRow[], productConfig: ProductConfig | null): { nhomHang: string; nganhHang: string }[] {
+    if (!originalData || originalData.length === 0 || !productConfig) return [];
+
+    const missing = new Map<string, string>(); // map: nhomHang -> nganhHang
+
+    for (let i = 0; i < originalData.length; i++) {
+        const row = originalData[i];
+
+        // Bỏ qua các dòng không tính doanh thu theo hình thức xuất
+        const hinhThucXuat = getRowValue(row, COL.HINH_THUC_XUAT) || '';
+        const isRevenue = productConfig.revenueEligibleHTX && productConfig.revenueEligibleHTX.size > 0
+            ? productConfig.revenueEligibleHTX.has(cleanAndNormalize(hinhThucXuat))
+            : (!normalizedThuHoSet.has(cleanAndNormalize(hinhThucXuat)) &&
+               !hinhThucXuat.toLowerCase().normalize('NFC').includes('thu hộ') &&
+               !hinhThucXuat.toLowerCase().normalize('NFC').includes('khuyến mãi'));
+
+        if (!isRevenue) continue;
+
+        // Bỏ qua các dòng không tính doanh thu (giá bán <= 0)
+        const price = getRowPrice(row, 'discounted');
+        if (price <= 0) continue;
+
+        // Bỏ qua các ngành hàng/nhóm hàng khuyến mãi hoặc thu hộ (không tính doanh thu)
+        const nganhHangRaw = String(getRowValue(row, COL.MA_NGANH_HANG) || '').toLowerCase().normalize('NFC');
+        const nhomHangRaw = String(getRowValue(row, COL.MA_NHOM_HANG) || '').toLowerCase().normalize('NFC');
+        if (
+            nganhHangRaw.includes('khuyến mãi') ||
+            nganhHangRaw.includes('khuyen mai') ||
+            nhomHangRaw.includes('khuyến mãi') ||
+            nhomHangRaw.includes('khuyen mai') ||
+            nganhHangRaw.includes('thu hộ') ||
+            nhomHangRaw.includes('thu hộ')
+        ) {
+            continue;
+        }
+
+        const nhomHang = getRowValue(row, COL.MA_NHOM_HANG);
+        if (!nhomHang) continue;
+
+        const parent = getParentGroup(nhomHang, productConfig);
+        if (!parent) {
+            const nganhHang = getRowValue(row, COL.MA_NGANH_HANG) || 'Không xác định';
+            missing.set(String(nhomHang).trim(), String(nganhHang).trim());
+        }
+    }
+
+    return Array.from(missing.entries()).map(([nhomHang, nganhHang]) => ({
+        nhomHang,
+        nganhHang
+    })).sort((a, b) => a.nganhHang.localeCompare(b.nganhHang) || a.nhomHang.localeCompare(b.nhomHang));
+}
+
+// Mục 65d: port nguyên văn điều kiện phân loại "filteredValidSalesData" (nhánh "đã thu") từ
+// processDataForPeriod (services/filterService.ts) ra đây — để main thread (hooks/useDataManagement.ts)
+// tính lại ĐÚNG CÙNG 1 điều kiện thay vì tự viết lại (tránh 2 bản lệch nhau theo thời gian).
+// KHÔNG cần row._metrics (chỉ dùng để phân loại/lọc, không dùng để tổng hợp số liệu) — chỉ cần
+// row._parentGroup (đọc cache nếu có, fallback tính mới — main thread luôn rơi vào nhánh fallback
+// vì row object trên main thread không phải cùng instance đã bị Worker mutate).
+export function isValidSalesRow(row: DataRow, productConfig: ProductConfig | null): boolean {
+    const thuTien = cleanAndNormalize(getRowValue(row, COL.TRANG_THAI_THU_TIEN));
+    if (thuTien !== 'đã thu') return false;
+
+    const parentGroup = row._parentGroup || getParentGroup(getRowValue(row, COL.MA_NHOM_HANG), productConfig);
+    if (parentGroup === 'Không tính doanh thu') return false;
+
+    const hasHTXConfig = !!(productConfig && productConfig.revenueEligibleHTX && productConfig.revenueEligibleHTX.size > 0);
+    const hinhThucXuat = getRowValue(row, COL.HINH_THUC_XUAT) || '';
+    return hasHTXConfig
+        ? productConfig!.revenueEligibleHTX!.has(cleanAndNormalize(hinhThucXuat))
+        : !normalizedThuHoSet.has(cleanAndNormalize(hinhThucXuat));
+}
+
+// Mục 65e: port nguyên văn điều kiện phân loại "uncollectedOrders" (nhánh "chưa thu") từ
+// processDataForPeriod — cùng lý do isValidSalesRow ở trên: main thread cần gọi lại ĐÚNG 1 hàm
+// này thay vì viết lại logic. Dùng revenueEligibleHTX (nếu có) hoặc HINH_THUC_XUAT_TIEN_MAT/
+// HINH_THUC_XUAT_TRA_GOP làm fallback — KHÁC với isValidSalesRow (fallback normalizedThuHoSet) vì
+// đây là "đủ điều kiện doanh thu CƠ BẢN" (base revenue eligibility), không kiểm tra thuTien.
+export function isUncollectedOrder(row: DataRow, productConfig: ProductConfig | null): boolean {
+    const thuTien = cleanAndNormalize(getRowValue(row, COL.TRANG_THAI_THU_TIEN));
+    if (thuTien !== 'chưa thu') return false;
+
+    const trangThaiXuat = cleanAndNormalize(getRowValue(row, COL.XUAT));
+    const trangThaiGiao = cleanAndNormalize(getRowValue(row, COL.TRANG_THAI_GIAO_HANG));
+    const trangThaiHuy = cleanAndNormalize(getRowValue(row, COL.TRANG_THAI_HUY));
+    if (!(trangThaiXuat === 'chưa xuất' && trangThaiGiao === 'chưa giao' && (trangThaiHuy === 'chưa hủy' || trangThaiHuy === 'chưa huỷ'))) {
+        return false;
+    }
+
+    const parentGroup = row._parentGroup || getParentGroup(getRowValue(row, COL.MA_NHOM_HANG), productConfig);
+    if (parentGroup === 'Không tính doanh thu') return false;
+
+    const hasHTXConfig = !!(productConfig && productConfig.revenueEligibleHTX && productConfig.revenueEligibleHTX.size > 0);
+    const hinhThucXuat = getRowValue(row, COL.HINH_THUC_XUAT) || '';
+    return hasHTXConfig
+        ? productConfig!.revenueEligibleHTX!.has(cleanAndNormalize(hinhThucXuat))
+        : (HINH_THUC_XUAT_TIEN_MAT.has(hinhThucXuat) || HINH_THUC_XUAT_TRA_GOP.has(hinhThucXuat));
+}
+
+/**
+ * Đọc giá bán an toàn từ DataRow (hỗ trợ cả row chuẩn hoá khoá ngắn lẫn tiếng Việt cũ).
+ * Tự động fallback giữa Giá bán_1 (gia) và Giá bán gốc (giaGoc) nếu file chỉ có 1 cột giá.
+ * Hỗ trợ chuyển đổi string số định dạng VN (chấm ngàn, phẩy thập phân) qua parseNumber.
+ */
+export function getRowPrice(row: DataRow, priceType: 'discounted' | 'original' = 'discounted'): number {
+    if (!row) return 0;
+    const primaryCol = priceType === 'original' ? COL.ORIGINAL_PRICE : COL.PRICE;
+    const fallbackCol = priceType === 'original' ? COL.PRICE : COL.ORIGINAL_PRICE;
+    const primaryVal = parseNumber(getRowValue(row, primaryCol));
+    if (primaryVal > 0) return primaryVal;
+    return parseNumber(getRowValue(row, fallbackCol)) || 0;
+}
+
+/**
+ * Lấy hệ số quy đổi số lượng (Quantity Multiplier) cho từng sản phẩm.
+ * Nghiệp vụ chuẩn: Cột hệ số theo Mã sản phẩm là hệ số của SỐ LƯỢNG, KHÔNG PHẢI hệ số doanh thu!
+ * Ví dụ:
+ *  - Khi bán 1640571000003 - VieON VIP_01 tháng: SL 1 => Hệ số QĐ: 1 => Sẽ tính số lượng là 1
+ *  - Khi bán 1640571000004 - VieON VIP_03 tháng: SL 1 => Hệ số QĐ: 2 => Sẽ tính số lượng là 2
+ *  - Khi bán 1640571000015 - VieON VIP_06 tháng: SL 1 => Hệ số QĐ: 4 => Sẽ tính số lượng là 4
+ *  - Khi bán 1640571000005 - VieON VIP_12 tháng: SL 1 => Hệ số QĐ: 8 => Sẽ tính số lượng là 8
+ */
+export function getProductQuantityMultiplier(
+    productCode: string | undefined,
+    productName: string | undefined,
+    productConfig: ProductConfig | null
+): number {
+    const trimmedCode = String(productCode || '').trim();
+    if (trimmedCode) {
+        if (productConfig?.quantityMultiplierMap?.[trimmedCode] !== undefined) {
+            return productConfig.quantityMultiplierMap[trimmedCode];
+        }
+        if (productConfig?.vasMultiplierMap?.[trimmedCode] !== undefined) {
+            return productConfig.vasMultiplierMap[trimmedCode];
+        }
+        if (DEFAULT_QUANTITY_MULTIPLIER_MAP[trimmedCode] !== undefined) {
+            return DEFAULT_QUANTITY_MULTIPLIER_MAP[trimmedCode];
+        }
+    }
+
+    const name = (productName || '').toString().trim();
+
+    // Dò tìm hệ số theo Tên sản phẩm từ cấu hình Vas tải từ Google Sheet
+    if (productConfig?.vasNameMultiplierMap) {
+        if (productConfig.vasNameMultiplierMap[name] !== undefined) {
+            return productConfig.vasNameMultiplierMap[name];
+        }
+        for (const [pattern, val] of Object.entries(productConfig.vasNameMultiplierMap)) {
+            if (name.includes(pattern)) {
+                return val;
+            }
+        }
+    }
+
+    // Dò tìm hệ số theo Tên sản phẩm từ cấu hình cứng cũ (Fallback)
+    for (const item of PRODUCT_NAME_COEFFICIENTS) {
+        if (name.includes(item.pattern)) {
+            return item.value;
+        }
+    }
+
+    // Quy tắc VieON VIP theo tên
+    if (name.includes('VieON VIP')) {
+        if (name.includes('01 tháng') || name.includes('1 tháng')) return 1;
+        if (name.includes('03 tháng') || name.includes('3 tháng')) return 2;
+        if (name.includes('06 tháng') || name.includes('6 tháng')) return 4;
+        if (name.includes('12 tháng')) return 8;
+        return 1;
+    }
+
+    return 1;
+}
+
+export function calculateRowMetrics(row: DataRow, productConfig: ProductConfig | null): { revenue: number, revenueQD: number, quantity: number, weightedQuantity: number, isTraCham: boolean } {
+    const price = getRowPrice(row, 'discounted');
+    const quantity = parseNumber(getRowValue(row, COL.QUANTITY)) || 0;
+    const revenue = price;
+    
+    const maNganhHang = getRowValue(row, COL.MA_NGANH_HANG);
+    const maNhomHang = getRowValue(row, COL.MA_NHOM_HANG);
+    const productName = getRowValue(row, COL.PRODUCT);
+    const productCode = String(getRowValue(row, COL.PRODUCT_CODE) || '').trim();
+    
+    // 1. Hệ số Doanh Thu Quy Đổi (DTQĐ): ưu tiên mã sản phẩm (nếu có cấu hình hệ số DT), hoặc ngành hàng / nhóm hàng
+    const hesoDT = getHeSoQuyDoi(maNganhHang, maNhomHang, productConfig, productName, productCode);
+    
+    // Gọi thẳng getHinhThucThanhToan() thay vì tự viết lại logic phân loại
+    const isTraCham = getHinhThucThanhToan(row, productConfig) === 'tra_gop';
+    
+    // DTQĐ = Doanh thu thực * Hệ số DT + (30% Doanh thu thực nếu là đơn hàng Trả góp/Trả chậm)
+    const revenueQD = revenue * hesoDT + (isTraCham ? revenue * 0.3 : 0);
+    
+    // 2. Hệ số quy đổi số lượng (Quantity Multiplier): Áp dụng theo mã sản phẩm hoặc tên sản phẩm
+    // (VieON, Phần mềm bản quyền, Bảo hiểm...). Tuyệt đối không nhân vào doanh thu.
+    const qtyMultiplier = getProductQuantityMultiplier(productCode, productName, productConfig);
+    const weightedQuantity = quantity * qtyMultiplier;
+    
+    return { revenue, revenueQD, quantity, weightedQuantity, isTraCham };
+}
+
+/**
+ * Kiểm tra 1 giá trị catch (error: unknown) có phải AbortError không (VD: user huỷ
+ * navigator.share()). Không dùng `instanceof Error` vì DOMException (loại lỗi thật của
+ * navigator.share()/AbortController) không kế thừa từ Error trong TS lib.dom.
+ */
+export function isAbortError(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && (error as { name?: unknown }).name === 'AbortError';
+}
+
+/**
+ * Safari iOS chỉ cho `navigator.share()` trong ~1s sau thao tác chạm. Dựng ảnh lâu hơn thế thì bị
+ * từ chối với `NotAllowedError` — KHÔNG phải người dùng huỷ, mà là hết "hiệu lực chạm".
+ */
+export function isNotAllowedError(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && (error as { name?: unknown }).name === 'NotAllowedError';
+}
+
+/** Thiết bị di động/cảm ứng, kể cả iPad đời mới (iPadOS 13+ tự báo UA là "Macintosh"). */
+export function isMobileLikeDevice(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(ua)) return true;
+    if (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1) return true;
+    return typeof window !== 'undefined' && window.innerWidth < 768;
+}
+
+/** Trần diện tích canvas của Safari iOS là 16.777.216 px (4096²); để dư một chút cho an toàn. */
+export const IOS_MAX_CANVAS_AREA = 16_000_000;
+
+/**
+ * Giảm `pixelRatio` để canvas `width×height×ratio²` không vượt `maxArea`. Vượt trần, Safari iOS
+ * không báo lỗi mà trả ảnh TRẮNG hoặc blob rỗng. Cho phép < 1 (ảnh hơi mờ vẫn hơn ảnh trắng).
+ */
+export function capPixelRatioForArea(width: number, height: number, ratio: number, maxArea = IOS_MAX_CANVAS_AREA): number {
+    if (!(width > 0) || !(height > 0) || !(ratio > 0)) return ratio;
+    const maxRatio = Math.sqrt(maxArea / (width * height));
+    return Math.min(ratio, Math.floor(maxRatio * 1000) / 1000);
+}
+
+
+/** Hạn chờ Worker đọc 1 tệp Excel: 60s + 3s mỗi MB (100MB → 6 phút), gia hạn mỗi lần có tiến độ.
+ *  Bước chậm nhất (XLSX.read) là một lời gọi đồng bộ không báo tiến độ được, nên hạn phải đủ cho
+ *  cả tệp lớn trên điện thoại yếu. */
+export function workerTimeoutMs(fileSizeBytes: number): number {
+    const mb = Math.max(0, fileSizeBytes) / (1024 * 1024);
+    return 60_000 + Math.ceil(mb * 3_000);
+}

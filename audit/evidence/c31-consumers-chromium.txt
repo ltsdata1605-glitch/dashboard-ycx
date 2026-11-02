@@ -1,0 +1,16 @@
+[WebServer] (node:46108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/competition-switch-labels.spec.ts:3:3 › competition switch names and row bubbling 390 (1.5s)
+  ✓  2 [chromium] › tests/e2e/competition-switch-labels.spec.ts:3:3 › competition switch names and row bubbling 1366 (658ms)
+  ✓  3 [chromium] › tests/e2e/industry-switch-labels.spec.ts:3:3 › industry and subindustry labels toggle their rows once 390 (921ms)
+  ✓  4 [chromium] › tests/e2e/industry-switch-labels.spec.ts:3:3 › industry and subindustry labels toggle their rows once 1366 (870ms)
+  ✓  5 [chromium] › tests/e2e/industry-switch-labels.spec.ts:30:3 › industry mobile filter stays inside viewport and closes by keyboard 844 (1.3s)
+  ✓  6 [chromium] › tests/e2e/industry-switch-labels.spec.ts:30:3 › industry mobile filter stays inside viewport and closes by keyboard 568 (1.8s)
+  ✓  7 [chromium] › tests/e2e/industry-switch-labels.spec.ts:66:1 › industry tree expander has a name, expanded state and keyboard activation (580ms)
+  ✓  8 [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 390 (440ms)
+  ✓  9 [chromium] › tests/e2e/summary-switch-labels.spec.ts:3:3 › summary store switch has native label and toggles once 1366 (480ms)
+
+  9 passed (9.8s)

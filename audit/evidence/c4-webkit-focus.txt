@@ -1,0 +1,49 @@
+[WebServer] (node:47959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+  ✘  1 [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group (22.6s)
+
+
+  1) [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('#global-header-actions button').filter({ has: locator('svg[data-icon="font"]') }).first()
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeFocused" locator('#global-header-actions button').filter({ has: locator('svg[data-icon="font"]') }).first() with timeout 10000ms
+      - waiting for locator('#global-header-actions button').filter({ has: locator('svg[data-icon="font"]') }).first()
+        23 × locator resolved to <button title="Font hiện tại: Mặc định (UTM Avo)" class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed w-9 h-9 flex items-center justify-center text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">…</button>
+           - unexpected value "inactive"
+
+
+      62 |             if (await font.evaluate(el => el === document.activeElement)) break;
+      63 |         }
+    > 64 |         await expect(font).toBeFocused();
+         |                            ^
+      65 |         await expect(font).toHaveCSS('outline-style', 'solid');
+      66 |         await expect(font).toHaveCSS('outline-width', '2px');
+      67 |         await expect(font).toHaveCSS('outline-offset', '2px');
+        at /Users/ltson/dashboardycx/tests/e2e/navigation-material.spec.ts:64:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c4-webkit-focus/navigation-material-system-b8208-clipped-by-the-system-group-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c4-webkit-focus/navigation-material-system-b8208-clipped-by-the-system-group-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c4-webkit-focus/navigation-material-system-b8208-clipped-by-the-system-group-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c4-webkit-focus/navigation-material-system-b8208-clipped-by-the-system-group-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [webkit] › tests/e2e/navigation-material.spec.ts:56:5 › system group › keyboard focus ring is not clipped by the system group 

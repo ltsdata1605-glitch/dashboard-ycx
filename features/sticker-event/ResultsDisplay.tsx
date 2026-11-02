@@ -1,0 +1,352 @@
+
+import React, { useState, useEffect, memo } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { Product } from './types';
+import { Button } from '../../components/shared/ui/Button';
+import { Input } from '../../components/shared/ui/Input';
+import { EmptyState } from '../../components/shared/ui/EmptyState';
+
+interface ResultsDisplayProps {
+  results: Product[];
+  hasData: boolean;
+  highlightedMsp?: string | null;
+  onToggleSelect: (msp: string) => void;
+  onQuantityChange: (msp: string, delta: number) => void;
+  onSetQuantity: (msp: string, quantity: number) => void;
+  onPrintSingle: (product: Product) => void;
+  onDelete: (msp: string) => void;
+  isMobile: boolean;
+}
+
+import { formatCurrency, calculateDiscountPercent } from './utils/format';
+
+interface ProductCardProps {
+  result: Product;
+  isHighlighted: boolean;
+  onToggleSelect: (msp: string) => void;
+  onQuantityChange: (msp: string, delta: number) => void;
+  onSetQuantity: (msp: string, quantity: number) => void;
+  onPrintSingle: (product: Product) => void;
+  onDelete: (msp: string) => void;
+  isMobile: boolean;
+}
+
+const parsePrice = (priceStr: string): number => {
+  if (!priceStr) return 0;
+  return parseInt(priceStr.replace(/[^\d]/g, '')) || 0;
+};
+
+const ProductCard: React.FC<ProductCardProps> = memo(({ result, isHighlighted, onToggleSelect, onQuantityChange, onSetQuantity, onPrintSingle, onDelete, isMobile }) => {
+  const giaGocNum = parsePrice(result.giaGoc);
+  const giaGiamNum = parsePrice(result.giaGiam);
+  const discountPercent = calculateDiscountPercent(giaGocNum, giaGiamNum);
+  
+  return (
+  <div 
+    data-msp={result.msp}
+    className={`bg-white ${isMobile ? 'px-2.5 py-2 rounded-md gap-1.5' : 'px-3 py-2.5 rounded-md gap-3'} border transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center fade-in ${
+      isHighlighted 
+        ? 'animate-pulse-strong border-amber-500 border-2 ring-2 ring-amber-200' 
+        : result.selected 
+          ? 'border-sky-400 bg-sky-50/20 shadow-xs' 
+          : 'border-slate-200 hover:border-sky-300 hover:shadow-sm'
+    }`}
+  >
+    {/* Left/Top: Info */}
+    <div className="flex-1 min-w-0 w-full">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+            <span className="font-mono text-[11px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200/60">
+              {result.msp}
+            </span>
+            {result.selected && (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 sm:hidden">
+                Đã chọn ({result.quantity} tem)
+              </span>
+            )}
+          </div>
+          <h3 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 leading-snug" title={result.sanPham}>
+            {result.sanPham}
+          </h3>
+        </div>
+        
+        {/* Giá & Thưởng */}
+        <div className={`flex items-center justify-between sm:justify-end gap-3 ${isMobile ? 'mt-1 pt-1 border-t border-slate-100/80' : ''} w-full sm:w-auto`}>
+          {/* Giá + %giảm */}
+          <div className="text-left sm:text-right">
+            <div className="flex items-center gap-1.5 sm:justify-end">
+              <p className="text-sm sm:text-base font-extrabold text-rose-600 leading-none tabular-nums">{result.giaGiam}</p>
+              {discountPercent > 0 && (
+                <span className="text-[11px] font-black text-white bg-rose-500 px-1.5 py-0.5 rounded leading-none tabular-nums shadow-xs">
+                  -{discountPercent}%
+                </span>
+              )}
+            </div>
+            {result.giaGoc && (
+              <p className="text-[11px] text-slate-400 line-through tabular-nums mt-0.5">{result.giaGoc}</p>
+            )}
+          </div>
+
+          {/* Thưởng */}
+          <div className="text-right bg-slate-50/80 px-2 py-1 rounded-control border border-slate-100">
+            <p className="text-xs sm:text-sm font-bold text-sky-600 leading-none tabular-nums">
+              {formatCurrency(result.tongThuong)}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              <span className="text-emerald-600 tabular-nums">ERP: {formatCurrency(result.thuongERP)}</span>
+              <span className="mx-0.5">|</span>
+              <span className="text-rose-500 tabular-nums">Nóng: {formatCurrency(result.thuongNong)}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Promotion */}
+      {result.khuyenMai && result.khuyenMai.trim() && (
+        <div className="flex items-center gap-1.5 mt-1.5 bg-amber-50/60 p-1 rounded-md border border-amber-100">
+          <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100/80 border border-amber-200 px-1.5 py-0.5 rounded">KM</span>
+          <p className="text-[11px] font-medium text-slate-700 line-clamp-1" title={result.khuyenMai}>
+            {result.khuyenMai}
+          </p>
+        </div>
+      )}
+    </div>
+    
+    {/* Right/Bottom: Controls */}
+    <div className={`flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto border-t sm:border-t-0 border-slate-100 ${isMobile ? 'pt-2' : ''} sm:pl-3 sm:border-l hide-on-export`}>
+        {/* Checkbox & Stepper */}
+        <div className="flex items-center gap-2">
+             <Button
+                variant="ghost" size="icon-xs"
+                onClick={() => onToggleSelect(result.msp)}
+                title={result.selected ? "Bỏ chọn" : "Chọn in"}
+                className="text-slate-500 hover:text-sky-600 active:scale-95"
+            >
+                {result.selected ? <AppIcon name="checkboxOn" size="state" className="text-sky-600" /> : <AppIcon name="checkboxOff" size="state" />}
+            </Button>
+
+            <div className="flex items-center bg-slate-100/90 rounded-popup p-0.5 border border-slate-200">
+                <Button
+                    variant="ghost"
+                    onClick={() => onQuantityChange(result.msp, -1)}
+                    disabled={result.quantity <= 0}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors active:scale-90"
+                    title="Giảm số lượng"
+                >
+                    <AppIcon name="removeCircle" size="lg" />
+                </Button>
+                <Input
+                    type="number" inputMode="decimal"
+                    fullWidth={false}
+                    aria-label={`Số lượng tem ${result.msp}`}
+                    value={result.quantity}
+                    onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) onSetQuantity(result.msp, val);
+                        else if (e.target.value === '') onSetQuantity(result.msp, 1);
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    className="w-10 h-auto max-sm:min-h-0 pointer-coarse:min-h-0 p-0 text-center font-black text-sm sm:text-base text-slate-800 bg-transparent border-0 rounded-none focus-visible:ring-0 tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <Button
+                    variant="ghost" size="icon"
+                    onClick={() => onQuantityChange(result.msp, 1)}
+                    className="text-slate-500 hover:text-slate-800 active:scale-90"
+                    title="Tăng số lượng"
+                >
+                    <AppIcon name="addCircle" size="lg" />
+                </Button>
+            </div>
+        </div>
+
+        {/* Action buttons: Quick Print & Delete */}
+        <div className="flex items-center gap-1.5">
+            <Button
+                variant="outline"
+                size="none"
+                onClick={() => onPrintSingle(result)}
+                title="In ngay 1 sản phẩm này"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded bg-sky-50 hover:bg-sky-100 transition-colors active:scale-95"
+            >
+                <AppIcon name="print" size="sm" />
+                <span>In</span>
+            </Button>
+            
+            <Button
+                variant="ghost" size="icon"
+                onClick={() => onDelete(result.msp)}
+                title="Xóa sản phẩm"
+                className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 active:scale-90"
+            >
+                <AppIcon name="delete" size="md" />
+            </Button>
+        </div>
+    </div>
+  </div>
+  );
+});
+ProductCard.displayName = 'ProductCard';
+
+const Annotation: React.FC<{ number: number; className: string }> = ({ number, className }) => (
+    <div className={`absolute w-5 h-5 bg-sky-600 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-white shadow-sm ${className}`}>
+        {number}
+    </div>
+);
+
+const InstructionsPanel = () => (
+  <div className="text-left p-8 bg-white rounded-card shadow-xl border-2 border-sky-100 min-h-[400px] flex flex-col justify-center transition-all duration-300">
+    <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-sky-100 rounded-full">
+            <AppIcon name="info" size="state" className="text-sky-600" />
+        </div>
+        <div>
+            <h3 className="text-[25px] font-bold text-slate-900 leading-8">Hướng dẫn sử dụng Hệ thống In Sticker Event</h3>
+            <p className="text-slate-500">Làm theo các bước sau để bắt đầu sử dụng</p>
+        </div>
+    </div>
+
+    <div className="text-base text-slate-700 space-y-3 leading-relaxed">
+      <ol className="list-none space-y-2">
+          <li className="flex items-start"><span className="font-bold text-sky-600 mr-2 w-5 text-center">1.</span><span><strong>Truy cập:</strong> <code className="text-sky-700 font-semibold bg-sky-50 px-2 py-1 rounded-md">ERP &gt; In bảng giá</code></span></li>
+          <li className="flex items-start"><span className="font-bold text-sky-600 mr-2 w-5 text-center">2.</span><span><strong>Chọn Ngành hàng:</strong> <code className="text-sky-700 font-semibold bg-sky-50 px-2 py-1 rounded-md">Điện gia dụng, Dụng cụ nhà bếp,...</code></span></li>
+          <li className="flex items-start"><span className="font-bold text-sky-600 mr-2 w-5 text-center">3.</span><span><strong>Chọn Nhóm hàng:</strong> <code className="text-sky-700 font-semibold bg-sky-50 px-2 py-1 rounded-md">Tất cả</code></span></li>
+          <li className="flex items-start"><span className="font-bold text-sky-600 mr-2 w-5 text-center">4.</span><span><strong>Chọn Vị trí trưng bày:</strong> <code className="text-sky-700 font-semibold bg-sky-50 px-2 py-1 rounded-md">2 - Kệ trưng bày</code></span></li>
+          <li className="flex items-start"><span className="font-bold text-sky-600 mr-2 w-5 text-center">5.</span><span><strong>Chọn Mẫu in:</strong> <code className="text-sky-700 font-semibold bg-sky-50 px-2 py-1 rounded-md">81 - Bảng giá Gia Dụng - Phu Kiện rút gọn...</code></span></li>
+          <li className="flex items-start"><span className="font-bold text-sky-600 mr-2 w-5 text-center">6.</span><span><strong>Xuất file:</strong> Bấm nút <strong className="text-slate-900">"In"</strong>, sau đó chọn định dạng <code className="text-sky-700 font-semibold bg-sky-50 px-2 py-1 rounded-md">Excel Workbook Data - only (*.xlsx)</code>.</span></li>
+      </ol>
+    </div>
+    
+    <div className="mt-6 pt-5 border-t border-slate-200">
+         <h4 className="font-semibold text-[17px] text-slate-800 mb-2 leading-7">Lưu ý quan trọng</h4>
+         <ul className="list-disc list-outside space-y-2 pl-5 text-slate-600">
+            <li>Mỗi lần chỉ xuất được <strong>một ngành hàng</strong>. Để in nhiều ngành, bạn cần xuất nhiều file.</li>
+            <li>Công cụ cho phép <strong className="text-sky-700">tải lên nhiều file cùng lúc</strong> để gộp dữ liệu từ nhiều ngành hàng.</li>
+            <li>Sau khi có file, hãy sử dụng nút <strong className="text-emerald-600">"Tải lên"</strong> ở bảng điều khiển bên trái.</li>
+         </ul>
+    </div>
+
+    <div className="mt-6 pt-5 border-t border-slate-200">
+         <h4 className="font-semibold text-[17px] text-slate-800 mb-2 leading-7">Xem thử Sticker Demo</h4>
+         <p className="text-sm text-slate-600 mb-3">Công cụ có thể tạo ra nhiều loại sticker với kích thước và bố cục khác nhau.</p>
+         <div className="flex items-start gap-4 overflow-x-auto py-4 -mx-8 px-8 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            
+            {/* Demo 1: Annotated Sticker */}
+            <div className="relative flex-shrink-0 w-[280px] h-[170px]">
+                <div className="absolute top-2 left-2 w-64 h-40 bg-white border-2 border-black rounded-control p-2 flex flex-col shadow-sm">
+                    <div className="w-full h-full border-t-2 border-l-2 border-r-2 border-b-8 border-black p-1.5 flex justify-between">
+                        <div className="w-4">&nbsp;</div> {/* Ghost Bar */}
+                        <div className="flex-grow flex flex-col justify-around text-center relative">
+                            {/* Top right info */}
+                            <div className="absolute top-0 right-0 text-center z-10">
+                                <div className="w-10 h-10 bg-slate-200 p-0.5 border border-slate-400"><img src="https://api.qrserver.com/v1/create-qr-code/?size=40x40&data=123456789&bgcolor=ffffff" alt="QR Code"/></div>
+                                <p className="text-[7px] font-sans mt-0.5">21707 - 1.200</p>
+                            </div>
+                            {/* Main content */}
+                            <p className="text-sm font-bold leading-tight px-12">IPHONE 15 PRO MAX 256GB</p>
+                            <div>
+                                <p className="text-xs line-through">34.990.000</p>
+                                <p className="text-[34px] font-extrabold leading-10" style={{fontFamily: 'Oswald, sans-serif'}}>29.990</p>
+                            </div>
+                            <p className="text-xs">• PMH 500K</p>
+                        </div>
+                        <div className="w-4 flex justify-center items-end pb-1">
+                            <p className="text-[7px] [writing-mode:vertical-rl] text-slate-500 whitespace-nowrap">Ngày in: 14/08</p>
+                        </div>
+                    </div>
+                </div>
+                <Annotation number={1} className="top-0 right-14" />
+                <Annotation number={2} className="top-11 right-0" />
+                <Annotation number={3} className="top-1/2 -translate-y-1/2 left-12" />
+                <Annotation number={4} className="bottom-2 right-16" />
+            </div>
+
+            {/* Demo 2: Medium Sticker */}
+            <div className="flex-shrink-0 w-48 h-32 bg-white border-2 border-black rounded-control p-1.5 flex flex-col shadow-sm mt-2">
+                <div className="w-full h-full border-t border-l border-r border-b-4 border-black p-1.5 flex flex-col justify-around text-center">
+                    <p className="text-xs font-bold leading-tight">NỒI CƠM ĐIỆN TỬ SHARP</p>
+                    <div>
+                        <p className="text-[25px] font-extrabold leading-8" style={{fontFamily: 'Oswald, sans-serif'}}>1.490</p>
+                        <p className="text-sky-600 text-[9px] font-bold">Thưởng: 500</p>
+                    </div>
+                     <p className="text-[8px]">• Giảm ngay 100K</p>
+                </div>
+            </div>
+
+            {/* Demo 3: Bill Printer Sticker */}
+             <div className="flex-shrink-0 w-32 h-48 bg-white border-2 border-black rounded-control p-1.5 flex flex-col shadow-sm mt-2">
+                <div className="w-full h-full border-t border-l border-r border-b-8 border-black p-1.5 flex flex-col justify-around text-center">
+                    <p className="text-xs font-bold leading-tight">TAI NGHE BLUETOOTH SONY</p>
+                     <div>
+                        <p className="text-[25px] font-extrabold leading-8" style={{fontFamily: 'Oswald, sans-serif'}}>890</p>
+                    </div>
+                     <p className="text-[8px]">• Bảo hành 12 tháng</p>
+                </div>
+            </div>
+         </div>
+         <div className="mt-4 px-4 text-xs text-slate-600 grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2"><div className="w-4 h-4 shrink-0 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-[11px]">1</div><span>Mã QR của sản phẩm</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 shrink-0 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-[11px]">2</div><span>Tên người in & Tổng thưởng</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 shrink-0 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-[11px]">3</div><span>Tên, Giá & Khuyến mãi</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 shrink-0 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-[11px]">4</div><span>Ngày giờ in sticker</span></div>
+         </div>
+    </div>
+  </div>
+);
+
+
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, hasData, highlightedMsp, onToggleSelect, onQuantityChange, onSetQuantity, onPrintSingle, onDelete, isMobile }) => {
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [results]);
+
+  if (!hasData) {
+    return <InstructionsPanel />;
+  }
+
+  if (results.length > 0) {
+    const visibleResults = results.slice(0, visibleCount);
+    return (
+        <div className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-1.5'}`}>
+            {visibleResults.map((product) => (
+                <ProductCard 
+                    key={product.msp} 
+                    result={product} 
+                    isHighlighted={product.msp === highlightedMsp}
+                    onToggleSelect={onToggleSelect}
+                    onQuantityChange={onQuantityChange}
+                    onSetQuantity={onSetQuantity}
+                    onPrintSingle={onPrintSingle}
+                    onDelete={onDelete}
+                    isMobile={isMobile}
+                />
+            ))}
+            {results.length > visibleCount && (
+                <div className="flex justify-center py-4 hide-on-export">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setVisibleCount(prev => prev + 50)}
+                        className="px-6 py-2 text-sm font-semibold gap-2"
+                    >
+                        Hiển thị thêm (còn {results.length - visibleCount} sản phẩm)
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+  }
+  
+  return (
+      <div className="flex items-center justify-center bg-white rounded-none lg:rounded-card border-y lg:border border-slate-200 shadow-sm lg:hover:shadow-md transition-shadow min-h-[400px]">
+          <EmptyState
+              icon={<AppIcon name="search" size="hero" className="text-slate-400" />}
+              title="Sẵn sàng tìm kiếm"
+              description="Danh sách kết quả của bạn đang trống. Sử dụng thanh tìm kiếm hoặc các công cụ nhanh để thêm sản phẩm."
+          />
+      </div>
+  );
+};
+
+export default ResultsDisplay;

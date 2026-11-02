@@ -1,0 +1,12 @@
+[WebServer] (node:290) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/userscript-probe-boundary.spec.ts:38:1 › unrelated same-origin frame cannot claim an installed version (2.6s)
+  ✓  2 [webkit] › tests/e2e/userscript-probe-boundary.spec.ts:50:1 › opaque-origin message from the owned frame is rejected (652ms)
+  ✓  3 [webkit] › tests/e2e/userscript-probe-boundary.spec.ts:68:1 › current probe after reload still reports version once (647ms)
+  ✓  4 [webkit] › tests/e2e/userscript-probe-boundary.spec.ts:81:1 › probe accepts parent ping and rejects a sibling ping (657ms)
+  ✓  5 [webkit] › tests/e2e/userscript-probe-boundary.spec.ts:113:1 › userscript pong boundary still reaches the watcher through the real probe (620ms)
+
+  5 passed (8.3s)

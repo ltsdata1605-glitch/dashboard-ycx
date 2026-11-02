@@ -1,0 +1,642 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c19-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c19-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c19-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "liff-dung-coupon-khong-gui-tin.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c19-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "liff-dung-coupon-khong-gui-tin.spec.ts",
+      "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "dùng coupon: ghi nhận đã dùng trên máy chủ, KHÔNG gửi tin vào nhóm, tự đóng",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1425,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:03:23.752Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-f7d5482d508dc493571a",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 32,
+          "column": 1
+        },
+        {
+          "title": "máy chủ chậm > 4 giây: vẫn đóng, KHÔNG gửi tin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5349,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:03:26.125Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-e5e459ac2dab53ee0718",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "mã đã có người dùng: báo rõ, KHÔNG gửi tin",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 446,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:03:31.519Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-2d85220bfe68edc48f36",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 47,
+          "column": 1
+        },
+        {
+          "title": "API từ chối: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10436,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                      "column": 51,
+                      "line": 64
+                    },
+                    "snippet": "  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                        "column": 51,
+                        "line": 64
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n\n  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:03:31.983Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-5b0c9-u-cờ-thành-công-cho-thử-lại-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-5b0c9-u-cờ-thành-công-cho-thử-lại-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-5b0c9-u-cờ-thành-công-cho-thử-lại-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                    "column": 51,
+                    "line": 64
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-22b23f7b7913de8d7bab",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 62,
+          "column": 5
+        },
+        {
+          "title": "vé không hợp lệ: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10645,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                      "column": 51,
+                      "line": 64
+                    },
+                    "snippet": "  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                        "column": 51,
+                        "line": 64
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n\n  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:03:43.781Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-0ece4-u-cờ-thành-công-cho-thử-lại-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-0ece4-u-cờ-thành-công-cho-thử-lại-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-0ece4-u-cờ-thành-công-cho-thử-lại-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                    "column": 51,
+                    "line": 64
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-d7d3e59147fef29986c9",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 62,
+          "column": 5
+        },
+        {
+          "title": "mất mạng: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10567,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                      "column": 51,
+                      "line": 64
+                    },
+                    "snippet": "  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                        "column": 51,
+                        "line": 64
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    24 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n\n  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:03:56.567Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-79ba1-u-cờ-thành-công-cho-thử-lại-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-79ba1-u-cờ-thành-công-cho-thử-lại-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-79ba1-u-cờ-thành-công-cho-thử-lại-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                    "column": 51,
+                    "line": 64
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-8ebe7da424fa447c1ef1",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 62,
+          "column": 5
+        },
+        {
+          "title": "không có coupon khớp: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10708,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    23 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    23 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                      "column": 51,
+                      "line": 64
+                    },
+                    "snippet": "  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                        "column": 51,
+                        "line": 64
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#statusDesc')\nExpected substring: \u001b[32m\"Chưa xác nhận được\"\u001b[39m\nReceived string:    \u001b[31m\"Đã ghi nhận sử dụng.\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#statusDesc') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('#statusDesc')\u001b[22m\n\u001b[2m    23 × locator resolved to <div class=\"desc\" id=\"statusDesc\">Đã ghi nhận sử dụng.</div>\u001b[22m\n\u001b[2m       - unexpected value \"Đã ghi nhận sử dụng.\"\u001b[22m\n\n\n  62 |     test(`${scenario.name}: không báo đã ghi nhận hoặc lưu cờ thành công; cho thử lại`, async ({ page }) => {\n  63 |         await mo(page, scenario.response, 0, scenario.status);\n> 64 |         await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n     |                                                   ^\n  65 |         expect(await sentFlag(page)).toBeNull();\n  66 |         expect(await soLanDong(page)).toBe(0);\n  67 |         expect(await soTinGui(page)).toBe(0);\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:64:51"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:04:08.844Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-7dd46-u-cờ-thành-công-cho-thử-lại-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-7dd46-u-cờ-thành-công-cho-thử-lại-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-7dd46-u-cờ-thành-công-cho-thử-lại-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                    "column": 51,
+                    "line": 64
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-7346d43d7dfb57897d81",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 62,
+          "column": 5
+        },
+        {
+          "title": "thử lại sau lỗi: chỉ lưu cờ sau phản hồi ghi nhận thành công, không gửi tin",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10543,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: 'Thử ghi nhận lại' })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: 'Thử ghi nhận lại' }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Thử ghi nhận lại' })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: 'Thử ghi nhận lại' })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: 'Thử ghi nhận lại' }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Thử ghi nhận lại' })\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:74:74",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                      "column": 74,
+                      "line": 74
+                    },
+                    "snippet": "  72 | test('thử lại sau lỗi: chỉ lưu cờ sau phản hồi ghi nhận thành công, không gửi tin', async ({ page }) => {\n  73 |     await mo(page, { success: false, error: 'Tạm lỗi' });\n> 74 |     await expect(page.getByRole('button', { name: 'Thử ghi nhận lại' })).toBeVisible();\n     |                                                                          ^\n  75 |     expect(await sentFlag(page)).toBeNull();\n  76 |     await page.route('https://linebotwebhook-zrczpxylcq-as.a.run.app/**', r => r.fulfill({\n  77 |         contentType: 'application/json', body: JSON.stringify({ success: true, updatedCount: 1 }),"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                        "column": 74,
+                        "line": 74
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: 'Thử ghi nhận lại' })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: 'Thử ghi nhận lại' }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Thử ghi nhận lại' })\u001b[22m\n\n\n  72 | test('thử lại sau lỗi: chỉ lưu cờ sau phản hồi ghi nhận thành công, không gửi tin', async ({ page }) => {\n  73 |     await mo(page, { success: false, error: 'Tạm lỗi' });\n> 74 |     await expect(page.getByRole('button', { name: 'Thử ghi nhận lại' })).toBeVisible();\n     |                                                                          ^\n  75 |     expect(await sentFlag(page)).toBeNull();\n  76 |     await page.route('https://linebotwebhook-zrczpxylcq-as.a.run.app/**', r => r.fulfill({\n  77 |         contentType: 'application/json', body: JSON.stringify({ success: true, updatedCount: 1 }),\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:74:74"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:04:21.518Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-2eb6a-ận-thành-công-không-gửi-tin-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-2eb6a-ận-thành-công-không-gửi-tin-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-2eb6a-ận-thành-công-không-gửi-tin-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                    "column": 74,
+                    "line": 74
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-ed547ca69d64b25a1d7b",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 72,
+          "column": 1
+        },
+        {
+          "title": "phản hồi chậm: lúc đóng chưa xác nhận; phản hồi muộn mới lưu cờ",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4965,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m\"true\"\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m\"true\"\u001b[39m\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:88:34",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                      "column": 34,
+                      "line": 88
+                    },
+                    "snippet": "  86 |     await mo(page, { success: true, updatedCount: 1 }, 6000);\n  87 |     await expect.poll(() => soLanDong(page)).toBeGreaterThan(0);\n> 88 |     expect(await sentFlag(page)).toBeNull();\n     |                                  ^\n  89 |     await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n  90 |     await expect.poll(() => sentFlag(page), { timeout: 5000 }).toBe('true');\n  91 |     expect(await soTinGui(page)).toBe(0);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                        "column": 34,
+                        "line": 88
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m\"true\"\u001b[39m\n\n  86 |     await mo(page, { success: true, updatedCount: 1 }, 6000);\n  87 |     await expect.poll(() => soLanDong(page)).toBeGreaterThan(0);\n> 88 |     expect(await sentFlag(page)).toBeNull();\n     |                                  ^\n  89 |     await expect(page.locator('#statusDesc')).toContainText('Chưa xác nhận được');\n  90 |     await expect.poll(() => sentFlag(page), { timeout: 5000 }).toBe('true');\n  91 |     expect(await soTinGui(page)).toBe(0);\n    at /Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:88:34"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T06:04:33.480Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-63374-ận-phản-hồi-muộn-mới-lưu-cờ-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-63374-ận-phản-hồi-muộn-mới-lưu-cờ-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c19-before/liff-dung-coupon-khong-gui-63374-ận-phản-hồi-muộn-mới-lưu-cờ-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts",
+                    "column": 34,
+                    "line": 88
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e273a52d3670ad9ca69a-29eb844874dfa6e3656e",
+          "file": "liff-dung-coupon-khong-gui-tin.spec.ts",
+          "line": 85,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T06:03:19.013Z",
+    "duration": 80307.151,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

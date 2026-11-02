@@ -1,0 +1,16 @@
+[WebServer] (node:23036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+DROPDOWN_CLIPPING {"hits":[true,true,true,true],"top":304.875,"bottom":530.875,"ancestors":[{"tag":"DIV","classes":"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 overflow-hidden rounded-none lg:rounded-card shadow-sm","overflowX":"hidden","overflowY":"hidden","transform":"none","top":137.5,"bottom":506.625},{"tag":"BODY","classes":"bg-slate-50 dark:bg-slate-950 transition-colors duration-500 relative min-h-dvh antialiased text-slate-900 dark:text-slate-100 overflow-x-hidden","overflowX":"hidden","overflowY":"auto","transform":"none","top":0,"bottom":868}]}
+(node:23054) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/bi-bonus-compare.spec.ts:97:5 › Report BI › Thưởng — menu chế độ xem + So sánh cùng kỳ › bấm nút chế độ xem mở MENU liệt kê đủ 4 chế độ, mục đang chọn được tô (12.6s)
+HEADER NHÓM: ["NHÂN VIÊN","ERP","T.NÓNG","TỔNG"]
+CỘT PHỤ: ["H.TẠI","CK","+/-","H.TẠI","CK","+/-","H.TẠI","CK","+/-","%"]
+DÒNG: ["#1 111395 - C.Tâm 9.745 8.000 +1.745 10.199 9.000 +1.199 19.944 17.000 +2.944 +17%","#2 17952 - M.Hương 8.000 9.636 −1.636 7.000 10.156 −3.156 15.000 19.792 −4.792 −24%","#3 107617 - A.Nhân 9.548 - — 9.485 - — 19.033 - — —"]
+CHÂN BẢNG: TỔNG CỘNG 27.293 17.636 +109 26.684 19.156 −1.957 53.977 36.792 −1.848 −5%
+  ✓  2 [chromium] › tests/e2e/bi-bonus-compare.spec.ts:135:5 › Report BI › Thưởng — menu chế độ xem + So sánh cùng kỳ › chế độ So sánh cùng kỳ: tiêu đề, 3 nhóm cột, Δ đúng dấu, thiếu kỳ hiện "—" (6.9s)
+
+  2 passed (25.9s)

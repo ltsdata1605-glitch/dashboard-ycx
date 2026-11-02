@@ -1,0 +1,483 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { useDashboardContext } from '../../contexts/DashboardContext';
+import { Modal } from '../shared/ui/Modal';
+import StringMultiSelect from '../shared/ui/StringMultiSelect';
+import { CrossSellingConfig, CrossSellingDynamicSection, CrossSellingDynamicRow, CrossSellingDynamicColumn, CrossSellingColumnType } from '../../types';
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog';
+import { Button } from '../shared/ui/Button';
+import { Input } from '../shared/ui/Input';
+import { Select } from '../shared/ui/Select';
+
+interface CrossSellingBuilderModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
+
+const INITIAL_CONFIG: CrossSellingConfig = {
+    columns: [],
+    sections: []
+};
+
+export const SAMPLE_CONFIG: CrossSellingConfig = {
+    columns: [
+        { id: "c_target", name: "TỈ LỆ T.B VÙNG", type: "target" },
+        { id: "c_ms", name: "SỐ LƯỢNG MẪU SỐ", type: "data", dataType: "quantity", subgroupsNhomCha: ["164 - Điện Thoại", "164 - Điện Tử", "164 - Máy tính bảng", "164 - Laptop", "164 - Điện lạnh", "164 - Điện gia dụng"] },
+        { id: "c_kt", name: "SL BÁN KÈM", type: "data", dataType: "quantity", subgroupsNhomCha: [], subgroupsNhomCon: [] },
+        { id: "c_ratio", name: "TỈ LỆ SIÊU THỊ", type: "ratio", numeratorColId: "c_kt", denominatorColId: "c_ms", compareWithTarget: true },
+        { id: "c_dtqd", name: "D.THU QUY ĐỔI", type: "data", dataType: "revenueQD", subgroupsNhomCha: ["164 - Phụ Kiện", "164 - Đồ gia dụng", "164 - Đồng Hồ", "164 - Dịch Vụ Mở Rộng", "164 - VAS"] }
+    ],
+    sections: [
+        {
+            id: "s_ict",
+            header: "ICT : Điện Thoại + Tablet + Laptop",
+            rows: [
+                { id: "r1", name: "PSDP", targetValue: 39.9, subgroupsNhomCon: ["4363 - Cáp Sạc Phụ Kiện"] },
+                { id: "r2", name: "Camera", targetValue: 25.6, subgroupsNhomCon: ["4383 - Camera IT"] },
+                { id: "r3", name: "Tai Nghe", targetValue: 20.9, subgroupsNhomCon: ["4367 - Tai Nghe"] },
+                { id: "r4", name: "Cáp Sạc", targetValue: 56.0, subgroupsNhomCon: ["4363 - Cáp sạc"] },
+                { id: "r5", name: "Loa Di Động", targetValue: 2.9, subgroupsNhomCon: ["4366 - Loa Di Động"] },
+                { id: "r6", name: "Sim", targetValue: 27.0, subgroupsNhomCon: ["4471 - Sim cước"] },
+                { id: "r7", name: "Ứng dụng - VAS", targetValue: 36.4, subgroupsNhomCon: ["4506 - Thu Hộ Trả Góp"] },
+                { id: "r8", name: "Đồng Hồ", targetValue: 20.1, subgroupsNhomCon: ["4371 - Đồng hồ thông minh", "4376 - Đồng hồ thời trang"] }
+            ]
+        },
+        {
+            id: "s_ce",
+            header: "C.E : Điện Tử + Điện Lạnh",
+            rows: [
+                { id: "r9", name: "Máy Lọc Nước", targetValue: 12.3, subgroupsNhomCon: ["4429 - Máy lọc nước"] },
+                { id: "r10", name: "Nồi Cơm", targetValue: 36.4, subgroupsNhomCon: ["4428 - Nồi cơm"] },
+                { id: "r11", name: "Nồi Chiên", targetValue: 8.8, subgroupsNhomCon: ["4428 - Nồi chiên"] },
+                { id: "r12", name: "Bếp Gas", targetValue: 15.8, subgroupsNhomCon: ["4426 - Bếp Gas"] },
+                { id: "r13", name: "Bếp Điện", targetValue: 14.3, subgroupsNhomCon: ["4426 - Bếp Điện", "4426 - Bếp Hồng Ngoại", "4426 - Bếp Từ"] },
+                { id: "r14", name: "Quạt Điều Hòa", targetValue: 8.0, subgroupsNhomCon: ["4427 - Quạt Điều Hòa"] },
+                { id: "r15", name: "Quạt Gió", targetValue: 23.3, subgroupsNhomCon: ["4427 - Quạt", "4427 - Quạt sạc"] }
+            ]
+        },
+        {
+            id: "s_bh",
+            header: "Bảo Hiểm",
+            rows: [
+                { id: "r16", name: "Bảo Hiểm", targetValue: 4.5, subgroupsNhomCon: ["4479 - Dịch Vụ Bảo Hiểm", "4499 - Thu Hộ Phí Bảo Hiểm"] }
+            ]
+        }
+    ]
+};
+
+const CrossSellingBuilderModal: React.FC<CrossSellingBuilderModalProps> = ({ isOpen, onClose }) => {
+    const { crossSellingConfig, updateCrossSellingConfig, productConfig, uniqueFilterOptions } = useDashboardContext();
+    const [config, setConfig] = useState<CrossSellingConfig>(INITIAL_CONFIG);
+    const [showSampleConfirm, setShowSampleConfirm] = useState(false);
+
+    const nganhHangOptions = useMemo(() => {
+        if (!productConfig?.subgroups) return [];
+        return Object.keys(productConfig.subgroups)
+            .filter(name => name && name !== 'Không tính doanh thu')
+            .sort();
+    }, [productConfig]);
+
+    const nhomHangOptions = useMemo(() => {
+        if (!productConfig?.subgroups) return [];
+        const opts = new Set<string>();
+        Object.entries(productConfig.subgroups).forEach(([parentKey, parent]) => {
+            if (parentKey !== 'Không tính doanh thu') {
+                Object.keys(parent).forEach(subgroup => {
+                    if (subgroup && subgroup.trim() !== '' && subgroup !== 'Không tính doanh thu') {
+                        opts.add(subgroup);
+                    }
+                });
+            }
+        });
+        return Array.from(opts).sort();
+    }, [productConfig]);
+
+    useEffect(() => {
+        if (isOpen) {
+            // Migration legacy guard
+            if (crossSellingConfig && Array.isArray(crossSellingConfig.columns) && crossSellingConfig.columns.length > 0 && typeof crossSellingConfig.columns[0] === 'string') {
+                console.warn("Legacy Config detected! Wiping out old configuration.");
+                setConfig(SAMPLE_CONFIG);
+            } else if (crossSellingConfig && (crossSellingConfig.columns.length > 0 || crossSellingConfig.sections.length > 0)) {
+                setConfig(crossSellingConfig);
+            } else {
+                setConfig(SAMPLE_CONFIG); // Automatically pour data for first time use
+            }
+        }
+    }, [isOpen, crossSellingConfig]);
+
+    const handleSave = () => {
+        updateCrossSellingConfig(config);
+        onClose();
+    };
+
+    const loadSampleConfig = () => {
+        setShowSampleConfirm(true);
+    };
+
+    const confirmLoadSample = () => {
+        setConfig(SAMPLE_CONFIG);
+        setShowSampleConfirm(false);
+    };
+
+    // --- Column Actions ---
+    const addColumn = (type: CrossSellingColumnType) => {
+        setConfig(prev => ({
+            ...prev,
+            columns: [
+                ...prev.columns,
+                { id: generateId(), name: type === 'target' ? 'Cột Mục Tiêu Mới' : type === 'data' ? 'Cột Dữ Liệu Mới' : 'Cột Tỉ Lệ Mới', type, dataType: type === 'data' ? 'quantity' : undefined }
+            ]
+        }));
+    };
+
+    const updateColumn = <K extends keyof CrossSellingDynamicColumn>(colId: string, field: K, value: CrossSellingDynamicColumn[K]) => {
+        setConfig(prev => ({
+            ...prev,
+            columns: prev.columns.map(c => c.id === colId ? { ...c, [field]: value } : c)
+        }));
+    };
+
+    const removeColumn = (colId: string) => {
+        setConfig(prev => ({
+            ...prev,
+            columns: prev.columns.filter(c => c.id !== colId)
+        }));
+    };
+
+    // --- Section & Row Actions ---
+    const addSection = () => {
+        setConfig(prev => ({
+            ...prev,
+            sections: [
+                ...prev.sections,
+                { id: generateId(), header: 'Nhóm Mới', rows: [] }
+            ]
+        }));
+    };
+
+    const updateSectionHeader = (secId: string, val: string) => {
+        setConfig(prev => ({
+            ...prev,
+            sections: prev.sections.map(s => s.id === secId ? { ...s, header: val } : s)
+        }));
+    };
+
+    const removeSection = (secId: string) => {
+        setConfig(prev => ({
+            ...prev,
+            sections: prev.sections.filter(s => s.id !== secId)
+        }));
+    };
+
+    const addRow = (secId: string) => {
+        setConfig(prev => ({
+            ...prev,
+            sections: prev.sections.map(s => {
+                if (s.id === secId) {
+                    return {
+                        ...s,
+                        rows: [...s.rows, { id: generateId(), name: 'Dòng Mới' }]
+                    };
+                }
+                return s;
+            })
+        }));
+    };
+
+    const updateRow = <K extends keyof CrossSellingDynamicRow>(secId: string, rowId: string, field: K, value: CrossSellingDynamicRow[K]) => {
+        setConfig(prev => ({
+            ...prev,
+            sections: prev.sections.map(s => {
+                if (s.id === secId) {
+                    return {
+                        ...s,
+                        rows: s.rows.map(r => r.id === rowId ? { ...r, [field]: value } : r)
+                    };
+                }
+                return s;
+            })
+        }));
+    };
+
+    const removeRow = (secId: string, rowId: string) => {
+        setConfig(prev => ({
+            ...prev,
+            sections: prev.sections.map(s => {
+                if (s.id === secId) {
+                    return { ...s, rows: s.rows.filter(r => r.id !== rowId) };
+                }
+                return s;
+            })
+        }));
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Cấu Hình Bảng Động"
+            subTitle="Tuỳ biến cột/dòng"
+            titleColorClass="text-sky-700"
+            maxWidth="xl"
+            footer={
+                <div className="flex items-center justify-end gap-2 sm:gap-3">
+                    <Button onClick={onClose} variant="secondary">
+                        Hủy bỏ
+                    </Button>
+                    <Button onClick={handleSave} variant="primary" leftIcon={<AppIcon name="save" size="md" />}>
+                        Lưu cấu hình
+                    </Button>
+                </div>
+            }
+        >
+            <div className="modal-bleed">
+                <div className="flex flex-wrap justify-between items-center p-2.5 sm:p-4 bg-slate-100/50 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-700 gap-2">
+                    <Button
+                        variant="tinted" size="xs"
+                        onClick={loadSampleConfig}
+                        className="gap-1.5 sm:gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    >
+                        <AppIcon name="template" size="sm" /> Nạp Cấu Hình Mẫu
+                    </Button>
+                    <div className="text-[11px] sm:text-[11px] text-slate-400 italic">Tính năng thiết lập Cấu hình mẫu tự động dựa vào ảnh mẫu</div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 sm:p-5 custom-scrollbar space-y-5 sm:space-y-8">
+                    {/* COLUMNS BUILDER */}
+                    <div className="bg-white dark:bg-slate-800 rounded-popup border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                        <div className="bg-slate-100 dark:bg-slate-800/80 px-3 sm:px-4 py-2 sm:py-3 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-2">
+                            <h3 className="font-bold text-xs sm:text-base text-slate-800 dark:text-slate-200 flex items-center gap-1.5 sm:gap-2">
+                                <AppIcon name="columns" size="md" className="text-sky-700 hidden sm:block" />
+                                <AppIcon name="columns" size="sm" className="text-sky-700 sm:hidden" />
+                                Cấu Hình Cột
+                            </h3>
+                            <div className="flex gap-1.5 sm:gap-2">
+                                <Button variant="tinted" size="xs" onClick={() => addColumn('target')} className="sm:px-3 sm:py-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 sm:text-xs flex gap-1 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-200 dark:border-amber-800">
+                                    <AppIcon name="target" size="sm" /> Mục Tiêu
+                                </Button>
+                                <Button variant="tinted" size="xs" onClick={() => addColumn('data')} className="sm:px-3 sm:py-1.5 dark:bg-sky-900/30 dark:text-sky-400 sm:text-xs flex gap-1 dark:hover:bg-sky-900/50 dark:border-sky-800">
+                                    <AppIcon name="add" size="sm" /> Dữ Liệu
+                                </Button>
+                                <Button variant="tinted" size="xs" onClick={() => addColumn('ratio')} className="sm:px-3 sm:py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 sm:text-xs flex gap-1 hover:bg-rose-100 dark:hover:bg-rose-900/50 border-rose-200 dark:border-rose-800">
+                                    <AppIcon name="percent" size="sm" /> Tỉ Lệ
+                                </Button>
+                            </div>
+                        </div>
+                        
+                        <div className="p-2.5 sm:p-4 space-y-2.5 sm:space-y-3">
+                            {config.columns.map((col, cIdx) => (
+                                <div key={col.id} className="flex flex-col lg:flex-row gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-control border border-slate-100 dark:border-slate-700/50">
+                                    <div className={`w-12 flex items-center justify-center rounded font-black text-sm ${col.type === 'target' ? 'bg-amber-100 text-amber-700' : col.type === 'ratio' ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-sky-700'}`}>
+                                        Cột {cIdx + 1}
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <Input 
+                                                type="text" 
+                                                value={col.name} 
+                                                onChange={e => updateColumn(col.id, 'name', e.target.value)}
+                                                className="w-1/3 text-sm font-bold"
+                                                placeholder="Tên cột hiển thị..."
+                                            />
+                                            {col.type === 'data' && (
+                                                <div className="flex-1 flex gap-2 items-center">
+                                                    <Select
+                                                        value={col.dataType || 'quantity'}
+                                                        onChange={e => updateColumn(col.id, 'dataType', e.target.value as 'quantity' | 'revenueQD')}
+                                                        className="w-32 text-xs font-bold"
+                                                    >
+                                                        <option value="quantity">Số Lượng</option>
+                                                        <option value="revenueQD">Doanh Thu QĐ</option>
+                                                    </Select>
+                                                    <div className="flex-1 grid grid-cols-2 gap-2">
+                                                        <StringMultiSelect
+                                                            label="Lọc Ngành Hàng (Cha)"
+                                                            options={nganhHangOptions}
+                                                            selected={col.subgroupsNhomCha || []}
+                                                            onChange={selected => updateColumn(col.id, 'subgroupsNhomCha', selected)}
+                                                            variant="compact"
+                                                        />
+                                                        <StringMultiSelect
+                                                            label="Lọc Nhóm Hàng (Con)"
+                                                            options={nhomHangOptions}
+                                                            selected={col.subgroupsNhomCon || []}
+                                                            onChange={selected => updateColumn(col.id, 'subgroupsNhomCon', selected)}
+                                                            variant="compact"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {col.type === 'ratio' && (
+                                                <div className="flex-1 flex flex-col gap-1.5">
+                                                    <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-900/10 p-1 rounded-md border border-rose-100 dark:border-rose-900/50">
+                                                        <Select 
+                                                            value={col.numeratorColId || ''} 
+                                                            onChange={e => updateColumn(col.id, 'numeratorColId', e.target.value)}
+                                                            className="flex-1 text-xs font-bold h-8 border-transparent bg-transparent focus-visible:ring-0 shadow-none"
+                                                        >
+                                                            <option value="">-- Cột Tử Số (A) --</option>
+                                                            {config.columns.filter(c => c.id !== col.id && c.type === 'data').map(c => (
+                                                                <option key={c.id} value={c.id}>Cột: {c.name}</option>
+                                                            ))}
+                                                        </Select>
+                                                        <span className="font-black text-rose-500">/</span>
+                                                        <Select 
+                                                            value={col.denominatorColId || ''} 
+                                                            onChange={e => updateColumn(col.id, 'denominatorColId', e.target.value)}
+                                                            className="flex-1 text-xs font-bold h-8 border-transparent bg-transparent focus-visible:ring-0 shadow-none"
+                                                        >
+                                                            <option value="">-- Cột Mẫu Số (B) --</option>
+                                                            {config.columns.filter(c => c.id !== col.id && c.type === 'data').map(c => (
+                                                                <option key={c.id} value={c.id}>Cột: {c.name}</option>
+                                                            ))}
+                                                        </Select>
+                                                    </div>
+                                                    <label className="flex items-center gap-2 text-[11px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer w-max ml-1">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={col.compareWithTarget || false}
+                                                            onChange={e => updateColumn(col.id, 'compareWithTarget', e.target.checked)}
+                                                            className="rounded text-rose-500 focus:ring-rose-500 outline-none"
+                                                        />
+                                                        So sánh bôi xanh/đỏ với Target của Dòng?
+                                                    </label>
+                                                </div>
+                                            )}
+                                            {col.type === 'target' && (
+                                                <div className="flex-1 text-xs text-amber-700 dark:text-amber-500 font-medium italic">
+                                                    Cột này sẽ vạch ra mốc Chỉ Tiêu (Target %) dựa trên thiết lập từng Dòng bên dưới.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="icon" icon="delete" onClick={() => removeColumn(col.id)} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Xóa cột" aria-label="Xóa cột" />
+                                </div>
+                            ))}
+                            {config.columns.length === 0 && <div className="text-center p-6 text-sm text-slate-400">Chưa có cột nào được thiết lập. Hãy thêm cột Dữ liệu trước.</div>}
+                        </div>
+                    </div>
+
+                    {/* ROWS BUILDER */}
+                    <div className="bg-white dark:bg-slate-800 rounded-popup border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                        <div className="bg-slate-100 dark:bg-slate-800/80 px-3 sm:px-4 py-2 sm:py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                            <h3 className="font-bold text-xs sm:text-base text-slate-800 dark:text-slate-200 flex items-center gap-1.5 sm:gap-2">
+                                <AppIcon name="viewList" size="md" className="text-sky-700" />
+                                Cấu Hình Dòng
+                            </h3>
+                            <Button variant="tinted" size="xs" onClick={addSection} className="gap-1">
+                                <AppIcon name="add" size="sm" /> Thêm Nhóm
+                            </Button>
+                        </div>
+                        
+                        <div className="p-2.5 sm:p-4 space-y-4 sm:space-y-6">
+                            {config.sections.map((section, sIdx) => (
+                                <div key={section.id} className="relative bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-popup p-4 transition-all focus-within:border-sky-400 dark:focus-within:border-sky-500">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="h-8 w-8 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 flex items-center justify-center font-black">
+                                            {sIdx + 1}
+                                        </div>
+                                        <div className="flex-1 flex gap-2">
+                                            <Input 
+                                                type="text" 
+                                                value={section.header} 
+                                                onChange={e => updateSectionHeader(section.id, e.target.value)}
+                                                className="w-full sm:w-1/2 text-sm font-black uppercase text-slate-800 dark:text-slate-100"
+                                                placeholder="Tên Nhóm Dòng (Header)..."
+                                            />
+                                        </div>
+                                        <Button variant="ghost" size="icon" icon="delete" onClick={() => removeSection(section.id)} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Xóa nhóm" aria-label="Xóa nhóm" />
+                                    </div>
+
+                                    {/* Rows Wrapper */}
+                                    <div className="space-y-3 pl-2 sm:pl-10">
+                                        {section.rows.map((row, rIdx) => (
+                                            <div key={row.id} className="flex flex-col lg:flex-row gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-control border border-slate-100 dark:border-slate-700/50">
+                                                <div className="flex-1 space-y-2">
+                                                    <Input 
+                                                        type="text" 
+                                                        value={row.name} 
+                                                        onChange={e => updateRow(section.id, row.id, 'name', e.target.value)}
+                                                        className="w-full text-xs font-bold"
+                                                        placeholder="Tên dòng hiển thị..."
+                                                    />
+                                                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+                                                        <StringMultiSelect
+                                                            label="Lọc Ngành Hàng"
+                                                            options={nganhHangOptions}
+                                                            selected={row.subgroupsNhomCha || []}
+                                                            onChange={selected => updateRow(section.id, row.id, 'subgroupsNhomCha', selected)}
+                                                            variant="compact"
+                                                        />
+                                                        <StringMultiSelect
+                                                            label="Lọc Nhóm Hàng"
+                                                            options={nhomHangOptions}
+                                                            selected={row.subgroupsNhomCon || []}
+                                                            onChange={selected => updateRow(section.id, row.id, 'subgroupsNhomCon', selected)}
+                                                            variant="compact"
+                                                        />
+                                                        <StringMultiSelect
+                                                            label="Hãng Sản Xuất"
+                                                            options={uniqueFilterOptions?.hangSX || []}
+                                                            selected={row.manufacturers || []}
+                                                            onChange={selected => updateRow(section.id, row.id, 'manufacturers', selected)}
+                                                            variant="compact"
+                                                        />
+                                                        <Input 
+                                                            type="text" 
+                                                            value={row.keywords || ''} 
+                                                            onChange={e => updateRow(section.id, row.id, 'keywords', e.target.value)}
+                                                            className="w-full text-[11px]"
+                                                            placeholder="Mã SP (phẩy để tách)"
+                                                        />
+                                                        <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded p-1 px-1.5 focus-within:ring-1 focus-within:ring-amber-500">
+                                                            <div className="text-[11px] font-black text-amber-700 dark:text-amber-500 uppercase leading-none tracking-widerer w-8 shrink-0">
+                                                                Mục<br/>Tiêu
+                                                            </div>
+                                                            <Input 
+                                                                type="number" inputMode="decimal" 
+                                                                value={row.targetValue === undefined ? '' : row.targetValue} 
+                                                                onChange={e => updateRow(section.id, row.id, 'targetValue', e.target.value ? Number(e.target.value) : undefined)}
+                                                                className="w-full h-8 text-sm font-black text-amber-700 dark:text-amber-400 border-none bg-transparent shadow-none focus-visible:ring-0 text-right pr-1"
+                                                                placeholder="%"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button variant="ghost" size="icon" icon="delete" onClick={() => removeRow(section.id, row.id)} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 shrink-0" title="Xóa dòng" aria-label="Xóa dòng" />
+                                            </div>
+                                        ))}
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => addRow(section.id)}
+                                            icon="add"
+                                            className="w-full py-2 border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-sky-700 dark:hover:text-sky-400"
+                                        >
+                                            Thêm dòng
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                            {config.sections.length === 0 && <div className="text-center p-6 text-sm text-slate-400">Chưa có Header và Dòng nào. Hãy bấm "Thêm Nhóm & Header"</div>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <ConfirmDialog
+                isOpen={showSampleConfirm}
+                onClose={() => setShowSampleConfirm(false)}
+                onConfirm={confirmLoadSample}
+                title="Nạp cấu hình mẫu?"
+                message="Thao tác này sẽ ghi đè toàn bộ cấu hình hiện tại bằng Cấu hình mẫu. Bạn có chắc chắn không?"
+                confirmText="Xác nhận"
+                variant="warning"
+            />
+        </Modal>
+    );
+};
+
+export default CrossSellingBuilderModal;

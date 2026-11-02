@@ -1,0 +1,1465 @@
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../services/firebase';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { Input } from '../shared/ui/Input';
+import { Select } from '../shared/ui/Select';
+import { Button } from '../shared/ui/Button';
+import { Modal, useIsSheetWidth } from '../shared/ui/Modal';
+import { Tabs } from '../shared/ui/Tabs';
+import { Checkbox } from '../shared/ui/Checkbox';
+import { EmptyState } from '../shared/ui/EmptyState';
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog';
+import { toast } from '../shared/ui/toast';
+import { adminUpdateUser, deleteExpiredUsers, listManagedUsers, AdminRole, AdminStatus, ManagedUserDoc } from '../../services/adminUserService';
+import {
+    getPendingApprovalsSnapshot,
+    isPendingApprovalsLoaded,
+    refreshPendingApprovals,
+} from '../../services/pendingApprovalsStore';
+import { usePendingApprovals } from '../../hooks/usePendingApprovalCount';
+import { getManagedUsers, hasFreshManagedUsers } from '../../services/managedUsersCache';
+import { getErrorMessage, getErrorCode, formatCleanDisplayName, getLocalDateString } from '../../utils/dataUtils';
+import { ProductConfigManagerTab } from '../../features/product-config';
+import { ApprovalSettingsTab } from './settings/ApprovalSettingsTab';
+import { MenuConfigTab } from './settings/MenuConfigTab';
+import { AutoSyncRolesTab } from './settings/AutoSyncRolesTab';
+
+// Chỉ dùng .toMillis()/.toDate() — khớp cả Firestore Timestamp thật lẫn mock data (toMillis-only) trong isDemoMode
+interface TimestampLike {
+    toMillis?: () => number;
+    toDate?: () => Date;
+}
+
+// Chuyển đổi timestamp an toàn từ Firestore Timestamp, chuỗi ISO hoặc số millis
+const toTimestampLike = (val: unknown): TimestampLike | undefined => {
+    if (!val) return undefined;
+    const v = val as { toMillis?: () => number; toDate?: () => Date };
+    if (typeof v.toMillis === 'function' || typeof v.toDate === 'function') {
+        return v as TimestampLike;
+    }
+    if (typeof val === 'string' || typeof val === 'number') {
+        const ms = new Date(val).getTime();
+        return { toMillis: () => ms, toDate: () => new Date(ms) };
+    }
+    return undefined;
+};
+
+// Rút trích chuỗi ngày ISO dạng YYYY-MM-DD an toàn (theo múi giờ địa phương)
+const getIsoDateString = (val: unknown): string => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.split('T')[0];
+    const v = val as { toDate?: () => Date };
+    if (typeof v.toDate === 'function') {
+        try {
+            return getLocalDateString(v.toDate());
+        } catch {
+            return '';
+        }
+    }
+    if (val instanceof Date) return getLocalDateString(val);
+    return '';
+};
+
+// Helper kiểm tra hết hạn — dùng chung cho lọc danh sách và đếm số lượng từng tab
+const isUserExpired = (status?: string, expiresAt?: unknown): boolean => {
+    if (status === 'expired') return true;
+    if (!expiresAt) return false;
+    try {
+        if (typeof expiresAt === 'string') {
+            const ms = new Date(expiresAt).getTime();
+            return Number.isFinite(ms) && ms < Date.now();
+        }
+        if (typeof expiresAt === 'number') {
+            return expiresAt < Date.now();
+        }
+        const obj = expiresAt as { toDate?: () => Date; toMillis?: () => number };
+        if (typeof obj.toMillis === 'function') {
+            const ms = obj.toMillis();
+            return typeof ms === 'number' && Number.isFinite(ms) && ms < Date.now();
+        }
+        if (typeof obj.toDate === 'function') {
+            return obj.toDate().getTime() < Date.now();
+        }
+    } catch {
+        return false;
+    }
+    return false;
+};
+
+/**
+ * Hồ sơ người dùng SAU khi component chuyển ngày tháng — khác `ManagedUserDoc` (dữ liệu thô từ
+ * Cloud Function, ngày là chuỗi ISO) ở chỗ `createdAt`/`requestDate` đã bọc thành `TimestampLike`
+ * (xem `toTimestampLike()` dùng ở dưới).
+ *
+ * SỬA 2026-09-18: trước đây file này tự khai lại union cho `role`/`status` **hẹp hơn** nguồn chân
+ * lý `AdminRole`/`AdminStatus` trong `services/adminUserService.ts` — thiếu `'expired'`/`'blocked'`
+ * dù code ở ngay file này vẫn so sánh với 2 giá trị đó (dòng 230, 360, 708). Đó là nguồn của 8 lỗi
+ * typecheck. Nay dùng LẠI 2 kiểu gốc để không thể lệch lần nữa.
+ */
+interface AccessRequest {
+    id: string;
+    displayName: string;
+    email: string;
+    photoURL: string;
+    requestedRole: 'manager' | 'employee';
+    role?: AdminRole;
+    departmentId: string;
+    employeeName: string;
+    status: AdminStatus;
+    createdAt: TimestampLike;
+    requestDate: TimestampLike;
+    loginCount?: number;
+    /** Chuỗi ISO (từ Cloud Function) HOẶC object có `.toDate()` (dữ liệu giả ở chế độ Dùng Thử).
+     *  `isUserExpired()` bên dưới đã xử lý được cả hai dạng. */
+    expiresAt?: { toDate: () => Date } | string | null;
+}
+
+/**
+ * Chỉ những field mà modal "Gia hạn" và xác nhận "Thu hồi" THỰC SỰ dùng.
+ *
+ * Trước đây 3 chỗ đó khai kiểu `ManagedUserDoc` (rộng hơn nhu cầu), nhưng vòng render lại truyền
+ * vào `AccessRequest` — hai kiểu không tương thích ở field ngày tháng nên sinh 4 lỗi typecheck.
+ * Thu hẹp về đúng những gì cần thì nhận được CẢ HAI kiểu, không phải chuyển đổi gì.
+ */
+type UserActionTarget = Pick<ManagedUserDoc, 'id' | 'displayName' | 'email' | 'employeeName' | 'departmentId' | 'role'>;
+
+interface UserManagementViewProps {
+    isEmbedded?: boolean;
+}
+
+interface CacheEntry {
+    data: AccessRequest[];
+    expiry: Record<string, string>;
+    dept: Record<string, string>;
+    names: Record<string, string>;
+    roles: Record<string, string>;
+    timestamp: number;
+}
+
+const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) => {
+    const { user, userRole, departmentId, isDemoMode } = useAuth();
+    const { users: pendingStoreUsers } = usePendingApprovals();
+    const [requests, setRequests] = useState<AccessRequest[]>([]);
+    const [tabCounts, setTabCounts] = useState<{ pending?: number; active?: number; expired?: number }>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [expiryDates, setExpiryDates] = useState<Record<string, string>>({});
+    const [editDepartments, setEditDepartments] = useState<Record<string, string>>({});
+    const [editNames, setEditNames] = useState<Record<string, string>>({});
+    const [listMode, setListMode] = useState<'pending' | 'active' | 'expired' | 'config' | 'approval_settings' | 'menu_config' | 'auto_config'>('pending');
+    const [lastPermissionTab, setLastPermissionTab] = useState<'pending' | 'active' | 'expired'>('pending');
+    const isPermissionsMode = listMode !== 'config' && listMode !== 'approval_settings' && listMode !== 'menu_config' && listMode !== 'auto_config';
+    const laDienThoai = useIsSheetWidth();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [editRoles, setEditRoles] = useState<Record<string, string>>({});
+    const [sortBy, setSortBy] = useState<'name' | 'role' | 'dept' | 'date' | 'logins'>('date');
+    const [sortAsc, setSortAsc] = useState(false);
+    const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+    const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+    // SWR Cache: Giữ dữ liệu trong bộ nhớ để chuyển tab tức thì 0ms không phải chờ
+    const usersCacheRef = useRef<Record<string, CacheEntry>>({});
+    // Master cache cho Admin: Đọc 1 lần toàn bộ users collection, phân loại ngay trên client
+    const allAdminUsersRef = useRef<ManagedUserDoc[] | null>(null);
+
+    // States cho Gia Hạn và Thu Hồi
+    const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+    const [actionLoadingType, setActionLoadingType] = useState<'approve' | 'reject' | null>(null);
+    const [confirmRevokeUser, setConfirmRevokeUser] = useState<UserActionTarget | null>(null);
+    // Xoá HẲN tài khoản đã hết hạn (2026-10-30): chọn từng người trong tab Hết hạn rồi xác nhận.
+    const [chonXoaHan, setChonXoaHan] = useState<Set<string>>(new Set());
+    const [xacNhanXoaHan, setXacNhanXoaHan] = useState(false);
+    const [dangXoaHan, setDangXoaHan] = useState(false);
+    useEffect(() => { setChonXoaHan(new Set()); }, [listMode]);
+
+    const xoaHanDaChon = async () => {
+        const uids = [...chonXoaHan];
+        setDangXoaHan(true);
+        // Server nhận tối đa 50 tài khoản mỗi lượt gọi; danh sách dài thì chia lượt (không giới hạn tổng số).
+        const CO_MOI_LUOT = 50;
+        const daXoa = new Set<string>();
+        let soBoQua = 0;
+        let lyDoBoQua = '';
+        try {
+            for (let i = 0; i < uids.length; i += CO_MOI_LUOT) {
+                const kq = await deleteExpiredUsers(uids.slice(i, i + CO_MOI_LUOT));
+                kq.xoa.forEach(uid => daXoa.add(uid));
+                soBoQua += kq.boQua.length;
+                if (!lyDoBoQua && kq.boQua.length) lyDoBoQua = kq.boQua[0].lyDo;
+            }
+        } catch (e) {
+            toast.error(getErrorMessage(e) || 'Không xoá được, vui lòng thử lại.');
+        } finally {
+            if (daXoa.size > 0) {
+                setRequests(prev => prev.filter(r => !daXoa.has(r.id)));
+                if (allAdminUsersRef.current) allAdminUsersRef.current = allAdminUsersRef.current.filter(u => !daXoa.has(u.id));
+                setTabCounts(prev => ({ ...prev, expired: Math.max(0, (prev.expired ?? daXoa.size) - daXoa.size) }));
+                toast.success(`Đã xoá hẳn ${daXoa.size} tài khoản`);
+            }
+            if (soBoQua > 0) toast.warning(`Bỏ qua ${soBoQua} tài khoản: ${lyDoBoQua}`);
+            setChonXoaHan(new Set());
+            setDangXoaHan(false);
+            setXacNhanXoaHan(false);
+        }
+    };
+    const [extendingUser, setExtendingUser] = useState<UserActionTarget | null>(null);
+    const [extendDays, setExtendDays] = useState<number>(30);
+    const [extendDate, setExtendDate] = useState<string>('');
+    const [isUnlimited, setIsUnlimited] = useState<boolean>(false);
+    const [isSubmittingExtend, setIsSubmittingExtend] = useState<boolean>(false);
+    // State lưu giá trị nhập số ngày inline cho từng user
+    const [expiryDaysInput, setExpiryDaysInput] = useState<Record<string, string>>({});
+
+    // Auto-save a single user's data to Firestore (debounced)
+    const autoSave = useCallback(async (requestId: string, field: string, value: string) => {
+        // Clear existing timer for this user+field
+        const key = `${requestId}_${field}`;
+        if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+
+        if (isDemoMode) {
+            debounceTimers.current[key] = setTimeout(() => {
+                toast.success('Đã tự động lưu (Demo Mode)!', { duration: 1500, id: `autosave-${requestId}` });
+            }, 800);
+            return;
+        }
+
+        debounceTimers.current[key] = setTimeout(async () => {
+            try {
+                setSavingIds(prev => new Set(prev).add(requestId));
+                const updateData: Parameters<typeof adminUpdateUser>[0] = { targetUid: requestId };
+
+                if (field === 'role') {
+                    updateData.role = value as AdminRole;
+                    updateData.status = value === 'blocked' ? 'blocked' : 'approved';
+                } else if (field === 'departmentId') {
+                    updateData.departmentId = value;
+                } else if (field === 'employeeName') {
+                    updateData.employeeName = value;
+                } else if (field === 'expiresAt') {
+                    if (value) {
+                        const d = new Date(value);
+                        d.setHours(23, 59, 59, 999);
+                        updateData.expiresAt = d.toISOString();
+                        if (d.getTime() > Date.now()) {
+                            updateData.status = 'approved';
+                        }
+                    } else {
+                        updateData.expiresAt = null;
+                    }
+                }
+
+                await adminUpdateUser(updateData);
+                // Xoá cache để lần lấy dữ liệu sau đồng bộ với thay đổi
+                allAdminUsersRef.current = null;
+                usersCacheRef.current = {};
+                toast.success('Đã tự động lưu!', { duration: 1500, id: `autosave-${requestId}` });
+            } catch (err) {
+                console.warn('Auto-save failed:', err);
+                toast.error('Lỗi tự động lưu, thử lại.');
+            } finally {
+                setSavingIds(prev => { const n = new Set(prev); n.delete(requestId); return n; });
+            }
+        }, 800);
+    }, [isDemoMode]);
+
+    // Tự động chuyển tới tab Bật/tắt chức năng khi được yêu cầu từ màn hình 404
+    useEffect(() => {
+        try {
+            if (sessionStorage.getItem('ycx_open_menu_config_tab') === '1') {
+                sessionStorage.removeItem('ycx_open_menu_config_tab');
+                setListMode('menu_config');
+            }
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    const fetchRequests = async (forceRefresh = false) => {
+        if (listMode === 'config' || listMode === 'approval_settings' || listMode === 'menu_config' || listMode === 'auto_config') {
+            setIsLoading(false);
+            return;
+        }
+        if (!userRole || (userRole !== 'admin' && userRole !== 'manager')) {
+            setIsLoading(false);
+            return;
+        }
+
+        // Nếu đã có cache cho tab này hoặc master cache Admin, dùng ngay mà KHÔNG bật spinner!
+        const hasCached = (!forceRefresh && usersCacheRef.current[listMode]) || (userRole === 'admin' && allAdminUsersRef.current && !forceRefresh);
+        if (hasCached) {
+            const cached = usersCacheRef.current[listMode];
+            if (cached) {
+                setRequests(cached.data);
+                setExpiryDates(cached.expiry);
+                setEditDepartments(cached.dept);
+                setEditNames(cached.names);
+                setEditRoles(cached.roles);
+                setIsLoading(false);
+                if (Date.now() - cached.timestamp < 60000) {
+                    return;
+                }
+            }
+        } else {
+            setIsLoading(true);
+        }
+
+        // Đổi sang tab CHƯA có dữ liệu: xoá danh sách cũ và bật spinner. Trước đây `requests` vẫn
+        // giữ nguyên danh sách của tab vừa rời, nên trong lúc chờ mạng màn hình hiện NHẦM dữ liệu
+        // tab khác (vd bấm "Hết hạn" lại thấy danh sách "Hoạt động") rồi mới tự đổi.
+        const coSanChoTabNay =
+            !!usersCacheRef.current[listMode] ||
+            (listMode === 'pending' && isPendingApprovalsLoaded()) ||
+            (userRole === 'admin' && !!allAdminUsersRef.current) ||
+            hasFreshManagedUsers(listMode);
+        if (!coSanChoTabNay) {
+            setRequests([]);
+            setIsLoading(true);
+        }
+
+        try {
+            if (isDemoMode) {
+                // Mock data for demo mode to prevent Firestore permission-denied errors
+                const mockRequests: AccessRequest[] = [
+                    {
+                        id: 'demo-user-1',
+                        displayName: 'Nguyễn Văn A',
+                        email: 'nguyenvana@gmail.com',
+                        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=A',
+                        requestedRole: 'employee',
+                        role: 'pending',
+                        departmentId: '58614',
+                        employeeName: 'Nguyễn Văn A',
+                        status: 'pending',
+                        createdAt: { toDate: () => new Date(), toMillis: () => Date.now() },
+                        requestDate: { toMillis: () => Date.now() },
+                        loginCount: 3
+                    },
+                    {
+                        id: 'demo-user-2',
+                        displayName: 'Trần Thị B',
+                        email: 'tranthib@gmail.com',
+                        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=B',
+                        requestedRole: 'employee',
+                        role: 'employee',
+                        departmentId: '58614',
+                        employeeName: 'Trần Thị B',
+                        status: 'approved',
+                        createdAt: { toDate: () => new Date(Date.now() - 86400000), toMillis: () => Date.now() - 86400000 },
+                        requestDate: { toMillis: () => Date.now() - 86400000 },
+                        expiresAt: { toDate: () => new Date(Date.now() + 30 * 86400000) },
+                        loginCount: 12
+                    },
+                    {
+                        id: 'demo-user-3',
+                        displayName: 'Lê Văn C',
+                        email: 'levanc@gmail.com',
+                        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=C',
+                        requestedRole: 'employee',
+                        role: 'employee',
+                        departmentId: '58614',
+                        employeeName: 'Lê Văn C',
+                        status: 'expired',
+                        createdAt: { toDate: () => new Date(Date.now() - 172800000), toMillis: () => Date.now() - 172800000 },
+                        requestDate: { toMillis: () => Date.now() - 172800000 },
+                        expiresAt: { toDate: () => new Date(Date.now() - 86400000) },
+                        loginCount: 5
+                    }
+                ];
+                
+                const newExpiry: Record<string, string> = {
+                    'demo-user-2': getLocalDateString(new Date(Date.now() + 30 * 86400000)),
+                    'demo-user-3': getLocalDateString(new Date(Date.now() - 86400000))
+                };
+                const newDept: Record<string, string> = { 'demo-user-1': '58614', 'demo-user-2': '58614', 'demo-user-3': '58614' };
+                const newNames: Record<string, string> = { 'demo-user-1': 'Nguyễn Văn A', 'demo-user-2': 'Trần Thị B', 'demo-user-3': 'Lê Văn C' };
+                const newRoles: Record<string, string> = { 'demo-user-1': 'pending', 'demo-user-2': 'employee', 'demo-user-3': 'employee' };
+
+                setExpiryDates(newExpiry);
+                setEditDepartments(newDept);
+                setEditNames(newNames);
+                setEditRoles(newRoles);
+
+                const filteredData = listMode === 'pending' ? [mockRequests[0]] : listMode === 'expired' ? [mockRequests[2]] : [mockRequests[1]];
+                setRequests(filteredData);
+                setTabCounts({ pending: 1, active: 1, expired: 1 });
+                usersCacheRef.current[listMode] = {
+                    data: filteredData,
+                    expiry: newExpiry,
+                    dept: newDept,
+                    names: newNames,
+                    roles: newRoles,
+                    timestamp: Date.now()
+                };
+                setIsLoading(false);
+                return;
+            }
+
+            let rawUsers: ManagedUserDoc[] = [];
+
+            /**
+             * 1b. TAB "CHỜ DUYỆT" — đi qua NGUỒN DÙNG CHUNG thay vì tự gọi Cloud Function.
+             *
+             * Chuông thông báo và badge "chờ duyệt" đã lấy đúng danh sách này qua
+             * `services/pendingApprovalsStore.ts` từ lúc mở app. Trước bản sửa này, mở màn Phân
+             * quyền lại gọi `listManagedUsers('pending')` MỘT LẦN NỮA — chủ dự án báo 2026-09-25:
+             * *"load danh sách rất lâu, mặc dù danh sách không có siêu thị nào"*. Đo bằng Cloud
+             * Function giả chậm 2,5s: mở màn này tốn **2 lượt gọi** và chờ 3.369ms, dù app đã biết
+             * danh sách rỗng từ trước.
+             *
+             * `refreshPendingApprovals()` lo cả 3 tình huống trong đúng một chỗ:
+             *   - đã tải trong vòng 60s  -> trả về ngay, KHÔNG gọi mạng;
+             *   - đang có request bay    -> dùng chung request đó, không tạo cái thứ 2;
+             *   - quá hạn/chưa có        -> gọi đúng một lượt.
+             */
+            let dungNguonChung = userRole !== 'admin' && listMode === 'pending' && !forceRefresh;
+            if (dungNguonChung) {
+                await refreshPendingApprovals();
+                if (isPendingApprovalsLoaded()) {
+                    rawUsers = getPendingApprovalsSnapshot();
+                } else {
+                    // Nguồn chung tải hụt (mất mạng, hàm lỗi): quay về đường cũ để lỗi hiện ra cho
+                    // người dùng thay vì im lặng báo "không có yêu cầu nào".
+                    dungNguonChung = false;
+                }
+            }
+
+            // 2. Admin: Query TRỰC TIẾP Firestore Client SDK 1 lần toàn bộ users collection (~50ms)
+            if (userRole === 'admin') {
+                if (!allAdminUsersRef.current || forceRefresh) {
+                    try {
+                        const usersRef = collection(db, 'users');
+                        const querySnapshot = await getDocs(usersRef);
+                        allAdminUsersRef.current = querySnapshot.docs.map(d => {
+                            const dData = d.data();
+                            const out: ManagedUserDoc = { id: d.id, ...dData };
+                            if (dData.createdAt instanceof Timestamp) out.createdAt = dData.createdAt.toDate().toISOString();
+                            if (dData.requestDate instanceof Timestamp) out.requestDate = dData.requestDate.toDate().toISOString();
+                            if (dData.expiresAt instanceof Timestamp) out.expiresAt = dData.expiresAt.toDate().toISOString();
+                            return out;
+                        });
+                    } catch (directErr) {
+                        console.warn("Direct firestore query failed, falling back to callable:", directErr);
+                        rawUsers = await listManagedUsers(listMode);
+                    }
+                }
+                if (allAdminUsersRef.current) {
+                    rawUsers = allAdminUsersRef.current;
+                }
+            } else if (!dungNguonChung) {
+                // Manager, tab "Hoạt động"/"Hết hạn": qua `services/managedUsersCache.ts` — cache
+                // 60s + gộp request đang bay, KHÔNG có vòng poll nền (hai tab này không ai cần khi
+                // người dùng không mở màn Phân quyền, poll chỉ tốn hạn mức đọc Firestore).
+                // Cloud Function vẫn là nơi lọc theo Kho (functions/src/admin.ts), client chỉ cache.
+                try {
+                    rawUsers = await getManagedUsers(listMode, forceRefresh);
+                    if (listMode === 'expired') {
+                        const hasExpired = rawUsers.some(u => u.status === 'expired' || (u.expiresAt && new Date(u.expiresAt).getTime() < Date.now()));
+                        if (!hasExpired) {
+                            // Lượt gộp thêm này TRƯỚC ĐÂY luôn là 1 lượt gọi mạng nữa (đo được:
+                            // bấm "Hết hạn" tốn 2 lượt). Qua cache thì nếu tab "Hoạt động" vừa lấy
+                            // trong 60s, nó không tốn lượt nào.
+                            const activeUsers = await getManagedUsers('active', false);
+                            const combined = [...rawUsers, ...activeUsers];
+                            const seen = new Set<string>();
+                            rawUsers = combined.filter(u => {
+                                if (seen.has(u.id)) return false;
+                                seen.add(u.id);
+                                return true;
+                            });
+                        }
+                    }
+                } catch {
+                    if (listMode === 'expired') {
+                        rawUsers = await getManagedUsers('active', false);
+                    }
+                }
+            }
+
+            const data: AccessRequest[] = [];
+            const newExpiry: Record<string, string> = {};
+            const newDept: Record<string, string> = {};
+            const newNames: Record<string, string> = {};
+            const newRoles: Record<string, string> = {};
+
+            rawUsers.forEach((docData) => {
+                data.push({
+                    ...docData,
+                    id: docData.id,
+                    createdAt: toTimestampLike(docData.createdAt) as TimestampLike,
+                    requestDate: toTimestampLike(docData.requestDate) as TimestampLike,
+                    expiresAt: toTimestampLike(docData.expiresAt),
+                } as AccessRequest);
+                if (docData.expiresAt) {
+                    newExpiry[docData.id] = getIsoDateString(docData.expiresAt);
+                }
+                newDept[docData.id] = docData.departmentId || '';
+                newNames[docData.id] = docData.employeeName || '';
+                // Yêu cầu chờ duyệt: role đang là 'pending' (requestAccess hạ xuống) → mặc định ô vai trò
+                // = vai trò người đó XIN. Trước đây lấy role trước nên ô hiện "Chờ duyệt", bấm Duyệt là
+                // gửi role 'pending' + status 'approved' — "được duyệt" mà vẫn không có quyền (vd quản
+                // lý gửi yêu cầu đổi Kho bị khoá luôn).
+                newRoles[docData.id] = (docData.role && docData.role !== 'pending' ? docData.role : docData.requestedRole) || 'pending';
+            });
+
+            setExpiryDates(newExpiry);
+            setEditDepartments(newDept);
+            setEditNames(newNames);
+            setEditRoles(newRoles);
+
+            // Client side filter 
+            let filteredData = data;
+            
+            if (userRole === 'admin') {
+                if (listMode === 'expired') {
+                    filteredData = filteredData.filter(req => isUserExpired(req.status, req.expiresAt));
+                } else if (listMode === 'active') {
+                    filteredData = filteredData.filter(req => !isUserExpired(req.status, req.expiresAt) && (req.status === 'approved' || (req.role && req.role !== 'pending' && req.role !== 'blocked')));
+                } else {
+                    filteredData = filteredData.filter(req => !isUserExpired(req.status, req.expiresAt) && (req.status === 'pending' || req.status === 'new' || req.role === 'pending'));
+                }
+
+                // Cập nhật số lượng cho cả 3 tab từ toàn bộ danh sách Admin
+                const pCount = data.filter(req => !isUserExpired(req.status, req.expiresAt) && (req.status === 'pending' || req.status === 'new' || req.role === 'pending')).length;
+                const aCount = data.filter(req => !isUserExpired(req.status, req.expiresAt) && (req.status === 'approved' || (req.role && req.role !== 'pending' && req.role !== 'blocked'))).length;
+                const eCount = data.filter(req => isUserExpired(req.status, req.expiresAt)).length;
+                setTabCounts({
+                    pending: pCount,
+                    active: aCount,
+                    expired: eCount,
+                });
+            }
+            else if (userRole === 'manager' && departmentId) {
+                const allowedKhos = departmentId.split(',').map(s=>s.trim()).filter(Boolean);
+                if (listMode === 'expired') {
+                    filteredData = filteredData.filter(req => req.role === 'employee' && isUserExpired(req.status, req.expiresAt));
+                } else if (listMode === 'active') {
+                    filteredData = filteredData.filter(req => req.role === 'employee' && req.status !== 'pending' && req.status !== 'new' && !isUserExpired(req.status, req.expiresAt));
+                } else {
+                    filteredData = filteredData.filter(req => req.requestedRole === 'employee' && req.status === 'pending');
+                }
+                // Manager only sees matching departments
+                filteredData = filteredData.filter(req => allowedKhos.includes(req.departmentId));
+
+                if (listMode === 'pending') {
+                    setTabCounts(prev => ({ ...prev, pending: filteredData.length }));
+                } else {
+                    const aCount = data.filter(req => req.role === 'employee' && req.status !== 'pending' && req.status !== 'new' && !isUserExpired(req.status, req.expiresAt) && allowedKhos.includes(req.departmentId)).length;
+                    const eCount = data.filter(req => req.role === 'employee' && isUserExpired(req.status, req.expiresAt) && allowedKhos.includes(req.departmentId)).length;
+                    setTabCounts(prev => ({ ...prev, active: aCount, expired: eCount }));
+                }
+            }
+            
+            // Sort client side by requestDate descending, but put "chưa cập nhật mã Kho" first if active/expired
+            filteredData.sort((a, b) => {
+                if (listMode === 'active' || listMode === 'expired') {
+                    const aNoDept = !a.departmentId;
+                    const bNoDept = !b.departmentId;
+                    if (aNoDept && !bNoDept) return -1;
+                    if (!aNoDept && bNoDept) return 1;
+                }
+                const dateA = a.requestDate?.toMillis?.() || 0;
+                const dateB = b.requestDate?.toMillis?.() || 0;
+                return dateB - dateA;
+            });
+            
+            setRequests(filteredData);
+
+            // Lưu vào bộ nhớ đệm
+            usersCacheRef.current[listMode] = {
+                data: filteredData,
+                expiry: newExpiry,
+                dept: newDept,
+                names: newNames,
+                roles: newRoles,
+                timestamp: Date.now()
+            };
+        } catch (error: unknown) {
+            console.warn("Lỗi lấy danh sách yêu cầu:", error);
+            // Cùng một `id`: lỗi lặp lại (tải lại / 2 lượt gọi cùng hỏng) chỉ hiện MỘT toast, không chồng 2 viên giống hệt nhau.
+            if (getErrorCode(error) === 'permission-denied') {
+                toast.error('Firestore: Quyền truy cập bị từ chối. Vui lòng kiểm tra Security Rules.', { id: 'tai-ds-yeu-cau-loi' });
+            } else {
+                toast.error(`Không thể tải danh sách yêu cầu. (${getErrorCode(error) || getErrorMessage(error) || 'Unknown'})`, { id: 'tai-ds-yeu-cau-loi' });
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRequests(false);
+
+        // Listen for refresh events (e.g. from banner click)
+        const handleRefresh = () => fetchRequests(true);
+        window.addEventListener('refresh-user-management', handleRefresh);
+        
+        return () => {
+            window.removeEventListener('refresh-user-management', handleRefresh);
+            Object.values(debounceTimers.current).forEach(clearTimeout);
+        };
+    }, [userRole, departmentId, listMode]);
+
+    // Đồng bộ số lượng chờ duyệt từ pendingStore (chuông / background store)
+    useEffect(() => {
+        if (isDemoMode) return;
+        if (userRole === 'admin') {
+            if (tabCounts.pending === undefined && pendingStoreUsers.length > 0) {
+                const pCount = pendingStoreUsers.filter(u => !isUserExpired(u.status, u.expiresAt) && (u.status === 'pending' || u.status === 'new' || u.role === 'pending')).length;
+                setTabCounts(prev => ({ ...prev, pending: pCount }));
+            }
+        } else if (userRole === 'manager' && departmentId) {
+            const allowedKhos = departmentId.split(',').map(s => s.trim()).filter(Boolean);
+            const pCount = pendingStoreUsers.filter(u => u.requestedRole === 'employee' && u.status === 'pending' && allowedKhos.includes(u.departmentId || '')).length;
+            setTabCounts(prev => ({ ...prev, pending: pCount }));
+        }
+    }, [pendingStoreUsers, userRole, departmentId, isDemoMode, tabCounts.pending]);
+
+    const handleApproval = async (requestId: string, isApproved: boolean, customExpiresAt?: string | null) => {
+        if (isDemoMode) {
+            toast.success(isApproved 
+                ? (listMode === 'pending' ? `Đã CẤP QUYỀN thành công (Demo Mode)!` : listMode === 'expired' ? `Đã GIA HẠN thành công (Demo Mode)!` : `Đã CẬP NHẬT QUYỀN thành công (Demo Mode)!`)
+                : (listMode === 'pending' ? 'Đã TỪ CHỐI yêu cầu (Demo Mode)!' : 'Đã THU HỒI quyền truy cập (Demo Mode)!')
+            );
+            setRequests(prev => prev.filter(req => req.id !== requestId));
+            setTabCounts(prev => {
+                if (listMode === 'pending') {
+                    return {
+                        ...prev,
+                        pending: Math.max(0, (prev.pending ?? 1) - 1),
+                        active: isApproved ? (prev.active ?? 1) + 1 : (prev.active ?? 1),
+                    };
+                }
+                if (listMode === 'expired') {
+                    return {
+                        ...prev,
+                        expired: Math.max(0, (prev.expired ?? 1) - 1),
+                        active: isApproved ? (prev.active ?? 1) + 1 : (prev.active ?? 1),
+                    };
+                }
+                if (listMode === 'active' && !isApproved) {
+                    return {
+                        ...prev,
+                        active: Math.max(0, (prev.active ?? 1) - 1),
+                        expired: (prev.expired ?? 1) + 1,
+                    };
+                }
+                return prev;
+            });
+            return;
+        }
+
+        try {
+            setActionLoadingId(requestId);
+            setActionLoadingType(isApproved ? 'approve' : 'reject');
+            if (isApproved) {
+                const targetRole = (editRoles[requestId] as AdminRole | undefined) || 'employee';
+                if ((targetRole as string) === 'pending') {
+                    // "Duyệt" mà vai trò vẫn là "Chờ duyệt" = gửi role pending + status approved:
+                    // người dùng được duyệt nhưng vẫn không có quyền gì. Bắt chọn vai trò trước.
+                    toast.error('Chọn vai trò (Nhân Viên / Quản Lý / Admin) trước khi bấm Duyệt.');
+                    setActionLoadingId(null);
+                    setActionLoadingType(null);
+                    return;
+                }
+
+                let expiresAtIso: string | null = null;
+                if (customExpiresAt !== undefined) {
+                    expiresAtIso = customExpiresAt;
+                } else {
+                    let dateStr = expiryDates[requestId];
+                    if (listMode === 'expired' && (!dateStr || new Date(dateStr).getTime() < Date.now())) {
+                        const nextMonth = new Date(Date.now() + 30 * 86400000);
+                        dateStr = getLocalDateString(nextMonth);
+                    }
+                    if (dateStr) {
+                        const d = new Date(dateStr);
+                        d.setHours(23, 59, 59, 999);
+                        expiresAtIso = d.toISOString();
+                    }
+                }
+
+                await adminUpdateUser({
+                    targetUid: requestId,
+                    role: targetRole === 'blocked' ? 'employee' : targetRole,
+                    status: 'approved',
+                    departmentId: editDepartments[requestId] || '',
+                    employeeName: editNames[requestId] || '',
+                    expiresAt: expiresAtIso,
+                    notify: {
+                        title: listMode === 'expired' ? 'Gia hạn tài khoản thành công' : 'Phân quyền thành công',
+                        message: listMode === 'expired' 
+                            ? `Tài khoản của bạn đã được gia hạn truy cập thành công.`
+                            : `Hệ thống vừa cập nhật vai trò của bạn thành: ${targetRole === 'manager' ? 'Quản Lý Kho' : targetRole === 'employee' ? 'Nhân Viên' : 'Khác'}. Bạn có thể bắt đầu sử dụng.`,
+                        type: 'success'
+                    }
+                });
+
+                // Cập nhật sau khi server xử lý thành công: loại khỏi hàng đợi Chờ duyệt / Hết hạn
+                if (listMode === 'expired' || listMode === 'pending') {
+                    setRequests(prev => prev.filter(req => req.id !== requestId));
+                } else {
+                    setRequests(prev => prev.map(req => req.id === requestId ? { ...req, role: targetRole, status: 'approved', expiresAt: expiresAtIso } : req));
+                }
+                setTabCounts(prev => {
+                    if (listMode === 'pending') {
+                        return {
+                            ...prev,
+                            pending: Math.max(0, (prev.pending ?? 1) - 1),
+                            active: (prev.active ?? 1) + 1,
+                        };
+                    }
+                    if (listMode === 'expired') {
+                        return {
+                            ...prev,
+                            expired: Math.max(0, (prev.expired ?? 1) - 1),
+                            active: (prev.active ?? 1) + 1,
+                        };
+                    }
+                    return prev;
+                });
+                if (allAdminUsersRef.current) {
+                    allAdminUsersRef.current = allAdminUsersRef.current.map(u => 
+                        u.id === requestId ? { ...u, role: targetRole, status: 'approved', expiresAt: expiresAtIso, departmentId: editDepartments[requestId] || '', employeeName: editNames[requestId] || '' } : u
+                    );
+                }
+
+                toast.success(listMode === 'pending' ? `Đã CẤP QUYỀN thành công!` : listMode === 'expired' ? `Đã GIA HẠN thành công!` : `Đã CẬP NHẬT QUYỀN thành công!`);
+            } else {
+                await adminUpdateUser({
+                    targetUid: requestId,
+                    status: listMode === 'pending' ? 'rejected' : 'expired',
+                    notify: {
+                        title: listMode === 'pending' ? 'Yêu cầu bị từ chối' : 'Thu hồi quyền truy cập',
+                        message: `Quản trị viên đã ${listMode === 'pending' ? 'từ chối yêu cầu đăng ký' : 'ngừng cấp phép sử dụng'} của bạn. Liên hệ Quản lý Vùng để biết thêm chi tiết.`,
+                        type: 'error'
+                    }
+                });
+
+                // Thu hồi / từ chối: xóa khỏi danh sách hiện tại
+                setRequests(prev => prev.filter(req => req.id !== requestId));
+                setTabCounts(prev => {
+                    if (listMode === 'pending') {
+                        return {
+                            ...prev,
+                            pending: Math.max(0, (prev.pending ?? 1) - 1),
+                        };
+                    }
+                    if (listMode === 'active') {
+                        return {
+                            ...prev,
+                            active: Math.max(0, (prev.active ?? 1) - 1),
+                            expired: (prev.expired ?? 1) + 1,
+                        };
+                    }
+                    return prev;
+                });
+                if (allAdminUsersRef.current) {
+                    allAdminUsersRef.current = allAdminUsersRef.current.map(u => 
+                        u.id === requestId ? { ...u, status: listMode === 'pending' ? 'rejected' : 'expired' } : u
+                    );
+                }
+
+                toast.success(listMode === 'pending' ? 'Đã TỪ CHỐI yêu cầu!' : 'Đã THU HỒI quyền truy cập!');
+            }
+
+            allAdminUsersRef.current = null;
+            usersCacheRef.current = {};
+            fetchRequests(true); // Đồng bộ nền dữ liệu mới nhất
+        } catch (error) {
+            console.warn('Lỗi khi cập nhật trạng thái:', error);
+            toast.error('Có lỗi xảy ra, vui lòng thử lại.');
+            fetchRequests(true);
+        } finally {
+            setActionLoadingId(null);
+            setActionLoadingType(null);
+        }
+    };
+
+    // Các hàm xử lý Modal Gia Hạn
+    const handleOpenExtendModal = (req: UserActionTarget) => {
+        setExtendingUser(req);
+        setIsUnlimited(false);
+        const defaultDays = 30;
+        setExtendDays(defaultDays);
+        const target = new Date(Date.now() + defaultDays * 86400000);
+        setExtendDate(getLocalDateString(target));
+    };
+
+    const handleDaysInputChange = (val: number | string) => {
+        setIsUnlimited(false);
+        const num = typeof val === 'string' ? parseInt(val, 10) : val;
+        const days = isNaN(num) || num <= 0 ? 1 : num;
+        setExtendDays(days);
+        const target = new Date(Date.now() + days * 86400000);
+        setExtendDate(getLocalDateString(target));
+    };
+
+    const handleDateInputChange = (dateStr: string) => {
+        setIsUnlimited(false);
+        setExtendDate(dateStr);
+        if (dateStr) {
+            const targetTime = new Date(dateStr).getTime();
+            const nowTime = new Date().setHours(0, 0, 0, 0);
+            const diff = Math.max(1, Math.round((targetTime - nowTime) / 86400000));
+            setExtendDays(diff);
+        }
+    };
+
+    const handleQuickPreset = (days: number) => {
+        setIsUnlimited(false);
+        setExtendDays(days);
+        const target = new Date(Date.now() + days * 86400000);
+        setExtendDate(getLocalDateString(target));
+    };
+
+    const handleToggleUnlimited = () => {
+        setIsUnlimited(true);
+        setExtendDate('');
+        setExtendDays(0);
+    };
+
+    const handleConfirmExtend = async () => {
+        if (!extendingUser) return;
+        setIsSubmittingExtend(true);
+        try {
+            let finalIso: string | null = null;
+            if (!isUnlimited && extendDate) {
+                const d = new Date(extendDate);
+                d.setHours(23, 59, 59, 999);
+                finalIso = d.toISOString();
+            }
+            await handleApproval(extendingUser.id, true, finalIso);
+            setExtendingUser(null);
+        } finally {
+            setIsSubmittingExtend(false);
+        }
+    };
+
+    // Các hàm xử lý nhập inline số ngày hoặc chọn ngày trực tiếp trên từng hàng user
+    const handleInlineDaysChange = (requestId: string, val: string) => {
+        setExpiryDaysInput(prev => ({ ...prev, [requestId]: val }));
+        if (!val || val.trim() === '') {
+            return;
+        }
+        const num = parseInt(val, 10);
+        if (!isNaN(num) && num > 0) {
+            const target = new Date(Date.now() + num * 86400000);
+            const dateStr = getLocalDateString(target);
+            setExpiryDates(prev => ({ ...prev, [requestId]: dateStr }));
+            if (listMode === 'active' || listMode === 'expired') {
+                autoSave(requestId, 'expiresAt', dateStr);
+            }
+        }
+    };
+
+    const handleInlineDateChange = (requestId: string, dateStr: string) => {
+        setExpiryDates(prev => ({ ...prev, [requestId]: dateStr }));
+        if (dateStr) {
+            const targetTime = new Date(dateStr).getTime();
+            const nowTime = new Date().setHours(0, 0, 0, 0);
+            const diff = Math.max(0, Math.round((targetTime - nowTime) / 86400000));
+            setExpiryDaysInput(prev => ({ ...prev, [requestId]: String(diff) }));
+        } else {
+            setExpiryDaysInput(prev => ({ ...prev, [requestId]: '' }));
+        }
+        if (listMode === 'active' || listMode === 'expired') {
+            autoSave(requestId, 'expiresAt', dateStr);
+        }
+    };
+
+    return (
+        <div className={isEmbedded ? 'w-full' : 'flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/50 min-h-dvh p-4 sm:p-6'}>
+            <div className={isEmbedded ? 'w-full space-y-4' : 'max-w-5xl mx-auto space-y-4'}>
+                {/* Khu vực điều hướng & Lọc nhỏ gọn */}
+                <h1 className="sr-only">Phân quyền</h1>
+                {/* GĐ7: 2 segmented control kiểu iOS thay 2 dải nút tự vẽ (chữ 12px, cao 28px trên iPhone). Nút "Làm mới" chỉ ở
+                    nhánh Phân quyền — nó tải lại danh sách người dùng, vô nghĩa ở Ngành hàng / Cài đặt duyệt. */}
+                <div className="bg-white p-2 sm:p-2.5 shadow-sm border border-slate-200 rounded-card space-y-2">
+                    <Tabs
+                        variant="segment"
+                        size="sm"
+                        fullWidth={laDienThoai}
+                        activeId={isPermissionsMode ? 'phan-quyen' : listMode}
+                        onChange={id => (id === 'phan-quyen' ? setListMode(lastPermissionTab) : setListMode(id as 'config' | 'approval_settings' | 'menu_config' | 'auto_config'))}
+                        items={[
+                            { id: 'phan-quyen', label: 'Phân quyền' },
+                            { id: 'config', label: laDienThoai ? 'Ngành hàng' : 'Khai báo ngành hàng' },
+                            { id: 'approval_settings', label: laDienThoai ? 'Duyệt' : 'Cài đặt duyệt' },
+                            ...(userRole === 'admin' ? [{ id: 'menu_config', label: laDienThoai ? 'Bật/tắt' : 'Bật/tắt chức năng' }, { id: 'auto_config', label: laDienThoai ? 'Auto' : 'Bật/tắt auto' }] : []),
+                        ]}
+                    />
+
+                    {/* Bộ lọc trạng thái + làm mới, rồi sắp xếp + tìm kiếm (chỉ ở nhánh Phân quyền) */}
+                    {isPermissionsMode && (
+                        <div className="pt-2 border-t border-slate-100 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Tabs
+                                    variant="segment"
+                                    size="sm"
+                                    fullWidth
+                                    className="flex-1 min-w-0"
+                                    activeId={listMode}
+                                    onChange={id => { const m = id as 'pending' | 'active' | 'expired'; setListMode(m); setLastPermissionTab(m); }}
+                                    items={[
+                                        { id: 'pending', label: 'Chờ duyệt', badge: tabCounts.pending },
+                                        { id: 'active', label: 'Hoạt động', badge: tabCounts.active },
+                                        { id: 'expired', label: 'Hết hạn', badge: tabCounts.expired },
+                                    ]}
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => fetchRequests(true)}
+                                    disabled={isLoading}
+                                    className="shrink-0 max-sm:h-8 max-sm:w-8 max-sm:min-h-0 max-sm:min-w-0 max-sm:p-0 ycx-hit gap-1.5 lg:h-[var(--btn-height-icon)] lg:w-[var(--btn-height-icon)]"
+                                    title="Làm mới danh sách"
+                                    aria-label="Làm mới danh sách"
+                                >
+                                    <AppIcon name="refresh" size="md" spin={isLoading} />
+                                    <span className="hidden sm:inline">Làm mới</span>
+                                </Button>
+                            </div>
+
+                            <div className="flex items-center gap-2 w-full">
+                                <div className="flex items-center shrink-0 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-control overflow-hidden h-8">
+                                    <Select dense fullWidth={false} value={sortBy} onChange={e => setSortBy(e.target.value as 'name' | 'role' | 'dept' | 'date' | 'logins')} aria-label="Sắp xếp theo" className="h-8 text-xs rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 py-0 pl-2 pr-6">
+                                        <option value="date">Ngày ĐK</option>
+                                        <option value="name">Tên</option>
+                                        <option value="role">Vai trò</option>
+                                        <option value="dept">Mã Kho</option>
+                                        <option value="logins">Truy cập</option>
+                                    </Select>
+                                    <Button variant="ghost" size="icon" onClick={() => setSortAsc(p => !p)} className="h-[var(--btn-height-icon)] w-[var(--btn-height-icon)] ycx-hit flex items-center justify-center text-slate-500 hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-slate-800 dark:hover:text-sky-400 transition-colors border-l border-slate-200 dark:border-slate-700 cursor-pointer" title={sortAsc ? 'Tăng dần' : 'Giảm dần'} aria-label={sortAsc ? 'Tăng dần' : 'Giảm dần'}>
+                                        <AppIcon name={sortAsc ? 'sortAsc' : 'sortDesc'} size="md" />
+                                    </Button>
+                                </div>
+
+                                <div className="relative flex-1 min-w-0">
+                                    <Input
+                                        dense
+                                        type="search"
+                                        leftIcon="search"
+                                        placeholder="Tìm email, mã kho…"
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        className="h-8 text-xs w-full"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                {listMode === 'config' ? (
+                    <ProductConfigManagerTab />
+                ) : listMode === 'approval_settings' ? (
+                    <ApprovalSettingsTab />
+                ) : listMode === 'menu_config' ? (
+                    <MenuConfigTab />
+                ) : listMode === 'auto_config' ? (
+                    <AutoSyncRolesTab />
+                ) : (
+                    <>
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-md">
+                                <AppIcon name="loading" size="state" spin className="text-sky-500 mb-4" />
+                                <p className="text-slate-500 font-medium">Đang tải danh sách...</p>
+                            </div>
+                        ) : requests.length === 0 ? (
+                            <div className="bg-white border border-slate-200 rounded-card">
+                                <EmptyState
+                                    icon={listMode === 'pending' ? 'success' : listMode === 'expired' ? 'clock' : 'users'}
+                                    title={listMode === 'pending' ? 'Không có yêu cầu chờ duyệt' : listMode === 'expired' ? 'Không có người dùng hết hạn' : 'Chưa có người dùng hoạt động'}
+                                    description={listMode === 'pending' ? 'Đã xử lý xong mọi đơn đăng ký.' : listMode === 'expired' ? 'Mọi tài khoản đều còn hạn.' : 'Danh sách trống hoặc chưa cập nhật.'}
+                                />
+                            </div>
+                        ) : (
+                            <>
+                            {listMode === 'expired' && (
+                                <div className="flex items-center justify-between gap-2 px-1">
+                                    <Checkbox
+                                        label={`Chọn tất cả (${requests.length})`}
+                                        checked={requests.length > 0 && chonXoaHan.size === requests.length}
+                                        onChange={(e) => setChonXoaHan(e.target.checked ? new Set(requests.map(r => r.id)) : new Set())}
+                                    />
+                                    <Button
+                                        variant="destructive" size="sm" icon="delete"
+                                        disabled={chonXoaHan.size === 0 || dangXoaHan}
+                                        onClick={() => setXacNhanXoaHan(true)}
+                                    >
+                                        Xoá hẳn ({chonXoaHan.size})
+                                    </Button>
+                                </div>
+                            )}
+                            <div className="flex flex-col gap-2">
+                                {requests.filter(req => {
+                                    if (!searchQuery) return true;
+                                    const q = searchQuery.toLowerCase();
+                                    return (req.email?.toLowerCase().includes(q) || req.employeeName?.toLowerCase().includes(q) || req.departmentId?.toLowerCase().includes(q) || req.displayName?.toLowerCase().includes(q) || editDepartments[req.id]?.toLowerCase().includes(q) || editNames[req.id]?.toLowerCase().includes(q));
+                                }).sort((a, b) => {
+                                    const dir = sortAsc ? 1 : -1;
+                                    switch (sortBy) {
+                                        case 'name': return dir * (a.displayName || '').localeCompare(b.displayName || '');
+                                        case 'role': return dir * (editRoles[a.id] || a.role || '').localeCompare(editRoles[b.id] || b.role || '');
+                                        case 'dept': return dir * (editDepartments[a.id] || a.departmentId || '').localeCompare(editDepartments[b.id] || b.departmentId || '');
+                                        case 'logins': return dir * ((a.loginCount ?? 0) - (b.loginCount ?? 0));
+                                        case 'date': default: return dir * ((a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+                                    }
+                                }).map((req) => (
+                                    <div key={req.id} className={`animate-in fade-in slide-in-from-bottom-2 duration-200 bg-white dark:bg-slate-800 border rounded-card ${actionLoadingId === req.id ? 'ring-2 ring-sky-500/60 border-sky-400 dark:border-sky-500 shadow-md' : !req.departmentId && listMode === 'active' ? 'border-amber-400/50' : 'border-slate-200/80 dark:border-slate-700/60'} shadow-2xs transition-all overflow-hidden`}>
+                                        {/* Row 1: Avatar + Name/Email + Role Select + Actions */}
+                                        <div className="flex items-center gap-2.5 sm:gap-3 px-3 py-2 sm:px-3.5 sm:py-2.5">
+                                            {listMode === 'expired' && (
+                                                <Checkbox
+                                                    aria-label={`Chọn ${formatCleanDisplayName(req.displayName) || req.email || 'tài khoản'} để xoá hẳn`}
+                                                    checked={chonXoaHan.has(req.id)}
+                                                    onChange={(e) => setChonXoaHan(prev => {
+                                                        const next = new Set(prev);
+                                                        if (e.target.checked) next.add(req.id); else next.delete(req.id);
+                                                        return next;
+                                                    })}
+                                                />
+                                            )}
+                                            {/* Avatar với referrerPolicy và tự động fallback sang chữ cái nếu ảnh Google lỗi */}
+                                            <div className="relative shrink-0 w-8 h-8">
+                                                {req.photoURL ? (
+                                                    <img
+                                                        src={req.photoURL}
+                                                        alt={formatCleanDisplayName(req.displayName) || ''}
+                                                        referrerPolicy="no-referrer"
+                                                        onError={(e) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                            const fallback = e.currentTarget.parentElement?.querySelector('[data-avatar-fallback]') as HTMLElement | null;
+                                                            if (fallback) fallback.style.display = 'flex';
+                                                        }}
+                                                        className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800"
+                                                    />
+                                                ) : null}
+                                                <span
+                                                    data-avatar-fallback
+                                                    style={{ display: req.photoURL ? 'none' : 'flex' }}
+                                                    className="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-xs font-bold items-center justify-center border border-sky-200 dark:border-sky-800 uppercase shadow-2xs"
+                                                >
+                                                    {(formatCleanDisplayName(req.displayName) || req.email || '?').charAt(0).toUpperCase()}
+                                                </span>
+                                                <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-800 ${
+                                                    listMode === 'expired' || req.status === 'expired' ? 'bg-rose-500' :
+                                                    req.status === 'approved' ? 'bg-emerald-500' :
+                                                    req.status === 'pending' ? 'bg-amber-500' : 'bg-slate-400'
+                                                }`} />
+                                            </div>
+
+                                            {/* Thông tin tên & email */}
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="font-bold text-slate-800 dark:text-white text-xs sm:text-sm truncate leading-tight">
+                                                    {formatCleanDisplayName(req.displayName)}
+                                                </h3>
+                                                <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                                                    {req.email}
+                                                </p>
+                                            </div>
+
+                                            {/* Vai trò */}
+                                            <div className="shrink-0">
+                                                {userRole === 'admin' ? (
+                                                    <Select 
+                                                        dense
+                                                        value={editRoles[req.id] || req.role || req.requestedRole || 'pending'} 
+                                                        onChange={(e) => { 
+                                                            setEditRoles(prev => ({...prev, [req.id]: e.target.value})); 
+                                                            if (listMode === 'active' || listMode === 'expired') autoSave(req.id, 'role', e.target.value); 
+                                                        }} 
+                                                        fullWidth={false}
+                                                        className="h-7 py-0 pl-2 pr-6 text-[11px] sm:text-xs w-[92px] sm:w-[105px] font-semibold cursor-pointer rounded-md bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                                                    >
+                                                        <option value="pending">Chờ duyệt</option>
+                                                        <option value="employee">Nhân Viên</option>
+                                                        <option value="manager">Quản Lý</option>
+                                                        <option value="admin">Admin</option>
+                                                        <option value="blocked">Khoá</option>
+                                                    </Select>
+                                                ) : (
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${req.role === 'admin' ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400' : req.role === 'manager' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
+                                                        <AppIcon name={resolveIconName(req.role === 'admin' ? 'shield' : req.role === 'manager' ? 'briefcase' : 'users') ?? 'help'} size="xs" />
+                                                        {req.role === 'admin' ? 'Admin' : req.role === 'manager' ? 'Quản Lý' : 'NV'}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Thao tác nút */}
+                                            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                                                {listMode === 'pending' ? (
+                                                    <div className="flex items-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md overflow-hidden shadow-2xs">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            disabled={actionLoadingId === req.id}
+                                                            onClick={() => { setChonXoaHan(new Set([req.id])); setXacNhanXoaHan(true); }}
+                                                            className="ycx-hit h-7 px-2 rounded-none border-0 text-slate-500 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50 disabled:cursor-not-allowed flex border-r border-slate-200 dark:border-slate-700" 
+                                                            title="Xoá hẳn hồ sơ (không hoàn tác)"
+                                                            aria-label="Xoá hẳn hồ sơ"
+                                                        >
+                                                            <AppIcon name="delete" size="xs" />
+                                                        </Button>
+                                                        <Button 
+                                                            variant="primary" 
+                                                            size="none" 
+                                                            disabled={actionLoadingId === req.id}
+                                                            onClick={() => handleApproval(req.id, true)} 
+                                                            className="ycx-hit h-7 px-2.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 disabled:bg-sky-500/80 disabled:cursor-wait transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs" 
+                                                            title="Phê duyệt yêu cầu"
+                                                        >
+                                                            {actionLoadingId === req.id && actionLoadingType === 'approve' ? (
+                                                                <>
+                                                                    <AppIcon name="loading" size="xs" spin className="text-white" />
+                                                                    <span>Duyệt...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <AppIcon name="check" size="xs" />
+                                                                    <span>Duyệt</span>
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleOpenExtendModal(req)}
+                                                            disabled={actionLoadingId === req.id}
+                                                            className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-emerald-950/40 shadow-2xs flex gap-1 font-semibold active:scale-95"
+                                                            title="Gia hạn / Đổi thời hạn"
+                                                        >
+                                                            <AppIcon name="schedule" size="xs" className="text-emerald-600 shrink-0" />
+                                                            <span>Gia hạn</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setConfirmRevokeUser(req)}
+                                                            disabled={actionLoadingId === req.id}
+                                                            className="ycx-hit h-7 w-7 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 dark:hover:bg-rose-950/40 transition-colors rounded-md shadow-2xs flex items-center justify-center active:scale-95 shrink-0 cursor-pointer"
+                                                            title="Thu hồi quyền"
+                                                        >
+                                                            <AppIcon name="userRemove" size="xs" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Thanh thông tin chi tiết siêu gọn (Mã Kho, NV, Hạn, ĐK, Truy cập) */}
+                                        <div className="px-3 py-1.5 sm:px-3.5 sm:py-1.5 bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700/40 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+                                            {/* Nhóm 1: Kho & Mã Nhân Viên */}
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <AppIcon name="location" size="xs" className="text-rose-500 shrink-0" />
+                                                    <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">Kho:</span>
+                                                    {userRole === 'admin' ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editDepartments[req.id] || ''}
+                                                            onChange={e => {
+                                                                setEditDepartments(prev => ({...prev, [req.id]: e.target.value}));
+                                                                if (listMode === 'active' || listMode === 'expired') autoSave(req.id, 'departmentId', e.target.value);
+                                                            }}
+                                                            placeholder="Mã kho"
+                                                            className="h-6 w-16 sm:w-20 px-1.5 text-xs font-mono font-bold uppercase bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500 shadow-2xs"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{req.departmentId || '—'}</span>
+                                                    )}
+                                                </div>
+
+                                                <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+
+                                                <div className="flex items-center gap-1 min-w-0">
+                                                    <AppIcon name="userCheck" size="xs" className="text-amber-500 shrink-0" />
+                                                    <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">NV:</span>
+                                                    {userRole === 'admin' ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editNames[req.id] || ''}
+                                                            onChange={e => {
+                                                                setEditNames(prev => ({...prev, [req.id]: e.target.value}));
+                                                                if (listMode === 'active' || listMode === 'expired') autoSave(req.id, 'employeeName', e.target.value);
+                                                            }}
+                                                            placeholder="Tên/Mã NV"
+                                                            className="h-6 w-20 sm:w-28 px-1.5 text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-500 shadow-2xs truncate"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400 truncate">{req.employeeName || '—'}</span>
+                                                    )}
+                                                </div>
+
+                                                {savingIds.has(req.id) && (
+                                                    <span className="text-[11px] text-sky-500 font-bold flex items-center gap-0.5 animate-pulse ml-1">
+                                                        <AppIcon name="loading" size="xs" spin />
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Nhóm 2: Hạn dùng, Đăng ký, Lượt vào */}
+                                            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
+                                                <Button variant="link" size="none"
+                                                    type="button"
+                                                    onClick={() => handleOpenExtendModal(req)}
+                                                    className="ycx-hit flex gap-1 hover:text-emerald-700 dark:hover:text-emerald-400"
+                                                    title="Bấm để gia hạn ngày hết hạn"
+                                                >
+                                                    <AppIcon name="calendar" size="md" className="text-emerald-500 shrink-0" />
+                                                    <span className="text-slate-400">Hạn:</span>
+                                                    {expiryDates[req.id] ? (
+                                                        <span className={`font-semibold ${
+                                                            new Date(expiryDates[req.id]).getTime() < Date.now() 
+                                                                ? 'text-rose-500' 
+                                                                : 'text-emerald-600 dark:text-emerald-400'
+                                                        }`}>
+                                                            {new Date(expiryDates[req.id]).toLocaleDateString('vi-VN')}
+                                                            <span className="ml-0.5 text-[11px] font-normal">
+                                                                {(() => {
+                                                                    const diff = Math.round((new Date(expiryDates[req.id]).getTime() - new Date().setHours(0,0,0,0)) / 86400000);
+                                                                    return diff > 0 ? `(${diff}n)` : diff === 0 ? '(nay)' : '(hết)';
+                                                                })()}
+                                                            </span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Vô hạn</span>
+                                                    )}
+                                                </Button>
+
+                                                <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+
+                                                <span className="text-slate-400 whitespace-nowrap">
+                                                    ĐK: <strong className="font-medium text-slate-600 dark:text-slate-300">{req.createdAt?.toDate ? req.createdAt.toDate().toLocaleDateString('vi-VN') : '—'}</strong>
+                                                </span>
+
+                                                <span className="text-slate-200 dark:text-slate-700 select-none">|</span>
+
+                                                <span className="text-slate-400 whitespace-nowrap">
+                                                    Vào: <strong className="font-bold text-sky-700 dark:text-sky-400">{req.loginCount ?? 0}</strong>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            </>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* Modal Gia Hạn Quyền Truy Cập */}
+            <Modal
+                isOpen={!!extendingUser}
+                onClose={() => setExtendingUser(null)}
+                title="Gia hạn quyền truy cập"
+                subTitle="Đổi thời hạn dùng hệ thống của tài khoản"
+                maxWidth="md"
+            >
+                {extendingUser && (
+                    <div className="space-y-4 py-1">
+                        {/* User Summary Card */}
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-popup border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm shrink-0">
+                                {extendingUser.employeeName?.charAt(0) || extendingUser.displayName?.charAt(0) || 'U'}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h4 className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                                    {formatCleanDisplayName(extendingUser.employeeName || extendingUser.displayName)}
+                                </h4>
+                                <p className="text-xs text-slate-500 truncate">{extendingUser.email}</p>
+                                <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-600 dark:text-slate-400">
+                                    <span>Kho: <strong className="font-mono text-slate-800 dark:text-slate-200">{extendingUser.departmentId || 'ALL'}</strong></span>
+                                    <span>•</span>
+                                    <span>Vai trò: <strong className="text-sky-600 dark:text-sky-400">{extendingUser.role === 'admin' ? 'Admin' : extendingUser.role === 'manager' ? 'Quản lý kho' : 'Nhân viên'}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                                <AppIcon name="quick" size="sm" className="text-amber-500" />
+                                Chọn nhanh thời gian:
+                            </label>
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                                {[
+                                    { label: '+7 ngày', days: 7 },
+                                    { label: '+15 ngày', days: 15 },
+                                    { label: '+30 ngày', days: 30 },
+                                    { label: '+60 ngày', days: 60 },
+                                    { label: '+90 ngày', days: 90 },
+                                    { label: '+1 năm', days: 365 },
+                                ].map(p => (
+                                    <Button
+                                        key={p.days}
+                                        variant="toggle" aria-pressed={!isUnlimited && extendDays === p.days}
+                                        size="sm"
+                                        onClick={() => handleQuickPreset(p.days)}
+                                        className="sm:min-h-0 aria-pressed:bg-sky-600 aria-pressed:text-white aria-pressed:border-sky-600 aria-pressed:shadow-sm aria-pressed:font-bold"
+                                    >
+                                        {p.label}
+                                    </Button>
+                                ))}
+                            </div>
+                            <div className="mt-2">
+                                <Button
+                                    variant="toggle" aria-pressed={isUnlimited}
+                                    size="sm"
+                                    onClick={handleToggleUnlimited}
+                                    className="sm:min-h-0 w-full gap-1.5 aria-pressed:bg-slate-600 aria-pressed:text-white aria-pressed:border-slate-600 aria-pressed:shadow-sm"
+                                >
+                                    <AppIcon name="security" size="md" />
+                                    Cấp quyền vô thời hạn
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Dual Custom Inputs: Days or End Date */}
+                        {!isUnlimited && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                                        <AppIcon name="clock" size="sm" className="text-sky-500" />
+                                        Nhập số ngày gia hạn:
+                                    </label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number" inputMode="decimal"
+                                            min={1}
+                                            value={extendDays || ''}
+                                            onChange={e => handleDaysInputChange(e.target.value)}
+                                            placeholder="VD: 30"
+                                            className="h-10 text-sm font-semibold pr-12"
+                                        />
+                                        <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium pointer-events-none">
+                                            ngày
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                                        <AppIcon name="calendar" size="sm" className="text-emerald-500" />
+                                        Hoặc chọn ngày kết thúc:
+                                    </label>
+                                    <Input
+                                        type="date"
+                                        value={extendDate}
+                                        min={getLocalDateString()}
+                                        onChange={e => handleDateInputChange(e.target.value)}
+                                        className="h-10 text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Result Highlight Box */}
+                        <div className={`p-3 rounded-popup border text-center transition-all ${
+                            isUnlimited
+                                ? 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800'
+                                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                        }`}>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Thời hạn truy cập sau khi gia hạn:</p>
+                            <p className="text-base font-black text-slate-800 dark:text-white mt-0.5 flex items-center justify-center gap-1.5">
+                                {isUnlimited ? (
+                                    <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                        <AppIcon name="security" size="md" />
+                                        Vô thời hạn
+                                    </span>
+                                ) : (
+                                    <>
+                                        <AppIcon name="schedule" size="md" className="text-emerald-600" />
+                                        <span className="text-emerald-700 dark:text-emerald-300">
+                                            {extendDate ? new Date(extendDate).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Chưa chọn'}
+                                        </span>
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-800 dark:text-emerald-200 font-bold ml-1">
+                                            +{extendDays} ngày
+                                        </span>
+                                    </>
+                                )}
+                            </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <Button
+                                variant="secondary"
+                                onClick={() => setExtendingUser(null)}
+                                disabled={isSubmittingExtend}
+                            >
+                                Huỷ
+                            </Button>
+                            <Button
+                                variant="primary"
+                                icon="check"
+                                onClick={handleConfirmExtend}
+                                isLoading={isSubmittingExtend}
+                            >
+                                Gia hạn
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Dialog xác nhận thu hồi */}
+            <ConfirmDialog
+                isOpen={!!confirmRevokeUser}
+                onClose={() => setConfirmRevokeUser(null)}
+                onConfirm={async () => {
+                    if (!confirmRevokeUser) return;
+                    const uid = confirmRevokeUser.id;
+                    try {
+                        await handleApproval(uid, false);
+                        setConfirmRevokeUser(null);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }}
+                title="Thu hồi quyền truy cập?"
+                message={
+                    <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                        <p>Bạn có chắc chắn muốn thu hồi quyền truy cập của tài khoản:</p>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-control border border-slate-200 dark:border-slate-700">
+                            <p className="font-bold text-slate-800 dark:text-white">
+                                {formatCleanDisplayName(confirmRevokeUser?.employeeName || confirmRevokeUser?.displayName || 'Chưa đặt tên')}
+                            </p>
+                            <p className="text-xs text-slate-500 font-mono mt-0.5">{confirmRevokeUser?.email}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                                <span>Kho: <strong className="font-mono text-slate-700 dark:text-slate-300">{confirmRevokeUser?.departmentId || 'ALL'}</strong></span>
+                            </div>
+                        </div>
+                        <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">Tài khoản này sẽ bị ngừng cấp phép sử dụng ngay lập tức.</p>
+                    </div>
+                }
+                confirmText="Thu hồi"
+                variant="danger"
+                isLoading={actionLoadingId === confirmRevokeUser?.id}
+            />
+
+            {/* Dialog xác nhận xoá hẳn tài khoản hết hạn (không hoàn tác) */}
+            <ConfirmDialog
+                isOpen={xacNhanXoaHan}
+                onClose={() => setXacNhanXoaHan(false)}
+                onConfirm={xoaHanDaChon}
+                title={`Xoá hẳn ${chonXoaHan.size} tài khoản?`}
+                message={
+                    <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                        <p>Hồ sơ và toàn bộ dữ liệu đã lưu của các tài khoản này (cài đặt, lịch, dữ liệu bán hàng, thông báo) sẽ bị xoá <strong>vĩnh viễn, không khôi phục được</strong>.</p>
+                        <p>Khi những người này đăng nhập lại, họ sẽ được coi như người dùng mới và phải xin truy cập lại.</p>
+                    </div>
+                }
+                confirmText="Xoá hẳn"
+                variant="danger"
+                isLoading={dangXoaHan}
+            />
+        </div>
+    );
+};
+
+export default UserManagementView;

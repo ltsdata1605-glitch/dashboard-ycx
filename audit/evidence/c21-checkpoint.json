@@ -1,0 +1,6 @@
+{
+  "components/shared/ui/ProgressBar.tsx": "509008938917fa67e84c8ab7fc10b3c5f48cf06e71e334e2ddb5d67a99334759",
+  "components/shared/ui/Banner.tsx": "16c98307c6cf356f2952d167ccafa4796f2aae37a3a39adf3e70f3bce6275bd7",
+  "features/bi-dashboard/components/nhanvien/shared/TimeProgressBar.tsx": "a1e1874599e97a2620833b3d75df0854e7856b7c0aa61315016a46ea09e883ed",
+  "tests/e2e/helpers/materialHarness.html": "8fa02533610b0a1addb5e4784f4930cda4c4a655cfc209d0f12a1fee7379b51e"
+}

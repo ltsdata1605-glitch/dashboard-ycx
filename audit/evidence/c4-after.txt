@@ -1,0 +1,14 @@
+[WebServer] (node:46270) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/glass-controls.spec.ts:8:9 › Shared glass controls 390 › tokens, active/disabled, keyboard focus and transparency fallback (1.2s)
+  ✓  2 [chromium] › tests/e2e/glass-controls.spec.ts:8:9 › Shared glass controls 1366 › tokens, active/disabled, keyboard focus and transparency fallback (1.2s)
+  ✓  3 [chromium] › tests/e2e/navigation-material.spec.ts:15:5 › navigation material › real app dock and navbar respect reduced transparency (2.9s)
+focus clipping ancestors []
+(node:46290) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [chromium] › tests/e2e/navigation-material.spec.ts:33:5 › system group › keyboard focus ring is not clipped by the system group (3.0s)
+
+  4 passed (10.6s)

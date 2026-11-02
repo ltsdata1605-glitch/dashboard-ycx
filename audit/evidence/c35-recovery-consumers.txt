@@ -1,0 +1,52 @@
+App.tsx:3:import ErrorBoundary from './components/shared/ui/ErrorBoundary';
+App.tsx:402:                        <ErrorBoundary name="MainContent">
+App.tsx:413:                        </ErrorBoundary>
+App.tsx:430:                    <ErrorBoundary name="App_Root">
+App.tsx:439:                    </ErrorBoundary>
+utils/lazyWithRetry.ts:2:import { dangRoiTrang, taiLaiKhiLoiChunk } from '../components/shared/ui/taiLaiKhiLoiChunk';
+utils/lazyWithRetry.ts:54:                // Auto reload page to pick up latest index.html and chunk hashes (chờ một nhịp — taiLaiKhiLoiChunk.ts)
+utils/lazyWithRetry.ts:55:                taiLaiKhiLoiChunk(() => {
+utils/lazyWithRetry.ts:65:            // If already retried once and still failing, throw so ErrorBoundary can show fallback
+components/shared/ui/ErrorBoundary.tsx:5:import { taiLaiKhiLoiChunk, dangRoiTrang, duocTuTaiLai } from './taiLaiKhiLoiChunk';
+components/shared/ui/ErrorBoundary.tsx:18:export class ErrorBoundary extends React.Component<Props, State> {
+components/shared/ui/ErrorBoundary.tsx:32:    console.error(`ErrorBoundary [${this.props.name || 'Unknown'}]:`, error, errorInfo);
+components/shared/ui/ErrorBoundary.tsx:45:      // Chờ một nhịp và BỎ QUA khi trang đang rời đi — WebKit huỷ import dở dang lúc điều hướng (taiLaiKhiLoiChunk.ts).
+components/shared/ui/ErrorBoundary.tsx:46:      // Giới hạn 2 lần / 5 phút (duocTuTaiLai) — hết lượt thì để màn lỗi bên dưới hiện nút "Tải lại".
+components/shared/ui/ErrorBoundary.tsx:47:      if (!dangRoiTrang() && duocTuTaiLai()) taiLaiKhiLoiChunk();
+components/shared/ui/ErrorBoundary.tsx:102:export default ErrorBoundary;
+features/bi-dashboard/components/BiWrapper.tsx:17:import ErrorBoundary from '../../../components/shared/ui/ErrorBoundary';
+features/bi-dashboard/components/BiWrapper.tsx:463:                <ErrorBoundary name="Báo cáo BI">
+features/bi-dashboard/components/BiWrapper.tsx:487:                </ErrorBoundary>
+features/sticker-event/ErrorBoundary.tsx:5:interface ErrorBoundaryProps {
+features/sticker-event/ErrorBoundary.tsx:9:interface ErrorBoundaryState {
+features/sticker-event/ErrorBoundary.tsx:14:export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+features/sticker-event/ErrorBoundary.tsx:15:  constructor(props: ErrorBoundaryProps) {
+features/sticker-event/ErrorBoundary.tsx:21:  static getDerivedStateFromError(error: any): ErrorBoundaryState {
+components/shared/ui/index.ts:93:export { default as ErrorBoundary } from './ErrorBoundary';
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:16:    return import('./taiLaiKhiLoiChunk');
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:38:describe('taiLaiKhiLoiChunk', () => {
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:40:        const { taiLaiKhiLoiChunk } = await napModule();
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:42:        taiLaiKhiLoiChunk(truocKhi);
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:50:        const { taiLaiKhiLoiChunk } = await napModule();
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:52:        taiLaiKhiLoiChunk();
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:58:        const { taiLaiKhiLoiChunk } = await napModule();
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:60:        taiLaiKhiLoiChunk(truocKhi);
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:69:        const { taiLaiKhiLoiChunk, dangRoiTrang } = await napModule();
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:78:        taiLaiKhiLoiChunk();
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:84:describe('duocTuTaiLai — chặn vòng tự tải lại (2026-10-21)', () => {
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:94:        const { duocTuTaiLai } = await import('./taiLaiKhiLoiChunk');
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:96:        expect(duocTuTaiLai(t)).toBe(true);
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:97:        expect(duocTuTaiLai(t + 5_000)).toBe(false);   // chưa đủ 10 giây
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:98:        expect(duocTuTaiLai(t + 11_000)).toBe(true);
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:99:        expect(duocTuTaiLai(t + 22_000)).toBe(false);  // hết 2 lượt — trước đây cứ mỗi 10 giây lại tải lại
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:100:        expect(duocTuTaiLai(t + 120_000)).toBe(false);
+components/shared/ui/taiLaiKhiLoiChunk.test.ts:101:        expect(duocTuTaiLai(t + 301_000)).toBe(true);  // qua 5 phút: lượt đầu đã hết hạn
+components/shared/ui/taiLaiKhiLoiChunk.ts:10: * contexts/AuthContext.tsx) để ErrorBoundary và lazyWithRetry thấy chung.
+components/shared/ui/taiLaiKhiLoiChunk.ts:21:export function duocTuTaiLai(now = Date.now()): boolean {
+components/shared/ui/taiLaiKhiLoiChunk.ts:55:export function taiLaiKhiLoiChunk(truocKhi?: () => void, choMs = 800): void {
+features/sticker-event/StickerEventApp.tsx:25:import ErrorBoundary from './ErrorBoundary';
+features/sticker-event/StickerEventApp.tsx:496:    <ErrorBoundary>
+features/sticker-event/StickerEventApp.tsx:922:    </ErrorBoundary>
+features/sticker-event/StickerPrinterView.tsx:14:import ErrorBoundary from '../../components/shared/ui/ErrorBoundary';
+features/sticker-event/StickerPrinterView.tsx:157:                    <ErrorBoundary name="Sticker">
+features/sticker-event/StickerPrinterView.tsx:168:                    </ErrorBoundary>

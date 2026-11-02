@@ -1,0 +1,405 @@
+import React, { useMemo, useState } from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { toast } from '../../../components/shared/ui/toast';
+import { Button } from '../../../components/shared/ui/Button';
+import { Input } from '../../../components/shared/ui/Input';
+import { Select } from '../../../components/shared/ui/Select';
+import { Tabs } from '../../../components/shared/ui/Tabs';
+import { SavedTaxRecord } from '../types/tax.types';
+import { formatVnd } from '../services/taxCalculatorService';
+import { groupRecordsByMonth } from '../services/taxHistoryGrouping';
+import {
+    exportTaxRefundToExcel,
+    copyTaxRefundToClipboardForGoogleSheets,
+} from '../services/taxExportExcelService';
+
+interface TaxHistorySidebarProps {
+    records: SavedTaxRecord[];
+    selectedRecordId?: number | string | null;
+    onSelectRecord: (record: SavedTaxRecord) => void;
+    onDeleteRecord: (id: number) => void;
+    onUpdateMonth?: (record: SavedTaxRecord, newMonthYear: string) => void;
+    onUpdateGroupMonth?: (records: SavedTaxRecord[], newMonthYear: string) => void;
+    onClearAll: () => void;
+    onClose: () => void;
+}
+
+const generateMonthOptions = (currentMonthYear?: string): string[] => {
+    const list: string[] = [];
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear + 1, currentYear, currentYear - 1];
+    for (const y of years) {
+        for (let m = 12; m >= 1; m--) {
+            const mm = m < 10 ? `0${m}` : `${m}`;
+            list.push(`${mm}/${y}`);
+        }
+    }
+    if (currentMonthYear && !list.includes(currentMonthYear)) {
+        list.unshift(currentMonthYear);
+    }
+    return list;
+};
+
+export const TaxHistorySidebar: React.FC<TaxHistorySidebarProps> = ({
+    records,
+    selectedRecordId,
+    onSelectRecord,
+    onDeleteRecord,
+    onUpdateMonth,
+    onUpdateGroupMonth,
+    onClearAll,
+    onClose,
+}) => {
+    const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('all');
+    const [searchKeyword, setSearchKeyword] = useState<string>('');
+    const [isCopied, setIsCopied] = useState(false);
+
+    // Lọc theo từ khóa tìm kiếm tên nhân viên
+    const filteredRecords = useMemo(() => {
+        if (!searchKeyword.trim()) return records;
+        const kw = searchKeyword.trim().toLowerCase();
+        return records.filter(r => (r.name || '').toLowerCase().includes(kw));
+    }, [records, searchKeyword]);
+
+    // Gom theo tháng lương (tháng mới nhất lên đầu)
+    const monthGroups = useMemo(() => groupRecordsByMonth(filteredRecords), [filteredRecords]);
+    const displayedGroups = useMemo(() => {
+        if (selectedMonthFilter === 'all') return monthGroups;
+        return monthGroups.filter(g => g.key === selectedMonthFilter);
+    }, [monthGroups, selectedMonthFilter]);
+
+    // Danh sách bản ghi đang hiển thị theo bộ lọc
+    const activeRecords = useMemo(() => {
+        if (selectedMonthFilter === 'all') return filteredRecords;
+        const currentGroup = monthGroups.find(g => g.key === selectedMonthFilter);
+        return currentGroup ? currentGroup.records : filteredRecords;
+    }, [filteredRecords, monthGroups, selectedMonthFilter]);
+
+    const activeMonthLabel = useMemo(() => {
+        if (selectedMonthFilter === 'all') return 'Tất cả';
+        const currentGroup = monthGroups.find(g => g.key === selectedMonthFilter);
+        return currentGroup ? currentGroup.label : selectedMonthFilter;
+    }, [monthGroups, selectedMonthFilter]);
+
+    // Xuất Excel
+    const handleExportExcel = (recordsToExport: SavedTaxRecord[], label: string) => {
+        try {
+            if (!recordsToExport || recordsToExport.length === 0) {
+                toast.error('Không có dữ liệu để xuất file');
+                return;
+            }
+            exportTaxRefundToExcel(recordsToExport, { monthLabel: label });
+            toast.success(`Đã xuất file Excel (${recordsToExport.length} nhân viên)`);
+        } catch (err) {
+            console.error('Lỗi xuất file Excel:', err);
+            toast.error('Không thể tạo file Excel');
+        }
+    };
+
+    // Copy Google Sheets
+    const handleCopyGoogleSheets = async (recordsToExport: SavedTaxRecord[], label: string) => {
+        try {
+            if (!recordsToExport || recordsToExport.length === 0) {
+                toast.error('Không có dữ liệu để sao chép');
+                return;
+            }
+            await copyTaxRefundToClipboardForGoogleSheets(recordsToExport, { monthLabel: label });
+            setIsCopied(true);
+            toast.success('Đã copy bảng dữ liệu! Hãy mở Google Sheets và bấm Ctrl + V để dán.');
+            setTimeout(() => setIsCopied(false), 2500);
+        } catch (err) {
+            console.error('Lỗi copy bảng Google Sheets:', err);
+            toast.error('Không thể sao chép bảng vào Clipboard');
+        }
+    };
+
+    return (
+        <div className="w-full bg-white dark:bg-slate-800 rounded-card shadow-sm border border-slate-200 dark:border-slate-700/80 overflow-hidden flex flex-col max-h-[calc(100vh-100px)] xl:max-h-[920px]">
+            {/* Header Sidebar */}
+            <div className="p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-800/80">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-control bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                        <AppIcon name="history" size="md" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-white truncate">
+                                Lịch Sử Tính Thuế
+                            </h3>
+                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-bold bg-sky-500 text-white shrink-0">
+                                {records.length}
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 truncate">
+                            Click dòng để khôi phục ngay
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleExportExcel(activeRecords, activeMonthLabel)}
+                        title="Xuất file Excel danh sách hoàn thuế"
+                        aria-label="Xuất file Excel danh sách hoàn thuế"
+                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    >
+                        <AppIcon name="spreadsheet" size="md" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        title="Thu gọn danh sách lịch sử"
+                        aria-label="Thu gọn danh sách lịch sử"
+                        className="text-slate-400 hover:text-slate-600"
+                    >
+                        <AppIcon name="panelClose" size="md" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Ô tìm kiếm nhanh tên nhân viên */}
+            <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-100 dark:border-slate-700/60">
+                <Input
+                    type="search"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    placeholder="Tìm theo tên nhân viên..."
+                    aria-label="Tìm theo tên nhân viên"
+                    leftIcon="search"
+                    rightIcon={searchKeyword ? 'close' : undefined}
+                    rightIconLabel="Xoá từ khoá"
+                    onRightIconClick={searchKeyword ? () => setSearchKeyword('') : undefined}
+                    className="h-8 text-xs"
+                />
+            </div>
+
+            {/* Bộ lọc tháng (Pill tabs) */}
+            {monthGroups.length > 1 && (
+                <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-850 border-b border-slate-100 dark:border-slate-700/60">
+                    {/* Chip lọc tháng dùng chung (Tabs chips) — cùng kiểu bộ lọc ở các phân hệ khác (GĐ10 bước 2). */}
+                    <Tabs
+                        variant="chips"
+                        size="sm"
+                        activeId={selectedMonthFilter}
+                        onChange={setSelectedMonthFilter}
+                        items={[
+                            { id: 'all', label: `Tất cả (${filteredRecords.length})` },
+                            ...monthGroups.map((group) => ({ id: group.key, label: `${group.label} (${group.records.length})` })),
+                        ]}
+                    />
+                </div>
+            )}
+
+            {/* Danh sách bản ghi */}
+            <div className="overflow-y-auto p-2.5 sm:p-3 space-y-2 flex-1 divide-y divide-transparent">
+                {records.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400 text-xs px-2">
+                        <AppIcon name="history" size="xl" className="mx-auto mb-2 text-slate-300" />
+                        <p className="font-semibold text-slate-600 dark:text-slate-300">Chưa có bản ghi nào</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                            Sau khi tính thuế, kết quả sẽ tự động lưu vào đây để khôi phục nhanh.
+                        </p>
+                    </div>
+                ) : displayedGroups.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-xs">
+                        <p>Không tìm thấy nhân viên phù hợp.</p>
+                    </div>
+                ) : (
+                    displayedGroups.map(group => (
+                        <div key={group.key} className="space-y-1.5">
+                            {/* Dải phân cách tháng */}
+                            <div className="sticky top-0 z-10 -mx-2.5 sm:-mx-3 px-2.5 sm:px-3 py-1 bg-white dark:bg-slate-800 border-y border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-1 text-[11px]">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1 truncate">
+                                        <AppIcon name="calendar" size="xs" className="text-sky-500" />
+                                        {group.label} ({group.records.length})
+                                    </span>
+                                    {onUpdateGroupMonth && (
+                                        <Select
+                                            dense
+                                            fullWidth={false}
+                                            value={group.key}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                if (e.target.value !== group.key) {
+                                                    onUpdateGroupMonth(group.records, e.target.value);
+                                                }
+                                            }}
+                                            title="Đổi tháng cho toàn bộ bản ghi trong nhóm này"
+                                            aria-label="Đổi tháng cho cả nhóm"
+                                            className="text-[11px] font-semibold bg-sky-50 text-sky-700 border-sky-200 hover:border-sky-400"
+                                        >
+                                            <option value={group.key} disabled>
+                                                Đổi tháng cả nhóm...
+                                            </option>
+                                            {generateMonthOptions(group.key).map((m) => (
+                                                <option key={m} value={m}>
+                                                    Sang Tháng {m}
+                                                </option>
+                                            ))}
+                                        </Select>
+                                    )}
+                                </div>
+                                <span className="text-slate-500 dark:text-slate-400 shrink-0 font-mono">
+                                    Thuế: <strong className="text-emerald-600 dark:text-emerald-400">{formatVnd(group.totalTax)}</strong>
+                                </span>
+                            </div>
+
+                            {/* Từng dòng nhân viên - CLICK ĐỂ KHÔI PHỤC NGAY */}
+                            {group.records.map(rec => {
+                                const isSelected = selectedRecordId === (rec.id || rec.createdAt);
+                                return (
+                                    <div
+                                        key={rec.id || rec.createdAt}
+                                        onClick={() => onSelectRecord(rec)}
+                                        className={`group relative p-2.5 rounded-popup border transition-all cursor-pointer text-left ${
+                                            isSelected
+                                                ? 'border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 ring-1 ring-sky-500/30 shadow-xs'
+                                                : 'border-slate-200/80 dark:border-slate-700/70 bg-slate-50/40 dark:bg-slate-900/40 hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-50/30 dark:hover:bg-slate-800/70 shadow-2xs'
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className={`font-bold text-xs truncate ${isSelected ? 'text-sky-700 dark:text-sky-300' : 'text-slate-800 dark:text-slate-100'}`}>
+                                                        {rec.name}
+                                                    </span>
+
+                                                    {isSelected && (
+                                                        <span className="inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.2 rounded-full bg-sky-500 text-white">
+                                                            <AppIcon name="success" size="xs" />
+                                                            <span>Đang xem</span>
+                                                        </span>
+                                                    )}
+
+                                                    {onUpdateMonth ? (
+                                                        <Select
+                                                            dense
+                                                            fullWidth={false}
+                                                            value={rec.monthYear || ''}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onChange={(e) => {
+                                                                e.stopPropagation();
+                                                                onUpdateMonth(rec, e.target.value);
+                                                            }}
+                                                            title="Bấm để đổi tháng của bản ghi này"
+                                                            aria-label="Đổi tháng của bản ghi"
+                                                            className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border-emerald-300 hover:border-emerald-500 shadow-2xs"
+                                                        >
+                                                            {generateMonthOptions(rec.monthYear).map((m) => (
+                                                                <option key={m} value={m}>
+                                                                    T{m}
+                                                                </option>
+                                                            ))}
+                                                        </Select>
+                                                    ) : rec.monthYear ? (
+                                                        <span className="text-[11px] font-bold px-1 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                            {rec.monthYear.includes('/') ? `T${rec.monthYear}` : rec.monthYear}
+                                                        </span>
+                                                    ) : null}
+
+                                                    {rec.syncedToCloud ? (
+                                                        <span title="Đã đồng bộ Cloud" className="text-emerald-500">
+                                                            <AppIcon name="cloud" size="xs" />
+                                                        </span>
+                                                    ) : (
+                                                        <span title="Lưu máy" className="text-slate-400">
+                                                            <AppIcon name="localStorage" size="xs" />
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Tóm tắt tiền */}
+                                                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 font-mono">
+                                                    <span>Thu nhập: <strong className="text-slate-700 dark:text-slate-200 font-semibold">{formatVnd(rec.totalIncome)}</strong></span>
+                                                    {rec.proxyAmount > 0 && (
+                                                        <span>Nhận: <strong className="text-amber-600 dark:text-amber-400">{formatVnd(rec.proxyAmount)}</strong></span>
+                                                    )}
+                                                    <span>Thuế: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{formatVnd(rec.taxOnProxyAmount)}</strong></span>
+                                                    {rec.netRefundToFriend !== undefined && rec.netRefundToFriend > 0 && (
+                                                        <span>Quỹ: <strong className="text-sky-600 dark:text-sky-400">{formatVnd(rec.netRefundToFriend)}</strong></span>
+                                                    )}
+                                                </div>
+
+                                                {/* Chi tiết khoản nhận thay */}
+                                                {rec.proxyItemsDetail && (
+                                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1 italic" title={rec.proxyItemsDetail}>
+                                                        <span className="font-semibold text-slate-600 dark:text-slate-300 not-italic">Khoán: </span>
+                                                        {rec.proxyItemsDetail}
+                                                    </div>
+                                                )}
+
+                                                <div className="text-[11px] text-slate-400 mt-1">
+                                                    {new Date(rec.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}{' '}
+                                                    {new Date(rec.createdAt).toLocaleDateString('vi-VN')}
+                                                </div>
+                                            </div>
+
+                                            {/* Nút xóa bản ghi */}
+                                            {rec.id !== undefined && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-xs"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDeleteRecord(rec.id!);
+                                                    }}
+                                                    title="Xóa bản ghi này"
+                                                    aria-label="Xóa bản ghi này"
+                                                    className="lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                                >
+                                                    <AppIcon name="delete" size="sm" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Footer Sidebar */}
+            {records.length > 0 && (
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-1.5">
+                    <Button
+                        variant="inline-link"
+                        onClick={onClearAll}
+                        className="ycx-hit text-[11px] gap-1 text-rose-500 hover:text-rose-700"
+                    >
+                        <AppIcon name="delete" size="md" />
+                        <span>Xóa tất cả</span>
+                    </Button>
+
+                    <div className="flex items-center gap-1.5">
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleCopyGoogleSheets(activeRecords, activeMonthLabel)}
+                            className="gap-1 px-2.5"
+                            title="Sao chép bảng cho Google Sheets"
+                        >
+                            {isCopied ? <AppIcon name="check" size="md" className="text-emerald-600" /> : <AppIcon name="copy" size="md" />}
+                            <span>{isCopied ? 'Đã copy!' : 'Copy Sheets'}</span>
+                        </Button>
+                        <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => handleExportExcel(activeRecords, activeMonthLabel)}
+                            className="gap-1 px-2.5"
+                            title="Xuất file Excel (.xlsx)"
+                        >
+                            <AppIcon name="spreadsheet" size="md" />
+                            <span>Xuất Excel</span>
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

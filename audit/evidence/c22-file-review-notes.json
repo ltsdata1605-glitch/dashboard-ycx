@@ -1,0 +1,11 @@
+{
+  "package.json": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "functions/package.json": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "price-scraper-server/package.json": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "vite.config.ts": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "vitest.config.ts": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "eslint.config.js": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "tsconfig.json": "Full manifest/config source read; import/config/CLI reference review in audit/dependency-audit.csv, no package mutation.",
+  "services/analysisExportDestinations.test.ts": "Full read:3conditional skips preserve temporarily-disabled LINE contract; other cases mockdb; no live LINE.",
+  "tests/bench/filter-100k.test.ts": "Full read:synthetic100k local data benchmark opt-in BENCH; no assertions/productiondevice guarantee. No source edits."
+}

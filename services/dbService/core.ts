@@ -1,0 +1,585 @@
+import {
+    APP_STORE as SCOPED_APP_STORE,
+    BI_HUB_DB_VERSION,
+    SETTINGS_STORE as SCOPED_SETTINGS_STORE,
+    biHubDbName,
+    ensureBiHubDbReady,
+    isLightSyncKey,
+    giongNhau,
+} from '../../utils/localDbScope';
+
+const DB_VERSION = BI_HUB_DB_VERSION;
+export const APP_STORE = SCOPED_APP_STORE;
+const SETTINGS_STORE = SCOPED_SETTINGS_STORE;
+
+let dbPromise: Promise<IDBDatabase> | null = null;
+// Tên database ĐANG mở. Mỗi tài khoản một database riêng (utils/localDbScope.ts) nên tên có thể
+// đổi giữa phiên trang — ngay khi Firebase Auth xác nhận uid khác với lúc đoán, hoặc khi đăng
+// xuất/đăng nhập tài khoản khác mà không tải lại trang.
+let openedDbName: string | null = null;
+
+export function getDb(): Promise<IDBDatabase> {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+        return Promise.reject(new Error('IndexedDB is not supported/enabled in this environment.'));
+    }
+
+    const dbName = biHubDbName();
+    if (dbPromise && openedDbName === dbName) return dbPromise;
+    if (dbPromise) {
+        // Đổi tài khoản giữa phiên: đóng kết nối của tài khoản trước, nếu không mọi lượt ghi sau
+        // đó vẫn chảy vào database của người cũ.
+        const stale = dbPromise;
+        dbPromise = null;
+        stale.then(db => { try { db.close(); } catch { /* đã đóng sẵn */ } }).catch(() => { /* mở hụt từ đầu */ });
+    }
+    openedDbName = dbName;
+
+    // Lần đầu của mỗi tài khoản: chép dữ liệu từ database dùng chung cũ sang database riêng.
+    dbPromise = ensureBiHubDbReady(dbName).then(() => openDatabase(dbName));
+    return dbPromise;
+}
+
+function openDatabase(DB_NAME: string): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+        let active = true;
+
+        // Failsafe timeout: if IndexedDB open takes > 10 seconds, reject it to let app fallback
+        const timeoutId = setTimeout(() => {
+            if (active) {
+                active = false;
+                console.warn('[IDB] Connection timeout. Falling back to memory storage.');
+                dbPromise = null; // Allow retrying later
+                reject(new Error('IndexedDB connection timeout'));
+            }
+        }, 10000);
+
+        try {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = (event) => {
+                try {
+                    const db = (event.target as IDBOpenDBRequest).result;
+                    if (!db.objectStoreNames.contains(APP_STORE)) db.createObjectStore(APP_STORE);
+                    if (!db.objectStoreNames.contains(SETTINGS_STORE)) db.createObjectStore(SETTINGS_STORE);
+                } catch (e) {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(e);
+                    }
+                }
+            };
+            request.onsuccess = () => {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    const db = request.result;
+                    db.onclose = () => { dbPromise = null; };
+                    resolve(db);
+                } else {
+                    // Timeout already triggered, close this late connection.
+                    // Nuốt lỗi CÓ CHỦ Ý: kết nối này đã bị bỏ, đóng được hay không đều không ảnh
+                    // hưởng gì (thường lỗi vì đã tự đóng sẵn) — không có gì để báo cho người dùng.
+                    try { request.result.close(); } catch { /* đã đóng sẵn — bỏ qua */ }
+                }
+            };
+            request.onerror = () => {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    dbPromise = null;
+                    reject(request.error || new Error('Failed to open database'));
+                }
+            };
+            request.onblocked = () => {
+                console.warn('[IDB] Database open blocked.');
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    dbPromise = null;
+                    reject(new Error('IndexedDB blocked'));
+                }
+            };
+        } catch (error) {
+            if (active) {
+                active = false;
+                clearTimeout(timeoutId);
+                dbPromise = null;
+                reject(error);
+            }
+        }
+    });
+}
+
+// Lõi dùng chung cho saveSetting/saveSettingOrThrow — chỉ khác nhau ở hành vi khi retry lần 2
+// VẪN thất bại: saveSetting() (mặc định, ~80 call site khắp app) nuốt lỗi (chỉ console.error) để
+// không làm crash các luồng không kiểm tra promise — giữ nguyên hành vi cũ, KHÔNG đổi cho toàn bộ
+// app (đổi contract của hàm dùng chung ~80 nơi là việc rủi ro cao, riêng biệt, ngoài phạm vi rà
+// soát Check Thưởng). saveSettingOrThrow() ném lại lỗi để CALLER cụ thể (hiện tại chỉ
+// CheckThuongView.tsx ghi checkthuong_data) tự quyết định báo cho người dùng biết việc lưu thất
+// bại thay vì im lặng mất đồng bộ — xem implementation_plan.md.
+async function saveSettingInternal(key: string, value: unknown, source: string | undefined, throwOnFailure: boolean): Promise<void> {
+    const tryTransaction = async (db: IDBDatabase) => {
+        return new Promise<void>((resolve, reject) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn(`[IDB] saveSetting timeout for key: ${key}`);
+                    reject(new Error('Transaction timeout'));
+                }
+            }, 15000);
+
+            try {
+                const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+                const store = tx.objectStore(SETTINGS_STORE);
+                const dongDau = () => {
+                    if (key !== 'localSettingsLastModified' && !key.startsWith('lastModified_')) {
+                        let mtime = Date.now();
+                        if (value && typeof value === 'object' && typeof (value as any).lastModified === 'number' && (value as any).lastModified > 0) {
+                            mtime = (value as any).lastModified;
+                        }
+                        // Chỉ khoá đồng bộ nhẹ mới đóng mốc chung (utils/localDbScope.ts → isLightSyncKey); mốc riêng từng khoá giữ nguyên.
+                        if (isLightSyncKey(key)) store.put(mtime, 'localSettingsLastModified');
+                        store.put(mtime, `lastModified_${key}`);
+                    }
+                };
+                // Khoá đồng bộ nhẹ lưu LẠI đúng giá trị đang có (component ghi lại state vừa nạp lúc mở app —
+                // đo thật: kpiCardConfig, summaryTableConfig, dashboard_global_filters_v2…) thì KHÔNG đóng mốc
+                // và báo `unchanged` để useCloudSync không đẩy cả bộ cấu hình của máy này đè lên Cloud.
+                let khongDoi = false;
+                if (isLightSyncKey(key)) {
+                    const cu = store.get(key);
+                    cu.onsuccess = () => {
+                        khongDoi = cu.result !== undefined && giongNhau(cu.result, value);
+                        store.put(value, key);
+                        if (!khongDoi) dongDau();
+                    };
+                } else {
+                    store.put(value, key);
+                    dongDau();
+                }
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('ycx-setting-changed', { detail: { key, source, unchanged: khongDoi } }));
+                            if (key.startsWith('bi_')) {
+                                const originalKey = key.slice(3);
+                                window.dispatchEvent(new CustomEvent('indexeddb-change', { detail: { key: originalKey, source } }));
+                            }
+                        }
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(tx.error || new Error('Transaction failed'));
+                    }
+                };
+                tx.onabort = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(new Error('Transaction aborted'));
+                    }
+                };
+            } catch (error) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            }
+        });
+    };
+
+    try {
+        const db = await getDb();
+        await tryTransaction(db);
+    } catch (error) {
+        console.warn(`[IDB] Retry save '${key}' after error:`, (error as Error)?.message);
+        dbPromise = null;
+        try {
+            const db = await getDb();
+            await tryTransaction(db);
+        } catch (retryError) {
+            console.error(`[IDB] Permanent failure saving key '${key}':`, retryError);
+            if (throwOnFailure) throw retryError;
+        }
+    }
+}
+
+export async function saveSetting(key: string, value: unknown, source?: string): Promise<void> {
+    return saveSettingInternal(key, value, source, false);
+}
+
+/** Như saveSetting(), nhưng ném lại lỗi nếu retry lần 2 vẫn thất bại — dùng khi caller cần biết
+ * việc lưu KHÔNG thành công để báo cho người dùng (thay vì mặc định nuốt lỗi của saveSetting()). */
+export async function saveSettingOrThrow(key: string, value: unknown, source?: string): Promise<void> {
+    return saveSettingInternal(key, value, source, true);
+}
+
+export async function saveSettingFromCloud(key: string, value: unknown, updatedAt: number): Promise<void> {
+    const tryTransaction = async (db: IDBDatabase) => {
+        return new Promise<void>((resolve, reject) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn(`[IDB] saveSettingFromCloud timeout for key: ${key}`);
+                    reject(new Error('Transaction timeout'));
+                }
+            }, 15000);
+
+            try {
+                const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+                const store = tx.objectStore(SETTINGS_STORE);
+                store.put(value, key);
+                // Khoá nặng từ Cloud không được kéo mốc cấu hình nhẹ theo (xem isLightSyncKey).
+                if (isLightSyncKey(key)) store.put(updatedAt, 'localSettingsLastModified');
+                if (!key.startsWith('lastModified_')) {
+                    store.put(updatedAt, `lastModified_${key}`);
+                }
+
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        if (typeof window !== 'undefined') {
+                            if (key.startsWith('bi_')) {
+                                const originalKey = key.slice(3);
+                                window.dispatchEvent(new CustomEvent('indexeddb-change', { detail: { key: originalKey, source: 'cloud-sync' } }));
+                            } else {
+                                window.dispatchEvent(new CustomEvent('indexeddb-change', { detail: { key, source: 'cloud-sync' } }));
+                            }
+                        }
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(tx.error || new Error('Transaction failed'));
+                    }
+                };
+                tx.onabort = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(new Error('Transaction aborted'));
+                    }
+                };
+            } catch (error) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            }
+        });
+    };
+
+    try {
+        const db = await getDb();
+        await tryTransaction(db);
+    } catch (error) {
+        console.warn(`[IDB] Retry saveSettingFromCloud '${key}' after error:`, (error as Error)?.message);
+        dbPromise = null;
+        try {
+            const db = await getDb();
+            await tryTransaction(db);
+        } catch (retryError) {
+            console.error(`[IDB] Permanent failure saveSettingFromCloud key '${key}':`, retryError);
+        }
+    }
+}
+
+// BUG FIX (self-echo còn sót sau isHeavyKeyInFlight ở hooks/useCloudSync.ts): guard in-flight chỉ
+// đóng được phần lớn cửa sổ đua (từ lúc debounce bắn tới lúc ghi Firestore xong), nhưng THỨ TỰ
+// giữa "promise ghi Firestore resolve" và "onSnapshot bắn cho chính lượt ghi đó" không được đảm
+// bảo tuyệt đối bởi SDK — với payload lớn (checkthuong_data từ upload Excel, có thể ~4MB, phải
+// ghi chunked qua nhiều batch) cửa sổ đua này lộ rõ hơn, khiến chính lượt ghi của mình vẫn thỉnh
+// thoảng bị hiểu nhầm là "cloud mới hơn" (user báo cáo lại sau khi đã áp guard in-flight). Chốt
+// thêm 1 lớp: sau khi ghi Firestore THÀNH CÔNG, cập nhật lại lastModified_ cục bộ về "vừa xong" —
+// không ghi lại value (đã đúng sẵn) và KHÔNG dispatch sự kiện nào (tránh vòng lặp tự kích lại
+// đồng bộ) — chỉ để lần so sánh cloudTime > localTime kế tiếp (nếu vẫn lọt qua guard in-flight)
+// không còn chênh lệch nhiều giây như trước.
+export async function touchLastModified(key: string, timestamp: number): Promise<void> {
+    try {
+        const db = await getDb();
+        await new Promise<void>((resolve, reject) => {
+            try {
+                const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+                tx.objectStore(SETTINGS_STORE).put(timestamp, `lastModified_${key}`);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error || new Error('Transaction failed'));
+                tx.onabort = () => reject(new Error('Transaction aborted'));
+            } catch (error) {
+                reject(error);
+            }
+        });
+    } catch (error) {
+        console.warn(`[IDB] touchLastModified '${key}' failed (không ảnh hưởng dữ liệu chính):`, (error as Error)?.message);
+    }
+}
+
+export async function getAllSettings(): Promise<Record<string, unknown>> {
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] getAllSettings timeout');
+                    resolve({});
+                }
+            }, 10000);
+
+            try {
+                const tx = db.transaction(SETTINGS_STORE, 'readonly');
+                const store = tx.objectStore(SETTINGS_STORE);
+                const request = store.getAll();
+                const keysRequest = store.getAllKeys();
+
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        const keys = keysRequest.result;
+                        const values = request.result;
+                        const settings: Record<string, unknown> = {};
+                        for (let i = 0; i < keys.length; i++) {
+                            settings[keys[i] as string] = values[i];
+                        }
+                        resolve(settings);
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(tx.error || new Error('Read transaction failed'));
+                    }
+                };
+            } catch (err) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    reject(err);
+                }
+            }
+        });
+    } catch (e) {
+        console.error('[IDB] getAllSettings failed:', e);
+        return {};
+    }
+}
+
+// PERF (2026-10-07): getAllSettings() nạp GIÁ TRỊ mọi khoá — gồm khoDataCache_* hàng MB — nên lúc mở app
+// một lượt gọi chiếm kho settings nhiều giây trên điện thoại. Cần tên khoá hoặc một nhóm khoá nhỏ thì
+// dùng 2 hàm dưới: chỉ đọc khoá (getAllKeys), rồi chỉ get đúng khoá khớp, trong CÙNG 1 transaction readonly.
+export async function getAllSettingKeys(): Promise<string[]> {
+    try {
+        const db = await getDb();
+        return await new Promise<string[]>((resolve, reject) => {
+            const request = db.transaction(SETTINGS_STORE, 'readonly').objectStore(SETTINGS_STORE).getAllKeys();
+            request.onsuccess = () => resolve(request.result.map(String));
+            request.onerror = () => reject(request.error || new Error('Read keys failed'));
+        });
+    } catch (e) {
+        console.error('[IDB] getAllSettingKeys failed:', e);
+        return [];
+    }
+}
+
+export async function getSettingsMatching(match: (key: string) => boolean): Promise<Record<string, unknown>> {
+    try {
+        const db = await getDb();
+        return await new Promise<Record<string, unknown>>((resolve, reject) => {
+            const tx = db.transaction(SETTINGS_STORE, 'readonly');
+            const store = tx.objectStore(SETTINGS_STORE);
+            const settings: Record<string, unknown> = {};
+            const keysRequest = store.getAllKeys();
+            keysRequest.onsuccess = () => {
+                keysRequest.result.map(String).filter(match).forEach(key => {
+                    const request = store.get(key);
+                    request.onsuccess = () => { settings[key] = request.result; };
+                });
+            };
+            tx.oncomplete = () => resolve(settings);
+            tx.onerror = () => reject(tx.error || new Error('Read transaction failed'));
+        });
+    } catch (e) {
+        console.error('[IDB] getSettingsMatching failed:', e);
+        return {};
+    }
+}
+
+export async function mergeSettings(settings: Record<string, unknown>): Promise<void> {
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] mergeSettings timeout');
+                    resolve();
+                }
+            }, 15000);
+
+            try {
+                const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+                const store = tx.objectStore(SETTINGS_STORE);
+                for (const [key, value] of Object.entries(settings)) {
+                    store.put(value, key);
+                }
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        if (typeof window !== 'undefined') {
+                            for (const key of Object.keys(settings)) {
+                                window.dispatchEvent(new CustomEvent('ycx-setting-changed', { detail: { key } }));
+                                if (key.startsWith('bi_')) {
+                                    const originalKey = key.slice(3);
+                                    window.dispatchEvent(new CustomEvent('indexeddb-change', { detail: { key: originalKey } }));
+                                }
+                            }
+                        }
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(tx.error || new Error('Merge transaction failed'));
+                    }
+                };
+            } catch (error) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            }
+        });
+    } catch (e) {
+        console.error('[IDB] mergeSettings failed:', e);
+    }
+}
+
+export async function getSetting<T>(key: string): Promise<T | null> {
+    try {
+        const db = await getDb();
+        return new Promise((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn(`[IDB] getSetting timeout for key: ${key}`);
+                    resolve(null);
+                }
+            }, 10000);
+
+            try {
+                const tx = db.transaction(SETTINGS_STORE, 'readonly');
+                const store = tx.objectStore(SETTINGS_STORE);
+                const request = store.get(key);
+                request.onsuccess = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve(request.result === undefined ? null : request.result);
+                    }
+                };
+                request.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        console.error(`[IDB] Error reading key "${key}":`, request.error);
+                        resolve(null);
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        console.error(`[IDB] Transaction error reading key "${key}":`, tx.error);
+                        resolve(null);
+                    }
+                };
+            } catch (err) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    console.error(`[IDB] Synchronous error reading key "${key}":`, err);
+                    resolve(null);
+                }
+            }
+        });
+    } catch (error) {
+        console.error(`[IDB] Failed to get database for key "${key}":`, error);
+        return null;
+    }
+}
+
+// Alias for compatibility
+
+// Buộc getDb() mở lại kết nối mới ở lần gọi tiếp theo — dùng khi retry sau lỗi transaction.
+export function resetDbConnection(): void {
+    dbPromise = null;
+}
+
+export async function cleanupGarbageKeys(): Promise<void> {
+    try {
+        const db = await getDb();
+        // PERF FIX (2026-10-07, app treo ~40s ở "Đang tải cấu hình cục bộ..." trên điện thoại): bản cũ
+        // duyệt openCursor() trong transaction READWRITE — con trỏ nạp cả GIÁ TRỊ từng khoá (khoDataCache_*
+        // hàng MB) và khoá kho settings suốt lúc duyệt, mọi getSetting lúc mở app xếp hàng sau nó rồi hết
+        // giờ 10s trả null. Chỉ cần TÊN khoá: đọc bằng getAllKeys() readonly, có rác mới mở readwrite ngắn.
+        const keys = await new Promise<IDBValidKey[]>((resolve, reject) => {
+            const request = db.transaction(SETTINGS_STORE, 'readonly').objectStore(SETTINGS_STORE).getAllKeys();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error || new Error('Cleanup key scan failed'));
+        });
+        const garbage = keys.map(String).filter(key =>
+            key.startsWith('lastModified_lastModified_') || (key.match(/lastModified_/g) || []).length > 1
+        );
+        if (garbage.length === 0) return;
+        return new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+            const store = tx.objectStore(SETTINGS_STORE);
+            garbage.forEach(key => store.delete(key));
+            tx.oncomplete = () => {
+                console.warn(`[IDB Cleanup] Cleaned up ${garbage.length} recursive lastModified garbage keys.`);
+                resolve();
+            };
+            tx.onerror = () => {
+                reject(tx.error || new Error('Cleanup transaction failed'));
+            };
+        });
+    } catch (e) {
+        console.error('[IDB Cleanup] Failed to run garbage cleanup:', e);
+    }
+}
+
+export async function deleteSetting(key: string): Promise<void> {
+    try {
+        const db = await getDb();
+        return new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+            tx.objectStore(SETTINGS_STORE).delete(key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.warn(`[IDB] deleteSetting failed for ${key}:`, e);
+    }
+}

@@ -1,0 +1,184 @@
+import React from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { StaffMember, ScheduleConfig, DailyRequirements, UnresolvedConflict } from '../types';
+import { Button } from '../../../components/shared/ui/Button';
+import { Input } from '../../../components/shared/ui/Input';
+
+interface DailyStatsTableProps {
+  staffList: StaffMember[];
+  config: ScheduleConfig;
+  requirements: DailyRequirements;
+  setRequirements: (reqs: DailyRequirements) => void;
+  selectedDay: number;
+  setSelectedDay: (day: number) => void;
+  departmentFilter: string;
+  unresolvedConflicts: UnresolvedConflict[];
+  onShowUnresolvedConflicts: () => void;
+}
+
+const DailyStatsTable: React.FC<DailyStatsTableProps> = ({ staffList, config, requirements, setRequirements, selectedDay, setSelectedDay, departmentFilter, unresolvedConflicts, onShowUnresolvedConflicts }) => {
+    const { duration, year, month, startDay } = config;
+
+    const timeSlots = ['1', '2', '3', '4', '5', '6'];
+    const canEditRequirements = departmentFilter === 'all' || departmentFilter === 'BP All In One - ĐMX' || departmentFilter === 'BP All In One';
+
+    const dayHeaders = [];
+    for (let d = 1; d <= duration; d++) {
+        const date = new Date(year, month - 1, startDay + d - 1);
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const dowLabel = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][dayOfWeek];
+        dayHeaders.push({ d, date: date.getDate(), dowLabel, isWeekend });
+    }
+
+    const scheduledCountsMatrix = timeSlots.map(slot => {
+        const row = [];
+        for (let d = 1; d <= duration; d++) {
+            const count = staffList.filter(staff => {
+                const daySchedule = staff.schedule[d];
+                if (!daySchedule || !daySchedule.shift) return false;
+                // Không tính vào thống kê nếu mã ca này CHỈ có mặt do "Tăng ca T7-CN" tự động
+                // thêm vào (addedWeekendShifts) — nếu không, bật cả 2 tùy chọn tăng ca sẽ khiến
+                // hầu hết nhân viên đều "dính" ca 1/2/5 vào cuối tuần, làm số liệu tăng vọt sai
+                // lệch (VD: hiện cả 26/26 người dù thực tế chỉ vài người làm ca đó).
+                if (daySchedule.addedWeekendShifts && daySchedule.addedWeekendShifts.includes(slot)) return false;
+                return daySchedule.shift.includes(slot);
+            }).length;
+            row.push(count);
+        }
+        return row;
+    });
+    
+    const handleRequirementChange = (slot: string, value: string) => {
+        const newValue = parseInt(value, 10) || 0;
+        if (newValue >= 0) {
+            setRequirements({ ...requirements, [slot]: newValue });
+        }
+    };
+
+    return (
+        <div className="mt-4 mb-2 bg-white rounded-none lg:rounded-card border-y lg:border border-slate-200 overflow-hidden shadow-sm lg:hover:shadow-md transition-shadow relative">
+            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-md lg:rounded-control flex items-center justify-center shrink-0 bg-sky-100 text-sky-600">
+                        <AppIcon name="chartBar" size="md" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Thống Kê Nhân Sự Theo Ca</h3>
+                </div>
+                {unresolvedConflicts.length > 0 && (
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={onShowUnresolvedConflicts}
+                        icon="alert"
+                        title="Hiển thị danh sách các ca cần tìm người thay thế"
+                    >
+                        <span>{unresolvedConflicts.length} ca cần xử lý</span>
+                    </Button>
+                )}
+            </div>
+            
+            <div className="overflow-x-auto custom-scroll pb-2">
+                <table className="w-full text-left border-collapse min-w-max tabular-nums">
+                    <thead>
+                        <tr>
+                            <th className="sticky left-0 bg-slate-50 z-20 border-r border-b border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-24 text-center">Ca Làm Việc</th>
+                            {canEditRequirements && (
+                                <th className="sticky left-[96px] bg-slate-50 z-20 border-r border-b border-slate-200 px-2 py-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-20 text-center">Yêu Cầu</th>
+                            )}
+                            {dayHeaders.map((dh, idx) => {
+                                const isSelected = dh.d === selectedDay;
+                                return (
+                                    <th 
+                                        key={idx} 
+                                        onClick={() => setSelectedDay(dh.d)}
+                                        className={`px-1 py-1.5 text-center border-b border-r border-slate-200 min-w-[48px] cursor-pointer transition-colors ${
+                                            isSelected ? 'bg-sky-100 border-b-2 border-b-indigo-500' :
+                                            dh.isWeekend ? 'bg-rose-50 hover:bg-rose-100 text-rose-600' : 'bg-slate-50 hover:bg-slate-100 text-slate-500'
+                                        }`}
+                                    >
+                                        <div className="text-xs font-bold opacity-70 mb-px leading-none">{dh.dowLabel}</div>
+                                        <div className="text-sm font-black leading-none">{dh.date}</div>
+                                    </th>
+                                )
+                            })}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {timeSlots.map((slot, rowIndex) => {
+                            const required = requirements[slot] || 0;
+                            return (
+                                <tr key={slot} className="hover:bg-slate-50/50">
+                                    <td className="sticky left-0 bg-white z-10 border-r border-b border-slate-200 px-2 py-2 text-sm font-black text-slate-700 text-center">
+                                        CA {slot}
+                                    </td>
+                                    {canEditRequirements && (
+                                        <td className="sticky left-[96px] bg-white z-10 border-r border-b border-slate-200 px-1 py-2 text-center">
+                                            <Input
+                                                dense
+                                                aria-label={`Yêu cầu ca ${slot}`}
+                                                id={`req-input-${slot}`}
+                                                type="number" inputMode="decimal"
+                                                value={requirements[slot] || ''}
+                                                onChange={(e) => handleRequirementChange(slot, e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const nextSlot = String(parseInt(slot) + 1);
+                                                        const nextInput = document.getElementById(`req-input-${nextSlot}`);
+                                                        if (nextInput) {
+                                                            (nextInput as HTMLInputElement).focus();
+                                                            (nextInput as HTMLInputElement).select();
+                                                        }
+                                                    }
+                                                }}
+                                                className="h-8 px-1.5 text-center font-bold bg-slate-50 border-slate-200 text-sm rounded-none"
+                                                min="0"
+                                            />
+                                        </td>
+                                    )}
+                                    {scheduledCountsMatrix[rowIndex].map((count, dIdx) => {
+                                        const d = dIdx + 1;
+                                        const isSelected = d === selectedDay;
+                                        let textColor = "text-slate-600 font-semibold";
+                                        let bgClass = "bg-white";
+                                        
+                                        if (canEditRequirements && required > 0) {
+                                            if (count < required) { 
+                                                textColor = "text-rose-600 font-black"; 
+                                                bgClass = "bg-rose-50/40"; 
+                                            } else if (count > required) { 
+                                                textColor = "text-amber-600 font-black"; 
+                                                bgClass = "bg-amber-50/40"; 
+                                            } else { 
+                                                textColor = "text-emerald-600 font-bold"; 
+                                            }
+                                        }
+
+                                        if (isSelected) {
+                                            bgClass = "bg-sky-50/70";
+                                        }
+
+                                        return (
+                                            <td 
+                                                key={dIdx} 
+                                                onClick={() => setSelectedDay(d)}
+                                                className={`px-1 py-2 text-center border-b border-r border-slate-200 text-sm cursor-pointer transition-colors ${textColor} ${bgClass}`}
+                                            >
+                                                {count}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+const MemoizedDailyStatsTable = React.memo(DailyStatsTable);
+MemoizedDailyStatsTable.displayName = 'DailyStatsTable';
+export default MemoizedDailyStatsTable;

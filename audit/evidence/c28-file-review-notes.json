@@ -1,0 +1,7 @@
+{
+  "features/bi-dashboard/components/dashboard/IndustryView.tsx": "Full902line source read: two filter labels had no htmlFor/id; useId now links industry/sub labels to existing Switch; column selector already valid retained. Native label click verified; mobile popup left clipping FAIL. Sort headers click-only and tree expander unnamed remain pending.",
+  "features/bi-dashboard/hooks/useIndustryViewLogic.ts": "Full232line source read: global persisted hidden industries/subindustries/columns; tree filtering/flattening, totals and sorting preserved; null active data requires caller guard. No business formula modification; collision/duplicate names and lifecycle pending.",
+  "features/bi-dashboard/components/Card.tsx": "Full source read: delegates SectionHeader/SectionCard; bordered=false and rounded=false embedding exceptions retained. No source changes.",
+  "tests/e2e/helpers/materialHarness.html": "Added actual IndustryView tree fixture with8synthetic industries+children, fresh localIDB; existing branches unchanged.",
+  "tests/e2e/industry-switch-labels.spec.ts": "Full authored safety review: native names/label ids/checked state plus actual parent/child row filtering at390/1366; network isolated. Fixture names honor formatIndustryDisplayName. Images show mobile clipping, not visual acceptance."
+}

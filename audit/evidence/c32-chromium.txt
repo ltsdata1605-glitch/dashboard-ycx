@@ -1,0 +1,9 @@
+[WebServer] (node:47681) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/bonus-legacy-fallback.spec.ts:3:3 › legacy bonus native IndexedDB fallback store=false (1.3s)
+  ✓  2 [chromium] › tests/e2e/bonus-legacy-fallback.spec.ts:3:3 › legacy bonus native IndexedDB fallback store=true (355ms)
+
+  2 passed (3.7s)

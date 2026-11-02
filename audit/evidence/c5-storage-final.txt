@@ -1,0 +1,10 @@
+[WebServer] (node:49513) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native add transaction aborts (31.4s)
+  ✓  2 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:5:5 › save rejects when native put transaction aborts (7.0s)
+  ✓  3 [chromium] › tests/e2e/tax-storage-atomicity.spec.ts:31:1 › committed save retains overwrite behavior and stable local ID (2.3s)
+
+  3 passed (1.1m)

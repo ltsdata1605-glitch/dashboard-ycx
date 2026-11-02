@@ -1,0 +1,196 @@
+import React, { useState, useEffect } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { SavedList, SavedListItem } from './types';
+import { fetchSavedListsFromFirestore, deleteSavedListFromFirestore, fetchSavedListItems } from './services/firebaseService';
+import ConfirmModal from './ConfirmModal';
+import AlertModal from './AlertModal';
+import { Button } from '../../components/shared/ui/Button';
+import { Modal } from '../../components/shared/ui/Modal';
+import { EmptyState } from '../../components/shared/ui/EmptyState';
+
+interface SavedListsModalProps {
+    storeId: string;
+    userId: string;
+    isAdmin: boolean;
+    onClose: () => void;
+    onLoadList: (items: SavedListItem[]) => void;
+}
+
+const SavedListsModal: React.FC<SavedListsModalProps> = ({ storeId, userId, isAdmin, onClose, onLoadList }) => {
+    const [lists, setLists] = useState<SavedList[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [listToDelete, setListToDelete] = useState<SavedList | null>(null);
+    const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; message: string }>({
+        isOpen: false,
+        message: ''
+    });
+    // id của danh sách đang tải `items` theo yêu cầu (chỉ xảy ra với danh sách lớn đã chunk).
+    const [loadingItemsId, setLoadingItemsId] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadLists();
+    }, [storeId]);
+
+    const loadLists = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            // BUG FIX: đã bỏ fallback đọc 'cached_dept_id' — khoá này thuộc app gốc
+            // (contexts/AuthContext.tsx), vô tình trùng IndexedDB với sticker-event (xem giải
+            // thích chi tiết tại StickerEventApp.tsx#onConfirmSaveList), khiến targetStoreId lúc
+            // tải danh sách có thể khác lúc lưu, làm danh sách vừa lưu không hiện ra.
+            const targetStoreId = storeId || 'SUPERADMIN';
+
+            // Filter lists at query level if not admin
+            const filteredLists = await fetchSavedListsFromFirestore(targetStoreId, isAdmin ? undefined : userId);
+            setLists(filteredLists);
+        } catch (err) {
+            setError('Lỗi khi tải danh sách đã lưu.');
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    /**
+     * Mở 1 danh sách. Danh sách lớn được lưu dạng chunk nên lúc liệt kê `items` để rỗng có chủ ý
+     * (QUOTA FIX 2026-09-17 — xem `itemsChunked` trong types.ts): đọc chunk của mọi danh sách ngay
+     * lúc liệt kê là nguồn tốn lượt đọc Firestore lớn nhất của In Sticker. Tải đúng lúc cần ở đây.
+     */
+    const handleOpenList = async (list: SavedList) => {
+        if (!list.itemsChunked || list.items.length > 0) {
+            onLoadList(list.items);
+            onClose();
+            return;
+        }
+        setLoadingItemsId(list.id);
+        try {
+            const items = await fetchSavedListItems(list.storeId || storeId, list.id);
+            if (items.length === 0) {
+                setAlertConfig({ isOpen: true, message: 'Không tải được nội dung danh sách này. Vui lòng thử lại.' });
+                return;
+            }
+            onLoadList(items);
+            onClose();
+        } finally {
+            setLoadingItemsId(null);
+        }
+    };
+
+    const handleDelete = (list: SavedList) => {
+        setListToDelete(list);
+        setIsConfirmOpen(true);
+    };
+
+    const executeDelete = async () => {
+        if (!listToDelete) return;
+
+        try {
+            // BUG FIX: trước đây xóa bằng `storeId` (prop truyền vào modal, có thể là storeId của
+            // NGƯỜI XEM sau khi áp fallback || 'SUPERADMIN'), không phải storeId THẬT của chính
+            // danh sách đó — fetchSavedListsFromFirestore() gộp kết quả từ NHIỀU store (storeId của
+            // user + 'SUPERADMIN'), nên 1 danh sách hiển thị trong modal có thể thực sự nằm ở store
+            // khác với prop storeId. Xóa sai store khiến deleteDoc() "thành công" (không lỗi) nhưng
+            // không xóa được gì — danh sách vẫn còn nguyên. Dùng đúng list.storeId lưu sẵn trong
+            // chính bản ghi Firestore để luôn xóa đúng chỗ.
+            await deleteSavedListFromFirestore(listToDelete.storeId || storeId, listToDelete.id);
+            setLists(lists.filter(l => l.id !== listToDelete.id));
+        } catch (err) {
+            setAlertConfig({ isOpen: true, message: 'Lỗi khi xóa danh sách.' });
+            console.error(err);
+        } finally {
+            setListToDelete(null);
+        }
+    };
+
+    return (
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            title="Danh sách đã lưu"
+            titleColorClass="text-slate-900"
+            maxWidth="lg"
+        >
+            <div className="space-y-6 flex flex-col h-full">
+                {error && (
+                    <div className="bg-rose-50 text-rose-600 p-3 rounded-md text-sm">
+                        {error}
+                    </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto min-h-[300px]">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full">
+                            <div className="w-8 h-8 border-4 border-sky-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                        </div>
+                    ) : lists.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                            <EmptyState icon={<AppIcon name="exportBatch" size="xl" />} title="Chưa có danh sách nào được lưu" />
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {lists.map(list => (
+                                <div key={list.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-popup border border-slate-200 hover:border-sky-300 transition-colors">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-base font-semibold text-slate-800 truncate">{list.name}</h3>
+                                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                            <span>{new Date(list.createdAt).toLocaleString('vi-VN')}</span>
+                                            <span>•</span>
+                                            <span>{list.totalItems} sản phẩm</span>
+                                            {isAdmin && list.userId !== userId && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span className="text-sky-600">Tạo bởi: {list.userId}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-4">
+                                        <Button
+                                            variant="tinted"
+                                            size="sm"
+                                            isLoading={loadingItemsId === list.id}
+                                            onClick={() => { void handleOpenList(list); }}
+                                        >
+                                            Mở
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDelete(list)}
+                                            icon="delete"
+                                            title="Xóa danh sách"
+                                            aria-label="Xóa danh sách"
+                                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+            </div>
+
+            <ConfirmModal
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={executeDelete}
+                message="Bạn có chắc chắn muốn xóa danh sách này?"
+                title="Xác nhận xóa"
+                confirmText="Xóa"
+                type="danger"
+            />
+
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+                message={alertConfig.message}
+            />
+        </Modal>
+    );
+};
+
+export default SavedListsModal;

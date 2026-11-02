@@ -1,0 +1,13 @@
+{
+  "components/shared/ui/PageActions.tsx": "Full source reread: owner registry,visual signature,callback refs and remove. Actual PageActionsBar fixture tests latest primary/quick/menu closure without changing labels,owner activation/null/unmount,scope/loading. No appsource change.",
+  "components/layout/PageActionsBar.tsx": "Full source read: mobile1quick with primary/2without,desktop2quick,overflow sharedActionMenu,scope gate,disabled/loading,sharedButton/AppIcon.4cases perengine fixture; all page consumers pending.",
+  "components/shared/ui/toast/toast.ts": "Full201line source read: metadata overwrite/id compatibility,icon normalization,durations,action defaults,legacy promise/custom forwarding,longtask helper.11unitPASS mocklibrary; runtime/queue/production share pending.",
+  "components/shared/ui/toast/AppToaster.tsx": "Full291line source read: portal,3visible cap,ResizeObserver/height,drag/pause/dismiss/action order,material/reducedmotion. Hidden toast timers may expire before shown; candidate requires runtime repro. NOT_RUN C39 runtime.",
+  "components/shared/ui/toast/index.ts": "Full8line barrel read: explicit public API and AppToaster exports; retained callers in c39-consumers.txt. No deletion.",
+  "components/shared/ui/toast/toast.test.ts": "Full112line safetyread:11isolated rht mock API tests; PASS, no production runtime proof.",
+  "components/shared/ui/toast/khongToastTuVe.test.ts": "Full33line safetyread: scans source folders only,regex guard for fixedbottom cssText.1PASS; lexicalcheck not fulltoastmigration proof.",
+  "tests/e2e/helpers/appleUiHarness.tsx": "Full source read existing React fixture; callback test changes subtitle with count so does not isolate stablevisualsignature. New C39 fixture specifically tests callback-only changes. NOT_RUN oldfixture.",
+  "tests/e2e/toast-thong-nhat.spec.ts": "Full source safetyread: apptrial/sharedtoast invocation20s durations,geometry/drag/action/close.20s avoids expiryrace but no queued-duration proof. NOT_RUN C39.",
+  "tests/e2e/helpers/materialHarness.html": "Added actual PageActionsProvider/usePageActions and production PageActionsBar;2owners React controls,state callbacks,scope/loading. Local data only.",
+  "tests/e2e/page-actions-registry.spec.ts": "Authored/read4cases390/1366 owner lifecycle/latest callbacks,overflowmenu,scope/loading. Initial menu role locator mistake retained in c39-before report; corrected to actual menuitem role; no application change."
+}

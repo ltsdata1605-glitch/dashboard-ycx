@@ -1,0 +1,11 @@
+
+> reportycx_11.2.2026_new@0.0.0 check:budget
+> node scripts/kiem-goi-tai-dau.cjs
+
+   145.5 KB  /assets/vendor-firebase-DVZPizMJ.js
+    59.3 KB  /assets/vendor-react-spjDHvdB.js
+    49.6 KB  /assets/index-Bw97Tp11.js
+    41.4 KB  /assets/index-3XeY9gcY.css
+    18.3 KB  /assets/vendor-icons-DmTakvj8.js
+     8.5 KB  /assets/shared-utils-B_Pb1ZNr.js
+[gói tải đầu] 322.6 KB gzip / ngân sách 330 KB — OK

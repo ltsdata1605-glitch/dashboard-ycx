@@ -1,0 +1,404 @@
+
+import type { WarehouseColumnConfig, WarehouseMetricType } from './types';
+
+export const COL = {
+    ID: ['Mã Đơn Hàng', 'Mã đơn hàng'],
+    PRODUCT: ['Tên Sản Phẩm', 'Tên sản phẩm'],
+    CUSTOMER_NAME: ['Tên Khách Hàng', 'Tên khách hàng', 'TenKhachHang', 'Khách hàng'],
+    QUANTITY: ['Số Lượng', 'Số lượng', 'Số Lượng Bán', 'Số lượng bán', 'SL', 'Sl'],
+    PRICE: [
+        'Giá bán_1', 'Giá bán 1', 'Giá bán_ 1', 'Giá Bán_1', 'Giá Bán 1', 'Gia ban_1', 'Gia ban 1',
+        'Giá bán (KM)', 'Giá bán KM', 'Giá KM', 'Giá sau giảm', 'Giá sau KM', 'Giá sau khuyến mãi',
+        'Thành tiền', 'Thành Tiền', 'ThanhTien', 'Thanh Tien', 'Thanh toán', 'Thanh Toán',
+        'Doanh thu', 'Doanh Thu', 'Doanh số', 'Doanh Số',
+        'Tiền bán', 'Tiền Bán', 'Thực thu', 'Thực Thu', 'Tổng tiền', 'Tổng Tiền'
+    ],
+    ORIGINAL_PRICE: [
+        'Giá bán', 'Giá Bán', 'Gia ban', 'Gia Ban',
+        'Giá gốc', 'Giá Gốc', 'Gia goc',
+        'Giá niêm yết', 'Giá Niêm Yết', 'Gia niem yet',
+        'Giá trước giảm', 'Giá trước KM'
+    ],
+    KHO: ['Mã kho tạo', 'Mã Kho Tạo', 'Mã kho', 'Mã Kho', 'Kho bán', 'Mã kho bán'],
+    // 'Trạng thái' (trần, không "hồ sơ") — biến thể fallback trước đây rải rác ở
+    // hooks/useDashboardLogic.ts + hooks/useFileUploadLogic.ts, gộp về đây (Đợt 4).
+    TRANG_THAI: ['Trạng thái hồ sơ', 'Trạng thái'],
+    // 'NguoiTao'/'NV Tạo' — biến thể trước đây chỉ khai báo cục bộ ở 3 modal xuất Excel
+    // (Uncollected/Unshipped/PerformanceModal), gộp về đây (Đợt 4) để worker.ts nhận diện được.
+    NGUOI_TAO: ['Người tạo', 'NguoiTao', 'NV Tạo'],
+    XUAT: ['Trạng thái xuất', 'TrangThaiXuat'],
+    DATE_CREATED: ['Ngày tạo', 'Ngày Tạo'],
+    NGAY_HEN_GIAO: ['Thời gian hẹn giao', 'Thời Gian Hẹn Giao', 'Thoi gian hen giao', 'TG Hẹn Giao'],
+    HINH_THUC_XUAT: ['Hình thức xuất'],
+    TINH_TRANG_NHAP_TRA: ['Tình trạng nhập trả của sản phẩm đổi với sản phẩm chính'],
+    TRANG_THAI_THU_TIEN: ['Trạng thái thu tiền'],
+    TRANG_THAI_HUY: ['Trạng thái hủy'],
+    MA_NGANH_HANG: ['Ngành Hàng', 'Ngành hàng', 'Nganh Hang'],
+    MA_NHOM_HANG: ['Nhóm Hàng', 'Nhóm hàng', 'Nhom Hang'],
+    MANUFACTURER: ['Nhà sản xuất', 'Hãng', 'Hãng SX'],
+    PRODUCT_CODE: ['Mã sản phẩm', 'Mã SP', 'Mã sp', 'Mã Hàng', 'Mã hàng'],
+    KHO_TAO: ['Kho tạo', 'Kho Tạo'],
+    TRANG_THAI_GIAO_HANG: ['Trạng thái giao hàng', 'Trạng thái giao'],
+    CON_NO: ['Còn nợ', 'Còn Nợ']
+};
+
+// Khoá ngắn cố định cho từng field logic ở trên (KE_HOACH_TONG_THE.md mục 3.1 bước 1) — dùng để
+// đổi tên khoá của DataRow NGAY SAU KHI parse Excel (services/worker.ts), thay cho việc giữ
+// nguyên chuỗi tiếng Việt dài lặp lại ở mọi dòng. `getRowValue` tra bảng này TRƯỚC (O(1)), chỉ rơi
+// xuống dò biến thể cũ nếu không thấy — dữ liệu cũ đã lưu IndexedDB/Firestore từ trước bản vá này
+// (còn khoá tiếng Việt gốc) vẫn đọc đúng, không cần migrate.
+export const COL_SHORT_KEY: Record<keyof typeof COL, string> = {
+    ID: 'id',
+    PRODUCT: 'sp',
+    CUSTOMER_NAME: 'kh',
+    QUANTITY: 'sl',
+    PRICE: 'gia',
+    ORIGINAL_PRICE: 'giaGoc',
+    KHO: 'kho',
+    TRANG_THAI: 'trangThai',
+    NGUOI_TAO: 'nguoiTao',
+    XUAT: 'xuat',
+    DATE_CREATED: 'ngayTao',
+    NGAY_HEN_GIAO: 'ngayHenGiao',
+    HINH_THUC_XUAT: 'htx',
+    TINH_TRANG_NHAP_TRA: 'nhapTra',
+    TRANG_THAI_THU_TIEN: 'thuTien',
+    TRANG_THAI_HUY: 'trangThaiHuy',
+    MA_NGANH_HANG: 'nganhHang',
+    MA_NHOM_HANG: 'nhomHang',
+    MANUFACTURER: 'hangSx',
+    PRODUCT_CODE: 'maSp',
+    KHO_TAO: 'khoTao',
+    TRANG_THAI_GIAO_HANG: 'trangThaiGiaoHang',
+    CON_NO: 'conNo',
+};
+
+// Map phẳng TỪNG biến thể tiếng Việt (kể cả các biến thể phụ, vd 'Ngày Tạo' lẫn 'Ngày tạo') →
+// khoá ngắn tương ứng — dựng 1 lần từ COL + COL_SHORT_KEY lúc module load, không hardcode riêng
+// (trước đây services/worker.ts có 1 danh sách `reqCols` hardcode riêng, lệch dần khỏi COL —
+// dùng chung nguồn này để hết lệch). Dùng ở services/worker.ts khi map cột lúc parse, và ở
+// getRowValue (utils/dataUtils.ts) khi tra khoá ngắn cho biến thể đầu tiên của mỗi field.
+export const VARIANT_TO_SHORT_KEY: Record<string, string> = {};
+for (const key of Object.keys(COL) as (keyof typeof COL)[]) {
+    const shortKey = COL_SHORT_KEY[key];
+    for (const variant of COL[key]) {
+        VARIANT_TO_SHORT_KEY[variant] = shortKey;
+    }
+}
+
+export const HINH_THUC_XUAT_THU_HO = new Set(['Xuất dịch vụ thu hộ cước Payoo', 'Xuất dịch vụ thu hộ qua Epay', 'Xuất dịch vụ thu hộ qua SmartNet', 'Xuất dịch vụ thu hộ qua tổng công ty Viettel', 'Xuất dịch vụ thu hộ nạp tiền vào ví', 'Xuất dịch vụ thu hộ cước Bảo Kim']);
+export const HINH_THUC_XUAT_TIEN_MAT = new Set(['Xuất bán hàng Online tại siêu thị', 'Xuất bán hàng online tiết kiệm', 'Xuất bán hàng tại siêu thị', 'Xuất bán hàng tại siêu thị (TCĐM)', 'Xuất bán Online giá rẻ', 'Xuất bán pre-order tại siêu thị', 'Xuất bán ưu đãi cho nhân viên', 'Xuất dịch vụ thu hộ bảo hiểm', 'Xuất đổi bảo hành sản phẩm IMEI', 'Xuất đổi bảo hành tại siêu thị']);
+export const HINH_THUC_XUAT_TRA_GOP = new Set(['Xuất bán hàng trả góp Online', 'Xuất bán hàng trả góp Online giá rẻ', 'Xuất bán hàng trả góp online tiết kiệm', 'Xuất bán hàng trả góp tại siêu thị', 'Xuất bán hàng trả góp tại siêu thị (TCĐM)', 'Xuất bán trả góp ưu đãi cho nhân viên', 'Xuất đổi bảo hành sản phẩm trả góp có IMEI', 'Xuất bán trả góp cho NV phục vụ công việc']);
+
+// --- DATA STATUS COLORS (Dùng chung toàn dự án) ---
+// Tiêu chí tốt / tăng → Xanh lá pastel
+// Tiêu chí xấu / giảm / cảnh báo → Đỏ pastel
+export const DATA_STATUS_COLORS = {
+    positive: {
+        bg: '#d1fae5',           // emerald-100
+        text: '#047857',         // emerald-700
+        tailwind: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+    },
+    negative: {
+        bg: '#ffe4e6',           // rose-100
+        text: '#be123c',         // rose-700
+        tailwind: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
+    },
+} as const;
+
+// --- WAREHOUSE REPORT CONFIGURATION ---
+
+export const WAREHOUSE_METRIC_TYPE_MAP: Record<WarehouseMetricType, string> = {
+    quantity: 'Số Lượng',
+    revenue: 'Doanh Thu Thực',
+    revenueQD: 'Doanh Thu QĐ'
+};
+
+export const WAREHOUSE_HEADER_COLORS: Record<string, { border: string; sub: string; text: string; }> = {
+    'KHO': { border: 'border-rose-200 dark:border-rose-800', sub: 'bg-rose-50 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-300' },
+    'Doanh Thu': { border: 'border-sky-200 dark:border-sky-800', sub: 'bg-sky-50 dark:bg-sky-900/30', text: 'text-sky-700 dark:text-sky-300' },
+    'SP CHÍNH': { border: 'border-emerald-200 dark:border-emerald-800', sub: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300' },
+    'MÙA VỤ': { border: 'border-amber-300 dark:border-amber-700', sub: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-800 dark:text-amber-200' },
+    'TRAFFIC': { border: 'border-slate-200 dark:border-slate-800', sub: 'bg-slate-50 dark:bg-slate-900/30', text: 'text-slate-600 dark:text-slate-400' },
+    'SL PHỤ KIỆN': { border: 'border-sky-300 dark:border-sky-700', sub: 'bg-sky-100 dark:bg-sky-900/50', text: 'text-sky-800 dark:text-sky-200' },
+    'SL DỊCH VỤ': { border: 'border-emerald-300 dark:border-emerald-700', sub: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-800 dark:text-emerald-200' },
+    'SL GIA DỤNG': { border: 'border-amber-200 dark:border-amber-800', sub: 'bg-amber-50 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300' },
+    'BẢO HIỂM ALL': { border: 'border-sky-200 dark:border-sky-800', sub: 'bg-sky-50/50 dark:bg-sky-900/30', text: 'text-sky-700 dark:text-sky-300' },
+    'BẢO HIỂM ĐỐI TÁC': { border: 'border-sky-300 dark:border-sky-700', sub: 'bg-sky-100/50 dark:bg-sky-900/50', text: 'text-sky-800 dark:text-sky-200' },
+    'BẢO HIỂM ĐMX': { border: 'border-rose-300 dark:border-rose-700', sub: 'bg-rose-100 dark:bg-rose-900/50', text: 'text-rose-800 dark:text-rose-200' },
+    'DEFAULT': { border: 'border-slate-200 dark:border-slate-700', sub: 'bg-slate-50 dark:bg-slate-900/20', text: 'text-slate-500 dark:text-slate-400' },
+};
+
+/** Phiên bản cấu hình cột bảng Kho. Đổi giá trị này = buộc mọi nơi bỏ cấu hình đã lưu và quay
+ *  về DEFAULT_WAREHOUSE_COLUMNS (WarehouseSummary lưu lại bản mới). Bảng "Phụ kiện & Điện gia
+ *  dụng" trong modal nhân viên đọc cùng cấu hình nên phải kiểm tra cùng version. */
+export const WAREHOUSE_COLUMN_CONFIG_VERSION = 'v3';
+
+/** Class đánh dấu khối bảng "Phụ kiện & Điện gia dụng" trong modal phân tích nhân viên — luồng
+ *  xuất ảnh hàng loạt chụp thẳng DOM nên cần selector này để đếm số cột đang bật. */
+export const CATEGORY_TABLE_CLASS = 'category-summary-table';
+
+/** Bề rộng ảnh xuất cần thiết để bảng đó không bị cắt cột: services/uiService.ts ép mỗi `th` ở
+ *  hàng sub-header tối thiểu 55px (cột đầu 100px) lúc chụp, nên khung hẹp hơn tổng đó sẽ cắt mất
+ *  các cột bên phải. `minWidth` là bề rộng "vừa nội dung" của phần còn lại trong modal. */
+export const getCategoryExportWidth = (columnCount: number, minWidth = 800): number => {
+    if (columnCount === 0) return minWidth;
+    return Math.min(1150, Math.max(minWidth, 150 + columnCount * 56));
+};
+
+export const DEFAULT_WAREHOUSE_COLUMNS: WarehouseColumnConfig[] = [
+    // --- DOANH THU ---
+    { id: 'dt_thuc', order: 1, isVisible: false, isCustom: false, metric: 'doanhThuThuc', mainHeader: 'Doanh Thu', subHeader: 'DT' },
+    { id: 'dt_qd', order: 2, isVisible: true, isCustom: false, metric: 'doanhThuQD', mainHeader: 'Doanh Thu', subHeader: 'DTQĐ' },
+    { id: 'target_dt', order: 3, isVisible: true, isCustom: false, metric: 'target', mainHeader: 'Doanh Thu', subHeader: 'TAR' },
+    { id: 'percent_ht', order: 4, isVisible: false, isCustom: false, metric: 'percentHT', mainHeader: 'Doanh Thu', subHeader: '%HT' },
+    { id: 'hqqd', order: 5, isVisible: true, isCustom: false, metric: 'hieuQuaQD', mainHeader: 'Doanh Thu', subHeader: '%QĐ' },
+    { id: 'traffic_tracham', order: 6, isVisible: true, isCustom: false, metric: 'traChamPercent', mainHeader: 'Doanh Thu', subHeader: '%TC' },
+    // --- SP CHÍNH (NhomCha) ---
+    { id: 'spc_ce', order: 7, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'CE', metricType: 'quantity', mainHeader: 'SP CHÍNH', subHeader: 'CE' },
+    { id: 'spc_ict', order: 8, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'ICT', metricType: 'quantity', mainHeader: 'SP CHÍNH', subHeader: 'ICT' },
+    // --- MÙA VỤ (NhomCon) ---
+    { id: 'mv_mlanh', order: 9, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Máy lạnh', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'M.Lạnh' },
+    { id: 'mv_tivi', order: 10, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Tivi', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'TIVI' },
+    { id: 'mv_mgiat', order: 11, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Máy giặt', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'M.Giặt' },
+    { id: 'mv_mnn', order: 12, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Máy nước nóng', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'MNN' },
+    { id: 'mv_tl', order: 13, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Tủ lạnh', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'T.Lạnh' },
+    { id: 'mv_td', order: 14, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Tủ đông', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'T.Đông' },
+    { id: 'mv_tmat', order: 15, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Tủ mát', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'T.Mát' },
+    { id: 'mv_msay', order: 16, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Máy sấy', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'M.Sấy' },
+    { id: 'mv_loakeo', order: 17, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Loa Karaoke', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'Loa Kéo' },
+    { id: 'mv_smp', order: 18, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Smartphone', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'SMP' },
+    { id: 'mv_lap', order: 19, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Laptop', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'LAP' },
+    { id: 'mv_tab', order: 20, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Tablet', metricType: 'quantity', mainHeader: 'MÙA VỤ', subHeader: 'TAB' },
+    // --- TRAFFIC ---
+    { id: 'traffic_th', order: 21, isVisible: false, isCustom: false, metric: 'slThuHo', mainHeader: 'TRAFFIC', subHeader: 'T.HỘ' },
+    { id: 'traffic_tc', order: 22, isVisible: false, isCustom: false, metric: 'slTiepCan', mainHeader: 'TRAFFIC', subHeader: 'T.CẬN' },
+    // --- SL PHỤ KIỆN ---
+    { id: 'pk_dt', order: 23, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'Phụ kiện', metricType: 'revenue', mainHeader: 'SL PHỤ KIỆN', subHeader: 'DT' },
+    { id: 'pk_cam', order: 24, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Camera', metricType: 'quantity', mainHeader: 'SL PHỤ KIỆN', subHeader: 'CAM' },
+    { id: 'pk_sdp', order: 25, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Pin SDP', metricType: 'quantity', mainHeader: 'SL PHỤ KIỆN', subHeader: 'SDP' },
+    { id: 'pk_tnghe', order: 26, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Tai nghe BLT', metricType: 'quantity', mainHeader: 'SL PHỤ KIỆN', subHeader: 'TN BLT' },
+    { id: 'pk_loa', order: 27, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Loa', metricType: 'quantity', mainHeader: 'SL PHỤ KIỆN', subHeader: 'Loa' },
+    { id: 'pk_dh', order: 28, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'Đồng hồ', metricType: 'quantity', mainHeader: 'SL PHỤ KIỆN', subHeader: 'Đ.HỒ' },
+    { id: 'pk_den', order: 29, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Đèn NLMT', metricType: 'quantity', mainHeader: 'SL PHỤ KIỆN', subHeader: 'Đèn' },
+    // --- SL DỊCH VỤ ---
+    { id: 'pk_sim', order: 30, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'Sim', metricType: 'quantity', mainHeader: 'SL DỊCH VỤ', subHeader: 'SIM' },
+    { id: 'dv_vas', order: 31, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'UDDĐ', productCodes: ['1640571000039','1640571000043','1640611000005','1640611000003','1640571000075','1640571000462','1640571000076','1640571000077','1640571000078','1640571000463','1640571000464','1640571000465','1640611000017','1640611000022','1640611000018','1640611000019','1640611000014','1640611000015','1640611000016','1640571000495','1640571000496','1640571000497','1640571000498','1640571000499','1640571000494','1640571000493','1640571000048','1640571000052','1640571000049','1640571000050','1640571000051','1640571000466','1640571000469','1640571000467','1640571000468','1640571000471','1640571000474','1640571000472','1640571000475','1640571000470','1640611000023','1640611000027','1640611000028','1640611000026','1640571000025','1640571000490','1640571000003','1640571000004','1640571000015','1640571000005'], metricType: 'quantity', mainHeader: 'SL DỊCH VỤ', subHeader: 'VAS' },
+    { id: 'dv_mango', order: 32, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'UDDĐ', productCodes: ['1640571000503','1640571000504','1640571000500','1640571000502','1640571000501','1640571000491','1640571000492'], metricType: 'quantity', mainHeader: 'SL DỊCH VỤ', subHeader: 'M/ICALL' },
+    { id: 'dv_virus', order: 33, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'UDDĐ', productCodes: ['1640611000005','1640611000003','1640611000017','1640611000022','1640611000018','1640611000019','1640611000014','1640611000015','1640611000016','1640611000023','1640611000027','1640611000028','1640611000026'], metricType: 'quantity', mainHeader: 'SL DỊCH VỤ', subHeader: 'VIRUS' },
+    // --- SL GIA DỤNG (NhomCon) ---
+    { id: 'gd_dt', order: 34, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'Gia dụng', metricType: 'revenue', mainHeader: 'SL GIA DỤNG', subHeader: 'DT' },
+    { id: 'gd_mln', order: 35, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Máy lọc nước', metricType: 'quantity', mainHeader: 'SL GIA DỤNG', subHeader: 'MLN' },
+    { id: 'gd_qdh', order: 36, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Quạt điều hòa', metricType: 'quantity', mainHeader: 'SL GIA DỤNG', subHeader: 'QĐH' },
+    { id: 'gd_qdien', order: 37, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Quạt điện', metricType: 'quantity', mainHeader: 'SL GIA DỤNG', subHeader: 'Q.Điện' },
+    { id: 'gd_ncom', order: 38, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Nồi cơm', metricType: 'quantity', mainHeader: 'SL GIA DỤNG', subHeader: 'N.Cơm' },
+    { id: 'gd_nchien', order: 39, isVisible: false, isCustom: false, categoryType: 'group', categoryName: 'Nồi chiên', metricType: 'quantity', mainHeader: 'SL GIA DỤNG', subHeader: 'N.Chiên' },
+    { id: 'gd_lochbui', order: 40, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Máy lọc không khí,Hút bụi,Robot hút bụi,Máy tạo/hút ẩm', metricType: 'quantity', mainHeader: 'SL GIA DỤNG', subHeader: 'LỌC/H.BỤI' },
+    // --- BẢO HIỂM ALL ---
+    { id: 'bh_all_sl', order: 41, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'Bảo hiểm', metricType: 'quantity', mainHeader: 'BẢO HIỂM ALL', subHeader: 'SL' },
+    { id: 'bh_all_dt', order: 42, isVisible: true, isCustom: false, categoryType: 'industry', categoryName: 'Bảo hiểm', metricType: 'revenue', mainHeader: 'BẢO HIỂM ALL', subHeader: 'DT' },
+    // --- BẢO HIỂM ĐỐI TÁC ---
+    { id: 'bh_dt_sl', order: 43, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Bảo hiểm', metricType: 'quantity', mainHeader: 'BẢO HIỂM ĐỐI TÁC', subHeader: 'SL' },
+    { id: 'bh_dt_dt', order: 44, isVisible: true, isCustom: false, categoryType: 'group', categoryName: 'Bảo hiểm', metricType: 'revenue', mainHeader: 'BẢO HIỂM ĐỐI TÁC', subHeader: 'DT' },
+    // --- BẢO HIỂM ĐMX ---
+    { id: 'bh_dmx_sl', order: 45, isVisible: true, isCustom: false, categoryType: 'subgroup', categoryName: 'Bảo hiểm ĐMX', metricType: 'quantity', mainHeader: 'BẢO HIỂM ĐMX', subHeader: 'SL' },
+    { id: 'bh_dmx_dt', order: 46, isVisible: true, isCustom: false, categoryType: 'subgroup', categoryName: 'Bảo hiểm ĐMX', metricType: 'revenue', mainHeader: 'BẢO HIỂM ĐMX', subHeader: 'DT' },
+];
+
+// any: hằng số không có nơi nào import/dùng trong repo hiện tại (đã kiểm tra bằng grep) —
+// giữ Record<string, unknown> thay vì any thô, không ép về IndustryColumnConfig vì shape
+// literal bên dưới lồng metricType trong filters khác với field top-level của type đó.
+
+export const DEFAULT_KPI_CARDS: import('./types').KpiCardConfig[] = [
+    {
+        id: 'kpi-dtthuc',
+        order: 1,
+        isVisible: true,
+        title: 'DT Thực',
+        icon: 'dollar-sign',
+        iconColor: 'emerald',
+        type: 'metric',
+        metric: 'totalRevenue',
+        format: 'currency',
+        hasTarget: false,
+        targetType: 'none',
+    },
+    {
+        id: 'kpi-dtqd',
+        order: 2,
+        isVisible: true,
+        title: 'DTQĐ',
+        icon: 'trending-up',
+        iconColor: 'blue',
+        type: 'metric',
+        metric: 'doanhThuQD',
+        format: 'currency',
+        hasTarget: true,
+        targetType: 'global',
+        targetRef: 'hieuQua',
+    },
+    {
+        id: 'kpi-hieuqua',
+        order: 3,
+        isVisible: true,
+        title: 'HQQĐ',
+        icon: 'activity',
+        iconColor: 'indigo',
+        type: 'metric',
+        metric: 'hieuQuaQD',
+        format: 'percentage',
+        hasTarget: true,
+        targetType: 'global',
+        targetRef: 'hieuQua',
+    },
+    {
+        id: 'kpi-tragop',
+        order: 4,
+        isVisible: true,
+        title: 'Trả Chậm',
+        icon: 'credit-card',
+        iconColor: 'amber',
+        type: 'metric',
+        metric: 'traGopPercent',
+        format: 'percentage',
+        hasTarget: true,
+        targetType: 'global',
+        targetRef: 'traGop',
+    },
+    {
+        id: 'kpi-dtchuaxuat',
+        order: 5,
+        isVisible: true,
+        title: 'Chưa Xuất',
+        icon: 'package-x',
+        iconColor: 'rose',
+        type: 'metric',
+        metric: 'doanhThuThucChoXuat',
+        format: 'currency',
+        hasTarget: false,
+        targetType: 'none',
+    }
+];
+
+export const DEFAULT_QUANTITY_MULTIPLIER_MAP: Record<string, number> = {
+    '1640571000003': 1.0,
+    '1640571000004': 2.0,
+    '1640571000015': 4.0,
+    '1640571000006': 1.0,
+    '1640571000007': 2.0,
+    '1640571000019': 4.0,
+    '1640571000005': 8.0,
+    '1640611000003': 1.0,
+    '1640611000005': 2.0,
+    '1640611000021': 2.0,
+    '1640611000023': 2.0,
+    '1640611000024': 2.0,
+    '1640571000039': 3.0,
+    '1640571000043': 6.0,
+    '1640611000022': 1.0,
+    '1640611000017': 8.0,
+    '1640611000014': 5.0,
+    '1640611000025': 1.0,
+    '1640611000016': 10.0,
+    '1640611000015': 9.0,
+    '1640611000018': 10.0,
+    '1640611000019': 14.0,
+    '1640611000026': 4.0,
+    '1640611000027': 7.0,
+    '1640611000028': 1.5,
+    '1640571000075': 1.0,
+    '1640571000076': 1.0,
+    '1640571000077': 2.0,
+    '1640571000078': 4.0,
+    '1640571000462': 1.0,
+    '1640571000463': 1.0,
+    '1640571000464': 2.0,
+    '1640571000465': 4.0,
+    '1640571000048': 1.0,
+    '1640571000049': 3.0,
+    '1640571000050': 7.0,
+    '1640571000051': 10.0,
+    '1640571000052': 13.0,
+    '1640571000466': 1.0,
+    '1640571000467': 2.0,
+    '1640571000468': 4.0,
+    '1640571000469': 8.0,
+    '1640571000470': 16.0,
+    '1640571000471': 1.0,
+    '1640571000472': 2.0,
+    '1640571000473': 4.0,
+    '1640571000474': 8.0,
+    '1640571000475': 16.0,
+    '1640571000025': 1.0,
+    '1640571000490': 1.0,
+    '1640571000491': 1.0,
+    '1640571000492': 4.0,
+    '1640571000503': 1.0,
+    '1640571000504': 2.0,
+    '1640571000500': 1.0,
+    '1640571000502': 8.0,
+    '1640571000501': 2.0,
+    '1640571000493': 1.0,
+    '1640571000494': 1.0,
+    '1640571000495': 1.0,
+    '1640571000496': 3.0,
+    '1640571000497': 6.0,
+    '1640571000498': 12.0,
+    '1640571000499': 24.0
+};
+
+export const PRODUCT_NAME_COEFFICIENTS = [
+    { pattern: 'VieON VIP_01 tháng', value: 1.0 },
+    { pattern: 'VieON VIP_03 tháng', value: 2.0 },
+    { pattern: 'VieON VIP_06 tháng', value: 4.0 },
+    { pattern: 'VieON VIP HBO Go_01 tháng', value: 1.0 },
+    { pattern: 'VieON VIP HBO Go_03 tháng', value: 2.0 },
+    { pattern: 'VieON HBO Go_06 tháng', value: 4.0 },
+    { pattern: 'VieON VIP_12 tháng', value: 8.0 },
+    { pattern: 'ESET NOD32 Antivirus - Windows', value: 1.0 },
+    { pattern: 'ESET Internet Security - Windows 1PC/Năm', value: 2.0 },
+    { pattern: 'ESET Internet Security - Windows 3 thiết bị/Năm', value: 2.0 },
+    { pattern: 'Phần mềm ESET HOME SECURITY ESSENTIAL  1 thiết bị/1 Năm', value: 2.0 },
+    { pattern: 'Phần mềm ESET HOME SECURITY ESSENTIAL  3 thiết bị/1 Năm', value: 2.0 },
+    { pattern: 'BẢN ĐỒ DẪN ĐƯỜNG VIETMAP LIVE PRO (1 năm)', value: 3.0 },
+    { pattern: 'BẢN ĐỒ DẪN ĐƯỜNG VIETMAP LIVE PRO (2 năm)', value: 6.0 },
+    { pattern: 'Kaspersky Plus 3 tháng - 1 thiết bị', value: 1.0 },
+    { pattern: 'Kaspersky Plus 1 thiết bị/năm', value: 8.0 },
+    { pattern: 'Kaspersky standard 1 thiết bị/năm', value: 5.0 },
+    { pattern: 'Kaspersky standard  3 tháng - 1 thiết bị', value: 1.0 },
+    { pattern: 'Kaspersky Standard 5 thiết bị/năm', value: 10.0 },
+    { pattern: 'Kaspersky Standard 3 thiết bị/năm', value: 9.0 },
+    { pattern: 'Kaspersky Plus 3 thiết bị/năm', value: 10.0 },
+    { pattern: 'Kaspersky Plus 5 thiết bị/năm', value: 14.0 },
+    { pattern: 'Phần mềm Kaspersky standard 1 thiết bị/ 2 năm', value: 4.0 },
+    { pattern: 'Phần mềm Kaspersky Plus 1 thiết bị/ 02 năm', value: 7.0 },
+    { pattern: 'Phần mềm Kaspersky Plus 1 thiết bị/ 06 tháng', value: 1.5 },
+    { pattern: 'GalaxyPlay Cao cấp_01 tháng', value: 1.0 },
+    { pattern: 'GalaxyPlay Siêu việt_01 tháng', value: 1.0 },
+    { pattern: 'GalaxyPlay Siêu việt_03 tháng', value: 2.0 },
+    { pattern: 'GalaxyPlay Siêu việt_06 tháng', value: 4.0 },
+    { pattern: 'GalaxyPlay Cao cấp_1 tháng', value: 1.0 },
+    { pattern: 'GalaxyPlay Siêu việt_1 tháng', value: 1.0 },
+    { pattern: 'GalaxyPlay Siêu việt_3 tháng', value: 2.0 },
+    { pattern: 'GalaxyPlay Siêu việt_6 tháng', value: 4.0 },
+    { pattern: 'Mã kích hoạt sử dụng phần mềm ứng dụng Umbalena_ 1 tháng', value: 1.0 },
+    { pattern: 'Mã kích hoạt sử dụng phần mềm ứng dụng Umbalena_ 3 tháng', value: 3.0 },
+    { pattern: 'Mã kích hoạt sử dụng phần mềm ứng dụng Umbalena_ 6 tháng', value: 7.0 },
+    { pattern: 'Mã kích hoạt sử dụng phần mềm ứng dụng Umbalena_ 9 tháng', value: 10.0 },
+    { pattern: 'Mã kích hoạt sử dụng phần mềm ứng dụng Umbalena_ 12 tháng', value: 13.0 },
+    { pattern: 'Phần mềm Elsa 1 tháng - Luyện phát âm tiếng anh', value: 1.0 },
+    { pattern: 'Phần mềm Elsa 3 tháng - Luyện phát âm tiếng anh', value: 2.0 },
+    { pattern: 'Phần mềm Elsa 6 tháng - Luyện phát âm tiếng anh', value: 4.0 },
+    { pattern: 'Phần mềm Elsa 12 tháng - Luyện phát âm tiếng anh', value: 8.0 },
+    { pattern: 'Phần mềm Elsa_Gói không giới hạn - Luyện phát âm tiếng anh', value: 16.0 },
+    { pattern: 'Phần mềm Elsa Nâng cao_1 tháng - Luyện phát âm tiếng anh', value: 1.0 },
+    { pattern: 'Phần mềm Elsa Nâng cao_3 tháng - Luyện phát âm tiếng anh', value: 2.0 },
+    { pattern: 'Phần mềm Elsa Nâng cao_6 tháng - Luyện phát âm tiếng anh', value: 4.0 },
+    { pattern: 'Phần mềm Elsa Nâng cao_12 tháng - Luyện phát âm tiếng anh', value: 8.0 },
+    { pattern: 'Phần mềm Elsa Nâng cao_Gói không giới hạn - Luyện phát âm tiếng anh', value: 16.0 },
+    { pattern: 'TV360 Standard 01 tháng', value: 1.0 },
+    { pattern: 'TV360 VIP 01 tháng', value: 1.0 },
+    { pattern: 'Phần mềm iCallme Premium - Gói 01 tháng', value: 1.0 },
+    { pattern: 'Phần mềm iCallme Premium - Gói 12 tháng', value: 4.0 }
+];
+

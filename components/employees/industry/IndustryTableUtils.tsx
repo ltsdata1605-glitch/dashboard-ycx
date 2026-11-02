@@ -1,0 +1,81 @@
+import React from 'react';
+import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../../shared/ui/icon/AppIcon';
+import type { ExploitationData } from '../../../types';
+
+export type SortConfig = {
+    // (string & {}) giữ autocomplete cho các key tĩnh nhưng vẫn nhận key động của custom tab
+    // (VD 'val_default_tab_bao_duong_ce_col_bd_ce_3') — tránh phải ép `as any` khi gán.
+    key: keyof ExploitationData | 'name' | 'percentBaoHiem' | 'percentSimKT' | 'percentDongHoKT' | 'percentPhuKienKT' | 'percentGiaDungKT' | 'belowAverageCount' | 'slSPChinh_Tong' | (string & {});
+    direction: 'asc' | 'desc';
+};
+
+export const detailQuickFilters: { key: string; label: string }[] = [
+    { key: 'doanhThu', label: 'D.Thu' },
+    { key: 'spChinh', label: 'SP Chính' },
+];
+
+export const groupToSortKeyMap: Record<string, SortConfig['key']> = {
+    baoHiem: 'percentBaoHiem', // Giữ lại cho tương thích sort cũ
+    doanhThu: 'doanhThuQD',
+    spChinh: 'slSPChinh_Tong',
+    default_tab_bao_duong_ce: 'val_default_tab_bao_duong_ce_col_bd_ce_3',
+    default_tab_bao_hiem_ict: 'val_default_tab_bao_hiem_ict_col_bh_ict_3',
+    default_tab_bao_hiem_mln: 'val_default_tab_bao_hiem_mln_col_bh_mln_3',
+    default_tab_bao_hiem_dgd: 'val_default_tab_bao_hiem_dgd_col_bh_dgd_3',
+    default_tab_all_bhiem: 'val_default_tab_all_bhiem_col_all_bh_3',
+    default_tab_phu_kien: 'val_default_tab_phu_kien_col_pk_6',
+    default_tab_gia_dung: 'val_default_tab_gia_dung_col_gd_12',
+    default_tab_dcnb: 'val_default_tab_dcnb_col_dcnb_7',
+    default_tab_dong_ho: 'val_default_tab_dong_ho_col_dh_5',
+};
+
+// Data structure for detail view headers
+export const detailHeaderGroups: Record<string, { label: string; colSpan: number; bg: string; text: string; border: string; subHeaders: { label: string; key: SortConfig['key'] }[] }> = {
+    doanhThu: { label: 'D.THU', colSpan: 3, bg: 'bg-sky-50 dark:bg-sky-900/20', text: 'text-sky-700 dark:text-sky-300', border: 'border-b-sky-400', subHeaders: [
+        { label: 'DT Thực', key: 'doanhThuThuc' },
+        { label: 'DTQĐ', key: 'doanhThuQD' },
+        { label: 'HQQĐ', key: 'hieuQuaQD' }
+    ]},
+    spChinh: { label: 'SP CHÍNH', colSpan: 4, bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-b-emerald-400', subHeaders: [
+        { label: 'ICT', key: 'slICT' },
+        { label: 'CE', key: 'slCE_main' },
+        { label: 'ĐGD', key: 'slGiaDung_main' },
+        { label: 'Tổng', key: 'slSPChinh_Tong' }
+    ]}
+};
+
+export const HeaderCell: React.FC<{
+    label: string | React.ReactNode;
+    sortKey: SortConfig['key'];
+    className?: string;
+    onSort: (key: SortConfig['key']) => void;
+    sortConfig: SortConfig;
+    colorConfig?: { bg: string; text: string; border?: string };
+}> = ({ label, sortKey, onSort, sortConfig, className, colorConfig }) => {
+    const isActive = sortConfig.key === sortKey;
+    const bgClass = colorConfig ? colorConfig.bg : (isActive ? 'bg-sky-50/80 dark:bg-sky-900/20' : 'bg-transparent');
+    const textClass = colorConfig ? colorConfig.text : (isActive ? 'text-sky-700 dark:text-sky-400' : 'text-slate-600 dark:text-slate-300');
+    // Viền dưới 3px đổi màu theo nhóm cột (implementation_plan.md mục 61) — mặc định slate nếu
+    // nhóm không truyền border (vd trạng thái active tạm thời không gắn với 1 nhóm cụ thể).
+    const borderClass = colorConfig?.border || 'border-b-slate-400';
+
+    return (
+        <th
+            onClick={() => onSort(sortKey)}
+            className={`px-1.5 sm:px-3 py-1 sm:py-2 text-[11px] sm:text-[11px] font-bold cursor-pointer select-none text-center uppercase tracking-wider border-b-[3px] !${borderClass} dark:!border-b-slate-600 border-r border-slate-200 dark:border-slate-700 ${bgClass} ${textClass} hover:opacity-80 transition-opacity ${className || ''} h-px relative group/th`}
+        >
+            <div className="flex items-center justify-center gap-1">
+                {label}
+                {isActive && <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>}
+            </div>
+        </th>
+    );
+};
+
+export const getHeatmapClass = (value: number, threshold: number) => {
+    // Ô trống (0 / không có số → hiện "-") luôn xám nhạt — trước đây `undefined` lọt xuống nhánh "đạt" và được tô viên xanh.
+    if (!(value > 0)) return 'text-slate-300 dark:text-slate-600';
+    if (value < threshold) return 'text-rose-700 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-control border border-rose-100 dark:border-rose-800/50';
+    return 'text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-control border border-emerald-100 dark:border-emerald-800/50';
+};

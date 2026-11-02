@@ -1,0 +1,16 @@
+{
+  "parsed": 1040,
+  "parse_diagnostics": [],
+  "components": 467,
+  "surfaces": 169,
+  "jsx_usages": 3775,
+  "edges": 4992,
+  "edge_resolution": {
+    "EXTERNAL": 227,
+    "LOCAL": 3639,
+    "DYNAMIC_EXPRESSION": 61,
+    "PACKAGE": 1048,
+    "LOCAL_DIRECTORY": 17
+  },
+  "entry_points": 503
+}

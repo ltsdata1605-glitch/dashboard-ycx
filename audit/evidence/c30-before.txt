@@ -1,0 +1,52 @@
+[WebServer] (node:44543) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/industry-switch-labels.spec.ts:3:3 › industry and subindustry labels toggle their rows once 390 (1.5s)
+  ✓  2 [chromium] › tests/e2e/industry-switch-labels.spec.ts:3:3 › industry and subindustry labels toggle their rows once 1366 (850ms)
+  ✓  3 [chromium] › tests/e2e/industry-switch-labels.spec.ts:30:3 › industry mobile filter stays inside viewport and closes by keyboard 844 (1.3s)
+  ✓  4 [chromium] › tests/e2e/industry-switch-labels.spec.ts:30:3 › industry mobile filter stays inside viewport and closes by keyboard 568 (1.3s)
+  ✘  5 [chromium] › tests/e2e/industry-switch-labels.spec.ts:66:1 › industry tree expander has a name, expanded state and keyboard activation (10.3s)
+
+
+  1) [chromium] › tests/e2e/industry-switch-labels.spec.ts:66:1 › industry tree expander has a name, expanded state and keyboard activation 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: getByRole('button', { name: 'Mở rộng Audit a', exact: true })
+    Expected: "false"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Mở rộng Audit a', exact: true }) with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Mở rộng Audit a', exact: true })
+
+
+      68 |   await page.goto('/tests/e2e/helpers/materialHarness.html?industry-switch');
+      69 |   const toggle=page.getByRole('button',{name:'Mở rộng Audit a',exact:true});
+    > 70 |   await expect(toggle).toHaveAttribute('aria-expanded','false');
+         |                        ^
+      71 |   for(let step=0;step<40;step++) {
+      72 |     await page.keyboard.press(process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab');
+      73 |     if(await toggle.evaluate(el=>el===document.activeElement)) break;
+        at /Users/ltson/dashboardycx/tests/e2e/industry-switch-labels.spec.ts:70:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c30-before/industry-switch-labels-ind-0b471-ate-and-keyboard-activation-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c30-before/industry-switch-labels-ind-0b471-ate-and-keyboard-activation-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c30-before/industry-switch-labels-ind-0b471-ate-and-keyboard-activation-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c30-before/industry-switch-labels-ind-0b471-ate-and-keyboard-activation-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/industry-switch-labels.spec.ts:66:1 › industry tree expander has a name, expanded state and keyboard activation 
+  4 passed (16.5s)

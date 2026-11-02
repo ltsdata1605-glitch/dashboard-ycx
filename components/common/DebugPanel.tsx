@@ -1,0 +1,64 @@
+
+import React from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { Button } from '../shared/ui/Button';
+
+export interface DebugInfo {
+    name: string;
+    description: string;
+    design: string;
+}
+
+interface DebugPanelProps {
+    info: DebugInfo | null;
+    isVisible: boolean;
+    isInspectorActive: boolean;
+    onClose: () => void;
+    onToggleInspector: () => void;
+}
+
+export const DebugPanel: React.FC<DebugPanelProps> = ({ info, isVisible, isInspectorActive, onClose, onToggleInspector }) => {
+    return (
+        <div className={`debug-panel ${isVisible ? '' : 'hidden'}`}>
+            <div className="debug-panel-header">
+                <div className="flex items-center gap-3">
+                    <AppIcon name="bug" size="lg" className="text-sky-500" />
+                    <h3 className="font-bold text-[17px] leading-7">Bảng Gỡ Lỗi Giao Diện</h3>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="primary" size="sm"
+                        onClick={onToggleInspector}
+                        className={` ${isInspectorActive ? 'bg-rose-500 text-white animate-pulse' : 'bg-sky-500 text-white hover:bg-sky-600'}`}
+                    >
+                        {isInspectorActive ? 'TẮT Inspector' : 'BẬT Inspector'}
+                    </Button>
+                    <Button variant="ghost" size="icon-inline" onClick={onClose} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">
+                        <AppIcon name="close" size="md" />
+                    </Button>
+                </div>
+            </div>
+            <div className="debug-panel-body">
+                {info ? (
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="font-bold text-xl text-sky-700 dark:text-sky-400">{info.name}</h4>
+                        </div>
+                        <div>
+                            <h5 className="font-semibold text-base mb-1 border-b border-slate-300 dark:border-slate-600 pb-1">Chức năng</h5>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{info.description}</p>
+                        </div>
+                         <div>
+                            <h5 className="font-semibold text-base mb-1 border-b border-slate-300 dark:border-slate-600 pb-1">Thiết kế</h5>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{info.design}</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center text-slate-500 dark:text-slate-400">
+                        <p>Kích hoạt chế độ "Inspector" và click vào một khu vực để xem thông tin chi tiết.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};

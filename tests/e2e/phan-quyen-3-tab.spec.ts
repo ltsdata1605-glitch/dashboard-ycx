@@ -1,0 +1,87 @@
+import { test, expect, type Page } from '@playwright/test';
+
+/**
+ * Ba tab của màn "Phân quyền & Duyệt yêu cầu" không được gọi Cloud Function thừa.
+ *
+ * Đo ngày 2026-09-25 TRƯỚC khi sửa: bấm lần lượt Chờ duyệt -> Hoạt động -> Hết hạn tốn
+ * **4 lượt gọi** `["pending","active","expired","active"]` — lượt `active` cuối là nhánh gộp thêm
+ * của tab "Hết hạn", lấy lại đúng dữ liệu mà tab "Hoạt động" vừa lấy xong.
+ * Sau khi sửa (services/managedUsersCache.ts): **3 lượt**, và bấm qua lại không tốn thêm lượt nào.
+ */
+
+const CHAM_MS = 800;
+const AUTH_STUB = `
+const noop = () => {};
+export class GoogleAuthProvider { addScope() {} setCustomParameters() {} static credentialFromResult() { return null; } }
+export function getAuth() { return { currentUser: null }; }
+export function initializeAuth() { return { currentUser: null }; } // services/firebase.ts dùng initializeAuth (2026-10-21)
+export const indexedDBLocalPersistence = {}; export const browserPopupRedirectResolver = {};
+const fakeUser = { uid: 'u-quanly', email: 'quanly@test.local', displayName: 'Quản Lý Kho 405', photoURL: null,
+  getIdTokenResult: async () => ({ claims: { role: 'manager', departmentId: '405' } }), getIdToken: async () => 'token' };
+export function onAuthStateChanged(auth, cb) { window.__authCb = cb; setTimeout(() => cb(fakeUser), 30); return noop; }
+export async function signInWithPopup() { window.__authCb(fakeUser); return { user: fakeUser }; }
+export async function signInWithRedirect() {}
+export async function getRedirectResult() { return null; }
+export async function signInWithCredential() { return { user: null }; } // đăng nhập app Màn hình chính iPhone (services/firebase.ts, 2026-10-12)
+export async function signOut() { window.__authCb(null); }
+export const browserLocalPersistence = {}; export const browserSessionPersistence = {};
+export async function setPersistence() {}
+export function getIdToken() { return Promise.resolve('token'); }
+`;
+const SESSION_STUB = `
+export const resolveSession = async () => ({ role: 'manager', status: 'approved', departmentId: '405', employeeName: '21707', expiresAt: null });
+export const requestAccess = async () => {};
+`;
+const ADMIN_STUB = `
+export const MANAGED_USERS_CHANGED_EVENT = 'ycx-managed-users-changed';
+window.__goi = [];
+export const listManagedUsers = async (mode) => {
+  window.__goi.push(mode);
+  await new Promise(r => setTimeout(r, ${CHAM_MS}));
+  return [];
+};
+export const deleteExpiredUsers = async () => ({ xoa: [], boQua: [] });
+export const adminUpdateUser = async () => { window.dispatchEvent(new CustomEvent(MANAGED_USERS_CHANGED_EVENT)); };
+`;
+
+async function moApp(page: Page) {
+    await page.route('**/node_modules/.vite/deps/firebase_auth.js*', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_STUB }));
+    await page.route('**/services/sessionService.ts*', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: SESSION_STUB }));
+    await page.route('**/services/adminUserService.ts*', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: ADMIN_STUB }));
+}
+const doc = (page: Page) => page.evaluate(() => (window as unknown as { __goi: string[] }).__goi.slice());
+
+test('bấm qua lại 3 tab: mỗi tab tốn đúng 1 lượt gọi, không có lượt thừa', async ({ page }) => {
+    test.setTimeout(120000);
+    // Chờ theo ĐIỀU KIỆN thay vì ngủ cố định rồi kiểm (2026-09-28): chạy cả bộ e2e trên máy bận, test
+    // từng đỏ vì 4s/1,5s/2s cố định chưa đủ cho app kịp vẽ / kịp gọi — không phải vì gọi thừa.
+    // Điều kiện kiểm giữ NGUYÊN: đúng 1 lượt mỗi tab, bấm qua lại không thêm lượt nào.
+    const choDung = (mongDoi: string[]) => expect.poll(() => doc(page), { timeout: 20000 }).toEqual(mongDoi);
+    await moApp(page);
+    await page.goto('/?tab=analysis');
+    const nutPhanQuyen = page.getByTitle('Cài đặt & Phân quyền') /* nút ảnh đại diện ở dock nổi (chủ dự án 2026-10-12; trước: 'Phân Quyền & Duyệt Yêu Cầu') */.first();
+    await nutPhanQuyen.waitFor({ state: 'visible', timeout: 60000 });
+    await nutPhanQuyen.click();
+    await page.getByRole('button', { name: /Chờ duyệt/i }).first().waitFor({ state: 'visible', timeout: 20000 });
+    await choDung(['pending']);
+
+    await page.getByRole('button', { name: /Hoạt động/i }).first().click();
+    await choDung(['pending', 'active']);
+
+    // Trước bản sửa, bước này thêm CẢ 'expired' lẫn 'active' (lượt 'active' là thừa)
+    await page.getByRole('button', { name: /Hết hạn/i }).first().click();
+    await choDung(['pending', 'active', 'expired']);
+    // Chứng minh KHÔNG có lượt thừa cần thời gian: lượt 'active' thừa (nếu có) bắn ngay sau 'expired'.
+    await page.waitForTimeout(2000);
+    expect(await doc(page)).toEqual(['pending', 'active', 'expired']);
+
+    // Bấm qua lại trong vòng 60s: không được gọi thêm lượt nào
+    for (const tab of ['Chờ duyệt', 'Hoạt động', 'Hết hạn']) {
+        await page.getByRole('button', { name: new RegExp(tab, 'i') }).first().click();
+        await page.waitForTimeout(1500);
+    }
+    await page.waitForTimeout(1500);
+    const cuoi = await doc(page);
+    console.log('TỔNG LƯỢT GỌI sau khi bấm qua lại cả 3 tab:', JSON.stringify(cuoi));
+    expect(cuoi).toEqual(['pending', 'active', 'expired']);
+});

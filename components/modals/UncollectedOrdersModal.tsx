@@ -1,0 +1,668 @@
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { flushSync } from 'react-dom';
+import type { DataRow } from '../../types';
+import { Modal } from '../shared/ui/Modal';
+import { getRowValue, formatCurrency, calculateRowMetrics, formatQuantity, getErrorMessage, sanitizeFilename, getRowPrice } from '../../utils/dataUtils';
+import { COL } from '../../constants';
+// Màu ô ngành: bảng dùng chung, class viết tường minh (trước đây ghép chuỗi "border-<màu>-500" → 6 ngành mất màu).
+import { industryToneByName } from '../../utils/industryColors';
+import { useDashboardContext } from '../../contexts/DashboardContext';
+import { startExportJob } from '../shared/export';
+import { Button } from '../shared/ui/Button';
+import { ActionMenu } from '../shared/ui/ActionMenu';
+import type { ExportImageOptions } from '../../hooks/useExportLogic';
+import { toast, toastViecDai } from '../shared/ui/toast';
+import { saoChep } from '../shared/ui/saoChep';
+
+interface UncollectedOrdersModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onExport: (element: HTMLElement, filename: string, options?: ExportImageOptions) => Promise<Blob | null | void>;
+    onExportSheet: () => void;
+    onlyOverdue?: boolean;
+}
+
+// Icons for each industry group
+const industryIcons: { [key: string]: string } = {
+    'Smartphone': 'smartphone', 'Laptop': 'laptop', 'Tablet': 'tablet',
+    'Phụ kiện': 'headphones', 'Gia dụng': 'plug-zap', /* 'sofa' không có trong components/common/Icon → hiện dấu ? (2026-09-28) */ 'Wearable': 'watch',
+    'CE': 'tv', 'Bảo hiểm': 'shield-check', 'Sim': 'smartphone-nfc',
+    'Máy lọc nước': 'droplets', 'Vieon': 'film', 'IT': 'printer', 'Office & Virus': 'file-key-2',
+    'Khác': 'package'
+};
+
+
+
+const UncollectedOrdersModal: React.FC<UncollectedOrdersModalProps> = ({ isOpen, onClose, onExport, onExportSheet, onlyOverdue }) => {
+    const { processedData, productConfig } = useDashboardContext();
+    
+    const salesData = useMemo(() => {
+        let data = (processedData?.uncollectedOrders ?? []).filter(row => getRowPrice(row) > 0);
+        if (onlyOverdue) {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            data = data.filter(row => {
+                let scheduledDateRaw = getRowValue(row, COL.NGAY_HEN_GIAO) || row.parsedDate;
+                if (!scheduledDateRaw) return false;
+                let scheduledDate = scheduledDateRaw instanceof Date ? scheduledDateRaw : new Date(scheduledDateRaw);
+                if (!isNaN(scheduledDate.getTime())) {
+                    const schedTime = new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), scheduledDate.getDate()).getTime();
+                    return todayStart > schedTime;
+                }
+                return false;
+            });
+        }
+        return data;
+    }, [processedData?.uncollectedOrders, onlyOverdue]);
+
+    const modalBodyRef = React.useRef<HTMLDivElement>(null);
+    const creatorRefs = useRef<{ [key: string]: HTMLDetailsElement | null }>({});
+    const [isExporting, setIsExporting] = useState(false);
+    const [isAllExpanded, setIsAllExpanded] = useState(false);
+    // PERF FIX: bảng đơn hàng của từng customer chỉ render khi thực sự cần (user tự mở, "Mở tất
+    // cả", hoặc trước khi xuất ảnh) — tránh mount hàng nghìn <tr> vào DOM ngay khi mở modal. Chỉ
+    // THÊM, không bao giờ gỡ khỏi Set sau khi đã render — tránh phức tạp/giật khi đóng lại.
+    const [renderedCustomerIds, setRenderedCustomerIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        creatorRefs.current = {};
+        setRenderedCustomerIds(new Set());
+    }, [salesData]);
+
+    // Đồng bộ (flushSync) toàn bộ id customer cần thiết vào renderedCustomerIds TRƯỚC KHI trả về
+    // — dùng cho các thao tác đọc DOM native ngay sau đó (mở toàn bộ <details>, hoặc clone DOM để
+    // xuất ảnh qua forceOpenDetails).
+    const renderCustomersSync = (ids: string[]) => {
+        flushSync(() => {
+            setRenderedCustomerIds(prev => {
+                let changed = false;
+                const next = new Set(prev);
+                for (const id of ids) {
+                    if (!next.has(id)) { next.add(id); changed = true; }
+                }
+                return changed ? next : prev;
+            });
+        });
+    };
+
+    // Id customer đầy đủ (customer.name không đảm bảo duy nhất giữa các creator khác nhau).
+    const getAllCustomerIds = () => creatorData.flatMap(creator => creator.customers.map(c => `${creator.name}::${c.name}`));
+    const getCreatorCustomerIds = (creatorName: string) => {
+        const creator = creatorData.find(c => c.name === creatorName);
+        return creator ? creator.customers.map(c => `${creatorName}::${c.name}`) : [];
+    };
+
+    const handleExportAll = async () => {
+        const elementToExport = modalBodyRef.current;
+        if (elementToExport) {
+            setIsExporting(true);
+            renderCustomersSync(getAllCustomerIds());
+            await onExport(elementToExport, `Đơn Hàng Chưa Thu - Chưa Hủy (Tất Cả).png`, { forceOpenDetails: true, forcedWidth: 960 });
+            setIsExporting(false);
+        }
+    };
+
+    const handleBatchExport = async () => {
+        if (!modalBodyRef.current) return;
+        setIsExporting(true);
+        renderCustomersSync(getAllCustomerIds());
+        const total = creatorData.length;
+        // Bảng tiến trình chung: %, tên người lập, Huỷ, tổng kết mục lỗi
+        const job = startExportJob({ title: 'Đơn hàng chưa thu — xuất theo người lập', total });
+        for (let i = 0; i < creatorData.length; i++) {
+            if (job.cancelled) break;
+            const creator = creatorData[i];
+            job.item(i, `Đang xuất: ${creator.name}`);
+            const creatorElement = creatorRefs.current[creator.name];
+            if (!creatorElement) {
+                job.result(creator.name, 'failed', 'Không tìm thấy khối dữ liệu');
+            } else {
+                const filename = `Đơn Hàng Chưa Thu - ${sanitizeFilename(creator.name)}.png`;
+                const blob = await onExport(creatorElement, filename, {
+                    forceOpenDetails: true,
+                    forcedWidth: 960,
+                });
+                job.result(creator.name, blob === null ? 'failed' : 'ok', blob === null ? 'Không tạo được ảnh' : undefined);
+            }
+        }
+        job.finish();
+        setIsExporting(false);
+    };
+
+    const handleExportCreator = async (e: React.MouseEvent, creatorName: string) => {
+        e.stopPropagation();
+        const creatorElement = creatorRefs.current[creatorName];
+        if (creatorElement) {
+            setIsExporting(true);
+            renderCustomersSync(getCreatorCustomerIds(creatorName));
+            const filename = `Đơn Hàng Chưa Thu - ${sanitizeFilename(creatorName)}.png`;
+            await onExport(creatorElement, filename, {
+                forceOpenDetails: true,
+                forcedWidth: 960,
+            });
+            setIsExporting(false);
+        }
+    };
+
+    const toggleAllDetails = () => {
+        const nextState = !isAllExpanded;
+        if (nextState) {
+            renderCustomersSync(getAllCustomerIds());
+        }
+        if (modalBodyRef.current) {
+            const allDetails = modalBodyRef.current.querySelectorAll('details');
+            allDetails.forEach(detail => (detail.open = nextState));
+        }
+        setIsAllExpanded(nextState);
+    };
+
+
+
+    const { industryDataForDisplay, totalUncollectedRevenue, totalUncollectedRevenueQD, creatorData } = useMemo(() => {
+        if (!productConfig) return { industryDataForDisplay: [], totalUncollectedRevenue: 0, totalUncollectedRevenueQD: 0, creatorData: [] };
+
+        const finalUncollectedOrders = salesData.filter(row =>
+            getRowPrice(row) > 0
+        );
+        
+        let totalUncollectedRevenue = 0;
+        let totalUncollectedRevenueQD = 0;
+        finalUncollectedOrders.forEach(order => {
+            const { revenue, revenueQD } = calculateRowMetrics(order, productConfig);
+            totalUncollectedRevenue += revenue;
+            totalUncollectedRevenueQD += revenueQD;
+        });
+
+        const industrySummary = finalUncollectedOrders.reduce((acc, order) => {
+            const price = getRowPrice(order);
+            const quantity = Number(getRowValue(order, COL.QUANTITY)) || 0;
+            const rowRevenue = price; // Doanh thu là giá trị của cột Giá bán_1
+            const maNhomHang = getRowValue(order, COL.MA_NHOM_HANG);
+            const parentGroup = productConfig.childToParentMap[maNhomHang] || 'Khác';
+            if (!acc[parentGroup]) acc[parentGroup] = { revenue: 0, quantity: 0 };
+            acc[parentGroup].revenue += rowRevenue;
+            acc[parentGroup].quantity += quantity;
+            return acc;
+        }, {} as { [key: string]: { revenue: number; quantity: number } });
+        
+        const industryDataForDisplay = Object.entries(industrySummary)
+            .map(([name, data]) => ({ name, ...(data as { revenue: number, quantity: number }) }))
+            .sort((a, b) => b.revenue - a.revenue);
+        
+        const groupedByCreator = finalUncollectedOrders.reduce((acc, order) => {
+            const creator = getRowValue(order, COL.NGUOI_TAO) || 'Không xác định';
+            if (!acc[creator]) acc[creator] = [];
+            acc[creator].push(order);
+            return acc;
+        }, {} as { [key: string]: DataRow[] });
+
+        const creatorData = Object.entries(groupedByCreator).map(([creatorName, creatorOrders]: [string, DataRow[]]) => {
+            let totalCreatorRevenue = 0;
+            let totalCreatorRevenueQD = 0;
+            creatorOrders.forEach(o => {
+                const { revenue, revenueQD } = calculateRowMetrics(o, productConfig);
+                totalCreatorRevenue += revenue;
+                totalCreatorRevenueQD += revenueQD;
+            });
+
+            const hieuQuaQD = totalCreatorRevenue !== 0 ? ((totalCreatorRevenueQD - totalCreatorRevenue) / Math.abs(totalCreatorRevenue)) * 100 : 0;
+
+            const groupedByCustomer = creatorOrders.reduce((acc, order) => {
+                const customer = getRowValue(order, COL.CUSTOMER_NAME) || 'Khách lẻ';
+                if (!acc[customer]) acc[customer] = [];
+                acc[customer].push(order);
+                return acc;
+            }, {} as { [key: string]: DataRow[] });
+            
+            const customerData = Object.entries(groupedByCustomer).map(([customerName, customerOrders]: [string, DataRow[]]) => {
+                let totalCustomerRevenue = 0;
+                let totalCustomerRevenueQD = 0;
+                customerOrders.forEach(o => {
+                    const { revenue, revenueQD } = calculateRowMetrics(o, productConfig);
+                    totalCustomerRevenue += revenue;
+                    totalCustomerRevenueQD += revenueQD;
+                });
+
+                const customerHieuQuaQD = totalCustomerRevenue !== 0 ? ((totalCustomerRevenueQD - totalCustomerRevenue) / Math.abs(totalCustomerRevenue)) * 100 : 0;
+                // any: giá trị ô Excel thô (Date | number serial | string) từ nhiều tên cột khả dĩ
+                let scheduledDateRaw: any = undefined;
+                for (const order of customerOrders) {
+                    const raw = getRowValue(order, ['Thời gian hẹn giao', 'Thoi gian hen giao', 'TG Hẹn Giao', '__EMPTY_24', 'Column25']) || (() => {
+                        const keys = Object.keys(order).filter(k => k !== 'parsedDate' && k !== 'rowIndex');
+                        return keys.length > 24 ? order[keys[24]] : undefined;
+                    })();
+                    if (raw !== undefined && raw !== null && raw !== '') {
+                        scheduledDateRaw = raw;
+                        break;
+                    }
+                }
+                
+                let formattedScheduledDate = 'N/A';
+                if (scheduledDateRaw) {
+                    if (scheduledDateRaw instanceof Date && !isNaN(scheduledDateRaw.getTime())) {
+                        formattedScheduledDate = scheduledDateRaw.toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}).replace(/\./g, '/');
+                    } else if (typeof scheduledDateRaw === 'number') {
+                        const dt = new Date((scheduledDateRaw - 25569) * 86400 * 1000);
+                        formattedScheduledDate = !isNaN(dt.getTime()) ? dt.toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}).replace(/\./g, '/') : String(scheduledDateRaw);
+                    } else {
+                        const strDate = String(scheduledDateRaw);
+                        if (strDate.includes('T')) {
+                           const dt = new Date(strDate);
+                           if (!isNaN(dt.getTime())) formattedScheduledDate = dt.toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}).replace(/\./g, '/');
+                           else formattedScheduledDate = strDate;
+                        } else {
+                           formattedScheduledDate = strDate.substring(0, 5); // Fallback string (like 21/04)
+                        }
+                    }
+                }
+                
+                return { name: customerName, orders: customerOrders, totalRevenue: totalCustomerRevenue, totalRevenueQD: totalCustomerRevenueQD, hieuQuaQD: customerHieuQuaQD, scheduledDate: formattedScheduledDate };
+            });
+
+            return { 
+                name: creatorName, 
+                customers: customerData.sort((a,b) => b.totalRevenue - a.totalRevenue), 
+                totalRevenue: totalCreatorRevenue,
+                totalRevenueQD: totalCreatorRevenueQD,
+                hieuQuaQD: hieuQuaQD
+            };
+        }).sort((a,b) => b.totalRevenue - a.totalRevenue);
+
+        return { industryDataForDisplay, totalUncollectedRevenue, totalUncollectedRevenueQD, creatorData };
+    }, [salesData, productConfig]);
+
+    const handleCopyOverdueEmployees = () => {
+        if (creatorData.length === 0) return;
+
+        // Extract employee IDs from creator names (e.g. "107617 - Phạm Anh Nhân" → "@107617")
+        const employeeIds = creatorData.map(creator => {
+            const match = creator.name.match(/^(\d+)/);
+            return match ? `@${match[1]}` : `@${creator.name}`;
+        });
+
+        // Count total unique order IDs
+        let totalOrders = 0;
+        creatorData.forEach(creator => {
+            creator.customers.forEach(customer => {
+                totalOrders += customer.orders.length;
+            });
+        });
+
+        const text = `Danh sách nhân viên có đơn QUÁ HẠN CHƯA THU:\nSố lượng nhân viên: ${employeeIds.length}\nSố lượng đơn hàng: ${totalOrders}\n\n${employeeIds.join('\n')}`;
+
+        void saoChep(text, { thanhCong: `Đã sao chép ${employeeIds.length} nhân viên, ${totalOrders} đơn hàng` });
+    };
+
+    const handleExportGoogleSheet = async () => {
+        // Guard dữ liệu rỗng — trước đây thiếu (khác prop onExportSheet không dùng tới, có guard
+        // này nhưng cột/logic khác nên không thể thay thế trực tiếp), khiến 0 đơn hàng vẫn ép
+        // đăng nhập lại Google OAuth thay vì báo lỗi thân thiện. Dùng đúng pattern toast cục bộ
+        // đã có sẵn trong file này (CLAUDE.md cấm window.alert).
+        if (salesData.length === 0) {
+            toast.success('Không có đơn hàng chưa thu | chưa hủy nào để xuất.', { id: 'sao-chep' });
+            return;
+        }
+        setIsExporting(true);
+        const viec = toastViecDai('Đang tạo Google Sheet…');
+
+        const attemptExport = async (retryCount = 0): Promise<void> => {
+            // Always force fresh login with consent to guarantee spreadsheets scope
+            viec.buoc('Đang xác thực Google…');
+            sessionStorage.removeItem('googleOAuthToken');
+            const { loginWithGoogleForceConsent } = await import('../../services/firebase');
+            await loginWithGoogleForceConsent();
+            let token = sessionStorage.getItem('googleOAuthToken');
+            if (!token) throw new Error('Không thể lấy token xác thực.');
+
+            viec.buoc('Đang tạo Google Sheet…');
+            const { exportToGoogleSheet } = await import('../../services/googleSheetsService');
+
+            const finalOrders = salesData.filter(row => getRowPrice(row) > 0);
+
+            const headers = ['Kho Xuất', 'Người Tạo', 'Tên Khách Hàng', 'Mã Đơn Hàng', 'Tên Sản Phẩm', 'Số Lượng', 'Doanh Thu Thực', 'Thời Gian Hẹn', 'Trạng Thái Xuất', 'Giải Trình'];
+            const rows = finalOrders.map(order => {
+                const price = getRowPrice(order);
+
+                let scheduledDateRaw = order['Thời gian hẹn giao'] || order['TG Hẹn Giao'] || order.parsedDate;
+                let formattedDate = 'N/A';
+                if (scheduledDateRaw) {
+                    let scheduledDate = scheduledDateRaw instanceof Date ? scheduledDateRaw : new Date(scheduledDateRaw);
+                    if (!isNaN(scheduledDate.getTime())) {
+                        formattedDate = scheduledDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    }
+                }
+
+                return [
+                    getRowValue(order, COL.KHO) || '',
+                    getRowValue(order, ['NguoiTao', 'Người tạo', 'NV Tạo']) || '',
+                    getRowValue(order, ['TenKhachHang', 'Khách hàng', 'Tên khách hàng']) || 'Khách lẻ',
+                    getRowValue(order, COL.ID) || '',
+                    getRowValue(order, COL.PRODUCT) || '',
+                    Number(getRowValue(order, COL.QUANTITY)) || 0,
+                    price,
+                    formattedDate,
+                    getRowValue(order, ['TrangThaiXuat', 'Trạng thái xuất']) || 'Chưa xuất',
+                    '' // Cột Giải Trình để trống cho NV nhập
+                ] as (string | number)[];
+            });
+
+            // Sắp xếp các dòng theo tên cột "Người Tạo" (Index 1)
+            const extractName = (val: string | number) => {
+                const s = String(val);
+                const parts = s.split('-');
+                return parts.length > 1 ? parts.slice(1).join('-').trim() : s.trim();
+            };
+            rows.sort((a, b) => {
+                const nameA = extractName(a[1]);
+                const nameB = extractName(b[1]);
+                return nameA.localeCompare(nameB, 'vi');
+            });
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            viec.buoc(`Đang ghi ${rows.length} đơn hàng…`);
+
+            try {
+                const url = await exportToGoogleSheet(token, {
+                    title: `Đơn Hàng Chưa Thu | Chưa Hủy - ${dateStr} ${timeStr}`,
+                    headers,
+                    rows,
+                    sheetName: 'DonHangChuaThuChuaHuy'
+                });
+
+                // Build formatted clipboard message with @user tags
+                const employeeTags = creatorData.map(creator => {
+                    const match = creator.name.match(/^(\d+)/);
+                    return match ? `@${match[1]}` : `@${creator.name}`;
+                });
+
+                const clipboardMessage = `Các bạn hoàn tất xử lý và giải trình ĐƠN HÀNG CHƯA THU | CHƯA HỦY:
+
+Hoàn tất xuất và giải trình xoá tên:
+${employeeTags.join('\n')}
+
+Link: ${url}`;
+
+                await navigator.clipboard.writeText(clipboardMessage);
+
+                viec.xong('Đã tạo Google Sheet và sao chép tin nhắn', {
+                    actions: [{ label: 'Mở Sheet', primary: true, onClick: () => { window.open(url, '_blank', 'noopener,noreferrer'); } }],
+                    duration: 15000,
+                });
+            } catch (apiErr: unknown) {
+                // If AUTH_EXPIRED and haven't retried yet, re-login and try once more
+                if (getErrorMessage(apiErr) === 'AUTH_EXPIRED' && retryCount < 1) {
+                    viec.buoc('Token hết hạn, đang xác thực lại…');
+                    return attemptExport(retryCount + 1);
+                }
+                throw apiErr;
+            }
+        };
+
+        try {
+            await attemptExport();
+        } catch (err: unknown) {
+            console.error('Google Sheets export error:', err);
+            const errMsg = getErrorMessage(err).toLowerCase();
+            if (errMsg.includes('popup') || errMsg.includes('cancel')) {
+                viec.loi('Đăng nhập bị huỷ.');
+            } else if (errMsg.includes('network') || errMsg.includes('failed to fetch')) {
+                viec.loi('Không có kết nối mạng.');
+            } else if (errMsg === 'auth_expired') {
+                viec.loi('Phiên đăng nhập hết hạn. Vui lòng thử lại.');
+            } else {
+                viec.loi(`Lỗi: ${getErrorMessage(err) || 'Không xác định'}`);
+            }
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportLocalExcel = async () => {
+        setIsExporting(true);
+        try {
+            const XLSX = await import('xlsx');
+            
+            const exportData = salesData.map(order => {
+                return {
+                    'Kho tạo': getRowValue(order, COL.KHO_TAO) || '',
+                    'Người tạo': getRowValue(order, COL.NGUOI_TAO) || '',
+                    'Mã đơn hàng': getRowValue(order, COL.ID) || '',
+                    'Mã sản phẩm': getRowValue(order, COL.PRODUCT_CODE) || '',
+                    'Tên sản phẩm': getRowValue(order, COL.PRODUCT) || '',
+                    'Số lượng': Number(getRowValue(order, COL.QUANTITY)) || 0,
+                    'Trạng thái thu tiền': getRowValue(order, COL.TRANG_THAI_THU_TIEN) || '',
+                    'Trạng thái xuất': getRowValue(order, COL.XUAT) || '',
+                    'Trạng thái giao hàng': getRowValue(order, COL.TRANG_THAI_GIAO_HANG) || '',
+                    'Trạng thái hủy': getRowValue(order, COL.TRANG_THAI_HUY) || ''
+                };
+            });
+
+            // Sắp xếp theo tên người tạo
+            const extractName = (val: string | number) => {
+                const s = String(val);
+                const parts = s.split('-');
+                return parts.length > 1 ? parts.slice(1).join('-').trim() : s.trim();
+            };
+            exportData.sort((a, b) => {
+                const nameA = extractName(a['Người tạo']);
+                const nameB = extractName(b['Người tạo']);
+                return nameA.localeCompare(nameB, 'vi');
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // Set dynamic column widths
+            const wscols = [
+                {wch: 15}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 40}, 
+                {wch: 10}, {wch: 18}, {wch: 15}, {wch: 20}, {wch: 15}
+            ];
+            ws['!cols'] = wscols;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ChuaThuChuaHuy");
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+            const filename = `DonHangChuaThuChuaHuy_${dateStr}.xlsx`;
+            
+            XLSX.writeFile(wb, filename);
+        } catch (err) {
+            console.error('Lỗi khi xuất file Excel:', err);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    // Lỗi #23 (video v1:095): thanh công cụ 6 nút, mỗi nút một kiểu (vàng / viền / xanh lá / xanh dương). Nay 2 nút icon trung
+    // tính hay dùng nhất + "⋯" gom phần còn lại (sao chép DS nhân viên, xuất ảnh từng NV, Excel, Google Sheet).
+    const controls = (
+        <div className="flex items-center gap-1 sm:gap-1.5 hide-on-export">
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleAllDetails}
+                title={isAllExpanded ? 'Thu gọn tất cả' : 'Hiển thị tất cả'}
+                aria-label={isAllExpanded ? 'Thu gọn tất cả' : 'Hiển thị tất cả'}
+                className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            >
+                <AppIcon name={isAllExpanded ? 'collapseAll' : 'expandAll'} size="md" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleExportAll}
+                disabled={isExporting}
+                title="Xuất ảnh toàn bộ danh sách"
+                aria-label="Xuất ảnh toàn bộ danh sách"
+                className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 shrink-0"
+            >
+                <AppIcon name={isExporting ? 'loading' : 'exportImage'} size="md" spin={isExporting} />
+            </Button>
+            <ActionMenu
+                label="Thêm thao tác"
+                title="Đơn hàng"
+                items={[
+                    { id: 'copy-nv', label: 'Sao chép danh sách NV có đơn quá hạn chưa thu', icon: 'checklist', onSelect: handleCopyOverdueEmployees },
+                    { id: 'xuat-tung-nv', label: 'Xuất ảnh từng nhân viên', icon: 'exportBatch', disabled: isExporting, onSelect: () => { void handleBatchExport(); } },
+                    { id: 'excel', label: 'Xuất file Excel', icon: 'spreadsheet', disabled: isExporting, onSelect: () => { void handleExportLocalExcel(); } },
+                    { id: 'sheet', label: 'Xuất lên Google Sheet', icon: 'spreadsheet', disabled: isExporting, onSelect: () => { void handleExportGoogleSheet(); } },
+                ]}
+            />
+        </div>
+    );
+    
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Đơn hàng chưa thu, chưa huỷ"
+            subTitle={`DTQĐ ${formatCurrency(totalUncollectedRevenueQD)}`}
+            controls={controls}
+            maxWidth="xl"
+            noRounded
+        >
+            <div className="modal-bleed p-4 sm:p-8 bg-white dark:bg-slate-900" ref={modalBodyRef}>
+                {creatorData.length > 0 ? (
+                    <div className="space-y-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-control sm:rounded-popup shadow p-3 sm:p-5">
+                            <h4 className="type-headline font-semibold text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 text-center">Tỷ trọng ngành hàng chưa thu</h4>
+                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{/* tối đa 4 cột — xem UnshippedOrdersModal (2026-09-28) */}
+                                {industryDataForDisplay.map(item => {
+                                    const percentage = totalUncollectedRevenue > 0 ? (item.revenue / totalUncollectedRevenue * 100) : 0;
+                                    const tone = industryToneByName(item.name);
+                                    const icon = industryIcons[item.name] || 'package';
+
+                                    return (
+                                        <div
+                                            key={item.name}
+                                            className={`bg-slate-50 dark:bg-slate-900/50 p-2 sm:p-2.5 rounded-control border-l-4 ${tone.border} flex items-center gap-2.5 sm:gap-3 transition-all duration-300 ease-in-out transform hover:shadow-md hover:-translate-y-0.5`}
+                                        >
+                                           <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${tone.bg} flex flex-shrink-0 items-center justify-center ${tone.text}`}>
+                                                <AppIcon name={resolveIconName(icon) ?? 'help'} size="md" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-200 truncate leading-tight mb-0.5" title={item.name}>{item.name}</p>
+                                                <div className="flex items-baseline gap-1.5 flex-wrap">
+                                                    <p className={`font-black text-sm sm:text-base ${tone.value} leading-none`}>{formatCurrency(item.revenue)}</p>
+                                                    <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 leading-none">({percentage.toFixed(1)}%)</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            {creatorData.map(creator => (
+                                <details key={creator.name} ref={el => { creatorRefs.current[creator.name] = el; }} className="bg-white dark:bg-slate-900 overflow-hidden" open>
+                                <summary className="py-2 sm:py-2.5 px-2 sm:px-3 cursor-pointer flex justify-between items-center list-none bg-sky-50/80 hover:bg-sky-100/80 dark:bg-sky-900/30 dark:hover:bg-sky-900/50 transition-colors rounded-r-control mb-1.5 mt-2 shadow-sm border-l-4 border-sky-400">
+                                        <p className="font-bold text-sm sm:text-[17px] text-sky-950 dark:text-sky-100 pl-1">{creator.name}</p>
+                                        <div className="flex items-center gap-x-2 sm:gap-x-4 gap-y-0.5 sm:gap-y-1 flex-wrap justify-end text-[11px] sm:text-sm font-semibold">
+                                            <span className="text-slate-600 dark:text-slate-300">DT Thực: <span className="font-bold text-rose-700 dark:text-rose-400">{formatCurrency(creator.totalRevenue)}</span></span>
+                                            <span className="text-slate-600 dark:text-slate-300">DTQĐ: <span className="font-bold text-amber-700 dark:text-amber-400">{formatCurrency(creator.totalRevenueQD)}</span></span>
+                                            <span className="text-slate-600 dark:text-slate-300">HQQĐ: <span className={`font-bold ${creator.hieuQuaQD < 40 ? 'text-rose-500' : 'text-emerald-500'}`}>{creator.hieuQuaQD.toFixed(0)}%</span></span>
+                                            <Button onClick={(e) => handleExportCreator(e, creator.name)} title={`Xuất ảnh của ${creator.name}`} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hide-on-export ml-2">
+                                                <AppIcon name="exportImage" size="md" />
+                                            </Button>
+                                            <div className="accordion-icon text-slate-400 transition-transform duration-300 hide-on-export ml-2">
+                                                <AppIcon name="chevronDown" size="md" />
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    {creator.customers.map(customer => {
+                                        const customerId = `${creator.name}::${customer.name}`;
+                                        const isRendered = renderedCustomerIds.has(customerId);
+                                        return (
+                                        <details
+                                            key={customer.name}
+                                            className="bg-white dark:bg-slate-900 ml-2 pl-2 sm:ml-4 sm:pl-4 border-l-2 border-slate-100 dark:border-slate-800 border-b border-dashed border-slate-300 dark:border-slate-700 pb-2 mb-2 last:border-b-0"
+                                            onToggle={(e) => {
+                                                if (e.currentTarget.open) {
+                                                    setRenderedCustomerIds(prev => prev.has(customerId) ? prev : new Set(prev).add(customerId));
+                                                }
+                                            }}
+                                        >
+                                            <summary className="py-2 cursor-pointer flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 list-none hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors pr-2">
+                                                {/* Lỗi #14 (video v1:095–098): tên khách IN HOA 16px to gấp rưỡi xung quanh → 13/14px, giữ chữ như dữ liệu; iPhone xếp tên
+                                                    một dòng riêng (bên phải còn 3 số + mũi tên — chen chung hàng thì tên bị bóp thành cột chữ dọc). */}
+                                                <div className="flex items-start justify-between gap-2 min-w-0 sm:contents">
+                                                    <p className="min-w-0 text-[13px] sm:text-sm leading-snug font-semibold text-slate-800 dark:text-slate-200 break-words">{customer.name}</p>
+                                                    <AppIcon name="chevronDown" size="md" className="sm:hidden shrink-0 text-slate-400 hide-on-export" />
+                                                </div>
+                                                <div className="flex items-center gap-x-3 gap-y-1 flex-wrap sm:justify-end sm:shrink-0 text-xs font-semibold">
+                                                    <span className="text-slate-600 dark:text-slate-300">Hẹn giao: <span className="font-bold text-slate-800 dark:text-slate-100">{customer.scheduledDate}</span></span>
+                                                    <span className="text-slate-600 dark:text-slate-300">DTQĐ: <span className="font-bold text-amber-700 dark:text-amber-400">{formatCurrency(customer.totalRevenueQD)}</span></span>
+                                                    <span className="text-slate-600 dark:text-slate-300">HQQĐ: <span className={`font-bold ${customer.hieuQuaQD < 40 ? 'text-rose-500' : 'text-emerald-500'}`}>{customer.hieuQuaQD.toFixed(0)}%</span></span>
+                                                    <div className="accordion-icon hidden sm:block text-slate-400 transition-transform duration-300 hide-on-export ml-2">
+                                                        <AppIcon name="chevronDown" size="md" />
+                                                    </div>
+                                                </div>
+                                            </summary>
+                                            {isRendered && (
+                                            <div className="mt-1 pb-3 overflow-auto custom-scrollbar">
+                                                <table className="min-w-[600px] md:w-full text-sm table-fixed compact-export-table border-collapse">
+                                                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[11px] border-b border-t border-slate-100 dark:border-slate-800">
+                                                        <tr>
+                                                            <th className="py-2.5 px-2 text-left font-semibold w-[22%]">Mã ĐH</th>
+                                                            <th className="py-2.5 px-2 text-left font-semibold w-[12%] whitespace-nowrap">Ngày tạo</th>
+                                                            <th className="py-2.5 px-2 text-left font-semibold w-[28%] lg:w-[30%]">Sản phẩm</th>
+                                                            <th className="py-2.5 px-2 text-center font-semibold w-[8%]">SL</th>
+                                                            <th className="py-2.5 px-2 text-right font-semibold w-[15%] whitespace-nowrap">Doanh Thu</th>
+                                                            <th className="py-2.5 px-2 text-right font-semibold w-[15%] whitespace-nowrap">DTQĐ</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                                        {customer.orders.map((order, index) => {
+                                                            const price = getRowPrice(order);
+                                                            const priceQD = calculateRowMetrics(order, productConfig).revenueQD;
+                                                            const orderId = getRowValue(order, COL.ID) as string;
+
+                                                            return (
+                                                                <tr key={orderId || index} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                                                                    <td
+                                                                        className="py-2.5 px-2 text-left text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700/50 break-all font-mono cursor-pointer hover:text-sky-700 dark:hover:text-sky-400 transition-colors"
+                                                                        title="Nhấn để sao chép"
+                                                                        onClick={() => {
+                                                                            if (orderId) {
+                                                                                void saoChep(orderId, { thanhCong: `Đã sao chép: ${orderId}` });
+                                                                            }
+                                                                        }}
+                                                                    >{orderId}</td>
+                                                                    <td className="py-2.5 px-2 text-left text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700/50 whitespace-nowrap">{(() => {
+                                                                        const raw = getRowValue(order, COL.DATE_CREATED);
+                                                                        if (!raw) return '';
+                                                                        const d = raw instanceof Date ? raw : new Date(raw as string);
+                                                                        return !isNaN(d.getTime()) ? d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : String(raw);
+                                                                    })()}</td>
+                                                                    <td className="py-2.5 px-2 text-left text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700/50 truncate w-full" title={getRowValue(order, COL.PRODUCT) as string}>{getRowValue(order, COL.PRODUCT)}</td>
+                                                                    <td className="py-2.5 px-2 text-center text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700/50">{formatQuantity(getRowValue(order, COL.QUANTITY) as number)}</td>
+                                                                    <td className="py-2.5 px-2 text-right font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap border-b border-slate-200 dark:border-slate-700/50">{formatCurrency(price)}</td>
+                                                                    <td className="py-2.5 px-2 text-right font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap border-b border-slate-200 dark:border-slate-700/50">{formatCurrency(priceQD)}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            )}
+                                        </details>
+                                        );
+                                    })}
+                                </details>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-center text-slate-500 dark:text-slate-400 py-12">Không có đơn hàng nào đang chưa thu trong khoảng thời gian đã chọn.</p>
+                )}
+            </div>
+        </Modal>
+    );
+};
+
+export default UncollectedOrdersModal;

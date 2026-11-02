@@ -1,0 +1,50 @@
+[
+  {
+    "source": "public/exports-audit/phan-tich-khai-thac-chi-tiet-mobile.png",
+    "build_path": "dist/exports-audit/phan-tich-khai-thac-chi-tiet-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/phan-tich-khai-thac-hieu-qua-mobile.png",
+    "build_path": "dist/exports-audit/phan-tich-khai-thac-hieu-qua-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/phan-tich-tab-hieu-suat-mobile.png",
+    "build_path": "dist/exports-audit/phan-tich-tab-hieu-suat-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/phan-tich-tab-top-mobile.png",
+    "build_path": "dist/exports-audit/phan-tich-tab-top-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/report-bi-nhan-vien-doanh-thu-mobile.png",
+    "build_path": "dist/exports-audit/report-bi-nhan-vien-doanh-thu-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/report-bi-nhan-vien-thi-dua-mobile.png",
+    "build_path": "dist/exports-audit/report-bi-nhan-vien-thi-dua-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/report-bi-nhan-vien-thuong-mobile.png",
+    "build_path": "dist/exports-audit/report-bi-nhan-vien-thuong-mobile.png",
+    "exists": true,
+    "same_hash": true
+  },
+  {
+    "source": "public/exports-audit/report-bi-nhan-vien-tra-cham-mobile.png",
+    "build_path": "dist/exports-audit/report-bi-nhan-vien-tra-cham-mobile.png",
+    "exists": true,
+    "same_hash": true
+  }
+]

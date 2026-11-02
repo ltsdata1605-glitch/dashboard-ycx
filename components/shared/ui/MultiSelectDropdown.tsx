@@ -1,0 +1,299 @@
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { cn, onActivateKey } from './utils';
+import { AppIcon } from './icon/AppIcon';
+import { Button } from './Button';
+import { Input } from './Input';
+
+/* ─── MultiSelectDropdown ───
+ * Dropdown lọc đa-chọn: nút trigger (icon + nhãn rút gọn + badge đếm + chevron) và
+ * panel danh sách toggle được, có hàng "Chọn tất cả" riêng. Khác với `Dropdown`
+ * (đơn-chọn, tự đóng sau khi chọn), panel ở đây giữ mở khi chọn nhiều mục liên tiếp.
+ *
+ * Hỗ trợ thêm (tuỳ chọn, không phá vỡ các nơi đang dùng mặc định):
+ * - `groups` thay cho `options` khi cần chia danh sách theo nhóm có tiêu đề (VD tiêu chí
+ *   SLLK/DTLK/DTQĐ ở bộ lọc "chương trình thi đua").
+ * - `searchValue`/`onSearchChange` để có ô tìm kiếm trong panel (danh sách dài).
+ * - `usePortal` để panel render qua createPortal + theo dõi scroll/resize, dùng khi nút
+ *   trigger nằm sâu trong container có thể bị cắt panel `absolute` thông thường.
+ */
+
+export interface MultiSelectDropdownOption {
+  key: string;
+  label: string;
+  checked: boolean;
+}
+
+export interface MultiSelectDropdownGroup {
+  key: string;
+  label: string;
+  options: MultiSelectDropdownOption[];
+}
+
+export interface MultiSelectDropdownProps {
+  icon?: React.ReactNode;
+  triggerLabel: string;
+  iconOnly?: boolean;
+  count?: number;
+  allLabel?: string;
+  allChecked?: boolean;
+  onToggleAll?: () => void;
+  /** Danh sách phẳng — bỏ qua nếu truyền `groups`. */
+  options?: MultiSelectDropdownOption[];
+  /** Danh sách chia nhóm có tiêu đề — ưu tiên hơn `options` nếu có. */
+  groups?: MultiSelectDropdownGroup[];
+  onToggleOption: (key: string) => void;
+  align?: 'left' | 'right';
+  panelWidthClass?: string;
+  /** Mặc định `max-h-72`; panel `usePortal` thường cần cao hơn (VD `max-h-[80vh]`). */
+  maxHeightClass?: string;
+  className?: string;
+  triggerClassName?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
+  /** Render panel qua createPortal(document.body) + theo dõi scroll/resize thay vì `absolute`
+   *  thường — dùng khi trigger nằm trong container có nguy cơ cắt mất panel. */
+  usePortal?: boolean;
+}
+
+const ToggleDot: React.FC<{ checked: boolean }> = ({ checked }) => (
+  <span
+    aria-hidden="true"
+    className={cn(
+      'relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200',
+      checked ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'
+    )}
+  >
+    <span
+      className={cn(
+        'inline-block h-3 w-3 transform rounded-full bg-white shadow transition duration-200',
+        checked ? 'translate-x-3' : 'translate-x-0'
+      )}
+    />
+  </span>
+);
+
+const OptionRow: React.FC<{ option: MultiSelectDropdownOption; onToggle: (key: string) => void }> = ({ option, onToggle }) => (
+  <div
+    role="button"
+    tabIndex={0}
+    onClick={() => onToggle(option.key)}
+    onKeyDown={onActivateKey(() => onToggle(option.key))}
+    className="flex items-center justify-between px-3 py-2 rounded-control cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+  >
+    <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate pr-2">{option.label}</span>
+    <ToggleDot checked={option.checked} />
+  </div>
+);
+
+export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
+  icon,
+  triggerLabel,
+  iconOnly = false,
+  count,
+  allLabel,
+  allChecked = false,
+  onToggleAll,
+  options,
+  groups,
+  onToggleOption,
+  align = 'right',
+  panelWidthClass = 'w-64',
+  maxHeightClass = 'max-h-72',
+  className,
+  triggerClassName,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = 'Tìm kiếm...',
+  usePortal = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({});
+
+  const toggle = useCallback(() => setIsOpen(prev => !prev), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const insideTrigger = containerRef.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideTrigger && !insidePanel) setIsOpen(false);
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [isOpen]);
+
+  // Chế độ usePortal: panel render qua document.body (position: fixed), phải tự theo dõi
+  // scroll/resize để bám theo nút trigger — trigger cuộn trong 1 container lồng nhau, panel
+  // portal không tự cuộn theo cùng nếu không tính lại vị trí (xem lý do dùng usePortal ở
+  // features/bi-dashboard/components/nhanvien/CompetitionTab.tsx, nơi pattern này ra đời).
+  useEffect(() => {
+    if (!isOpen || !usePortal) return;
+    const updatePosition = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const panelWidth = panelRef.current?.offsetWidth || 256;
+
+      let left: number | undefined;
+      let right: number | undefined;
+
+      if (align === 'right') {
+        const calculatedRight = viewportWidth - rect.right;
+        // Nếu mở sang trái bị tràn mép trái màn hình (< 8px)
+        if (rect.right - panelWidth < 8) {
+          left = Math.max(8, rect.left);
+          right = undefined;
+        } else {
+          right = Math.max(8, calculatedRight);
+        }
+      } else {
+        const calculatedLeft = rect.left;
+        // Nếu mở sang phải bị tràn mép phải màn hình
+        if (calculatedLeft + panelWidth > viewportWidth - 8) {
+          right = Math.max(8, viewportWidth - rect.right);
+          left = undefined;
+        } else {
+          left = Math.max(8, calculatedLeft);
+        }
+      }
+
+      setPortalStyle({
+        position: 'fixed',
+        top: rect.bottom + 8,
+        left: left !== undefined ? `${left}px` : undefined,
+        right: right !== undefined ? `${right}px` : undefined,
+        maxWidth: 'calc(100vw - 16px)',
+      });
+    };
+    updatePosition();
+    searchInputRef.current?.focus({ preventScroll: true });
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen, usePortal, align]);
+
+  useEffect(() => {
+    if (isOpen && !usePortal) searchInputRef.current?.focus({ preventScroll: true });
+  }, [isOpen, usePortal]);
+
+  const panelContent = (
+    <div
+      ref={panelRef}
+      style={usePortal ? portalStyle : undefined}
+      className={cn(
+        usePortal ? 'fixed' : cn('absolute top-[calc(100%+8px)]', align === 'right' ? 'right-0' : 'left-0'),
+        'z-[var(--p-z-dropdown)] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-popup shadow-lg overflow-hidden flex flex-col animate-fade-in',
+        maxHeightClass,
+        panelWidthClass
+      )}
+    >
+      {onSearchChange && (
+        <div className="p-2 border-b border-slate-100 dark:border-slate-700 shrink-0">
+          <Input
+            ref={searchInputRef}
+            value={searchValue ?? ''}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-8 text-xs"
+          />
+        </div>
+      )}
+      <div className="overflow-y-auto custom-scrollbar p-1.5 space-y-0.5 flex-1">
+        {allLabel && onToggleAll && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onToggleAll}
+            onKeyDown={onActivateKey(onToggleAll)}
+            className="flex items-center justify-between px-3 py-2 rounded-control cursor-pointer hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <span className="text-xs font-black text-sky-700 dark:text-sky-400">{allLabel}</span>
+            <ToggleDot checked={allChecked} />
+          </div>
+        )}
+        {groups
+          ? groups.filter(g => g.options.length > 0).map(group => (
+              <div key={group.key} className="pt-1.5 first:pt-0">
+                <h5 className="px-2 py-1 mb-0.5 text-[11px] font-black text-sky-700 dark:text-sky-400 uppercase tracking-wider bg-sky-50 dark:bg-sky-900/30 rounded-md">{group.label}</h5>
+                <div className="space-y-0.5">
+                  {group.options.map(opt => <OptionRow key={opt.key} option={opt} onToggle={onToggleOption} />)}
+                </div>
+              </div>
+            ))
+          : (options || []).map(opt => <OptionRow key={opt.key} option={opt} onToggle={onToggleOption} />)}
+      </div>
+    </div>
+  );
+
+  return (
+    <div ref={containerRef} className={cn('relative w-full sm:w-auto min-w-0', className)}>
+      {iconOnly ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          title={triggerLabel}
+          className={cn(
+            'relative h-7 w-7 transition-colors',
+            isOpen || (typeof count === 'number' && count > 0)
+              ? 'text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+          )}
+        >
+          {icon}
+          {typeof count === 'number' && count > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-sky-500 text-[11px] font-black text-white">
+              {count}
+            </span>
+          )}
+        </Button>
+      ) : (
+        <Button
+          variant="row"
+          size="none"
+          onClick={toggle}
+          className={cn(
+            // min-h-11 (44px) trên điện thoại: đo thật trên iPhone 15, nút xổ bộ lọc chỉ cao 30px
+            // nên rất dễ bấm trượt. Desktop giữ nguyên để không đội thanh công cụ lên.
+            "h-full justify-between gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 min-h-11 sm:min-h-0 text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50",
+            triggerClassName
+          )}
+        >
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            {icon}
+            {/* 104px trên điện thoại: 80px cũ cắt cả tên siêu thị ngắn "Tân Hiệp" thành "Tân…"
+                (Report BI › Nhân viên trên iPhone, dữ liệu thật 2026-09-28). */}
+            <span className="truncate text-left max-w-[104px] sm:max-w-[160px]">{triggerLabel}</span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-0.5 sm:ml-2">
+            {/* Điện thoại: ẩn số đếm khi chỉ chọn ≤1 — nhãn đã ghi đúng tên đang chọn, số "1" chỉ
+                chiếm chỗ khiến chính cái tên bị cắt "Tân…" (iPhone, dữ liệu thật 2026-09-28). */}
+            {typeof count === 'number' && (
+              <span className={cn('text-[11px] sm:text-[11px] font-black text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 rounded-full px-1.5 py-0.5', count <= 1 && 'hidden sm:inline')}>{count}</span>
+            )}
+            <AppIcon name="chevronDown" size="xs" className={cn('text-slate-400 transition-transform duration-200', isOpen && 'rotate-180')} />
+          </div>
+        </Button>
+      )}
+      {isOpen && (usePortal ? createPortal(panelContent, document.body) : panelContent)}
+    </div>
+  );
+};
+
+MultiSelectDropdown.displayName = 'MultiSelectDropdown';

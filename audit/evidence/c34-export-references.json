@@ -1,0 +1,2012 @@
+{
+  "Card": [
+    {
+      "path": "components/common/ProcessingLoader.tsx",
+      "line": 58,
+      "kind": "source_reference",
+      "text": "{/* Ultra-Modern White Glassmorphism Modal Card */}"
+    },
+    {
+      "path": "components/layout/Sidebar.tsx",
+      "line": 297,
+      "kind": "source_reference",
+      "text": "{/* Flyout Card hiển thị thông tin người dùng ngay khi hover với cầu nối hover mượt mà */}"
+    },
+    {
+      "path": "components/shared/export/AreaAutoExportButton.tsx",
+      "line": 226,
+      "kind": "source_reference",
+      "text": "{/* Card 1: Realtime (bcrt) */}"
+    },
+    {
+      "path": "components/shared/export/AreaAutoExportButton.tsx",
+      "line": 332,
+      "kind": "source_reference",
+      "text": "{/* Card 2: Lũy kế (bclk) */}"
+    },
+    {
+      "path": "components/shared/export/ExportOptionsModal.tsx",
+      "line": 119,
+      "kind": "source_reference",
+      "text": "{/* Bot LINE Auto-Export Config Card */}"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 4,
+      "kind": "definition",
+      "text": "/* ─── Card ─── */"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 28,
+      "kind": "definition",
+      "text": "export const Card = React.forwardRef<HTMLDivElement, CardProps>("
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 48,
+      "kind": "definition",
+      "text": "Card.displayName = 'Card';"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 50,
+      "kind": "definition",
+      "text": "/* ─── Card Sub-components ─── */"
+    },
+    {
+      "path": "components/shared/ui/KpiCard.tsx",
+      "line": 131,
+      "kind": "source_reference",
+      "text": "* KPI Card chuẩn \"Executive Modern\" — squircle icon, gradient top accent,"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 11,
+      "kind": "source_reference",
+      "text": "* Khung \"Card section\" chuẩn dùng chung toàn app (DESIGN_SYSTEM_MODERN.md §3.1):"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 15,
+      "kind": "source_reference",
+      "text": "* Khác với `Card` (tĩnh, không đổi hình theo breakpoint): `SectionCard` dành riêng cho khung bọc"
+    },
+    {
+      "path": "components/shared/ui/SectionHeader.tsx",
+      "line": 25,
+      "kind": "source_reference",
+      "text": "* Header chuẩn cho mọi \"Card section\" (KPI / Chart / Table…)."
+    },
+    {
+      "path": "components/shared/ui/Skeleton.tsx",
+      "line": 71,
+      "kind": "source_reference",
+      "text": "/** Card skeleton — mimics a stat card loading state */"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "kind": "barrel",
+      "text": "export { Card, CardHeader, CardBody, CardFooter } from './Card';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 60,
+      "kind": "barrel",
+      "text": "export type { CardProps, CardHeaderProps } from './Card';"
+    },
+    {
+      "path": "components/views/UserManagementView.tsx",
+      "line": 1183,
+      "kind": "source_reference",
+      "text": "{/* User Summary Card */}"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import Card from './Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 326,
+      "kind": "source_reference",
+      "text": "<Card"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 424,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 15,
+      "kind": "source_reference",
+      "text": "/** Tắt viền/bo góc/shadow của SectionCard khi Card này đã nằm sẵn trong 1 khung viền khác ở"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 17,
+      "kind": "source_reference",
+      "text": "*  tránh viền lồng viền sát nhau. Mặc định true để không đổi hành vi các nơi dùng Card độc lập. */"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 24,
+      "kind": "source_reference",
+      "text": "const Card = forwardRef<HTMLDivElement, CardProps>(({ title, icon, subtitle, actionButton, children, noPadding = false, rounded = false, bordered = true, onHeaderClick, headerClassName, titleClassName }, ref) => {"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 61,
+      "kind": "source_reference",
+      "text": "Card.displayName = 'Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 63,
+      "kind": "source_reference",
+      "text": "export default Card;"
+    },
+    {
+      "path": "features/bi-dashboard/components/Dashboard.tsx",
+      "line": 33,
+      "kind": "source_reference",
+      "text": "* - Card upload / điều hướng thao tác cập nhật dữ liệu"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 5,
+      "kind": "source_reference",
+      "text": "import Card from './Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 856,
+      "kind": "source_reference",
+      "text": "<Card title=\"DOANH THU & THI ĐUA CỤM\">"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 1028,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 1034,
+      "kind": "source_reference",
+      "text": "<Card"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 1100,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import Card from '../Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 510,
+      "kind": "source_reference",
+      "text": "<Card"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 517,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 694,
+      "kind": "source_reference",
+      "text": "<Card"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 917,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/industryKpi/IndustryKpiGrid.tsx",
+      "line": 208,
+      "kind": "source_reference",
+      "text": "{/* Add Card Modal */}"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/BonusTab.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import Card from '../Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx",
+      "line": 5,
+      "kind": "source_reference",
+      "text": "import Card from '../Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx",
+      "line": 685,
+      "kind": "source_reference",
+      "text": "<Card"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionSummaryView.tsx",
+      "line": 1011,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import Card from '../Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 647,
+      "kind": "source_reference",
+      "text": "<Card bordered={false} title=\"HIỆU QUẢ THI ĐUA THEO NHÂN VIÊN\">"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 652,
+      "kind": "source_reference",
+      "text": "</Card>"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/IndividualCompetitionView.tsx",
+      "line": 137,
+      "kind": "source_reference",
+      "text": "// ─── Employee Profile Card ───"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+      "line": 5,
+      "kind": "source_reference",
+      "text": "import Card from '../Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+      "line": 401,
+      "kind": "source_reference",
+      "text": "if (rows.length === 0) return <Card bordered={false} title=\"Phân tích Trả chậm\"><EmptyState icon={<AppIcon name=\"report\" size=\"xl\" />} title=\"Chưa có dữ liệu\" /></Card>;"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import Card from '../Card';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 409,
+      "kind": "source_reference",
+      "text": "if (!supermarketName) return <Card bordered={false} title=\"Phân tích Nhân viên\"><EmptyState icon={<AppIcon name=\"users\" size=\"xl\" />} title=\"Vui lòng chọn siêu thị\" compact /></Card>;"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 410,
+      "kind": "source_reference",
+      "text": "if (isLoading) return <Card bordered={false} title={cardTitle} subtitle={cardSubtitle}><div className=\"flex items-center justify-center py-20\"><AppIcon name=\"loading\" spin size=\"hero\" className=\"text-sky-500\" /></div></Card>;"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongCategoryCards.tsx",
+      "line": 76,
+      "kind": "source_reference",
+      "text": "{/* Card Grid */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongCategoryCards.tsx",
+      "line": 114,
+      "kind": "source_reference",
+      "text": "{/* Card Title */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongCategoryCards.tsx",
+      "line": 124,
+      "kind": "source_reference",
+      "text": "{/* Card Body */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongCategoryCards.tsx",
+      "line": 160,
+      "kind": "source_reference",
+      "text": "{/* Card Footer */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongComparisonView.tsx",
+      "line": 112,
+      "kind": "source_reference",
+      "text": "{/* Store 1 Card */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongComparisonView.tsx",
+      "line": 144,
+      "kind": "source_reference",
+      "text": "{/* Store 2 Card */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongSearchView.tsx",
+      "line": 247,
+      "kind": "source_reference",
+      "text": "{/* Analysis & Recommendations Card (Đặt ngay dưới các thẻ KPI) */}"
+    },
+    {
+      "path": "features/check-thuong/components/CheckThuongStatusSummary.tsx",
+      "line": 80,
+      "kind": "source_reference",
+      "text": "{/* Injected Analysis Card directly under KPI cards */}"
+    },
+    {
+      "path": "features/line-bot/components/IPhoneChatPreview.tsx",
+      "line": 293,
+      "kind": "source_reference",
+      "text": "{/* Card 1: Khớp chuẩn 100% Hình 2 */}"
+    },
+    {
+      "path": "features/line-bot/components/IPhoneChatPreview.tsx",
+      "line": 345,
+      "kind": "source_reference",
+      "text": "{/* Card 2: PMH MM300 */}"
+    },
+    {
+      "path": "features/line-bot/components/IPhoneChatPreview.tsx",
+      "line": 397,
+      "kind": "source_reference",
+      "text": "{/* Card 3 (nếu có người thứ 2): PMH SHD4607 */}"
+    },
+    {
+      "path": "features/line-bot/components/IPhoneChatPreview.tsx",
+      "line": 653,
+      "kind": "source_reference",
+      "text": "{/* LINE Flex Message Card (Bubble) */}"
+    },
+    {
+      "path": "features/line-bot/components/IPhoneChatPreview.tsx",
+      "line": 664,
+      "kind": "source_reference",
+      "text": "Flex Card"
+    },
+    {
+      "path": "features/line-bot/components/LineBotSettingsTab.tsx",
+      "line": 85,
+      "kind": "source_reference",
+      "text": "{/* Top Bot Card Status */}"
+    },
+    {
+      "path": "features/line-bot/components/LineBotSettingsTab.tsx",
+      "line": 96,
+      "kind": "source_reference",
+      "text": "{/* Google Account & Warehouse Linkage Card */}"
+    },
+    {
+      "path": "features/line-bot/services/couponParser.ts",
+      "line": 563,
+      "kind": "source_reference",
+      "text": "* Tạo LINE Flex Bubble Card cho 1 mã PMH (Khung đồ hoạ bo góc, viền xanh, 1-chạm copy)"
+    },
+    {
+      "path": "functions/src/lineBotWebhook.ts",
+      "line": 1730,
+      "kind": "source_reference",
+      "text": "// Gôm mã theo từng người nhận & chuẩn bị dữ liệu Thẻ Flex Card (mỗi mã 1 thẻ)"
+    },
+    {
+      "path": "functions/src/lineBotWebhook.ts",
+      "line": 1775,
+      "kind": "source_reference",
+      "text": "// Chuẩn bị item cho Flex Card"
+    },
+    {
+      "path": "functions/src/lineBotWebhook.ts",
+      "line": 3667,
+      "kind": "source_reference",
+      "text": "// Gửi Flex Message Card hỗ trợ chạm tự động copy mã"
+    },
+    {
+      "path": "functions/src/lineBotWebhook.ts",
+      "line": 4031,
+      "kind": "source_reference",
+      "text": "// Gửi Flex Message Card hỗ trợ chạm tự động copy mã"
+    },
+    {
+      "path": "functions/src/pmhFlexCard.ts",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "* Tạo LINE Flex Message Card cấp mã coupon"
+    },
+    {
+      "path": "functions/src/pmhRelay.ts",
+      "line": 181,
+      "kind": "source_reference",
+      "text": "// 1. Tạo tin nhắn dạng Thẻ Flex Message Card"
+    },
+    {
+      "path": "public/check-thuong.html",
+      "line": 251,
+      "kind": "source_reference",
+      "text": "/* Card grid - hiển thị dạng grid 2 cột trên di động, không trượt ngang */"
+    },
+    {
+      "path": "public/check-thuong.html",
+      "line": 293,
+      "kind": "source_reference",
+      "text": "<!-- Main Action Area - Glass Card -->"
+    },
+    {
+      "path": "styles/tokens.css",
+      "line": 310,
+      "kind": "source_reference",
+      "text": "/* Card */"
+    },
+    {
+      "path": "styles/tokens.css",
+      "line": 385,
+      "kind": "source_reference",
+      "text": "/* Stat Card */"
+    },
+    {
+      "path": "styles/tokens.css",
+      "line": 459,
+      "kind": "source_reference",
+      "text": "/* Card */"
+    },
+    {
+      "path": "tests/e2e/check-thuong-card-zoom.spec.ts",
+      "line": 28,
+      "kind": "test",
+      "text": "console.log('Card computed background-color:', bgColor);"
+    },
+    {
+      "path": "tests/e2e/check-thuong-startup.spec.ts",
+      "line": 44,
+      "kind": "test",
+      "text": "// Summary Card có dữ liệu tra cứu kho 910"
+    },
+    {
+      "path": "tests/e2e/industry-kpi-size.spec.ts",
+      "line": 3,
+      "kind": "test",
+      "text": "test.describe('Industry KPI Card - Hero Number Size and Clarity Verification', () => {"
+    },
+    {
+      "path": "tests/e2e/test-kpi-auto-save.spec.ts",
+      "line": 3,
+      "kind": "test",
+      "text": "test.describe('KPI Card Configuration Auto-Save Verification', () => {"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 16,
+      "kind": "test",
+      "text": "const {Card}=await import('/components/shared/ui/Card.tsx');"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 22,
+      "kind": "test",
+      "text": "h(Card,{'data-testid':'card'},'Audit card'),h(SectionCard,{'data-testid':'section'},'Audit section'),"
+    }
+  ],
+  "CardHeader": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 58,
+      "kind": "definition",
+      "text": "export const CardHeader: React.FC<CardHeaderProps> = ({"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 91,
+      "kind": "definition",
+      "text": "CardHeader.displayName = 'CardHeader';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "kind": "barrel",
+      "text": "export { Card, CardHeader, CardBody, CardFooter } from './Card';"
+    }
+  ],
+  "CardBody": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 93,
+      "kind": "definition",
+      "text": "export const CardBody: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 102,
+      "kind": "definition",
+      "text": "CardBody.displayName = 'CardBody';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "kind": "barrel",
+      "text": "export { Card, CardHeader, CardBody, CardFooter } from './Card';"
+    }
+  ],
+  "CardFooter": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 104,
+      "kind": "definition",
+      "text": "export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 116,
+      "kind": "definition",
+      "text": "CardFooter.displayName = 'CardFooter';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "kind": "barrel",
+      "text": "export { Card, CardHeader, CardBody, CardFooter } from './Card';"
+    }
+  ],
+  "SectionCard": [
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 11,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../shared/ui/SectionCard';"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 224,
+      "kind": "source_reference",
+      "text": "<SectionCard"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 508,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 12,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../shared/ui/SectionCard';"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 418,
+      "kind": "source_reference",
+      "text": "<SectionCard"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 710,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 11,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../shared/ui/SectionCard';"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 208,
+      "kind": "source_reference",
+      "text": "<SectionCard className=\"mb-8 flex flex-col flex-grow lg:rounded-none\">"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 309,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 15,
+      "kind": "definition",
+      "text": "* Khác với `Card` (tĩnh, không đổi hình theo breakpoint): `SectionCard` dành riêng cho khung bọc"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 18,
+      "kind": "definition",
+      "text": "export const SectionCard = React.forwardRef<HTMLDivElement, SectionCardProps>("
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 33,
+      "kind": "definition",
+      "text": "SectionCard.displayName = 'SectionCard';"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 35,
+      "kind": "definition",
+      "text": "export default SectionCard;"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 96,
+      "kind": "barrel",
+      "text": "export { SectionCard } from './SectionCard';"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 54,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../shared/ui/SectionCard';"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 561,
+      "kind": "source_reference",
+      "text": "<SectionCard ref={kpiCardsOnlyRef} className=\"relative lg:rounded-none\">"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 671,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 2,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../../../components/shared/ui/SectionCard';"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 15,
+      "kind": "source_reference",
+      "text": "/** Tắt viền/bo góc/shadow của SectionCard khi Card này đã nằm sẵn trong 1 khung viền khác ở"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 52,
+      "kind": "source_reference",
+      "text": "<SectionCard"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 57,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 28,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../../components/shared/ui/SectionCard';"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 614,
+      "kind": "source_reference",
+      "text": "<SectionCard className={`p-3 lg:p-6 mb-3 lg:mb-6 ${isExportingImage ? 'export-hidden' : ''}`}>"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 621,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 622,
+      "kind": "source_reference",
+      "text": "<SectionCard ref={exportContainerRef} className={isIndividualExport ? 'max-w-5xl mx-auto' : ''}>"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 706,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import { Button, Input, Tabs, EmptyState, SectionCard, Switch } from '../../../components/shared/ui';"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 162,
+      "kind": "source_reference",
+      "text": "<SectionCard className=\"w-full max-w-sm lg:aspect-[197/285] min-h-[460px] p-3 lg:p-6 no-print flex flex-col overflow-hidden\">"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 514,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+      "line": 2,
+      "kind": "source_reference",
+      "text": "import { SectionCard } from '../../../components/shared/ui/SectionCard';"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+      "line": 228,
+      "kind": "source_reference",
+      "text": "<SectionCard className=\"p-0 shrink-0 w-full max-w-sm mx-auto overflow-hidden rounded-none lg:rounded-none no-print-bg\">"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+      "line": 429,
+      "kind": "source_reference",
+      "text": "</SectionCard>"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 17,
+      "kind": "test",
+      "text": "const {SectionCard}=await import('/components/shared/ui/SectionCard.tsx');"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 22,
+      "kind": "test",
+      "text": "h(Card,{'data-testid':'card'},'Audit card'),h(SectionCard,{'data-testid':'section'},'Audit section'),"
+    }
+  ],
+  "SectionHeader": [
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../shared/ui/SectionHeader';"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 229,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 314,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 10,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../shared/ui/SectionHeader';"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 424,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 541,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../shared/ui/SectionHeader';"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 210,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 249,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "components/shared/ui/SectionHeader.tsx",
+      "line": 34,
+      "kind": "definition",
+      "text": "export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, icon, subtitle, children, quick, actions, onClick, className = '', titleClassName }) => {"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 97,
+      "kind": "barrel",
+      "text": "export { SectionHeader } from './SectionHeader';"
+    },
+    {
+      "path": "components/summary/WarehouseSummary.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../shared/ui/SectionHeader';"
+    },
+    {
+      "path": "components/summary/WarehouseSummary.tsx",
+      "line": 768,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "components/summary/WarehouseSummary.tsx",
+      "line": 844,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 53,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../shared/ui/SectionHeader';"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 622,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 663,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../../../components/shared/ui/SectionHeader';"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "*  SectionHeader thay vì nhồi vào `title` khiến tiêu đề bị to/nặng bất thường. */"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 27,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 36,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 384,
+      "kind": "source_reference",
+      "text": "// Tiêu đề dùng đúng cỡ chữ nhỏ gọn có sẵn của SectionHeader (text-sm lg:text-xl) thay vì tự"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 387,
+      "kind": "source_reference",
+      "text": "// 2 span vì subtitle không còn là sibling liền kề của title trong SectionHeader."
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 29,
+      "kind": "source_reference",
+      "text": "import { SectionHeader } from '../../components/shared/ui/SectionHeader';"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 624,
+      "kind": "source_reference",
+      "text": "<SectionHeader"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 633,
+      "kind": "source_reference",
+      "text": "</SectionHeader>"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 12,
+      "kind": "test",
+      "text": "import { SectionHeader } from '../../../components/shared/ui/SectionHeader';"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 88,
+      "kind": "test",
+      "text": "<SectionHeader title=\"Chi tiết theo kho\" subtitle=\"Lọc theo kho: tất cả\" />"
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 7,
+      "kind": "test",
+      "text": "* PageActions (màn khai báo → khung app vẽ) · Modal (đầu sheet iOS, chỉ cuộn dọc, kéo để đóng) · SectionHeader v2 · EmptyState."
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 128,
+      "kind": "test",
+      "text": "test('SectionHeader v2 viết thường 17px; EmptyState có icon', async ({ page }) => {"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 27,
+      "kind": "test",
+      "text": "const {SectionHeader}=await import('/components/shared/ui/SectionHeader.tsx');"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 30,
+      "kind": "test",
+      "text": "return React.createElement('main',null,React.createElement(SectionHeader,{title:'Audit section',onClick:()=>setOpened(n=>n+1),quick:[{id:'quick',label:'Quick audit',onSelect:()=>setQuick(n=>n+1)}]}),"
+    }
+  ],
+  "ListGroup": [
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 16,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 210,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Nhân viên & phân ca\">"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 233,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 358,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Hiển thị các khu vực\">"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 371,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 374,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Cấu hình\">"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 381,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 13,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow } from '../../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 446,
+      "kind": "source_reference",
+      "text": "<ListGroup footer={editingCard.hasTarget ? 'Tự hiện thanh tiến độ, tính % đạt và đổi màu trạng thái.' : undefined}>"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 468,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 486,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Thứ tự hiển thị\" footer=\"Tắt công tắc để ẩn thẻ khỏi dãy KPI. Đổi thứ tự bằng nút ⋯.\">"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 517,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 518,
+      "kind": "source_reference",
+      "text": "<ListGroup>"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 520,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 7,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 214,
+      "kind": "source_reference",
+      "text": "<ListGroup>"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 224,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 7,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 15,
+      "kind": "source_reference",
+      "text": "* đầu): sheet chỉ mở khi bấm \"Khác\" nên `Modal` + `ListGroup` không cần có mặt lúc vẽ khung app. MobileBottomNav tải trước mảnh"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 41,
+      "kind": "source_reference",
+      "text": "<ListGroup>"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 98,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 100,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Công cụ\">"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 106,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 108,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Hệ thống\">"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 114,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 5,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 43,
+      "kind": "source_reference",
+      "text": "<ListGroup>"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 56,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 11,
+      "kind": "definition",
+      "text": "*  - `ListGroup`: tiêu đề nhóm 13px xám (viết thường như câu) + thẻ trắng bo 12px + chú thích cuối nhóm (tuỳ chọn)."
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 30,
+      "kind": "definition",
+      "text": "export const ListGroup: React.FC<ListGroupProps> = ({ title, footer, children, className, ...rest }) => ("
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 37,
+      "kind": "definition",
+      "text": "ListGroup.displayName = 'ListGroup';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 30,
+      "kind": "barrel",
+      "text": "export { ListGroup, ListRow } from './ListGroup';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 31,
+      "kind": "barrel",
+      "text": "export type { ListGroupProps, ListRowProps, ListIconTone } from './ListGroup';"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 42,
+      "kind": "source_reference",
+      "text": "<ListGroup title=\"Phân hệ\">"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 46,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 48,
+      "kind": "source_reference",
+      "text": "<ListGroup"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 60,
+      "kind": "source_reference",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "styles.css",
+      "line": 275,
+      "kind": "source_reference",
+      "text": "/* Danh sách nhóm (components/shared/ui/ListGroup.tsx): đường kẻ mảnh GIỮA các hàng, thụt lề theo nhãn như iOS"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 6,
+      "kind": "test",
+      "text": "import { ListGroup, ListRow } from '../../../components/shared/ui/ListGroup';"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 71,
+      "kind": "test",
+      "text": "<ListGroup title=\"Hiển thị\" footer=\"Áp dụng cho máy này.\">"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 75,
+      "kind": "test",
+      "text": "</ListGroup>"
+    },
+    {
+      "path": "tests/e2e/helpers/iconAudit.ts",
+      "line": 68,
+      "kind": "test",
+      "text": "// phải icon của nút có chữ thường. Nhận ra bằng `data-list-row-icon` (components/shared/ui/ListGroup.tsx)."
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 6,
+      "kind": "test",
+      "text": "* Switch · SegmentedControl (Tabs variant=\"segment\") · Banner · ListGroup/ListRow · ActionMenu (menu thả / action sheet) ·"
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 72,
+      "kind": "test",
+      "text": "test('ListGroup: hàng ≥ 48px cảm ứng, có đường kẻ thụt lề, hàng bấm được', async ({ page }) => {"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 19,
+      "kind": "test",
+      "text": "const {ListGroup,ListRow}=await import('/components/shared/ui/ListGroup.tsx');"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 23,
+      "kind": "test",
+      "text": "h(ListGroup,{title:'Audit group'},h(ListRow,{label:'Active row',onClick:()=>setCount(n=>n+1)}),h(ListRow,{label:'Disabled row',disabled:true,onClick:()=>setCount(n=>n+1)})),"
+    }
+  ],
+  "ListRow": [
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 16,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 211,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 218,
+      "kind": "source_reference",
+      "text": "<ListRow icon=\"cloudUpload\" iconTone=\"sky\" label=\"Nhập file Excel phân ca\" onClick={() => onLoadShiftFile?.()} />"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 219,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 225,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 362,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 375,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 13,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow } from '../../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 447,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 519,
+      "kind": "source_reference",
+      "text": "<ListRow icon=\"add\" iconTone=\"sky\" label=\"Thêm thẻ mới\" onClick={addNewCard} chevron={false} />"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 7,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 216,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 7,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 102,
+      "kind": "source_reference",
+      "text": "<ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 110,
+      "kind": "source_reference",
+      "text": "<ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 5,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 44,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 50,
+      "kind": "source_reference",
+      "text": "<ListRow"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 12,
+      "kind": "definition",
+      "text": "*  - `ListRow`: hàng ≥ 44px (cảm ứng 48px) — [ô icon màu 28px] [nhãn 15px + mô tả 13px] [giá trị] [công tắc | ›]."
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 58,
+      "kind": "definition",
+      "text": "export const ListRow: React.FC<ListRowProps> = ({"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 97,
+      "kind": "definition",
+      "text": "ListRow.displayName = 'ListRow';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 30,
+      "kind": "barrel",
+      "text": "export { ListGroup, ListRow } from './ListGroup';"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 44,
+      "kind": "source_reference",
+      "text": "<ListRow key={p.tab} icon={p.icon} iconTone={p.tone} label={p.ten} description={p.moTa} onClick={() => setActiveTab(p.tab)} />"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 52,
+      "kind": "source_reference",
+      "text": "<ListRow icon=\"spreadsheet\" iconTone=\"slate\" label=\"File Excel xử lý trên máy\""
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 54,
+      "kind": "source_reference",
+      "text": "<ListRow icon=\"cloud\" iconTone=\"slate\" label=\"Kết quả đồng bộ theo tài khoản\""
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 56,
+      "kind": "source_reference",
+      "text": "<ListRow icon=\"department\" iconTone=\"slate\" label=\"Phân quyền theo Kho\""
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 58,
+      "kind": "source_reference",
+      "text": "<ListRow icon=\"sparkles\" iconTone=\"slate\" label=\"AI (Google Gemini)\""
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 6,
+      "kind": "test",
+      "text": "import { ListGroup, ListRow } from '../../../components/shared/ui/ListGroup';"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 72,
+      "kind": "test",
+      "text": "<ListRow icon=\"chartBar\" label=\"Biểu đồ xu hướng\" trailing={<Switch checked={bat} onChange={setBat} label=\"Biểu đồ xu hướng\" />} />"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 73,
+      "kind": "test",
+      "text": "<ListRow icon=\"font\" iconTone=\"amber\" label=\"Phông chữ\" value=\"UTM Avo\" onClick={() => ghi('phong')} data-testid=\"hang-phong\" />"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 74,
+      "kind": "test",
+      "text": "<ListRow label=\"Xoá dữ liệu\" destructive onClick={() => ghi('xoa-hang')} />"
+    },
+    {
+      "path": "tests/e2e/helpers/iconAudit.ts",
+      "line": 67,
+      "kind": "test",
+      "text": "// Dòng danh sách kiểu Cài đặt iOS (ListRow): icon `sm` trong ô màu 28px — chủ dự án chốt (c9bfa6d, 2026-10-17), không"
+    },
+    {
+      "path": "tests/e2e/icon-dieu-huong.spec.ts",
+      "line": 49,
+      "kind": "test",
+      "text": "// trong ô màu 28px của ListRow."
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 6,
+      "kind": "test",
+      "text": "* Switch · SegmentedControl (Tabs variant=\"segment\") · Banner · ListGroup/ListRow · ActionMenu (menu thả / action sheet) ·"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 19,
+      "kind": "test",
+      "text": "const {ListGroup,ListRow}=await import('/components/shared/ui/ListGroup.tsx');"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 23,
+      "kind": "test",
+      "text": "h(ListGroup,{title:'Audit group'},h(ListRow,{label:'Active row',onClick:()=>setCount(n=>n+1)}),h(ListRow,{label:'Disabled row',disabled:true,onClick:()=>setCount(n=>n+1)})),"
+    }
+  ],
+  "EmptyState": [
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 12,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 338,
+      "kind": "source_reference",
+      "text": "<EmptyState icon={<AppIcon name=\"searchEmpty\" size=\"xl\" />} title=\"Không có dữ liệu\" compact />"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 500,
+      "kind": "source_reference",
+      "text": "<EmptyState compact icon=\"chartPie\" title=\"Không có dữ liệu biểu đồ\" />"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 13,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 329,
+      "kind": "source_reference",
+      "text": "return <div className=\"flex items-center justify-center h-full\"><EmptyState icon={<AppIcon name=\"trendUp\" size=\"lg\" />} title=\"Không có dữ liệu xu hướng\" compact /></div>;"
+    },
+    {
+      "path": "components/employees/TopSellerList.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/employees/TopSellerList.tsx",
+      "line": 160,
+      "kind": "source_reference",
+      "text": "<EmptyState compact icon=\"users\" title=\"Không có nhân viên\" description=\"Bộ phận đã chọn chưa có dữ liệu bán hàng.\" />"
+    },
+    {
+      "path": "components/employees/performance/PerformanceSingleTable.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/employees/performance/PerformanceSingleTable.tsx",
+      "line": 247,
+      "kind": "source_reference",
+      "text": "<EmptyState icon=\"empty\" title=\"Không có dữ liệu hiển thị\" description=\"Thử đổi bộ lọc kho, bộ phận hoặc khoảng thời gian.\" />"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 15,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 473,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "components/modals/FileHistoryModal.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/modals/FileHistoryModal.tsx",
+      "line": 97,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "components/modals/GtdhTargetModal.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/modals/GtdhTargetModal.tsx",
+      "line": 141,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "components/shared/DrillDownModal.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/shared/DrillDownModal.tsx",
+      "line": 107,
+      "kind": "source_reference",
+      "text": "<EmptyState icon=\"search\" title=\"Không có dòng nào khớp\" description=\"Thử xoá bớt từ khoá tìm kiếm.\" />"
+    },
+    {
+      "path": "components/shared/ui/DataTable.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from './EmptyState';"
+    },
+    {
+      "path": "components/shared/ui/DataTable.tsx",
+      "line": 298,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "components/shared/ui/EmptyState.tsx",
+      "line": 6,
+      "kind": "definition",
+      "text": "/* ─── EmptyState ─── */"
+    },
+    {
+      "path": "components/shared/ui/EmptyState.tsx",
+      "line": 23,
+      "kind": "definition",
+      "text": "export const EmptyState: React.FC<EmptyStateProps> = ({"
+    },
+    {
+      "path": "components/shared/ui/EmptyState.tsx",
+      "line": 68,
+      "kind": "definition",
+      "text": "EmptyState.displayName = 'EmptyState';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 74,
+      "kind": "barrel",
+      "text": "export { EmptyState } from './EmptyState';"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 75,
+      "kind": "barrel",
+      "text": "export type { EmptyStateProps } from './EmptyState';"
+    },
+    {
+      "path": "components/tables/MonthlyTrendTable.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/tables/MonthlyTrendTable.tsx",
+      "line": 101,
+      "kind": "source_reference",
+      "text": "<EmptyState compact icon=\"table\" title=\"Không có dữ liệu để hiển thị\" />"
+    },
+    {
+      "path": "components/tables/SummaryTable.tsx",
+      "line": 8,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/tables/SummaryTable.tsx",
+      "line": 467,
+      "kind": "source_reference",
+      "text": "<EmptyState icon={<AppIcon name=\"empty\" size=\"lg\" />} title=\"Không có dữ liệu để hiển thị\" compact />"
+    },
+    {
+      "path": "components/views/LandingPageView.tsx",
+      "line": 2,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/views/LandingPageView.tsx",
+      "line": 51,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "components/views/UserManagementView.tsx",
+      "line": 12,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../shared/ui/EmptyState';"
+    },
+    {
+      "path": "components/views/UserManagementView.tsx",
+      "line": 914,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 8,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 400,
+      "kind": "source_reference",
+      "text": "<EmptyState compact title=\"Chưa có siêu thị nào trong bảng map\" description=\"Dán dữ liệu Báo cáo để tự nhận diện, hoặc thêm thủ công ở trên.\" />"
+    },
+    {
+      "path": "features/bi-dashboard/components/Dashboard.tsx",
+      "line": 36,
+      "kind": "source_reference",
+      "text": "const EmptyState: React.FC<{ onNavigate: () => void; message?: string }> = ({ onNavigate, message }) => ("
+    },
+    {
+      "path": "features/bi-dashboard/components/Dashboard.tsx",
+      "line": 427,
+      "kind": "source_reference",
+      "text": "<EmptyState onNavigate={onNavigateToUpdater} />"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 40,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 1103,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/SupermarketConfig.tsx",
+      "line": 24,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/SupermarketConfig.tsx",
+      "line": 983,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+      "line": 16,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+      "line": 546,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+      "line": 561,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 12,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 516,
+      "kind": "source_reference",
+      "text": "<EmptyState title=\"Chưa có dữ liệu cho siêu thị này\" compact />"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 25,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 1089,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+      "line": 13,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+      "line": 401,
+      "kind": "source_reference",
+      "text": "if (rows.length === 0) return <Card bordered={false} title=\"Phân tích Trả chậm\"><EmptyState icon={<AppIcon name=\"report\" size=\"xl\" />} title=\"Chưa có dữ liệu\" /></Card>;"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 25,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 409,
+      "kind": "source_reference",
+      "text": "if (!supermarketName) return <Card bordered={false} title=\"Phân tích Nhân viên\"><EmptyState icon={<AppIcon name=\"users\" size=\"xl\" />} title=\"Vui lòng chọn siêu thị\" compact /></Card>;"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx",
+      "line": 171,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx",
+      "line": 4,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx",
+      "line": 61,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx",
+      "line": 3,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx",
+      "line": 238,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 31,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 692,
+      "kind": "source_reference",
+      "text": "<EmptyState icon=\"calendar\" title=\"Chưa có lịch\" description=\"Lịch hiện ở đây sau khi nhập nhân viên và bấm “Tạo lịch”.\" />"
+    },
+    {
+      "path": "features/phan-ca/components/ConflictListModal.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/phan-ca/components/ConflictListModal.tsx",
+      "line": 52,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/phan-ca/components/EditPatternModal.tsx",
+      "line": 11,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/phan-ca/components/EditPatternModal.tsx",
+      "line": 484,
+      "kind": "source_reference",
+      "text": "<EmptyState title=\"Chưa có mẫu ca nào cho bộ phận này.\" compact />"
+    },
+    {
+      "path": "features/phan-ca/components/EditRulesModal.tsx",
+      "line": 7,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/phan-ca/components/EditRulesModal.tsx",
+      "line": 125,
+      "kind": "source_reference",
+      "text": "<EmptyState title=\"Chưa có cấu hình ca nào. Hãy thêm ở bên dưới.\" compact />"
+    },
+    {
+      "path": "features/phan-ca/components/EditShiftModal.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/phan-ca/components/EditShiftModal.tsx",
+      "line": 545,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/phan-ca/components/HistoryModal.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/phan-ca/components/HistoryModal.tsx",
+      "line": 28,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/sticker-event/ManualInputModal.tsx",
+      "line": 12,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/sticker-event/ManualInputModal.tsx",
+      "line": 332,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/sticker-event/ResultsDisplay.tsx",
+      "line": 7,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/sticker-event/ResultsDisplay.tsx",
+      "line": 343,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/sticker-event/SavedListsModal.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/sticker-event/SavedListsModal.tsx",
+      "line": 130,
+      "kind": "source_reference",
+      "text": "<EmptyState icon={<AppIcon name=\"exportBatch\" size=\"xl\" />} title=\"Chưa có danh sách nào được lưu\" />"
+    },
+    {
+      "path": "features/sticker-event/SuperAdminModal.tsx",
+      "line": 9,
+      "kind": "source_reference",
+      "text": "import { EmptyState } from '../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "features/sticker-event/SuperAdminModal.tsx",
+      "line": 174,
+      "kind": "source_reference",
+      "text": "<EmptyState icon={<AppIcon name=\"users\" size=\"lg\" />} title=\"Chưa có dữ liệu tìm kiếm\" />"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+      "line": 5,
+      "kind": "source_reference",
+      "text": "import { Button, Input, EmptyState } from '../../../components/shared/ui';"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+      "line": 402,
+      "kind": "source_reference",
+      "text": "<EmptyState icon={<AppIcon name=\"searchEmpty\" size=\"md\" />} title=\"Không tìm thấy sticker phù hợp\" compact />"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+      "line": 460,
+      "kind": "source_reference",
+      "text": "<EmptyState"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 6,
+      "kind": "source_reference",
+      "text": "import { Button, Input, Tabs, EmptyState, SectionCard, Switch } from '../../../components/shared/ui';"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 451,
+      "kind": "source_reference",
+      "text": "<EmptyState icon={<AppIcon name=\"history\" size=\"lg\" />} title=\"Chưa có lịch sử in\" compact />"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 11,
+      "kind": "test",
+      "text": "import { EmptyState } from '../../../components/shared/ui/EmptyState';"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 89,
+      "kind": "test",
+      "text": "<EmptyState icon=\"empty\" title=\"Chưa có dữ liệu\" description=\"Tải file YCX để bắt đầu.\" />"
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 7,
+      "kind": "test",
+      "text": "* PageActions (màn khai báo → khung app vẽ) · Modal (đầu sheet iOS, chỉ cuộn dọc, kéo để đóng) · SectionHeader v2 · EmptyState."
+    },
+    {
+      "path": "tests/e2e/lop-apple-gd3.spec.ts",
+      "line": 128,
+      "kind": "test",
+      "text": "test('SectionHeader v2 viết thường 17px; EmptyState có icon', async ({ page }) => {"
+    },
+    {
+      "path": "tests/e2e/phan-tich-gd5b.spec.ts",
+      "line": 135,
+      "kind": "test",
+      "text": "test('#20 trạng thái trống dùng chung: Quản lý tệp đã lưu (chưa có tệp lịch sử) hiện EmptyState', async ({ page }) => {"
+    },
+    {
+      "path": "tests/e2e/phan-tich-gd5b.spec.ts",
+      "line": 141,
+      "kind": "test",
+      "text": "// EmptyState: tiêu đề 14px đậm vừa + mô tả xám — không còn chữ 11px tự vẽ"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 18,
+      "kind": "test",
+      "text": "const {EmptyState}=await import('/components/shared/ui/EmptyState.tsx');"
+    },
+    {
+      "path": "tests/e2e/helpers/materialHarness.html",
+      "line": 24,
+      "kind": "test",
+      "text": "h(EmptyState,{title:'Không có dữ liệu audit',description:'Dữ liệu giả cục bộ',compact:true}),h('output',{'aria-label':'Rows activated'},count));}"
+    }
+  ]
+}

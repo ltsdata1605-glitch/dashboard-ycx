@@ -1,0 +1,221 @@
+[WebServer] (node:36181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › underline: exposes selection and native keyboard changes (11.1s)
+  ✘  2 [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › pills: exposes selection and native keyboard changes (10.3s)
+  ✓  3 [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › segment: exposes selection and native keyboard changes (333ms)
+  ✓  4 [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › chips: exposes selection and native keyboard changes (266ms)
+  ✘  5 [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline sm:44px (257ms)
+  ✘  6 [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline md:44px (290ms)
+  ✘  7 [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills sm:44px (288ms)
+  ✘  8 [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills md:44px (303ms)
+
+
+  1) [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › underline: exposes selection and native keyboard changes 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('button', { name: 'Một', exact: true })
+    Expected: "true"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Một', exact: true }) with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Một', exact: true })
+        24 × locator resolved to <button type="button" data-active="true" class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed relative flex items-center gap-1.5 px-3 font-medium whitespace-nowrap transition-colors shrink-0 snap-center text-xs h-11 sm:h-8 text-sky-700 dark:text-sky-400">…</button>
+           - unexpected value "null"
+
+
+       6 |     const one = page.getByRole('button', { name: 'Một', exact: true });
+       7 |     const two = page.getByRole('button', { name: 'Hai', exact: true });
+    >  8 |     await expect(one).toHaveAttribute('aria-pressed', 'true');
+         |                       ^
+       9 |     await expect(two).toHaveAttribute('aria-pressed', 'false');
+      10 |     const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
+      11 |     await page.keyboard.press(tab);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tabs-states.spec.ts:8:23
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-underli-9882f-and-native-keyboard-changes-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c25-before/shared-tabs-states-underli-9882f-and-native-keyboard-changes-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-underli-9882f-and-native-keyboard-changes-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c25-before/shared-tabs-states-underli-9882f-and-native-keyboard-changes-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › pills: exposes selection and native keyboard changes 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('button', { name: 'Một', exact: true })
+    Expected: "true"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Một', exact: true }) with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Một', exact: true })
+        24 × locator resolved to <button type="button" data-active="true" class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 px-3 font-medium whitespace-nowrap rounded-control transition-all shrink-0 snap-center text-xs h-11 sm:h-8 bg-sky-500 text-white shadow-sm shadow-sky-500/20">Một</button>
+           - unexpected value "null"
+
+
+       6 |     const one = page.getByRole('button', { name: 'Một', exact: true });
+       7 |     const two = page.getByRole('button', { name: 'Hai', exact: true });
+    >  8 |     await expect(one).toHaveAttribute('aria-pressed', 'true');
+         |                       ^
+       9 |     await expect(two).toHaveAttribute('aria-pressed', 'false');
+      10 |     const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
+      11 |     await page.keyboard.press(tab);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tabs-states.spec.ts:8:23
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-pills-e-9ef2c-and-native-keyboard-changes-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c25-before/shared-tabs-states-pills-e-9ef2c-and-native-keyboard-changes-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-pills-e-9ef2c-and-native-keyboard-changes-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c25-before/shared-tabs-states-pills-e-9ef2c-and-native-keyboard-changes-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline sm:44px 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 44
+    Received:    32
+
+      30 |         await expect(button).toBeVisible();
+      31 |         expect(await page.evaluate(()=>matchMedia('(pointer: coarse)').matches)).toBe(true);
+    > 32 |         expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+         |                                                      ^
+      33 |       });
+      34 |     }
+      35 |   }
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tabs-states.spec.ts:32:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-sm-44px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-sm-44px-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-sm-44px-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-sm-44px-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline md:44px 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 44
+    Received:    40
+
+      30 |         await expect(button).toBeVisible();
+      31 |         expect(await page.evaluate(()=>matchMedia('(pointer: coarse)').matches)).toBe(true);
+    > 32 |         expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+         |                                                      ^
+      33 |       });
+      34 |     }
+      35 |   }
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tabs-states.spec.ts:32:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-md-44px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-md-44px-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-md-44px-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c25-before/shared-tabs-states-touch-landscape-target-underline-md-44px-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills sm:44px 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 44
+    Received:    32
+
+      30 |         await expect(button).toBeVisible();
+      31 |         expect(await page.evaluate(()=>matchMedia('(pointer: coarse)').matches)).toBe(true);
+    > 32 |         expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+         |                                                      ^
+      33 |       });
+      34 |     }
+      35 |   }
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tabs-states.spec.ts:32:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-sm-44px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-sm-44px-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-sm-44px-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-sm-44px-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills md:44px 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 44
+    Received:    40
+
+      30 |         await expect(button).toBeVisible();
+      31 |         expect(await page.evaluate(()=>matchMedia('(pointer: coarse)').matches)).toBe(true);
+    > 32 |         expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+         |                                                      ^
+      33 |       });
+      34 |     }
+      35 |   }
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tabs-states.spec.ts:32:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-md-44px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-md-44px-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-md-44px-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c25-before/shared-tabs-states-touch-landscape-target-pills-md-44px-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › underline: exposes selection and native keyboard changes 
+    [chromium] › tests/e2e/shared-tabs-states.spec.ts:4:3 › pills: exposes selection and native keyboard changes 
+    [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline sm:44px 
+    [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › underline md:44px 
+    [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills sm:44px 
+    [chromium] › tests/e2e/shared-tabs-states.spec.ts:27:7 › touch landscape target › pills md:44px 
+  2 passed (27.4s)

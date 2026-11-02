@@ -1,0 +1,12 @@
+{
+  "components/shared/ui/DataTable.tsx": "Full366line source read: grouping/mobile spans, sorting, sticky/scroll container, loading/empty/footer, rowProps and fixed layout. Fixed min-width includes only visible columns; previous hidden widths inflated sticky cell beyond viewport.5cases/enginePASS; all consumers not verified.",
+  "components/shared/ui/tableScrollCue.ts": "Full111line source read: singleton install,6ancestor search,ResizeObserver/table and scroller tracking,300ms mutation batching,resize reset,cleanup and export clone exclusion. Cue on/off runtime PASS; reparent/overflow-classchange/cleanup/performance pending.",
+  "components/shared/ui/TouchTitleHint.tsx": "Full116line source read: coarse media gate,500ms hold,10px tolerance,global click suppression,positioning/timers/listenercleanup. Source concern suppression after pointercancel or scroll pending repro; ad hoc colors/radius need token mapping. No change/runtime C37.",
+  "components/shared/ui/utils.ts": "Full source reread: clsx+tailwindmerge custom radius token groups; onActivateKey handler Enter/Space. No change.",
+  "tests/e2e/helpers/uiHarness.tsx": "Full source read: actual React DataTable/Dropdown/Modal fixture mounted into wrapper. Existing app-root entry starts app; retained, NOT_RUN C37.",
+  "tests/e2e/ui-dung-chung-dot-2.spec.ts": "Full source safetyreview: app navigation/trial, React fixture import; direct focus setup insufficient native Tab proof; standalone C37 tests supplement without removing historical assertions. NOT_RUN.",
+  "tests/e2e/bang-iphone-ghim-cot-vien-mo.spec.ts": "Full source safetyreview: trialBI local IDB seeds, waits, screenshot and clone class CSSprobe. Requires isolated app/service review before run; no production proof. NOT_RUN.",
+  "tests/e2e/nhan-giu-xem-chu-thich.spec.ts": "Full source safetyreview: syntheticDOM button and PointerEvents appended to app; not authentic React journey. Existing assertions retained; authentic replacement fixture pending. NOT_RUN.",
+  "tests/e2e/helpers/materialHarness.html": "Added actual React DataTable,rows,state loading/empty/sort,installTableScrollCue effect. Local synthetic data only; no backend.",
+  "tests/e2e/data-table-foundation.spec.ts": "Authored/read5safe localcases: native keyboard sort cycle,group spans,loading/empty,data,sticky header/cell,cue edges,viewport width and lg breakpoint recompute. Geometry logs/screenshots retained."
+}

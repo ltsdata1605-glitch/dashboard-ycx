@@ -1,0 +1,9 @@
+{
+  "components/shared/ui/SectionHeader.tsx": "Full88line source read: root rolebutton keyboard handler intercepted descendant Enter/Space. Guard target===currentTarget restores native quick action; root Enter/Space retained. Legacy child click contracts and nested roles/screenreaders pending.",
+  "components/shared/ui/SectionCard.tsx": "Full35line read: mobile flat border-y and desktop rounded-card deliberate responsive exception, overflowhidden clipping risk tracked; computed radius0 mobile/token desktop tested. Preserve hoverable optout.",
+  "components/shared/ui/Card.tsx": "Full116line read: card-radius/card-shadow tokens but hardcoded surfaces/padding variants, interactive is visual div only. Main Card radius tested; CardHeader/Body/Footer source-only. Keyboard semantics wheninteractive, reducedmotion and fullvariants pending.",
+  "components/shared/ui/EmptyState.tsx": "Full68line read: compact padding/typography, iconregistry-or-node, action slot. Compact heading visibility checked; fullicon/action/multiline/liveannouncement/heading hierarchy pending.",
+  "components/shared/ui/ListGroup.tsx": "Full97line read: rounded-popup group and native Button ListRow with44/48coarse minheight; disabled native state. Native click/disabled and44height tested; trailing interactive nesting, selected semantics, coarse48, contrast and consumers pending.",
+  "tests/e2e/helpers/materialHarness.html": "Added actualReact SectionHeader keyboard counter and Card/Section/List/EmptyState fixtures. Existing branches unchanged; no auth/services.",
+  "tests/e2e/section-header-keyboard.spec.ts": "Full authored safetyread: native Tab/Enter/Space root vs quick action, computed card token fidelity and SectionCard mobileflat exception at390/1366, ListRow states/height, inspected snapshots."
+}

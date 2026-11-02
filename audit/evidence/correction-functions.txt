@@ -1,0 +1,8 @@
+
+> reportycx_11.2.2026_new@0.0.0 typecheck:functions
+> npm run typecheck --prefix functions
+
+
+> dashboardycx-functions@1.0.0 typecheck
+> tsc --noEmit
+

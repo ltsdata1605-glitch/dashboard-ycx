@@ -1,0 +1,4 @@
+{
+  "components/shared/ui/toast/AppToaster.tsx": "682bd96261fd9602e96d2431038fe14273deb492a8b37a3a87f6b1f61e486454",
+  "tests/e2e/helpers/materialHarness.html": "163385fb99da2e17de7eb0cd152ffa8e74dae4f8657c6e129c8655e0f67a0f84"
+}

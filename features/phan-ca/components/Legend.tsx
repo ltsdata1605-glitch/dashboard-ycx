@@ -1,0 +1,222 @@
+import React from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { ScheduleTargets, SbhGenderBoost } from '../types';
+import { Button } from '../../../components/shared/ui/Button';
+import { Input } from '../../../components/shared/ui/Input';
+import { Select } from '../../../components/shared/ui/Select';
+import { Checkbox } from '../../../components/shared/ui/Checkbox';
+
+interface LegendProps {
+    targets: ScheduleTargets | null;
+    onEditRule: (ruleKey: 'kho' | 'tn' | 'gh') => void;
+    includeTnInSbh: boolean;
+    onIncludeTnInSbhChange: (checked: boolean) => void;
+    onboardingStep: number;
+    autoAddWeekendShifts?: boolean;
+    onAutoAddWeekendShiftsChange?: (checked: boolean) => void;
+    autoAddWeekendShift1?: boolean;
+    onAutoAddWeekendShift1Change?: (checked: boolean) => void;
+    sbhGenderBoost?: SbhGenderBoost;
+    onSbhGenderBoostChange?: (boost: SbhGenderBoost) => void;
+}
+
+const Legend: React.FC<LegendProps> = ({ 
+    targets, 
+    onEditRule, 
+    includeTnInSbh, 
+    onIncludeTnInSbhChange, 
+    onboardingStep, 
+    autoAddWeekendShifts = false, 
+    onAutoAddWeekendShiftsChange,
+    autoAddWeekendShift1 = false,
+    onAutoAddWeekendShift1Change,
+    sbhGenderBoost = { gender: null, hours: 5 },
+    onSbhGenderBoostChange
+}) => {
+    return (
+        <div className="mt-4">
+            {targets && (
+                <div className={`mb-4 relative ${onboardingStep === 4 ? 'ring-2 ring-rose-500 animate-pulse' : ''}`}>
+                    {onboardingStep === 4 && (
+                         <div className="absolute top-full left-1/4 transform -translate-x-1/2 mt-2 w-56 bg-rose-600 text-white text-[11px] py-2 px-3 shadow-xl z-50 text-center font-medium">
+                            <div className="font-bold mb-0.5">Bước 4: Cấu hình</div>
+                            Bấm vào các nút bên dưới để cấu hình số lượng người cần thiết cho từng vị trí đặc biệt.
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -mb-1 w-2.5 h-2.5 bg-rose-600 rotate-45"></div>
+                        </div>
+                    )}
+
+                    {/* Targets row — flat inline layout */}
+                    <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
+                        {/* Label */}
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <AppIcon name="settings" size="md" className="text-slate-400" />
+                            Mục tiêu
+                        </span>
+
+                        {/* KHO button */}
+                        <Button
+                            variant="card"
+                            size="none"
+                            onClick={() => onEditRule('kho')}
+                            className="group flex items-center gap-1.5 h-9 px-4 rounded-control border border-emerald-200 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100"
+                        >
+                            <span className="text-emerald-700 font-bold text-xs">KHO</span>
+                            <span className="font-extrabold text-emerald-900 text-base">~{targets.kho}</span>
+                            <span className="text-emerald-600 text-xs font-semibold">ngày</span>
+                            <AppIcon name="edit" size="xs" className="text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                        </Button>
+
+                        {/* TN button */}
+                        <Button
+                            variant="card"
+                            size="none"
+                            onClick={() => onEditRule('tn')}
+                            className="group flex items-center gap-1.5 h-9 px-4 rounded-control border border-sky-200 bg-sky-50 hover:border-sky-400 hover:bg-sky-100"
+                        >
+                            <span className="text-sky-700 font-bold text-xs">TN</span>
+                            <span className="font-extrabold text-sky-900 text-base">~{targets.tn}</span>
+                            <span className="text-sky-600 text-xs font-semibold">ngày</span>
+                            <AppIcon name="edit" size="xs" className="text-slate-300 group-hover:text-sky-500 transition-colors" />
+                        </Button>
+
+                        {/* GH button */}
+                        <Button
+                            variant="card"
+                            size="none"
+                            onClick={() => onEditRule('gh')}
+                            className="group flex items-center gap-1.5 h-9 px-4 rounded-control border border-amber-200 bg-amber-50 hover:border-amber-400 hover:bg-amber-100"
+                        >
+                            <span className="text-amber-700 font-bold text-xs">GH</span>
+                            <span className="font-extrabold text-amber-900 text-base">~{targets.gh}</span>
+                            <span className="text-amber-600 text-xs font-semibold">ngày</span>
+                            <AppIcon name="edit" size="xs" className="text-slate-300 group-hover:text-amber-500 transition-colors" />
+                        </Button>
+
+                        {/* Separator */}
+                        <div className="w-px h-6 bg-slate-200"></div>
+
+                        {/* SBH Diff indicator */}
+                        {targets.sbhDiff !== undefined && (
+                            <div className={`flex items-center gap-2 h-9 px-4 border text-sm transition-colors ${
+                                targets.sbhDiff <= 3 
+                                ? 'bg-slate-50 border-slate-200 text-slate-600' 
+                                : 'bg-rose-50 border-rose-200 text-rose-700'
+                            }`}>
+                                <span className="font-semibold text-xs uppercase tracking-wider">Chênh SBH</span>
+                                <span className="font-extrabold text-base">{Math.round(targets.sbhDiff)}h</span>
+                                {targets.sbhDiff <= 3 ? (
+                                    <AppIcon name="success" size="md" className="text-emerald-500" />
+                                ) : (
+                                    <span className="text-[11px] font-bold bg-rose-600 text-white px-1.5 py-px uppercase">≤ 3h</span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Gender SBH Boost Control */}
+                        {onSbhGenderBoostChange && (
+                            <div className={`flex items-center gap-1.5 h-9 px-3 border text-xs transition-colors select-none ${
+                                sbhGenderBoost.gender 
+                                ? 'bg-sky-50 dark:bg-sky-900/30 border-sky-300 dark:border-sky-700 text-sky-800 dark:text-sky-300' 
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                            }`}>
+                                <span className="font-bold uppercase tracking-wider whitespace-nowrap">Ưu tiên SBH:</span>
+                                <Select
+                                    dense
+                                    fullWidth={false}
+                                    aria-label="Ưu tiên SBH theo giới tính"
+                                    value={sbhGenderBoost.gender || ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value as 'Nu' | 'Nam' | '';
+                                        onSbhGenderBoostChange({
+                                            gender: val ? val : null,
+                                            hours: sbhGenderBoost.hours || 5
+                                        });
+                                    }}
+                                    className="h-6 pl-0 border-0 border-b border-dashed border-current rounded-none bg-transparent text-inherit font-bold"
+                                >
+                                    <option value="" className="text-slate-800 bg-white dark:bg-slate-800 dark:text-slate-200">Không</option>
+                                    <option value="Nu" className="text-slate-800 bg-white dark:bg-slate-800 dark:text-slate-200">Nữ cao hơn</option>
+                                    <option value="Nam" className="text-slate-800 bg-white dark:bg-slate-800 dark:text-slate-200">Nam cao hơn</option>
+                                </Select>
+
+                                {sbhGenderBoost.gender && (
+                                    <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-sky-200 dark:border-sky-700">
+                                        <span className="font-bold text-sky-600 dark:text-sky-400">+</span>
+                                        <Input
+                                            dense
+                                            fullWidth={false}
+                                            aria-label="Số giờ ưu tiên"
+                                            type="number" inputMode="decimal"
+                                            min={1}
+                                            max={50}
+                                            value={sbhGenderBoost.hours}
+                                            onChange={(e) => {
+                                                const val = Math.max(1, Math.min(50, parseInt(e.target.value) || 1));
+                                                onSbhGenderBoostChange({
+                                                    ...sbhGenderBoost,
+                                                    hours: val
+                                                });
+                                            }}
+                                            className="w-10 h-6 px-0.5 text-center font-black border-sky-300 text-sky-900"
+                                        />
+                                        <span className="font-bold text-sky-600 dark:text-sky-400">h</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TN in SBH toggle — pushed to right */}
+                        <div className="ml-auto flex items-center gap-2">
+                            {onAutoAddWeekendShiftsChange && (
+                                <Checkbox
+                                    checked={autoAddWeekendShifts}
+                                    onChange={(e) => onAutoAddWeekendShiftsChange(e.target.checked)}
+                                    label="Tăng ca 2,5 T7-CN"
+                                    wrapperClassName="h-9 px-4 border border-slate-200 hover:border-sky-200 bg-white transition-colors group"
+                                    labelClassName="font-semibold text-slate-600 group-hover:text-sky-600 text-xs transition-colors"
+                                />
+                            )}
+                            {onAutoAddWeekendShift1Change && (
+                                <Checkbox
+                                    checked={autoAddWeekendShift1}
+                                    onChange={(e) => onAutoAddWeekendShift1Change(e.target.checked)}
+                                    label="Tăng ca 1 T7-CN"
+                                    wrapperClassName="h-9 px-4 border border-slate-200 hover:border-sky-200 bg-white transition-colors group"
+                                    labelClassName="font-semibold text-slate-600 group-hover:text-sky-600 text-xs transition-colors"
+                                />
+                            )}
+                            <Checkbox
+                                    checked={includeTnInSbh}
+                                    onChange={(e) => onIncludeTnInSbhChange(e.target.checked)}
+                                    label="Tính TN vào SBH"
+                                    wrapperClassName="h-9 px-4 border border-slate-200 hover:border-sky-200 bg-white transition-colors group"
+                                    labelClassName="font-semibold text-slate-600 group-hover:text-sky-600 text-xs transition-colors"
+                                />
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Color legend — minimal */}
+            <div className="flex gap-3 lg:gap-5 flex-wrap text-xs font-semibold text-slate-500 items-center border-t border-slate-100 pt-4 mt-2">
+                <span className="uppercase tracking-wider text-slate-400 mr-1 text-[11px]">Ghi chú</span>
+                <span className="flex items-center gap-2"><span className="w-4 h-4 bg-amber-50 border border-amber-200"></span> Giao hàng</span>
+                <span className="flex items-center gap-2"><span className="w-4 h-4 bg-emerald-50 border border-emerald-200"></span> Kho</span>
+                <span className="flex items-center gap-2"><span className="w-4 h-4 bg-sky-50 border border-sky-200"></span> Thu ngân</span>
+                <span className="flex items-center gap-2"><span className="w-4 h-4 bg-white border border-slate-200"></span> Ca thường</span>
+
+                {/* Chấm = đúng màu chấm góc ô ở phanca.css (.cell-direct-edit / -swap-initiator / -swap-partner). Bản cũ ghi "Xin nghỉ" tím —
+                    không ô nào có chấm đó (off-request chỉ khai trong types, không nơi nào gán) — và thiếu chấm xanh của người đổi cùng. */}
+                <div className="lg:ml-auto flex items-center gap-3 lg:gap-5 flex-wrap">
+                    <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Sửa trực tiếp</span>
+                    <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Chủ động đổi</span>
+                    <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>Đổi cùng</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const MemoizedLegend = React.memo(Legend);
+MemoizedLegend.displayName = 'Legend';
+export default MemoizedLegend;

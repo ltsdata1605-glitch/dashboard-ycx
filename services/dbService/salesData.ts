@@ -1,0 +1,1013 @@
+import type { DataRow, StoredSalesData, UploadedFileRegistryItem } from '../../types';
+import { getDb, getSetting, APP_STORE, resetDbConnection, saveSettingOrThrow } from './core';
+import { biHubDbName } from '../../utils/localDbScope';
+import { storedSalesJsonWrap } from '../salesJsonChunks';
+import type { SalesJsonWriteRequest } from '../salesJsonWriter.worker';
+import { cleanYcxFileName } from '../ycxAutoSyncService';
+import { getRowValue } from '../../utils/dataUtils';
+import { COL } from '../../constants';
+
+// ── Đợt 6 (2026-09-30): ghi JSON dựng sẵn NGOÀI luồng chính ─────────────────────────────────────
+// `rawChunks` = các khúc JSON UTF-8 do Worker đọc tệp tạo ra (services/salesJsonChunks.ts). Worker ghi
+// (services/salesJsonWriter.worker.ts) ghép thành chuỗi TRÙNG TỪNG BYTE với JSON.stringify kiểu cũ và
+// `put` vào cùng database đang mở → luồng chính không còn khựng ~1,7s (stringify + put 200.000 dòng).
+// Lỗi bất kỳ (không có Worker, database lạ, quá hạn) → trả false để hàm gọi ghi theo đường cũ.
+// Các khúc được CHUYỂN sang Worker (bên gọi mất quyền dùng chúng) — chỉ dùng một lần.
+const RAW_WRITE_TIMEOUT_MS = 120_000;
+async function writeRawJsonOffMain(key: string, rawChunks: ArrayBuffer[], prefix: string, suffix: string): Promise<boolean> {
+    if (typeof Worker === 'undefined' || rawChunks.length === 0) return false;
+    let worker: Worker | null = null;
+    try {
+        const db = await getDb();
+        const { default: WriterWorker } = await import('../salesJsonWriter.worker?worker');
+        worker = new WriterWorker();
+        const w = worker;
+        const req: SalesJsonWriteRequest = { dbName: db.name, storeName: APP_STORE, key, chunks: rawChunks, prefix, suffix };
+        return await new Promise<boolean>((resolve) => {
+            const t = setTimeout(() => { console.warn('[IDB] Worker ghi quá hạn:', key); resolve(false); }, RAW_WRITE_TIMEOUT_MS);
+            w.onmessage = (e: MessageEvent<{ ok: boolean; error?: string }>) => {
+                clearTimeout(t);
+                if (!e.data?.ok) console.warn('[IDB] Worker ghi lỗi, ghi lại theo đường cũ:', e.data?.error);
+                resolve(!!e.data?.ok);
+            };
+            w.onerror = (err) => { clearTimeout(t); console.warn('[IDB] Worker ghi hỏng:', err.message); resolve(false); };
+            w.postMessage(req, rawChunks);
+        });
+    } catch (e) {
+        console.warn('[IDB] Không dùng được Worker ghi, ghi theo đường cũ:', (e as Error)?.message);
+        return false;
+    } finally {
+        worker?.terminate();
+    }
+}
+
+// ── Đợt 4 (2026-09-30): cache DÙNG MỘT LẦN cho tempRealtimeData ─────────────────────────────────
+// Đo trên 200.000 dòng (bản build): nạp tệp Realtime xong, saveTempRealtimeData() ghi IndexedDB rồi
+// getMergedSalesData() ĐỌC LẠI ngay chính dữ liệu đó + JSON.parse ~1,4s khựng luồng chính — thừa.
+// Nay: ghi xong (transaction đã commit) thì giữ bản trong bộ nhớ; lượt getTempRealtimeData() KẾ
+// TIẾP trả luôn bản này rồi xoá cache. Nội dung giống hệt bản đọc lại: các dòng đều xuất phát từ
+// JSON.parse (không có kiểu lạ), parsedDate là Date ở cả 2 đường; savedAt mọi nơi dùng qua new Date().
+// An toàn: gắn với TÊN database của tài khoản (đổi tài khoản → không dùng được) + chỉ sống 10s +
+// xoá khi dữ liệu bị xoá/ghi bởi đường khác.
+let tempRealtimeOnce: { dbName: string; expires: number; value: StoredSalesData } | null = null;
+const TEMP_CACHE_TTL_MS = 10_000;
+const dropTempRealtimeCache = () => { tempRealtimeOnce = null; };
+
+// PERF FIX: saveSalesFileData/saveTempRealtimeData lưu bằng JSON.stringify() (biến Date thành
+// ISO string), nhưng bên đọc trước đây KHÔNG khôi phục lại thành Date — khiến
+// normalizeSalesData() (utils/dataUtils.ts) không bao giờ trúng "fast path"
+// (row.parsedDate instanceof Date) ở đúng trường hợp phổ biến nhất (mở lại app, đọc dữ liệu
+// đã lưu trong IndexedDB), luôn phải parse lại ngày cho MỌI dòng. Mirror đúng pattern đã có sẵn
+// và đúng ở services/cloudDataService.ts (downloadProcessedData) — áp dụng ngay sau mỗi
+// JSON.parse() bên dưới, không đổi định dạng lưu trữ (chỉ sửa bên đọc).
+function restoreParsedDates(rows: DataRow[] | null | undefined): void {
+    if (!rows) return;
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row && typeof row.parsedDate === 'string') {
+            row.parsedDate = new Date(row.parsedDate);
+        }
+    }
+}
+
+// --- Sales Data ---
+/**
+ * Dọn các file cũ SAU KHI registry đã trỏ sang bản mới. Lỗi ở đây chỉ để lại dữ liệu thừa, không mất
+ * bản đang dùng.
+ */
+async function deleteReplacedSalesFiles(oldRegistry: UploadedFileRegistryItem[], keepId?: string): Promise<void> {
+    for (const file of oldRegistry) {
+        if (file.id === keepId) continue;
+        await deleteSalesFileData(file.id).catch(err => console.warn('[IDB] Không dọn được file cũ', file.id, err));
+    }
+    await clearSalesData().catch(err => console.warn('[IDB] Không dọn được salesData cũ', err));
+}
+
+// Audit D14: hai hàm dưới đây trước đây XOÁ SẠCH dữ liệu cũ TRƯỚC khi ghi bản cloud — ghi lỗi (hết
+// dung lượng, tab bị đóng…) là mất cả bản cũ lẫn bản mới. Nay: ghi bản mới → chuyển registry → dọn cũ.
+export async function saveSyncCloudData(
+    data: DataRow[],
+    filename: string,
+    savedAt: number,
+    fileLastModified: number
+): Promise<void> {
+    try {
+        const oldRegistry = await getSalesFilesRegistry();
+        const syncId = 'cloud_sync_' + savedAt;
+
+        // 1. Ghi dữ liệu bản mới (khoá riêng — bản cũ vẫn nguyên)
+        await saveSalesFileData(syncId, data);
+
+        // 2. Chuyển registry sang bản mới — từ đây app đọc bản mới. Ghi hỏng → bỏ bản mới vừa ghi, bản cũ nguyên.
+        const cleanName = cleanYcxFileName(filename);
+        const item: UploadedFileRegistryItem = {
+            id: syncId,
+            filename: cleanName,
+            rowCount: data.length,
+            savedAt,             // Use the cloud savedAt
+            fileLastModified,    // Use the cloud fileLastModified
+            isActive: true
+        };
+        try {
+            await saveSalesFilesRegistry([item]);
+        } catch (err) {
+            await deleteSalesFileData(syncId).catch(() => { /* rác vô hại, không trỏ tới */ });
+            throw err;
+        }
+
+        // 3. Dọn bản cũ (file lịch sử + realtime tạm)
+        dropTempRealtimeCache();
+        await clearTempRealtimeData().catch(err => console.warn('[IDB] Không dọn được realtime tạm cũ', err));
+        await deleteReplacedSalesFiles(oldRegistry, syncId);
+    } catch (error) {
+        console.error('[IDB] saveSyncCloudData failed:', error);
+        throw error;
+    }
+}
+
+export async function saveSyncCloudRealtimeData(
+    data: DataRow[],
+    filename: string,
+    savedAt: number,
+    fileLastModified: number
+): Promise<void> {
+    try {
+        const oldRegistry = await getSalesFilesRegistry();
+
+        // 1. Ghi bản realtime mới (ghi đè đúng khoá tempRealtimeData trong 1 transaction)
+        const stored: StoredSalesData = {
+            data,
+            filename,
+            savedAt: new Date(savedAt),
+            fileLastModified
+        };
+        dropTempRealtimeCache();
+        const db = await getDb();
+        await new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(APP_STORE, 'readwrite');
+            tx.objectStore(APP_STORE).put(JSON.stringify(stored), 'tempRealtimeData');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+        });
+
+        // 2. Bản cloud là bản gộp đầy đủ → registry rỗng, rồi dọn file lịch sử cũ
+        await saveSalesFilesRegistry([]);
+        await deleteReplacedSalesFiles(oldRegistry);
+    } catch (error) {
+        console.error('[IDB] saveSyncCloudRealtimeData failed:', error);
+        throw error;
+    }
+}
+
+export async function getSalesData(): Promise<StoredSalesData | null> {
+    try {
+        const db = await getDb();
+        return new Promise((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] getSalesData timeout');
+                    resolve(null);
+                }
+            }, 30000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readonly');
+                const store = tx.objectStore(APP_STORE);
+                const request = store.get('salesData');
+                request.onsuccess = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        let res = request.result;
+                        if (typeof res === 'string') {
+                            try { res = JSON.parse(res); } catch(e) { console.error('Failed to parse salesData', e); }
+                        }
+                        restoreParsedDates(res?.data);
+                        resolve(res || null);
+                    }
+                };
+                request.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        console.error('[IDB] getSalesData request error:', request.error);
+                        resolve(null);
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        console.error('[IDB] getSalesData transaction error:', tx.error);
+                        resolve(null);
+                    }
+                };
+            } catch (err) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    console.error('[IDB] getSalesData synchronous error:', err);
+                    resolve(null);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('[IDB] getSalesData failed to get DB:', error);
+        return null;
+    }
+}
+
+export async function clearSalesData(): Promise<void> {
+    try {
+        const db = await getDb();
+        return new Promise<void>((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] clearSalesData timeout');
+                    resolve();
+                }
+            }, 15000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readwrite');
+                tx.objectStore(APP_STORE).delete('salesData');
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+            } catch (e) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    resolve();
+                }
+            }
+        });
+    } catch (e) {
+        console.error('[IDB] clearSalesData failed:', e);
+    }
+}
+
+// --- Historical Multi-File Registry & Data management ---
+
+export async function getSalesFilesRegistry(): Promise<UploadedFileRegistryItem[]> {
+    const registry = await getSetting<UploadedFileRegistryItem[]>('salesFilesRegistry');
+    if (!registry || registry.length === 0) return [];
+    let changed = false;
+    const cleaned = registry.map(f => {
+        const cleanName = cleanYcxFileName(f.filename);
+        if (cleanName !== f.filename) {
+            changed = true;
+            return { ...f, filename: cleanName };
+        }
+        return f;
+    });
+    if (changed) {
+        saveSettingOrThrow('salesFilesRegistry', cleaned).catch(() => {});
+    }
+    return cleaned;
+}
+
+// Audit D11/DATA08 (2026-10-08): trước dùng saveSetting() — lỗi ghi vĩnh viễn (hết dung lượng, bị từ chối)
+// chỉ log rồi resolve. Hậu quả: nạp file báo THÀNH CÔNG nhưng mở lại không thấy tệp; tệ hơn, ở
+// saveSyncCloudData bước "dọn bản cũ" vẫn chạy trong khi registry còn trỏ bản cũ → MẤT DỮ LIỆU. Registry là
+// mục lục của toàn bộ dữ liệu bán hàng trên máy nên ghi hỏng phải là LỖI cho caller biết.
+export async function saveSalesFilesRegistry(registry: UploadedFileRegistryItem[]): Promise<void> {
+    try {
+        await saveSettingOrThrow('salesFilesRegistry', registry);
+    } catch (err) {
+        const why = (err as Error)?.name === 'QuotaExceededError' ? 'bộ nhớ trình duyệt đã đầy' : ((err as Error)?.message || 'lỗi không rõ');
+        throw new Error(`Không lưu được danh sách tệp vào máy (${why}) — dữ liệu mới CHƯA được lưu, dữ liệu cũ vẫn giữ nguyên.`);
+    }
+}
+
+// Reset toàn bộ file "lũy kế" (registry) về isActive=false — CHỈ gọi đúng 1 lần lúc khởi
+// động app (hooks/useDataManagement.ts:loadInitialData), KHÔNG gọi trong
+// getMergedSalesData() hay bất kỳ chỗ nào chạy nhiều lần trong 1 phiên, để không tự ý
+// huỷ lựa chọn thủ công của user ngay sau khi họ tick lại 1 file để xem trong phiên đó.
+// Mặc định app chỉ mở dữ liệu Realtime cho nhanh; user cần xem lũy kế thì tự tick lại qua
+// FileHistoryManager mỗi phiên. File vừa upload xong trong phiên hiện tại KHÔNG bị ảnh
+// hưởng (giữ nguyên isActive=true như cũ) vì hàm này chỉ chạy lúc mount, trước khi có
+// upload nào trong phiên.
+// Trả về registry hiệu lực sau khi reset (hoặc registry gốc nếu không có gì đổi) — để
+// caller (hooks/useDataManagement.ts) truyền thẳng vào getMergedSalesData() bên dưới,
+// tránh phải đọc lại IndexedDB thêm 1 lần cho đúng key 'salesFilesRegistry' (PERF FIX —
+// IndexedDB trên Safari/iOS có overhead per-transaction cao, tránh đọc trùng khi đã có
+// sẵn dữ liệu mới trong tay).
+export async function resetHistoricalFilesToInactive(): Promise<UploadedFileRegistryItem[]> {
+    const registry = await getSalesFilesRegistry();
+    if (registry.length === 0) return registry;
+
+    const hasRealtime = await hasTempRealtimeData();
+
+    // Nếu ĐÃ CÓ dữ liệu Realtime trong IndexedDB (temp_realtime_sales_data):
+    // Ưu tiên hiển thị Realtime -> reset các file lịch sử/lũy kế về inactive để tránh gộp nặng không mong muốn.
+    if (hasRealtime) {
+        if (!registry.some(f => f.isActive)) return registry;
+        const updated = registry.map(f => f.isActive ? { ...f, isActive: false } : f);
+        await saveSalesFilesRegistry(updated);
+        return updated;
+    }
+
+    // Nếu KHÔNG CÓ dữ liệu Realtime (người dùng chỉ làm việc với file tải lên hoặc file lũy kế):
+    // 1. Nếu đang có file active -> GIỮ NGUYÊN trạng thái active để khi refresh (F5) không bị mất dữ liệu!
+    if (registry.some(f => f.isActive)) {
+        return registry;
+    }
+
+    // 2. Nếu chưa có file nào active -> tự động kích hoạt file mới nhất để người dùng luôn thấy dữ liệu khi reload
+    const sorted = [...registry].sort((a, b) => b.savedAt - a.savedAt);
+    const latestId = sorted[0].id;
+    const updated = registry.map(f => f.id === latestId ? { ...f, isActive: true } : f);
+    await saveSalesFilesRegistry(updated);
+    return updated;
+}
+
+/** `rawChunks` (tuỳ chọn, Đợt 6): khúc JSON gốc của đúng `data` — có thì ghi ngoài luồng chính. */
+export async function saveSalesFileData(fileId: string, data: DataRow[], rawChunks?: ArrayBuffer[]): Promise<void> {
+    if (rawChunks && await writeRawJsonOffMain('salesData_' + fileId, rawChunks, '', '')) return;
+    const tryTransaction = async (db: IDBDatabase) => {
+        return new Promise<void>((resolve, reject) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn(`[IDB] saveSalesFileData timeout for ${fileId}`);
+                    reject(new Error('Transaction timeout'));
+                }
+            }, 30000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readwrite');
+                const dataToSave = typeof data === 'string' ? data : JSON.stringify(data);
+                tx.objectStore(APP_STORE).put(dataToSave, 'salesData_' + fileId);
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(tx.error || new Error('Save file data transaction failed'));
+                    }
+                };
+            } catch (error) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            }
+        });
+    };
+
+    try {
+        const db = await getDb();
+        await tryTransaction(db);
+    } catch (error) {
+        console.warn(`[IDB] Retry saveSalesFileData for ${fileId} after error:`, (error as Error)?.message);
+        resetDbConnection();
+        try {
+            const db = await getDb();
+            await tryTransaction(db);
+        } catch (retryError) {
+            console.error(`[IDB] Permanent failure saving sales file data for ${fileId}:`, retryError);
+            throw retryError;
+        }
+    }
+}
+
+export async function getSalesFileData(fileId: string): Promise<DataRow[] | null> {
+    try {
+        const db = await getDb();
+        return new Promise((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn(`[IDB] getSalesFileData timeout for ${fileId}`);
+                    resolve(null);
+                }
+            }, 30000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readonly');
+                const request = tx.objectStore(APP_STORE).get('salesData_' + fileId);
+                request.onsuccess = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        let res = request.result;
+                        if (typeof res === 'string') {
+                            try { res = JSON.parse(res); } catch(e) { console.error('Failed to parse file data', e); }
+                        }
+                        restoreParsedDates(res);
+                        resolve(res || null);
+                    }
+                };
+                request.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        console.error(`[IDB] getSalesFileData error for ${fileId}:`, request.error);
+                        resolve(null);
+                    }
+                };
+            } catch (err) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    resolve(null);
+                }
+            }
+        });
+    } catch (error) {
+        console.error(`[IDB] getSalesFileData failed to get DB for ${fileId}:`, error);
+        return null;
+    }
+}
+
+export async function checkSalesFileDataExists(fileId: string): Promise<boolean> {
+    try {
+        const db = await getDb();
+        return new Promise((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    resolve(false);
+                }
+            }, 5000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readonly');
+                const store = tx.objectStore(APP_STORE);
+                const request = store.getKey('salesData_' + fileId);
+                request.onsuccess = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve(request.result !== undefined);
+                    }
+                };
+                request.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve(false);
+                    }
+                };
+            } catch (err) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    resolve(false);
+                }
+            }
+        });
+    } catch (error) {
+        return false;
+    }
+}
+
+export async function deleteSalesFileData(fileId: string): Promise<void> {
+    try {
+        const db = await getDb();
+        return new Promise<void>((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    resolve();
+                }
+            }, 15000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readwrite');
+                tx.objectStore(APP_STORE).delete('salesData_' + fileId);
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+            } catch (e) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    resolve();
+                }
+            }
+        });
+    } catch (e) {
+        console.error(`[IDB] deleteSalesFileData failed for ${fileId}:`, e);
+    }
+}
+
+export async function clearAllSalesFiles(): Promise<void> {
+    try {
+        dropTempRealtimeCache();
+        const registry = await getSalesFilesRegistry();
+        for (const file of registry) {
+            await deleteSalesFileData(file.id);
+        }
+        // Quét sạch mọi khoá mồ côi bắt đầu bằng salesData hoặc tempRealtimeData trong APP_STORE
+        try {
+            const db = await getDb();
+            await new Promise<void>((resolve) => {
+                const tx = db.transaction(APP_STORE, 'readwrite');
+                const store = tx.objectStore(APP_STORE);
+                const req = store.getAllKeys();
+                req.onsuccess = () => {
+                    const keys = req.result || [];
+                    keys.forEach(k => {
+                        const keyStr = String(k);
+                        if (keyStr.startsWith('salesData') || keyStr === 'tempRealtimeData') {
+                            store.delete(k);
+                        }
+                    });
+                };
+                tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
+            });
+        } catch {
+            /* bỏ qua lỗi quét toàn bộ key */
+        }
+        await saveSalesFilesRegistry([]);
+        await clearSalesData();
+        await clearTempRealtimeData();
+    } catch (e) {
+        console.error('[IDB] clearAllSalesFiles failed:', e);
+    }
+}
+
+// --- Temporary Realtime File Data ---
+
+/**
+ * `rawChunks` (tuỳ chọn, Đợt 6): khúc JSON gốc của đúng `data` từ Worker đọc tệp — có thì ghi ngoài
+ * luồng chính, KHÔNG `JSON.stringify` lại 200.000 dòng. Chuỗi lưu vẫn y hệt kiểu cũ.
+ */
+export async function saveTempRealtimeData(data: DataRow[], filename: string, fileLastModified?: number, rawChunks?: ArrayBuffer[]): Promise<void> {
+    const stored: StoredSalesData = { data, filename, savedAt: new Date(), fileLastModified };
+    dropTempRealtimeCache();
+    if (rawChunks) {
+        const { prefix, suffix } = storedSalesJsonWrap({ filename, savedAt: stored.savedAt, fileLastModified });
+        if (await writeRawJsonOffMain('tempRealtimeData', rawChunks, prefix, suffix)) {
+            tempRealtimeOnce = { dbName: biHubDbName(), expires: Date.now() + TEMP_CACHE_TTL_MS, value: stored };
+            return;
+        }
+    }
+    const tryTransaction = async (db: IDBDatabase) => {
+        return new Promise<void>((resolve, reject) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] saveTempRealtimeData timeout');
+                    reject(new Error('Transaction timeout'));
+                }
+            }, 30000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readwrite');
+                tx.objectStore(APP_STORE).put(JSON.stringify(stored), 'tempRealtimeData');
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        reject(tx.error || new Error('Save temp realtime data transaction failed'));
+                    }
+                };
+            } catch (error) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            }
+        });
+    };
+
+    const rememberSaved = () => {
+        tempRealtimeOnce = { dbName: biHubDbName(), expires: Date.now() + TEMP_CACHE_TTL_MS, value: stored };
+    };
+    try {
+        const db = await getDb();
+        await tryTransaction(db);
+        rememberSaved();
+    } catch (error) {
+        console.warn('[IDB] Retry saveTempRealtimeData after error:', (error as Error)?.message);
+        resetDbConnection();
+        try {
+            const db = await getDb();
+            await tryTransaction(db);
+            rememberSaved();
+        } catch (retryError) {
+            console.error('[IDB] Permanent failure saving temp realtime data:', retryError);
+            throw retryError;
+        }
+    }
+}
+
+export async function getTempRealtimeData(): Promise<StoredSalesData | null> {
+    const cached = tempRealtimeOnce;
+    tempRealtimeOnce = null; // dùng một lần — lượt sau luôn đọc IndexedDB
+    const dangXoaTatCa = typeof window !== 'undefined' && (window as unknown as { __ycx_is_resetting_all_data?: boolean }).__ycx_is_resetting_all_data;
+    if (cached && !dangXoaTatCa && cached.expires > Date.now() && cached.dbName === biHubDbName()) {
+        return cached.value;
+    }
+    try {
+        const db = await getDb();
+        return new Promise((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] getTempRealtimeData timeout');
+                    resolve(null);
+                }
+            }, 30000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readonly');
+                const store = tx.objectStore(APP_STORE);
+                const request = store.get('tempRealtimeData');
+                request.onsuccess = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        let res = request.result;
+                        if (typeof res === 'string') {
+                            try { res = JSON.parse(res); } catch(e) { console.error('Failed to parse tempRealtimeData', e); }
+                        }
+                        restoreParsedDates(res?.data);
+                        resolve(res || null);
+                    }
+                };
+                request.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        console.error('[IDB] getTempRealtimeData request error:', request.error);
+                        resolve(null);
+                    }
+                };
+            } catch (err) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    resolve(null);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('[IDB] getTempRealtimeData failed:', error);
+        return null;
+    }
+}
+
+/**
+ * Chỉ trả lời "có dữ liệu Realtime tạm hay không" — KHÔNG JSON.parse cả bảng (200.000 dòng ~1,4s).
+ * Đợt 4 (2026-09-30): refreshRegistry()/đồng bộ cloud gọi getTempRealtimeData() chỉ để lấy boolean
+ * này, vừa tốn một lượt parse, vừa tiêu mất cache dùng-một-lần của lượt nạp tệp.
+ */
+export async function hasTempRealtimeData(): Promise<boolean> {
+    const cached = tempRealtimeOnce;
+    if (cached && cached.expires > Date.now() && cached.dbName === biHubDbName()) {
+        return cached.value.data.length > 0;
+    }
+    try {
+        const db = await getDb();
+        return await new Promise<boolean>((resolve) => {
+            try {
+                const req = db.transaction(APP_STORE, 'readonly').objectStore(APP_STORE).get('tempRealtimeData');
+                req.onsuccess = () => {
+                    const res = req.result;
+                    if (!res) { resolve(false); return; }
+                    if (typeof res === 'string') {
+                        // Bản lưu luôn là JSON.stringify({ data, filename, ... }) → khoá `data` đứng đầu.
+                        if (res.startsWith('{"data":[]')) { resolve(false); return; }
+                        if (res.startsWith('{"data":[')) { resolve(true); return; }
+                        try { resolve(((JSON.parse(res) as StoredSalesData).data || []).length > 0); } catch { resolve(false); }
+                        return;
+                    }
+                    resolve(Array.isArray(res.data) && res.data.length > 0);
+                };
+                req.onerror = () => resolve(false);
+            } catch {
+                resolve(false);
+            }
+        });
+    } catch {
+        return false;
+    }
+}
+
+export async function clearTempRealtimeData(): Promise<void> {
+    dropTempRealtimeCache();
+    try {
+        const db = await getDb();
+        return new Promise<void>((resolve) => {
+            let active = true;
+            const timeoutId = setTimeout(() => {
+                if (active) {
+                    active = false;
+                    console.warn('[IDB] clearTempRealtimeData timeout');
+                    resolve();
+                }
+            }, 15000);
+
+            try {
+                const tx = db.transaction(APP_STORE, 'readwrite');
+                tx.objectStore(APP_STORE).delete('tempRealtimeData');
+                tx.oncomplete = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+                tx.onerror = () => {
+                    if (active) {
+                        active = false;
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                };
+            } catch (e) {
+                if (active) {
+                    active = false;
+                    clearTimeout(timeoutId);
+                    resolve();
+                }
+            }
+        });
+    } catch (e) {
+        console.error('[IDB] clearTempRealtimeData failed:', e);
+    }
+}
+
+// Số tháng dữ liệu lịch sử tự động giữ ở trạng thái isActive khi gộp. Tính năng
+// "so sánh cùng kỳ năm trước" (useSummaryComparison.ts) cần tới 12 tháng lùi lại —
+// 24 tháng chừa biên độ an toàn rộng hơn (đủ cho cả so sánh lùi 2 năm). File cũ hơn
+// KHÔNG bị xoá, chỉ tự untick (isActive: false) — người dùng vẫn tự bật lại được bất
+// cứ lúc nào qua FileHistoryManager.
+const RETENTION_MONTHS = 24;
+
+// Ưu tiên ngày dữ liệu thực trong file (maxDate, trích từ cột ngày bán lúc upload).
+// Registry cũ tạo trước khi có tính năng này có thể chưa có maxDate — fallback về
+// savedAt (ngày bấm upload) làm proxy gần đúng, thay vì coi là "không bao giờ hết hạn"
+// (sẽ vô hiệu hoá mục đích giới hạn cho đúng các file thực sự cũ).
+function isFileWithinRetention(file: UploadedFileRegistryItem, cutoffTime: number): boolean {
+    const referenceTime = file.maxDate ?? file.savedAt;
+    return referenceTime >= cutoffTime;
+}
+
+async function pruneStaleActiveFiles(registry: UploadedFileRegistryItem[]): Promise<UploadedFileRegistryItem[]> {
+    const cutoffTime = Date.now() - RETENTION_MONTHS * 30 * 24 * 60 * 60 * 1000;
+
+    // An toàn: nếu việc prune sẽ tắt HẾT toàn bộ file đang active (vd. user không mở app
+    // suốt hơn 14 tháng), bỏ qua đợt prune này thay vì để dashboard trống trơn không rõ
+    // lý do — thà chậm hơn 1 lần còn hơn trông như mất dữ liệu.
+    const activeFiles = registry.filter(f => f.isActive);
+    if (activeFiles.length > 0 && activeFiles.every(f => !isFileWithinRetention(f, cutoffTime))) {
+        return registry;
+    }
+
+    let changed = false;
+    const pruned = registry.map(f => {
+        if (f.isActive && !isFileWithinRetention(f, cutoffTime)) {
+            changed = true;
+            return { ...f, isActive: false };
+        }
+        return f;
+    });
+    if (changed) {
+        // Chỉ là đánh dấu "hết hạn lưu giữ" — ghi hỏng thì lần mở sau làm lại, không chặn việc mở app.
+        await saveSalesFilesRegistry(pruned).catch(err => console.warn('[IDB] Không lưu được registry sau khi lọc hạn lưu giữ', err));
+    }
+    return pruned;
+}
+
+export async function getMergedSalesData(preloadedRegistry?: UploadedFileRegistryItem[]): Promise<{ data: DataRow[]; filename: string; savedAt: Date; fileLastModified?: number; isRealtime?: boolean } | null> {
+    try {
+        // PERF FIX: nếu caller đã có sẵn registry mới đọc (vd từ resetHistoricalFilesToInactive()
+        // ngay trước đó), dùng lại thay vì mở thêm 1 transaction IndexedDB đọc đúng key này lần nữa.
+        const rawRegistry = preloadedRegistry ?? await getSalesFilesRegistry();
+        const registry = await pruneStaleActiveFiles(rawRegistry);
+        let activeFiles = registry.filter(f => f.isActive);
+
+        // MIGRATION: Nếu registry trống, kiểm tra xem có dữ liệu đơn lẻ 'salesData' cũ không
+        if (registry.length === 0) {
+            const legacySales = await getSalesData();
+            if (legacySales && legacySales.data.length > 0) {
+                console.warn('[IDB Migration] Chuyển đổi dữ liệu cũ sang cấu trúc đa tệp lịch sử...');
+                const legacyId = 'legacy_file_' + Date.now();
+                const legacyItem: UploadedFileRegistryItem = {
+                    id: legacyId,
+                    filename: legacySales.filename || 'Dữ liệu lịch sử cũ',
+                    rowCount: legacySales.data.length,
+                    savedAt: legacySales.savedAt ? new Date(legacySales.savedAt).getTime() : Date.now(),
+                    fileLastModified: legacySales.fileLastModified || Date.now(),
+                    isActive: true
+                };
+
+                await saveSalesFilesRegistry([legacyItem]);
+                await saveSalesFileData(legacyId, legacySales.data);
+                await clearSalesData(); // Xóa khóa cũ để tránh nhập nhằng
+                activeFiles = [legacyItem];
+            }
+        }
+
+        // Load active historical files data
+        const historicalData: DataRow[] = [];
+        let latestHistSavedAt = 0;
+        let maxHistFileLastModified = 0;
+
+        // PERF FIX: bắn request tempRealtime đi NGAY — song song với toàn bộ khối đọc/gộp file
+        // lịch sử bên dưới (kể cả nhánh fallback getSalesData() legacy) — 2 việc này độc lập
+        // hoàn toàn với nhau. Trước đây await tuần tự SAU khi khối lịch sử xong, dù không có phụ
+        // thuộc dữ liệu nào giữa 2 bên. Chỉ await ở đúng chỗ dùng (bên dưới) để không đổi thứ tự
+        // xử lý logic hiện có.
+        const tempRealtimePromise = getTempRealtimeData();
+
+        const fileDataArray = await Promise.all(activeFiles.map(file => getSalesFileData(file.id)));
+        for (let i = 0; i < activeFiles.length; i++) {
+            const file = activeFiles[i];
+            const fileData = fileDataArray[i];
+            if (fileData && fileData.length > 0) {
+                for (let j = 0; j < fileData.length; j++) {
+                    const row = fileData[j];
+                    row._fileLastModified = file.fileLastModified || file.savedAt;
+                    row._fileSavedAt = file.savedAt;
+                    row._sourceFileId = file.id;
+                    row._sourceFilename = file.filename;
+                    historicalData.push(row);
+                }
+            }
+            if (file.savedAt > latestHistSavedAt) {
+                latestHistSavedAt = file.savedAt;
+            }
+            if (file.fileLastModified && file.fileLastModified > maxHistFileLastModified) {
+                maxHistFileLastModified = file.fileLastModified;
+            }
+        }
+
+        // If there are active historical files but no local file data (e.g. new browser sync),
+        // fallback to legacy salesData store which holds the cloud sync data.
+        if (activeFiles.length > 0 && historicalData.length === 0) {
+            const legacySales = await getSalesData();
+            if (legacySales && legacySales.data.length > 0) {
+                for (let j = 0; j < legacySales.data.length; j++) {
+                    const row = legacySales.data[j];
+                    row._fileLastModified = legacySales.fileLastModified || (legacySales.savedAt ? new Date(legacySales.savedAt).getTime() : Date.now());
+                    row._fileSavedAt = legacySales.savedAt ? new Date(legacySales.savedAt).getTime() : Date.now();
+                    row._sourceFileId = 'legacy';
+                    row._sourceFilename = legacySales.filename || 'Dữ liệu lịch sử cũ';
+                    historicalData.push(row);
+                }
+                latestHistSavedAt = legacySales.savedAt ? new Date(legacySales.savedAt).getTime() : latestHistSavedAt;
+                maxHistFileLastModified = legacySales.fileLastModified || maxHistFileLastModified;
+            }
+        }
+
+        // Load temporary realtime data
+        const tempRealtime = await tempRealtimePromise;
+
+        // Merge datasets
+        const combinedData: DataRow[] = [];
+        let finalFilename = '';
+        let finalSavedAt = new Date();
+        let finalFileLastModified = 0;
+        let isRealtime = false;
+
+        // Kiểm tra tính lỗi thời của tempRealtime: nếu tệp lịch sử/lũy kế được lưu MỚI HƠN bản Realtime tạm,
+        // bản Realtime này là của phiên trước đó, không được phép gộp vào để tránh x2/cộng dồn sai lệch.
+        const realtimeSavedAt = tempRealtime?.savedAt ? new Date(tempRealtime.savedAt).getTime() : 0;
+        const isRealtimeStale = Boolean(
+            tempRealtime &&
+            historicalData.length > 0 &&
+            realtimeSavedAt > 0 &&
+            latestHistSavedAt > 0 &&
+            realtimeSavedAt < latestHistSavedAt
+        );
+
+        if (isRealtimeStale) {
+            // Tự dọn sạch bản Realtime cũ của phiên trước trong nền
+            clearTempRealtimeData().catch(() => {});
+        }
+
+        if (tempRealtime && tempRealtime.data.length > 0 && !isRealtimeStale) {
+            const realtimeOrderKeys = new Set<string>();
+
+            for (let j = 0; j < tempRealtime.data.length; j++) {
+                const row = tempRealtime.data[j];
+                row._fileLastModified = tempRealtime.fileLastModified || (tempRealtime.savedAt ? new Date(tempRealtime.savedAt).getTime() : Date.now());
+                row._fileSavedAt = tempRealtime.savedAt ? new Date(tempRealtime.savedAt).getTime() : Date.now();
+                row._sourceFileId = 'realtime';
+                row._sourceFilename = tempRealtime.filename;
+                combinedData.push(row);
+
+                const id = String(getRowValue(row, COL.ID) || '').trim();
+                const sp = String(getRowValue(row, COL.PRODUCT_CODE) || getRowValue(row, COL.PRODUCT) || '').trim();
+                if (id && sp) realtimeOrderKeys.add(`${id}__${sp}`);
+                else if (id) realtimeOrderKeys.add(id);
+                else if (row.__hash) realtimeOrderKeys.add(String(row.__hash));
+            }
+            if (historicalData.length > 0) {
+                for (let j = 0; j < historicalData.length; j++) {
+                    const row = historicalData[j];
+                    const id = String(getRowValue(row, COL.ID) || '').trim();
+                    const sp = String(getRowValue(row, COL.PRODUCT_CODE) || getRowValue(row, COL.PRODUCT) || '').trim();
+                    const key = id && sp ? `${id}__${sp}` : (id || (row.__hash ? String(row.__hash) : ''));
+                    // Nếu đơn hàng / sản phẩm này đã có trong bản Realtime mới hơn, không cộng dồn từ lịch sử
+                    if (key && realtimeOrderKeys.has(key)) {
+                        continue;
+                    }
+                    combinedData.push(row);
+                }
+
+                // Filename gộp
+                const baseRealtimeName = tempRealtime.filename.replace(/\.[^/.]+$/, '');
+                finalFilename = `${baseRealtimeName} + Gộp ${activeFiles.length} tệp lịch sử`;
+                if (finalFilename.length > 85) {
+                    finalFilename = `${baseRealtimeName} + Gộp ${activeFiles.length} tệp...`;
+                }
+
+                // Timestamps
+                const realtimeSavedAt = tempRealtime.savedAt ? new Date(tempRealtime.savedAt).getTime() : Date.now();
+                finalSavedAt = new Date(Math.max(realtimeSavedAt, latestHistSavedAt));
+                finalFileLastModified = Math.max(tempRealtime.fileLastModified || realtimeSavedAt, maxHistFileLastModified);
+                isRealtime = false;
+            } else {
+                finalFilename = tempRealtime.filename;
+                finalSavedAt = tempRealtime.savedAt ? new Date(tempRealtime.savedAt) : new Date();
+                finalFileLastModified = tempRealtime.fileLastModified || finalSavedAt.getTime();
+                isRealtime = true;
+            }
+        } else if (historicalData.length > 0) {
+            for (let j = 0; j < historicalData.length; j++) {
+                combinedData.push(historicalData[j]);
+            }
+
+            if (activeFiles.length === 1) {
+                finalFilename = activeFiles[0].filename;
+            } else {
+                const fileNames = activeFiles.map(f => f.filename.replace(/\.[^/.]+$/, ''));
+                finalFilename = `Gộp ${activeFiles.length} Báo cáo (${fileNames.join(', ')})`;
+                if (finalFilename.length > 85) {
+                    finalFilename = `Gộp ${activeFiles.length} Báo cáo (${fileNames.slice(0, 2).join(', ')}...)`;
+                }
+            }
+            finalSavedAt = new Date(latestHistSavedAt);
+            finalFileLastModified = maxHistFileLastModified || latestHistSavedAt;
+            isRealtime = false;
+        } else {
+            return null; // Không có tệp nào hoạt động
+        }
+
+        return {
+            data: combinedData,
+            filename: finalFilename,
+            savedAt: finalSavedAt,
+            fileLastModified: finalFileLastModified,
+            isRealtime
+        };
+    } catch (error) {
+        console.error('[IDB] getMergedSalesData failed:', error);
+        return null;
+    }
+}

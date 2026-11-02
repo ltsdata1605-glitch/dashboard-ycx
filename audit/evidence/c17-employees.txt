@@ -1,0 +1,56 @@
+[WebServer] (node:25881) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+DANH SÁCH BI: {"total":3,"names":["17952 - Đinh Thị Mỹ Hương","95970 - Chế Thị Út","107617 - Phạm Anh Nhân"]}
+(node:25888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/analysis-employees-sync.spec.ts:15:1 › cập nhật danh sách nhân viên (không có file YCX) → Report BI nhận đủ (9.1s)
+INPUT 0 accept= .xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel multiple= 
+INPUT 1 accept= .xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel multiple= 
+INPUT 2 accept= .xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel multiple= 
+DANH SÁCH SAU KHI NẠP: {"101":"BP All In One - ĐMX;;101 - Nguyễn Văn A;;1024","102":"BP All In One - ĐMX;;102 - Trần Thị B;;1024"}
+THÔNG BÁO: Đã nạp 2 nhân viên BP All In One (Kho 1024) • bỏ qua 3 người thuộc BP Bảo Vệ, BP Kho
+DANH SÁCH ĐẨY SANG REPORT BI: ["101 - Nguyễn Văn A","102 - Trần Thị B"]
+  ✓  2 [chromium] › tests/e2e/analysis-only-all-in-one.spec.ts:27:1 › nạp danh sách nhân viên: chỉ giữ BP All In One, báo rõ số bị bỏ qua (10.1s)
+  ✓  3 [chromium] › tests/e2e/bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts:32:1 › 4 tab Nhân viên chỉ hiện nhân viên của Phân Tích (12.4s)
+  ✘  4 [chromium] › tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:36:1 › số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị (1.0m)
+
+
+  1) [chromium] › tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:36:1 › số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.innerText: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByText(/^\d+ NV$/).first()
+
+
+      77 |         await page.waitForTimeout(1200);
+      78 |         const badge = page.getByText(/^\d+ NV$/).first();
+    > 79 |         return (await badge.innerText()).trim();
+         |                             ^
+      80 |     };
+      81 |
+      82 |     await page.getByText('Target Doanh thu').first().click();
+        at readCount (/Users/ltson/dashboardycx/tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:79:29)
+        at /Users/ltson/dashboardycx/tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:86:21
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:36:1 › số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị 
+  3 passed (1.6m)

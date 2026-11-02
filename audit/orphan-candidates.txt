@@ -1,0 +1,11 @@
+docs/audit-2026-10-07/evidence/audit-backend-repro.cjs
+docs/audit-2026-10-07/evidence/audit-feature-proofs.cjs
+docs/audit-2026-10-07/evidence/audit-gemini-repro.cjs
+docs/audit-2026-10-07/evidence/auth-offline-proof.cjs
+docs/audit-2026-10-07/evidence/check-thuong-message-proof.cjs
+docs/audit-2026-10-07/evidence/data-repro.mjs
+docs/audit-2026-10-07/evidence/parse-typescript.mjs
+docs/audit-2026-10-07/evidence/tax-offline-repro.mjs
+features/line-bot/index.ts
+features/product-config/components/index.ts
+features/tax-calculator/index.ts

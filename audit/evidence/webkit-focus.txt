@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [webkit] › tests/e2e/modal-ngan-xep.spec.ts:59:1 › a11y: role=dialog + aria-modal + tên; focus vào trong, Tab vòng trong modal, đóng thì trả focus (980ms)
+
+
+  1) [webkit] › tests/e2e/modal-ngan-xep.spec.ts:59:1 › a11y: role=dialog + aria-modal + tên; focus vào trong, Tab vòng trong modal, đóng thì trả focus 
+
+    Error: Tab lần 3 thoát khỏi modal
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      74 |     for (let i = 0; i < 10; i++) {
+      75 |         await page.keyboard.press('Tab');
+    > 76 |         expect(await dialog.evaluate(el => el.contains(document.activeElement)), `Tab lần ${i + 1} thoát khỏi modal`).toBe(true);
+         |                                                                                                                       ^
+      77 |     }
+      78 |     // Shift+Tab từ phần tử đầu → về phần tử cuối
+      79 |     await dialog.getByRole('button', { name: 'Đóng' }).focus();
+        at /Users/ltson/dashboardycx/tests/e2e/modal-ngan-xep.spec.ts:76:119
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/phase0-webkit-focus/modal-ngan-xep-a11y-role-d-21a78-ng-modal-đóng-thì-trả-focus-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/phase0-webkit-focus/modal-ngan-xep-a11y-role-d-21a78-ng-modal-đóng-thì-trả-focus-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/phase0-webkit-focus/modal-ngan-xep-a11y-role-d-21a78-ng-modal-đóng-thì-trả-focus-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/phase0-webkit-focus/modal-ngan-xep-a11y-role-d-21a78-ng-modal-đóng-thì-trả-focus-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [webkit] › tests/e2e/modal-ngan-xep.spec.ts:59:1 › a11y: role=dialog + aria-modal + tên; focus vào trong, Tab vòng trong modal, đóng thì trả focus 

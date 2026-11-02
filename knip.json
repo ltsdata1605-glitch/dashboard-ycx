@@ -1,0 +1,7 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["index.tsx", "scripts/**/*.{cjs,mjs,js}", "auth-hosting/**/*.{js,html}"],
+  "project": ["**/*.{ts,tsx,js,mjs,cjs}"],
+  "ignore": ["functions/**", "docs/**", "archive/**", "audit/**", "price-scraper-server/**", "public/**", "dist/**", ".agents/**", ".claude/**"],
+  "ignoreExportsUsedInFile": true
+}

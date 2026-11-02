@@ -1,0 +1,297 @@
+
+import React from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import TopSellerList from './TopSellerList';
+import PerformanceTable from './PerformanceTable';
+import IndustryAnalysisTab from './IndustryAnalysisTab';
+import HeadToHeadTab from './HeadToHeadTab';
+import ContestTable from './ContestTable';
+import type { ExploitationData, CustomContestTab, CustomExploitationTabConfig, DataRow, Employee, EmployeeData, ProductConfig, ContestTableConfig, ModalState } from '../../types';
+import { Button } from '../shared/ui/Button';
+import { ActionMenu } from '../shared/ui/ActionMenu';
+import type { Tab } from './EmployeeAnalysisTabs';
+
+type ColorTheme = { header: string; activeTab: string; row: string; border: string };
+type FilteredEmployeeAnalysisData = EmployeeData & { filteredBaseData: DataRow[] };
+
+interface EmployeeAnalysisContentProps {
+    activeTab: string;
+    filteredEmployeeAnalysisData: FilteredEmployeeAnalysisData | null;
+    isInitialTabsLoaded: boolean;
+    industryAnalysisTables: CustomContestTab[];
+    customTabs: CustomContestTab[];
+    customExploitationTabs: CustomExploitationTabConfig[];
+    setCustomExploitationTabs: React.Dispatch<React.SetStateAction<CustomExploitationTabConfig[]>>;
+    efficiencyExploitationTabs: CustomExploitationTabConfig[];
+    setEfficiencyExploitationTabs: React.Dispatch<React.SetStateAction<CustomExploitationTabConfig[]>>;
+    baseFilteredData: DataRow[];
+    allDatesBaseFilteredData: DataRow[];
+    productConfig: ProductConfig | null;
+    isExporting: boolean;
+    handleMainExport: () => Promise<void>;
+    handleIndustryTabExport: () => Promise<void>;
+    handleBatchExport: (employees: Employee[]) => void;
+    openPerformanceModal: (employeeName: string) => void;
+    setModalState: (state: ModalState) => void;
+    exportRef: React.RefObject<HTMLDivElement | null>;
+    industryAnalysisTabRef: React.RefObject<HTMLDivElement | null>;
+    colorThemes: ColorTheme[];
+    defaultTabs: Tab[];
+    handleDeleteColumnDirect: (tabId: string, tableId: string, columnId: string) => void;
+}
+
+interface ContestTableItemProps {
+    tableConfig: ContestTableConfig;
+    customTabId: string;
+    allEmployees: Employee[];
+    baseFilteredData: DataRow[];
+    productConfig: ProductConfig;
+    tableColorTheme: ColorTheme;
+    setModalState: (state: ModalState) => void;
+    handleDeleteColumnDirect: (tabId: string, tableId: string, columnId: string) => void;
+}
+
+const ContestTableItem: React.FC<ContestTableItemProps> = React.memo(({
+    tableConfig,
+    customTabId,
+    allEmployees,
+    baseFilteredData,
+    productConfig,
+    tableColorTheme,
+    setModalState,
+    handleDeleteColumnDirect
+}) => {
+    const onManageColumns = React.useCallback(() => {
+        setModalState({ 
+            type: 'EDIT_TABLE', 
+            data: { 
+                tabId: customTabId, 
+                tableId: tableConfig.id, 
+                tableName: tableConfig.tableName, 
+                columns: tableConfig.columns, 
+                initialSortColumnId: tableConfig.defaultSortColumnId 
+            }
+        });
+    }, [setModalState, customTabId, tableConfig.id, tableConfig.tableName, tableConfig.columns, tableConfig.defaultSortColumnId]);
+
+    const onDeleteTable = React.useCallback(() => {
+        setModalState({ 
+            type: 'CONFIRM_DELETE_TABLE', 
+            data: { 
+                tabId: customTabId, 
+                tableId: tableConfig.id, 
+                tableName: tableConfig.tableName 
+            }
+        });
+    }, [setModalState, customTabId, tableConfig.id, tableConfig.tableName]);
+
+    const onAddColumn = React.useCallback(() => {
+        setModalState({ 
+            type: 'CREATE_COLUMN', 
+            data: { 
+                tabId: customTabId, 
+                tableId: tableConfig.id, 
+                existingColumns: tableConfig.columns 
+            }
+        });
+    }, [setModalState, customTabId, tableConfig.id, tableConfig.columns]);
+
+    const onEditColumn = React.useCallback((columnId: string) => {
+        setModalState({ 
+            type: 'EDIT_COLUMN', 
+            data: { 
+                tabId: customTabId, 
+                tableId: tableConfig.id, 
+                existingColumns: tableConfig.columns, 
+                editingColumn: tableConfig.columns.find((c) => c.id === columnId)
+            }
+        });
+    }, [setModalState, customTabId, tableConfig.id, tableConfig.columns]);
+
+    const onTriggerDeleteColumn = React.useCallback((columnId: string) => {
+        handleDeleteColumnDirect(customTabId, tableConfig.id, columnId);
+    }, [handleDeleteColumnDirect, customTabId, tableConfig.id]);
+
+    return (
+        <ContestTable
+            config={tableConfig}
+            allEmployees={allEmployees}
+            baseFilteredData={baseFilteredData}
+            productConfig={productConfig}
+            tableColorTheme={tableColorTheme}
+            onManageColumns={onManageColumns}
+            onDeleteTable={onDeleteTable}
+            onAddColumn={onAddColumn}
+            onEditColumn={onEditColumn}
+            onTriggerDeleteColumn={onTriggerDeleteColumn}
+        />
+    );
+});
+ContestTableItem.displayName = 'ContestTableItem';
+
+const EmployeeAnalysisContent: React.FC<EmployeeAnalysisContentProps> = React.memo(({
+    activeTab,
+    filteredEmployeeAnalysisData,
+    isInitialTabsLoaded,
+    industryAnalysisTables,
+    customTabs,
+    customExploitationTabs,
+    setCustomExploitationTabs,
+    efficiencyExploitationTabs,
+    setEfficiencyExploitationTabs,
+    baseFilteredData,
+    allDatesBaseFilteredData,
+    productConfig,
+    isExporting,
+    handleMainExport,
+    handleIndustryTabExport,
+    handleBatchExport,
+    openPerformanceModal,
+    setModalState,
+    exportRef,
+    industryAnalysisTabRef,
+    colorThemes,
+    defaultTabs,
+    handleDeleteColumnDirect
+}) => {
+    const handleManageCustomTabs = React.useCallback((mode: 'detail' | 'efficiency') => {
+        setModalState({ type: 'CREATE_CUSTOM_EXPLOITATION_TAB', data: { targetMode: mode } });
+    }, [setModalState]);
+
+    const handleEditCustomTab = React.useCallback((tabId: string, mode: 'detail' | 'efficiency') => {
+        const activeTabs = mode === 'detail' ? customExploitationTabs : efficiencyExploitationTabs;
+        let tab = activeTabs.find(t => t.id === tabId);
+        if (!tab && tabId === 'doanhThu') {
+            tab = { id: 'doanhThu', name: 'D.Thu', order: 0, columns: [ { id: 'doanhThuThuc', name: 'DT Thực', type: 'revenue', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } }, { id: 'doanhThuQD', name: 'DTQĐ', type: 'revenue', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } }, { id: 'hieuQuaQD', name: 'HQQĐ', type: 'percentage', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } } ] };
+        } else if (!tab && tabId === 'spChinh') {
+            tab = { id: 'spChinh', name: 'SP Chính', order: 0, columns: [ { id: 'slICT', name: 'ICT', type: 'quantity', filters: { selectedIndustries: ['ICT'], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } }, { id: 'slCE_main', name: 'CE', type: 'quantity', filters: { selectedIndustries: ['CE'], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } }, { id: 'slGiaDung_main', name: 'ĐGD', type: 'quantity', filters: { selectedIndustries: ['Gia dụng'], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } }, { id: 'slSPChinh_Tong', name: 'Tổng', type: 'quantity', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] } } ] };
+        }
+        if (tab) {
+            setModalState({ type: 'EDIT_CUSTOM_EXPLOITATION_TAB', data: { tabId: tab.id, initialName: tab.name, initialColumns: tab.columns, initialIcon: tab.icon, targetMode: mode } });
+        }
+    }, [customExploitationTabs, efficiencyExploitationTabs, setModalState]);
+
+    const handleDeleteCustomTab = React.useCallback((tabId: string, mode: 'detail' | 'efficiency') => {
+        const activeTabs = mode === 'detail' ? customExploitationTabs : efficiencyExploitationTabs;
+        const tab = activeTabs.find(t => t.id === tabId);
+        if (tab) {
+            setModalState({ type: 'CONFIRM_DELETE_CUSTOM_EXPLOITATION_TAB', data: { tabId: tab.id, tabName: tab.name, targetMode: mode } });
+        }
+    }, [customExploitationTabs, efficiencyExploitationTabs, setModalState]);
+
+    const handleBatchExportCallback = React.useCallback((exploitationData: ExploitationData[]) => {
+        const names = new Set(exploitationData.map(d => d.name));
+        if (filteredEmployeeAnalysisData?.fullSellerArray) {
+            const employeesToExport = filteredEmployeeAnalysisData.fullSellerArray.filter(e => names.has(e.name));
+            handleBatchExport(employeesToExport);
+        }
+    }, [filteredEmployeeAnalysisData?.fullSellerArray, handleBatchExport]);
+
+    if (!isInitialTabsLoaded || !filteredEmployeeAnalysisData) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 w-full">
+                <div className="w-10 h-10 border-4 border-sky-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <p className="mt-3 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">Đang tải dữ liệu phân tích...</p>
+            </div>
+        );
+    }
+
+    switch (activeTab) {
+        case 'topSellers': 
+            return <TopSellerList ref={exportRef} fullSellerArray={filteredEmployeeAnalysisData.fullSellerArray} onEmployeeClick={openPerformanceModal} onBatchExport={handleBatchExport} onExport={handleMainExport} isExporting={isExporting} />;
+        case 'performanceTable': 
+            return <PerformanceTable ref={exportRef} employeeData={filteredEmployeeAnalysisData} onEmployeeClick={openPerformanceModal} onExport={handleMainExport} isExporting={isExporting} />;
+        case 'industryAnalysis': 
+            return (
+                <div>
+                    <IndustryAnalysisTab 
+                        ref={industryAnalysisTabRef}
+                        data={filteredEmployeeAnalysisData.exploitationData} 
+                        baseFilteredData={baseFilteredData}
+                        productConfig={productConfig ?? undefined}
+                        customExploitationTabs={customExploitationTabs}
+                        efficiencyExploitationTabs={efficiencyExploitationTabs}
+                        onManageCustomTabs={handleManageCustomTabs}
+                        onEditCustomTab={handleEditCustomTab}
+                        onDeleteCustomTab={handleDeleteCustomTab}
+                        onExport={handleIndustryTabExport} 
+                        isExporting={isExporting}
+                        onBatchExport={handleBatchExportCallback}
+                    />
+                </div>
+            );
+        case 'headToHead': 
+            return <HeadToHeadTab ref={exportRef} baseFilteredData={allDatesBaseFilteredData} productConfig={productConfig!} employeeData={filteredEmployeeAnalysisData.fullSellerArray} onExport={handleMainExport} isExporting={isExporting} colorThemes={colorThemes} />;
+
+        default:
+            const customTab = customTabs.find(t => t.id === activeTab);
+            if (customTab) {
+                return (
+                    <div ref={exportRef}>
+                        <div className="flex justify-between items-center mb-3 sm:mb-6">
+                            <div className="flex items-center gap-2 sm:gap-4">
+                                <div className="min-w-0">
+                                    <h3 className="text-sm lg:text-[17px] font-medium text-slate-700 dark:text-slate-200 uppercase tracking-wide truncate leading-tight">{customTab.name}</h3>
+                                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">Bảng thi đua tùy chỉnh</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 hide-on-export shrink-0">
+                                <ActionMenu
+                                    items={[
+                                        {
+                                            id: 'create-table',
+                                            label: 'Tạo Bảng Thi Đua Mới',
+                                            icon: 'add',
+                                            onSelect: () => setModalState({ type: 'CREATE_TABLE', data: { tabId: customTab.id }}),
+                                        },
+                                        {
+                                            id: 'edit-tab',
+                                            label: 'Sửa Tên Tab',
+                                            icon: 'edit',
+                                            onSelect: () => setModalState({ type: 'EDIT_TAB', data: { tabId: customTab.id, initialName: customTab.name, initialIcon: customTab.icon }}),
+                                        },
+                                        {
+                                            id: 'delete-tab',
+                                            label: 'Xóa Tab Này',
+                                            icon: 'delete',
+                                            destructive: true,
+                                            onSelect: () => setModalState({ type: 'CONFIRM_DELETE_TAB', data: { tabId: customTab.id, tabName: customTab.name }}),
+                                        },
+                                    ]}
+                                    title={`Tùy chọn ${customTab.name}`}
+                                    label="Tùy chọn Tab"
+                                    triggerClassName="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                />
+                                <div className="h-4 sm:h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1"></div>
+                                <Button variant="ghost" size="icon" onClick={handleMainExport} disabled={isExporting} title="Xuất Ảnh Tab" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-all disabled:opacity-40">
+                                    {isExporting ? <AppIcon name="loading" size="md" spin /> : <AppIcon name="exportImage" size="md" />}
+                                </Button>
+                            </div>
+                        </div>
+                        {customTab.tables.length === 0 ? (
+                            <p className="text-center text-xs sm:text-sm text-slate-500 py-5 sm:py-8">Chưa có bảng thi đua nào trong tab này.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {customTab.tables.map((tableConfig, index) => (
+                                    <ContestTableItem
+                                        key={tableConfig.id}
+                                        tableConfig={tableConfig}
+                                        customTabId={customTab.id}
+                                        allEmployees={filteredEmployeeAnalysisData.fullSellerArray}
+                                        baseFilteredData={baseFilteredData}
+                                        productConfig={productConfig!}
+                                        tableColorTheme={colorThemes[(index + 2) % colorThemes.length]}
+                                        setModalState={setModalState}
+                                        handleDeleteColumnDirect={handleDeleteColumnDirect}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+            return null;
+    }
+});
+
+export default EmployeeAnalysisContent;

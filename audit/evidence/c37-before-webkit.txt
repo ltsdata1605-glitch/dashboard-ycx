@@ -1,0 +1,53 @@
+[WebServer] (node:52898) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/data-table-foundation.spec.ts:3:3 › DataTable native sort groups and loading/empty 390 (1.7s)
+TABLE_GEOMETRY {"viewport":390,"clientWidth":350,"scrollWidth":800,"tableWidth":800,"minWidth":"800px","firstCellWidth":400}
+(node:52911) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [webkit] › tests/e2e/data-table-foundation.spec.ts:24:3 › DataTable scroll cue sticky header and column 390 (9.7s)
+  ✓  3 [webkit] › tests/e2e/data-table-foundation.spec.ts:3:3 › DataTable native sort groups and loading/empty 1366 (853ms)
+TABLE_GEOMETRY {"viewport":1366,"clientWidth":692,"scrollWidth":800,"tableWidth":800,"minWidth":"800px","firstCellWidth":200}
+(node:52950) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [webkit] › tests/e2e/data-table-foundation.spec.ts:24:3 › DataTable scroll cue sticky header and column 1366 (673ms)
+
+
+  1) [webkit] › tests/e2e/data-table-foundation.spec.ts:24:3 › DataTable scroll cue sticky header and column 390 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 2
+    Received:   50
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      32 |     await scroller.evaluate(el=>{el.scrollTop=400;el.scrollLeft=el.scrollWidth;});
+      33 |     await expect.poll(async()=>Math.abs((await head.boundingBox())!.y-y)).toBeLessThan(2);
+    > 34 |     await expect.poll(async()=>Math.abs((await cell.boundingBox())!.x-x)).toBeLessThan(2);
+         |                                                                           ^
+      35 |     await expect(scroller).not.toHaveAttribute('data-xcue-right','');
+      36 |     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+      37 |     await scroller.evaluate(el=>{el.scrollTop=0;el.scrollLeft=0;});await expect(scroller).toHaveAttribute('data-xcue-right','');
+        at /Users/ltson/dashboardycx/tests/e2e/data-table-foundation.spec.ts:34:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c37-before-webkit/data-table-foundation-Data-57ace-ticky-header-and-column-390-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c37-before-webkit/data-table-foundation-Data-57ace-ticky-header-and-column-390-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c37-before-webkit/data-table-foundation-Data-57ace-ticky-header-and-column-390-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c37-before-webkit/data-table-foundation-Data-57ace-ticky-header-and-column-390-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [webkit] › tests/e2e/data-table-foundation.spec.ts:24:3 › DataTable scroll cue sticky header and column 390 
+  3 passed (14.8s)

@@ -1,0 +1,512 @@
+import React, { forwardRef } from 'react';
+import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { formatCurrency, abbreviateName, formatQuantityWithFraction, formatQuantity } from '../../utils/dataUtils';
+import { Button } from '../shared/ui/Button';
+import type { ExploitationData, CustomColumnConfig, CustomExploitationTabConfig, DataRow, ProductConfig } from '../../types';
+import { detailQuickFilters, detailHeaderGroups, HeaderCell, getHeatmapClass, SortConfig } from './industry/IndustryTableUtils';
+import { useIndustryAnalysisLogic } from './industry/useIndustryAnalysisLogic';
+import { DEPT_COLORS, RankBadge } from './performance/PerformanceTableUtils';
+import { DATA_STATUS_COLORS } from '../../constants';
+import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { exportElementAsImage } from '../shared/export/captureEngine';
+import { registerYcxAutoExportRunner } from '../../services/autoReportExportService';
+
+// Dữ liệu 1 dòng hiển thị chi tiết: có thể là 1 nhân viên (ExploitationData mở rộng) hoặc groupTotals/grandTotal (Record<string, number>)
+// Không khai báo index signature ở đây để tránh phá vỡ khả năng gán từ các kiểu cụ thể hơn (employee/groupTotals/grandTotal)
+// — truy cập theo key động (cột tùy chỉnh) được ép kiểu cục bộ qua Record<string, unknown> ở nơi dùng.
+interface DetailModeRowData {
+    doanhThuThuc?: number;
+    doanhThuQD?: number;
+    hieuQuaQD?: number;
+    slICT?: number;
+    slCE_main?: number;
+    slGiaDung_main?: number;
+    slSPChinh_Tong?: number;
+}
+
+interface IndustryAnalysisTabProps {
+    data: ExploitationData[];
+    onExport?: () => void;
+    isExporting?: boolean;
+    onBatchExport: (data: ExploitationData[]) => void;
+    baseFilteredData?: DataRow[];
+    productConfig?: ProductConfig;
+    customExploitationTabs?: CustomExploitationTabConfig[];
+    efficiencyExploitationTabs?: CustomExploitationTabConfig[];
+    onManageCustomTabs?: (mode: 'detail' | 'efficiency') => void;
+    onEditCustomTab?: (tabId: string, mode: 'detail' | 'efficiency') => void;
+    onDeleteCustomTab?: (tabId: string, mode: 'detail' | 'efficiency') => void;
+}
+const IndustryAnalysisTab = React.memo(forwardRef<HTMLDivElement, IndustryAnalysisTabProps>(({ data, onExport, isExporting, onBatchExport, baseFilteredData, productConfig, customExploitationTabs, efficiencyExploitationTabs, onManageCustomTabs, onEditCustomTab, onDeleteCustomTab }, ref) => {
+    const {
+        viewMode,
+        setViewMode,
+        visibleGroups,
+        handleToggleGroup,
+        sortConfig,
+        handleSort,
+        processedData,
+        groupTotals,
+        grandTotal,
+        dynamicQuickFilters,
+        dynamicHeaderGroups
+    } = useIndustryAnalysisLogic(data, baseFilteredData, productConfig, customExploitationTabs, efficiencyExploitationTabs);
+    
+    React.useEffect(() => {
+        return registerYcxAutoExportRunner('Phân Tích Nhân Viên - Khai Thác', async () => {
+            const el = typeof ref === 'function' ? null : ref?.current;
+            if (!el) return null;
+            const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - Khai Thác.png', {
+                isCompactTable: true,
+                fitAllColumns: true,
+                mode: 'blob-only',
+            });
+            return (res instanceof Blob) ? res : null;
+        });
+    }, [ref]);
+
+    const showDeptHeaders = Object.keys(processedData).length > 1 || (Object.keys(processedData).length === 1 && Object.keys(processedData)[0] !== 'Không Phân Ca');
+    
+    const formatPct = (value: number | undefined) => value !== undefined && value > 0 ? `${value.toFixed(0)}%` : '-';
+    const formatNum = (value: number | undefined) => value !== undefined && value > 0 ? formatQuantityWithFraction(value) : '-';
+    const formatC = (value: number | undefined) => value !== undefined && value > 0 ? formatCurrency(value) : '-';
+    const formatCustomColPct = (v: number, col: CustomColumnConfig) => {
+        if (v === 0 || v === null || v === undefined || isNaN(v) || !isFinite(v)) return '-';
+        const decimals = col.percentageConfig?.decimalPlaces !== undefined ? col.percentageConfig.decimalPlaces : 0;
+        const formatAs = col.percentageConfig?.formatAs || 'percentage';
+        const formattedVal = Number(v.toFixed(decimals)).toLocaleString('vi-VN', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+        return formatAs === 'percentage' ? `${formattedVal}%` : formattedVal;
+    };
+    const boldBlueText = 'font-bold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/20 px-2 py-0.5 rounded-control';
+    const warningText = 'text-rose-700 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-2 py-0.5 rounded-control';
+    
+    // ----------------------------
+
+    // Rank/trung bình theo nhóm (bộ phận) trước đây được tính lại cho MỖI dòng nhân viên
+    // (map+reduce+sort trên toàn bộ employeesInGroup) — O(N² log N) theo số nhân viên trong nhóm.
+    // Cache theo (mảng nhóm, field) để chỉ tính 1 lần/nhóm/field, các dòng còn lại tra cứu tức thời.
+    const groupFieldStatsCache = new WeakMap<Record<string, unknown>[], Map<string, { average: number; sortedVals: number[] }>>();
+    const getGroupFieldStats = (employeesInGroup: Record<string, unknown>[], field: string) => {
+        let fieldMap = groupFieldStatsCache.get(employeesInGroup);
+        if (!fieldMap) {
+            fieldMap = new Map();
+            groupFieldStatsCache.set(employeesInGroup, fieldMap);
+        }
+        let stats = fieldMap.get(field);
+        if (!stats) {
+            const validValues = employeesInGroup.map(emp => (emp[field] as number) || 0);
+            const average = validValues.length > 0 ? validValues.reduce((sum, v) => sum + v, 0) / validValues.length : 0;
+            const sortedVals = [...new Set(validValues)].sort((a, b) => b - a);
+            stats = { average, sortedVals };
+            fieldMap.set(field, stats);
+        }
+        return stats;
+    };
+    const getRankStyle = (employeesInGroup: Record<string, unknown>[] | undefined, field: string, val: number): React.CSSProperties => {
+        if (!employeesInGroup || employeesInGroup.length === 0) return {};
+        // Lỗi #22 (video v2:047–052): ô TRỐNG (0 → hiện "-") nhỏ hơn trung bình nên bị tô nền hồng — cột thưa như DCNB thì hồng
+        // khắp bảng, rối mắt. Ô không có số thì không tô màu.
+        if (!(val > 0)) return {};
+        const { average, sortedVals } = getGroupFieldStats(employeesInGroup, field);
+        const rank = sortedVals.indexOf(val) + 1;
+        if (val > 0 && rank <= 3) return { backgroundColor: DATA_STATUS_COLORS.positive.bg, color: DATA_STATUS_COLORS.positive.text, fontWeight: 'bold' };
+        if (val < average) return { backgroundColor: DATA_STATUS_COLORS.negative.bg, color: DATA_STATUS_COLORS.negative.text, fontWeight: 'bold' };
+        return {};
+    };
+
+    const renderDetailModeCells = (rowData: DetailModeRowData, employeesInGroup?: Record<string, unknown>[]) => (
+        <>
+            {Array.from(visibleGroups).map(key => {
+                if (key === 'doanhThu') {
+                    let styleDT: React.CSSProperties = {};
+                    let styleQD: React.CSSProperties = {};
+                    let styleHQ: React.CSSProperties = {};
+                    
+                    if (employeesInGroup && employeesInGroup.length > 0) {
+                        styleDT = getRankStyle(employeesInGroup, 'doanhThuThuc', rowData.doanhThuThuc || 0);
+                        styleQD = getRankStyle(employeesInGroup, 'doanhThuQD', rowData.doanhThuQD || 0);
+                        styleHQ = getRankStyle(employeesInGroup, 'hieuQuaQD', rowData.hieuQuaQD || 0);
+                    }
+
+                    const subHeaders = dynamicHeaderGroups[key]?.subHeaders || [];
+
+                    return (
+                        <React.Fragment key={key}>
+                            {subHeaders.map((sh) => {
+                                if (sh.key === 'doanhThuThuc') {
+                                    return (
+                                        <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-500 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                            <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${Object.keys(styleDT).length > 0 ? 'rounded-md' : ''}`} style={styleDT}>
+                                                {formatC(rowData.doanhThuThuc)}
+                                            </div>
+                                        </td>
+                                    );
+                                }
+                                if (sh.key === 'doanhThuQD') {
+                                    return (
+                                        <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                            <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${Object.keys(styleQD).length > 0 ? 'rounded-md' : ''}`} style={styleQD}>
+                                                {formatC(rowData.doanhThuQD)}
+                                            </div>
+                                        </td>
+                                    );
+                                }
+                                if (sh.key === 'hieuQuaQD') {
+                                    return (
+                                        <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-black border-b border-r border-slate-200 dark:border-slate-700">
+                                            {Object.keys(styleHQ).length > 0 ? (
+                                                <div className="inline-block px-1 sm:px-1.5 py-0.5 rounded-md" style={styleHQ}>
+                                                    {formatPct(rowData.hieuQuaQD)}
+                                                </div>
+                                            ) : (
+                                                <span className="text-sky-700 dark:text-sky-400">{formatPct(rowData.hieuQuaQD)}</span>
+                                            )}
+                                        </td>
+                                    );
+                                }
+                                // Render custom columns added to doanhThu
+                                const val = ((rowData as Record<string, unknown>)[sh.key] as number | undefined) || 0;
+                                const badgeStyle: React.CSSProperties = getRankStyle(employeesInGroup, sh.key, val);
+                                const hasStyle = Object.keys(badgeStyle).length > 0;
+                                if (sh.originalType === 'quantity') return <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-600 dark:text-slate-400 tabular-nums border-b border-r border-slate-200 dark:border-slate-700"><div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>{formatNum(val)}</div></td>;
+                                if (sh.originalType === 'revenue') return <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-500 tabular-nums border-b border-r border-slate-200 dark:border-slate-700"><div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>{formatC(val)}</div></td>;
+                                return <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold border-b border-r border-slate-200 dark:border-slate-700">{hasStyle ? <div className="inline-block px-1 sm:px-1.5 py-0.5 rounded-md" style={badgeStyle}>{formatPct(val)}</div> : <span className={getHeatmapClass(val, 30)}>{formatPct(val)}</span>}</td>;
+                            })}
+                        </React.Fragment>
+                    );
+                }
+                if (key === 'spChinh') {
+                    let styleICT: React.CSSProperties = {};
+                    let styleCE: React.CSSProperties = {};
+                    let styleGD: React.CSSProperties = {};
+                    let styleTong: React.CSSProperties = {};
+                    
+                    if (employeesInGroup && employeesInGroup.length > 0) {
+                        styleICT = getRankStyle(employeesInGroup, 'slICT', rowData.slICT || 0);
+                        styleCE = getRankStyle(employeesInGroup, 'slCE_main', rowData.slCE_main || 0);
+                        styleGD = getRankStyle(employeesInGroup, 'slGiaDung_main', rowData.slGiaDung_main || 0);
+                        styleTong = getRankStyle(employeesInGroup, 'slSPChinh_Tong', rowData.slSPChinh_Tong || 0);
+                    }
+
+                    const subHeaders = dynamicHeaderGroups[key]?.subHeaders || [];
+
+                    return (
+                        <React.Fragment key={key}>
+                            {subHeaders.map((sh) => {
+                                if (sh.key === 'slICT') return (
+                                    <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-600 dark:text-slate-400 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                        <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${Object.keys(styleICT).length > 0 ? 'rounded-md' : ''}`} style={styleICT}>
+                                            {formatNum(rowData.slICT)}
+                                        </div>
+                                    </td>
+                                );
+                                if (sh.key === 'slCE_main') return (
+                                    <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-600 dark:text-slate-400 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                        <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${Object.keys(styleCE).length > 0 ? 'rounded-md' : ''}`} style={styleCE}>
+                                            {formatNum(rowData.slCE_main)}
+                                        </div>
+                                    </td>
+                                );
+                                if (sh.key === 'slGiaDung_main') return (
+                                    <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-600 dark:text-slate-400 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                        <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${Object.keys(styleGD).length > 0 ? 'rounded-md' : ''}`} style={styleGD}>
+                                            {formatNum(rowData.slGiaDung_main)}
+                                        </div>
+                                    </td>
+                                );
+                                if (sh.key === 'slSPChinh_Tong') return (
+                                    <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-black text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                        <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${Object.keys(styleTong).length > 0 ? 'rounded-md' : ''}`} style={styleTong}>
+                                            {formatNum(rowData.slSPChinh_Tong)}
+                                        </div>
+                                    </td>
+                                );
+
+                                // Render custom columns added to spChinh
+                                const val = ((rowData as Record<string, unknown>)[sh.key] as number | undefined) || 0;
+                                const badgeStyle: React.CSSProperties = getRankStyle(employeesInGroup, sh.key, val);
+                                const hasStyle = Object.keys(badgeStyle).length > 0;
+                                if (sh.originalType === 'quantity') return <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-600 dark:text-slate-400 tabular-nums border-b border-r border-slate-200 dark:border-slate-700"><div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>{formatNum(val)}</div></td>;
+                                if (sh.originalType === 'revenue') return <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-500 tabular-nums border-b border-r border-slate-200 dark:border-slate-700"><div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>{formatC(val)}</div></td>;
+                                return <td key={sh.key} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold border-b border-r border-slate-200 dark:border-slate-700">{hasStyle ? <div className="inline-block px-1 sm:px-1.5 py-0.5 rounded-md" style={badgeStyle}>{formatPct(val)}</div> : <span className={getHeatmapClass(val, 30)}>{formatPct(val)}</span>}</td>;
+                            })}
+                        </React.Fragment>
+                    );
+                }
+
+                const activeTabs = viewMode === 'detail' ? customExploitationTabs : efficiencyExploitationTabs;
+                const tab = (activeTabs || []).find(t => t.id === key);
+                if (tab) {
+                    const cols = (tab.columns || []).filter(c => !c.hidden);
+                    
+                    if (cols.length === 0) {
+                        return <td key={tab.id} className="px-2 py-1 text-center text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">-</td>;
+                    }
+
+                    return (
+                        <React.Fragment key={tab.id}>
+                            {cols.map(col => {
+                                const val = ((rowData as Record<string, unknown>)[`val_${tab.id}_${col.id}`] as number | undefined) || 0;
+                                const badgeStyle: React.CSSProperties = getRankStyle(employeesInGroup, `val_${tab.id}_${col.id}`, val);
+                                const hasStyle = Object.keys(badgeStyle).length > 0;
+
+                                if (col.type === 'quantity') {
+                                    return (
+                                        <td key={col.id} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-600 dark:text-slate-400 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                            <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>
+                                                {formatNum(val)}
+                                            </div>
+                                        </td>
+                                    );
+                                }
+                                if (col.type === 'revenue') {
+                                    return (
+                                        <td key={col.id} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-500 tabular-nums border-b border-r border-slate-200 dark:border-slate-700">
+                                            <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>
+                                                {formatC(val)}
+                                            </div>
+                                        </td>
+                                    );
+                                }
+                                if (col.type === 'sum') {
+                                    return (
+                                        <td key={col.id} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-800 dark:text-slate-200 tabular-nums border-b border-r border-slate-200 dark:border-slate-700 bg-amber-50/50 dark:bg-amber-900/20">
+                                            <div className={`inline-block px-1 sm:px-1.5 py-0.5 ${hasStyle ? 'rounded-md' : ''}`} style={badgeStyle}>
+                                                {formatNum(val)}
+                                            </div>
+                                        </td>
+                                    );
+                                }
+                                return (
+                                    <td key={col.id} className="px-2 py-1 text-center text-[11px] sm:text-[13px] font-bold border-b border-r border-slate-200 dark:border-slate-700">
+                                        {hasStyle ? (
+                                            <div className="inline-block px-1 sm:px-1.5 py-0.5 rounded-md" style={badgeStyle}>
+                                                {formatCustomColPct(val, col)}
+                                            </div>
+                                        ) : (
+                                            <span className={getHeatmapClass(val, 30)}>{formatCustomColPct(val, col)}</span>
+                                        )}
+                                    </td>
+                                );
+                            })}
+                        </React.Fragment>
+                    );
+                }
+                return null;
+            })}
+        </>
+    );
+
+    const efficiencyKtHeaders = [
+        { label: '# Yếu', key: 'belowAverageCount' }, { label: '%BH', key: 'percentBaoHiem' }, { label: '%SIM', key: 'percentSimKT' },
+        { label: '%PK', key: 'percentPhuKienKT' }, { label: '%ĐHồ', key: 'percentDongHoKT' }, { label: '%GD', key: 'percentGiaDungKT' }
+    ];
+
+    const efficiencyDtHeaders = [
+        { label: 'SIM', key: 'doanhThuSim' }, { label: 'ĐHồ', key: 'doanhThuDongHo' }, { label: 'DT BH', key: 'doanhThuBaoHiem' },
+        { label: 'DT PK', key: 'doanhThuPhuKien' }, { label: 'DT GD', key: 'doanhThuGiaDung' }
+    ];
+
+    const efficiencyQuantityHeaders = [
+        { label: 'SL SIM', key: 'slSim' }, { label: 'SL ĐH', key: 'slDongHo' }, { label: 'SL BH', key: 'slBaoHiem' },
+        { label: 'SL PK', key: 'slPhuKien' }, { label: 'SL GD', key: 'slGiaDung' }
+    ];
+
+    return (
+        <div ref={ref} className="overflow-hidden flex flex-col h-full bg-transparent">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-3 sm:mb-6">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 mr-2">
+                    <div className="min-w-0">
+                        <h3 className="text-sm lg:text-[17px] font-medium text-slate-700 dark:text-slate-200 uppercase tracking-wide truncate leading-tight">Phân Tích Khai Thác</h3>
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">Chi tiết sản phẩm & hiệu quả bán kèm</p>
+                    </div>
+                </div>
+                <div className="px-0 sm:px-6 py-0 sm:py-2 sm:border-b sm:border-slate-100 dark:sm:border-slate-800 bg-transparent hide-on-export shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
+                        <div className="inline-flex gap-0.5 sm:gap-1 shrink-0">
+                            <Button variant="toolbar" size="none" onClick={() => setViewMode('detail')} className="h-8 px-2 lg:h-9 lg:px-2.5 text-[11px] sm:text-xs font-bold rounded-control transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-1.5" aria-pressed={viewMode === 'detail'} title="Chi tiết">
+                                <AppIcon name="viewList" size="md" />
+                                <span className="hidden sm:inline">Chi tiết</span>
+                            </Button>
+                            <Button variant="toolbar" size="none" onClick={() => setViewMode('efficiency')} className="h-8 px-2 lg:h-9 lg:px-2.5 text-[11px] sm:text-xs font-bold rounded-control transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-1.5" aria-pressed={viewMode === 'efficiency'} title="Hiệu quả">
+                                <AppIcon name="percent" size="md" />
+                                <span className="hidden sm:inline">Hiệu quả</span>
+                            </Button>
+                        </div>
+                        <div className="h-4 lg:h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 lg:mx-1 shrink-0"></div>
+                        <Button variant="ghost" size="icon" onClick={() => onBatchExport(data)} title="Xuất hàng loạt báo cáo chi tiết" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
+                            <AppIcon name="exportBatch" size="md" />
+                        </Button>
+                        {onExport && (
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onExport?.(); }} disabled={isExporting} title="Xuất Ảnh Tab" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-40">
+                                {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                                {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                            </Button>
+                        )}
+                        <AreaAutoExportButton
+                            areaId="Phân Tích Nhân Viên - Khai Thác"
+                            areaName="Nhân Viên: Khai Thác"
+                            onTestExport={async () => {
+                                const el = typeof ref === 'function' ? null : ref?.current;
+                                if (!el) return null;
+                                const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - Khai Thác.png', {
+                                    isCompactTable: true,
+                                    fitAllColumns: true,
+                                    mode: 'blob-only',
+                                });
+                                return (res instanceof Blob) ? res : null;
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+            
+            <div className="mt-1 sm:mt-2 mb-2 overflow-x-auto no-scrollbar hide-on-export">
+                    <div className="flex gap-0 border-b border-slate-200 dark:border-slate-700/60 w-max sm:w-auto">
+                        {dynamicQuickFilters.map(f => {
+                            const isActive = visibleGroups.has(f.key);
+                            return (
+                            <Button
+                                variant="tab" size="none"
+                                key={f.key}
+                                onClick={() => handleToggleGroup(f.key)}
+                                className={`relative px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-[11px] uppercase tracking-wider font-bold ${
+                                    isActive
+                                    ? 'text-slate-800 dark:text-white'
+                                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                                }`}
+                            >
+                                {f.label}
+                                {isActive && (
+                                    <span className="absolute bottom-0 left-1 right-1 h-[2.5px] bg-sky-400 dark:bg-sky-400 rounded-full" />
+                                )}
+                            </Button>
+                        )})}
+                        {onManageCustomTabs && (
+                             <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 icon="add"
+                                 onClick={() => onManageCustomTabs(viewMode)}
+                                 title="Tạo thẻ mới"
+                                 aria-label="Tạo thẻ mới"
+                                 className="text-slate-400 hover:text-sky-700 shrink-0"
+                             />
+                        )}
+                    </div>
+                </div>
+            <div className="overflow-x-auto custom-scrollbar flex-grow p-0 border-y lg:border border-slate-200 dark:border-slate-700 rounded-none shadow-sm lg:hover:shadow-md transition-shadow">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                    <thead className="sticky top-0 z-30 bg-white dark:bg-slate-900 border-b-[3px] !border-b-slate-300 dark:!border-b-slate-600">
+                                <tr>
+                                    <th colSpan={2} rowSpan={2} onClick={() => handleSort('name')} className="px-2 sm:px-3 py-1 text-center text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-900/30 border-b-[3px] !border-b-slate-300 dark:!border-b-slate-600 border-r border-slate-200 dark:border-slate-700 cursor-pointer select-none min-w-[100px] sm:min-w-[140px] align-middle sticky left-0 z-40 h-px hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors">
+                                        <div className="flex items-center justify-center gap-1">
+                                            NHÂN VIÊN
+                                            {sortConfig.key === 'name' && (
+                                                <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+                                            )}
+                                        </div>
+                                    </th>
+                                    {Array.from(visibleGroups).map((key, gIdx) => {
+                                        const f = dynamicQuickFilters.find(filter => filter.key === key);
+                                        if (!f) return null;
+                                        return (
+                                        <th key={f.key} colSpan={dynamicHeaderGroups[f.key]?.colSpan || 1} className={`px-1 sm:px-2 py-1 text-center text-[11px] font-bold uppercase tracking-wider border-b border-r border-slate-200 dark:border-slate-700 h-px ${dynamicHeaderGroups[f.key]?.bg || ''} ${dynamicHeaderGroups[f.key]?.text || ''} relative group/th`}>
+                                            <div className="flex items-center justify-center gap-1">
+                                                {dynamicHeaderGroups[f.key]?.label || f.label}
+                                            </div>
+                                            <div className="absolute top-0 right-0 z-10 flex items-center opacity-100 lg:opacity-0 lg:group-hover/th:opacity-100 transition-opacity hide-on-export">
+                                                {onEditCustomTab && <Button variant="ghost" size="icon" icon="edit" onClick={(e) => { e.stopPropagation(); onEditCustomTab(f.key, viewMode); }} className="text-slate-400/70 hover:text-sky-700 dark:hover:text-sky-400 hover:scale-110 transition-all hover:z-20" title="Chỉnh sửa" aria-label="Chỉnh sửa" />}
+                                                {f.isCustom && onDeleteCustomTab && <Button variant="ghost" size="icon" icon="delete" onClick={(e) => { e.stopPropagation(); onDeleteCustomTab(f.key, viewMode); }} className="text-slate-400/70 hover:text-rose-700 dark:hover:text-rose-400 hover:scale-110 transition-all hover:z-20" title="Xóa" aria-label="Xóa" />}
+                                            </div>
+                                        </th>
+                                    )})}
+                                </tr>
+                                <tr>
+                                    {Array.from(visibleGroups).flatMap((key, gIdx) => {
+                                        const f = dynamicQuickFilters.find(filter => filter.key === key);
+                                        if (!f) return [];
+                                        return (dynamicHeaderGroups[f.key]?.subHeaders || []).map((subHeader, sIdx: number) => (
+                                            <HeaderCell 
+                                                key={subHeader.key} 
+                                                label={subHeader.label} 
+                                                sortKey={subHeader.key} 
+                                                onSort={handleSort} 
+                                                sortConfig={sortConfig}
+                                                colorConfig={{ bg: dynamicHeaderGroups[f.key].bg, text: dynamicHeaderGroups[f.key].text, border: dynamicHeaderGroups[f.key].border }}
+                                            />
+                                        ));
+                                    })}
+                                </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {Object.entries(processedData).map(([dept, employees], deptIdx) => {
+                            const pastelColors = [
+                                'bg-sky-50/50 dark:bg-sky-900/20',
+                                'bg-emerald-50/50 dark:bg-emerald-900/20',
+                                'bg-sky-50/50 dark:bg-sky-900/20',
+                                'bg-amber-50/50 dark:bg-amber-900/20',
+                                'bg-rose-50/50 dark:bg-rose-900/20',
+                                'bg-sky-50/50 dark:bg-sky-900/20',
+                                'bg-sky-50/50 dark:bg-sky-900/20',
+                                'bg-emerald-50/50 dark:bg-emerald-900/20'
+                            ];
+                            const deptColor = pastelColors[deptIdx % pastelColors.length];
+
+                            return (
+                            <React.Fragment key={dept}>
+                                {showDeptHeaders && (
+                                    <tr>
+                                        <td colSpan={100} className={`px-2 sm:px-3 py-1 sm:py-1.5 ${DEPT_COLORS[deptIdx % DEPT_COLORS.length].strip} border-y border-slate-200 dark:border-slate-700 sticky left-0 z-10`}>
+                                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                                <span className={`w-1 sm:w-2 h-3 sm:h-4 rounded-full ${DEPT_COLORS[deptIdx % DEPT_COLORS.length].badge} flex-shrink-0`} />
+                                                <span className={`text-[11px] font-black uppercase tracking-widest ${DEPT_COLORS[deptIdx % DEPT_COLORS.length].text}`}>{dept} — {employees.length} người</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                 {(employees as (ExploitationData & { slSPChinh_Tong: number, belowAverageCount: number })[]).map((employee, index) => {
+                                    const rankIndex = processedData[dept].findIndex(e => e.name === employee.name);
+                                    const rankDisplay = <RankBadge rank={rankIndex} />;
+
+                                    return (
+                                        <tr key={employee.name} className={`group border-b border-slate-200 dark:border-slate-700 transition-colors duration-100 hover:bg-slate-100 dark:hover:bg-slate-800 ${index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800'}`}>
+                                            <td className="px-2 py-1 text-center border-r border-slate-200 dark:border-slate-700 sticky left-0 bg-inherit z-20">
+                                                {rankDisplay}
+                                            </td>
+                                            <td className="px-2 py-1 text-left sticky left-8 bg-inherit z-20 border-r border-slate-200 dark:border-slate-700">
+                                                <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                                                    <span className="text-[11px] sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate max-w-[100px] sm:max-w-[140px]">{abbreviateName(employee.name)}</span>
+                                                </div>
+                                            </td>
+                                            {renderDetailModeCells(employee, employees)}
+                                        </tr>
+                                    )
+                                })}
+                                {Object.keys(processedData).length > 1 && groupTotals[dept] && (
+                                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 font-bold">
+                                        <td colSpan={2} className="px-2 py-1 text-left text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest sticky left-0 bg-slate-50 dark:bg-slate-800 z-20 border-b border-r border-slate-200 dark:border-slate-700">Tổng Nhóm</td>
+                                         {renderDetailModeCells(groupTotals[dept])}
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        );})}
+                    </tbody>
+                    <tfoot className="bg-slate-100 dark:bg-slate-800 font-bold text-[11px] sm:text-[13px] border-t border-slate-200 dark:border-slate-700">
+                         <tr>
+                            <td colSpan={2} className="px-2 sm:px-4 py-1 sm:py-1.5 text-center text-[11px] sm:text-[12px] font-extrabold text-sky-700 dark:text-sky-300 uppercase tracking-widest sticky left-0 bg-slate-100 dark:bg-slate-800 z-30 border-r border-slate-200 dark:border-slate-700">∑ Tổng</td>
+                            {renderDetailModeCells(grandTotal)}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    );
+}));
+
+export default IndustryAnalysisTab;

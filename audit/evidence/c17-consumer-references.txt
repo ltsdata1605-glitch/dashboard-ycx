@@ -1,0 +1,61 @@
+hooks/useDashboardLogic.ts:16:import { saveAnalysisEmployees, getAnalysisEmployees, convertDepartmentMapToEmployees } from '../features/bi-dashboard/services/analysisEmployeeSyncService';
+tests/e2e/real-data-config.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/nganh-hang-chieu-cao-fixed.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/competition-group-export-verify.spec.ts:1:import { test, expect } from './helpers/realDataContext';
+tests/e2e/kpi-card-filter.spec.ts:1:import { test, expect } from './helpers/realDataContext';
+tests/e2e/table-rules.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/real-data.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/check-thuong-native.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/user-management-tab-counts.spec.ts:1:import { test, expect } from './helpers/realDataContext';
+tests/e2e/taste-apple-style-real-user.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/so-sanh-thi-dua-fit-screen.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/data-updater-grid.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/bi-manual-cloud-sync.spec.ts:1:import { test, expect } from './helpers/realDataContext';
+tests/e2e/phan-quyen-chieu-cao-fixed.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/xoa-thong-tin-nganh-hang.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/check-thuong-startup.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/header-consistency-all-views.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/nhom-thi-dua-fit-screen.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/tmp-diag2.spec.ts:1:import { test, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/duong-ke-doc-mong-real.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/audit-xuat-anh-phan-tich-mobile-laptop.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/check-thuong-card-zoom.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/xss-header-sanitization.spec.ts:9: * `renderHeaderText()` (features/bi-dashboard/components/dashboard/SafeHeaderText.tsx) — test này
+tests/e2e/xss-header-sanitization.spec.ts:39:    // payload độc xen giữa <br/>) khẳng định renderHeaderText() LUÔN trả về string, không bao giờ
+tests/e2e/desktop-menu-toggle.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/kpi-style-real-user.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/header-group.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/check-thuong-analysis-filter-reset.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/ui-baseline.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/perf-audit.spec.ts:1:import { test, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/competition-filter-dropdown.spec.ts:1:import { test, expect } from './helpers/realDataContext';
+tests/e2e/competition-target-roundup.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/helpers/seed.ts:145: * Nạp DANH SÁCH NHÂN VIÊN CHUẨN như chức năng Phân Tích vẫn đẩy sang (analysisEmployeeSyncService:
+tests/e2e/helpers/seed.ts:158:        // `name` = đúng dạng Phân Tích lưu thật (analysisEmployeeSyncService: formatEmployeeName(originalName)).
+tests/e2e/bang-nganh-hang-mobile-fit.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+tests/e2e/employee-revenue-config-tiles.spec.ts:1:import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+features/bi-dashboard/services/globalBonusService.ts:5:import { getAnalysisEmployees, isSystemOrIgnoredEmployee } from './analysisEmployeeSyncService';
+features/bi-dashboard/services/globalBonusService.test.ts:20:vi.mock('./analysisEmployeeSyncService', () => ({
+features/bi-dashboard/services/globalBonusService.test.ts:32:        const { getAnalysisEmployees } = await import('./analysisEmployeeSyncService');
+features/bi-dashboard/services/globalBonusService.test.ts:58:        const { getAnalysisEmployees } = await import('./analysisEmployeeSyncService');
+features/bi-dashboard/services/employeeParser.ts:7:import { isSystemOrIgnoredEmployee, type AnalysisEmployeeItem } from './analysisEmployeeSyncService';
+features/bi-dashboard/hooks/useNhanVienData.ts:10:import { getAnalysisEmployees, AnalysisEmployeesPayload, ANALYSIS_EMPLOYEES_KEY, AnalysisEmployeeItem, isSystemOrIgnoredEmployee } from '../services/analysisEmployeeSyncService';
+features/bi-dashboard/components/dashboard/SafeHeaderText.tsx:17:export function renderHeaderText(text: string): React.ReactNode {
+features/bi-dashboard/components/SupermarketConfig.tsx:30:import { getAnalysisEmployees, AnalysisEmployeesPayload, ANALYSIS_EMPLOYEES_KEY } from '../services/analysisEmployeeSyncService';
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:3:import { renderHeaderText } from './SafeHeaderText';
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:6: * Lưới an toàn cho fix bảo mật Đợt 2 (KE_HOACH_TONG_THE.md mục 2.3) — renderHeaderText() thay thế
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:14:describe('renderHeaderText', () => {
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:16:        expect(renderHeaderText('M.TIÊU')).toBe('M.TIÊU');
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:20:        const result = renderHeaderText('M.TIÊU<br/>V.TRỘI');
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:34:        const result = renderHeaderText(malicious);
+features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts:43:        const result = renderHeaderText(malicious) as React.ReactElement[];
+features/bi-dashboard/components/dashboard/IndustryView.tsx:8:import { renderHeaderText } from './SafeHeaderText';
+features/bi-dashboard/components/dashboard/IndustryView.tsx:733:                                                            <span>{renderHeaderText(headerMapping[g.singleHeader] || g.singleHeader)}</span>
+features/bi-dashboard/components/dashboard/IndustryView.tsx:786:                                                        <span>{renderHeaderText(headerMapping[h] || h)}</span>
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:10:import { renderHeaderText } from './SafeHeaderText';
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:459:                                                        <span>{renderHeaderText(headerMapping[g.singleHeader] || g.singleHeader)}</span>
+features/bi-dashboard/components/dashboard/SummaryTableView.tsx:504:                                                    <span>{renderHeaderText(headerMapping[h] || h)}</span>
+features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx:5:import { renderHeaderText } from '../SafeHeaderText';
+features/bi-dashboard/components/dashboard/competition/CompetitionListView.tsx:196:                                                {renderHeaderText(getFormattedHeader(column))}
+features/bi-dashboard/components/DataUpdater.tsx:46:import { getAnalysisEmployees, AnalysisEmployeesPayload, ANALYSIS_EMPLOYEES_KEY } from '../services/analysisEmployeeSyncService';
+features/bi-dashboard/components/TargetHero.tsx:15:import type { AnalysisEmployeesPayload } from '../services/analysisEmployeeSyncService';

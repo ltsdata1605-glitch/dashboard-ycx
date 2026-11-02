@@ -1,0 +1,279 @@
+import { generateBarcodeDataUrl } from './BarcodeCanvas';
+import { StickerPage, PrintHistoryEntry, TicketDrawData } from './types';
+import { formatPriceChangePercent, normalizeStickerPriceUnit } from '../utils/format';
+import { sanitizeTicketHtml, sanitizeTicketHtmlForDisplay, sanitizeTicketHtmlForPrint } from './ticketSanitize';
+import { escapeHtml } from '../services/batchImageExportService';
+
+/**
+ * Sinh HTML in cho tất cả trang phiếu rút thăm từ data (không phụ thuộc DOM).
+ * Dùng khi preview chỉ render 1 trang nhưng cần in đầy đủ tất cả.
+ */
+export interface DrawPrintOptions {
+    drawTickets: TicketDrawData[];
+    bgImage: string;
+    drawTitleSize?: number;
+    drawCodeSize?: number;
+    drawFooterSize?: number;
+    drawContentTopLeftSize?: number;
+    drawContentTopRightSize?: number;
+    drawContentBottomLeftSize?: number;
+    drawContentBottomRightSize?: number;
+    drawContentBottomRightSubSize?: number;
+    isAutoIncrement?: boolean;
+}
+
+export const generateDrawPagesHtml = (opts: DrawPrintOptions): string => {
+    const {
+        drawTickets, bgImage,
+        drawTitleSize = 4.3, drawCodeSize = 3.8, drawFooterSize = 3.8,
+        drawContentTopLeftSize = 4.5, drawContentTopRightSize = 8,
+        drawContentBottomLeftSize = 2.9, drawContentBottomRightSize = 7.6,
+        drawContentBottomRightSubSize = 3.0,
+        isAutoIncrement = true,
+    } = opts;
+
+    if (!drawTickets.length) return '';
+
+    const firstTicket = drawTickets[0];
+    const pages: string[] = [];
+
+    // GIỮ cqw thay vì chuyển sang mm.
+    // Container in dùng container-type: inline-size + width: 210mm + aspect-ratio
+    // (không ép height cứng) → Chrome print engine giải quyết cqw tự nhiên,
+    // giữ tỷ lệ chính xác như preview trên màn hình.
+    const titleCqw = Math.min(drawTitleSize, 6.0);
+
+    for (let pageIdx = 0; pageIdx < Math.ceil(drawTickets.length / 4); pageIdx++) {
+        const pageTickets = Array.from({ length: 4 }, (_, index) => {
+            const totalIndex = pageIdx * 4 + index;
+            return drawTickets[totalIndex] || {
+                id: (totalIndex + 1).toString(),
+                title: firstTicket.title,
+                code: isAutoIncrement ? (totalIndex + 1).toString() : (firstTicket.code || '1'),
+                footer: firstTicket.footer,
+                contentTop: firstTicket.contentTop,
+                contentTopRight: firstTicket.contentTopRight,
+                contentBottom: firstTicket.contentBottom,
+                contentBottomRight: firstTicket.contentBottomRight,
+                contentBottomRightSub: firstTicket.contentBottomRightSub || '',
+            };
+        });
+        const ticketBlocks = pageTickets.map((ticket, index) => {
+            const totalIndex = pageIdx * 4 + index;
+            const isFirst = totalIndex === 0;
+            const src = isFirst ? ticket : firstTicket;
+
+            const sanitize = sanitizeTicketHtmlForPrint;
+            const noInteract = isFirst ? '' : 'pointer-events:none;user-select:none;';
+            const titleCls = 'input-title-single';
+            const topLeftCls = 'input-content-top-left';
+            const topRightCls = 'input-content-top-right';
+            const bottomLeftCls = 'input-content-bottom-left';
+            const bottomRightCls = 'input-content-bottom-right';
+            const bottomRightSubCls = 'input-content-bottom-right-sub';
+            const footerCls = 'input-footer-left';
+            const titleHtml = `<div class="${titleCls}" style="font-size:${titleCqw}cqw;${noInteract}">${sanitize(src.title)}</div>`;
+            const contentTopLeftHtml = `<div class="${topLeftCls}" style="font-size:${drawContentTopLeftSize}cqw;${noInteract}">${sanitize(src.contentTop)}</div>`;
+            const contentTopRightHtml = `<div class="${topRightCls}" style="font-size:${drawContentTopRightSize}cqw;${noInteract}">${sanitize(src.contentTopRight)}</div>`;
+            const codeLeftHtml = `<div class="${isAutoIncrement ? 'display-code-left' : 'input-code-left'}" style="font-size:${drawCodeSize}cqw;${noInteract}">${ticket.code}</div>`;
+            const codeRightHtml = `<div class="display-code-right" style="font-size:${drawCodeSize}cqw;${noInteract}">${ticket.code}</div>`;
+            const contentBottomLeftHtml = `<div class="${bottomLeftCls}" style="font-size:${drawContentBottomLeftSize}cqw;${noInteract}">${sanitize(src.contentBottom)}</div>`;
+            const contentBottomRightHtml = `<div class="${bottomRightCls}" style="font-size:${drawContentBottomRightSize}cqw;${noInteract}">${sanitize(src.contentBottomRight)}</div>`;
+            const contentBottomRightSubHtml = `<div class="${bottomRightSubCls}" style="font-size:${drawContentBottomRightSubSize}cqw;${noInteract}">${sanitize(src.contentBottomRightSub || '')}</div>`;
+            const footerHtml = `<div class="${footerCls}" style="font-size:${drawFooterSize}cqw;${noInteract}">${sanitize(src.footer)}</div>`;
+
+            return `<div class="draw-ticket-block" data-index="${index}">${titleHtml}${contentTopLeftHtml}${contentTopRightHtml}${codeLeftHtml}${codeRightHtml}${contentBottomLeftHtml}${contentBottomRightHtml}${contentBottomRightSubHtml}${footerHtml}</div>`;
+        }).join('');
+
+        const isLast = pageIdx === Math.ceil(drawTickets.length / 4) - 1;
+        // Dùng container-type: inline-size + aspect-ratio thay vì height cứng.
+        // Chrome print engine gặp lỗi với cqw khi CẢ width LẪN height đều
+        // bị ép cứng. Dùng aspect-ratio để height tự tính → cqw hoạt động đúng.
+        pages.push(`<div class="sticker-container draw-page active-preview-page" data-type="draw" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:210mm;aspect-ratio:2482/3512;container-type:inline-size;position:relative;overflow:hidden;font-family:Arial,sans-serif;page-break-after:${isLast ? 'auto' : 'always'}">${ticketBlocks}</div>`);
+    }
+
+    return pages.join('');
+};
+
+export const cleanWaterPurifierName = (nameStr: string): string => {
+    if (!nameStr) return '';
+    let cleaned = nameStr;
+    cleaned = cleaned.replace(/Máy lọc nước/gi, 'MLN');
+    const removeSubstrings = [
+        'RO nóng lạnh tủ đứng',
+        '\\(IMEI\\)',
+        'nước nóng lạnh',
+        'RO âm tủ',
+        'RO tủ đứng',
+        'điện giải nóng nguội',
+        'nóng lạnh RO',
+        'RO nóng nguội lạnh tủ đứng'
+    ];
+    for (const sub of removeSubstrings) {
+        const regex = new RegExp(sub, 'gi');
+        cleaned = cleaned.replace(regex, '');
+    }
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
+};
+
+export const resolvePagePrices = (page: StickerPage, priceSource: 'sale' | 'service') => {
+    let newPrice = page.newPrice;
+    let percent = page.percent;
+
+    if (priceSource === 'service' && page.servicePrice) {
+        newPrice = page.servicePrice;
+        if (page.oldPrice && page.servicePrice) {
+            percent = formatPriceChangePercent(page.oldPrice, page.servicePrice);
+        }
+    } else if (page.salePrice) {
+        newPrice = page.salePrice;
+        if (page.oldPrice && page.salePrice) {
+            percent = formatPriceChangePercent(page.oldPrice, page.salePrice);
+        }
+    }
+    return { newPrice, percent };
+};
+
+export const generatePageHtml = (
+    page: StickerPage,
+    priceSource: 'sale' | 'service',
+    stickerType: 'gia_soc' | 'gio_vang' | 'draw',
+    bgImage: string,
+    discountDisplayMode: 'percent' | 'amount' = 'percent'
+) => {
+    if (stickerType === 'draw') {
+        return `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:2482/3512;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;"></div>`;
+    }
+
+    let { newPrice, percent } = resolvePagePrices(page, priceSource);
+
+    // Fallback parsing for header, subHeader, and footer from page.html
+    let header = page.header;
+    let subHeader = page.subHeader;
+    let footer = page.footer;
+
+    if (page.html && (!header || !subHeader || !footer)) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(page.html, 'text/html');
+            const headerEl = doc.querySelector('.header-text');
+            const subHeaderEl = doc.querySelector('.sub-header');
+            const footerEl = doc.querySelector('.footer-text');
+
+            if (header === undefined && headerEl) header = headerEl.textContent || '';
+            if (subHeader === undefined && subHeaderEl) subHeader = subHeaderEl.textContent || '';
+            if (footer === undefined && footerEl) footer = footerEl.textContent || '';
+        } catch (e) {
+            console.error('Error parsing fallback fields from page.html:', e);
+        }
+    }
+
+    let barcodeHtml = '';
+    if (page.code) {
+        try {
+            const url = generateBarcodeDataUrl(page.code);
+            barcodeHtml = `<div class="barcode"><img src="${url}" style="image-rendering:pixelated;width:100%;height:100%;object-fit:fill" alt="${escapeHtml(page.code)}" /></div>`;
+        } catch (e) {
+            console.error('Barcode error:', e);
+        }
+    }
+
+    const subHeaderHtml = stickerType === 'gio_vang'
+        ? `<div class="sub-header">${escapeHtml(subHeader || '')}</div>` : '';
+
+    // Audit 2026-10-07 (S12): mọi trường dưới đây là CHỮ THUẦN (tên/giá từ Excel, đầu/chân tem soạn bằng
+    // innerText) — escape để tên sản phẩm kiểu `<img onerror=…>` không thành thẻ HTML trong trang in.
+    const priceHtml = `<div class="extra2">${escapeHtml(newPrice)}</div>`;
+
+    if (discountDisplayMode === 'amount') {
+        const oldVal = Number(String(page.oldPrice).replace(/\D/g, ''));
+        let newVal = Number(String(newPrice).replace(/\D/g, ''));
+        if (oldVal > 0 && newVal > 0) {
+            newVal = normalizeStickerPriceUnit(oldVal, newVal);
+            const diff = oldVal - newVal;
+            if (diff > 0) {
+                percent = `-${(diff/1000).toLocaleString('vi-VN')}K`;
+            }
+        }
+    }
+
+    return `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:197/285;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;">
+        ${barcodeHtml}
+        <div class="header-text">${escapeHtml(header || '')}</div>
+        ${subHeaderHtml}
+        <div class="extra1">${escapeHtml(percent)}</div>
+        <div class="old">${escapeHtml(page.oldPrice)}</div>
+        <div class="name">${escapeHtml(page.label)}</div>
+        ${priceHtml}
+        <div class="footer-text">${escapeHtml(footer || '')}</div>
+    </div>`;
+};
+
+export const isHistoryDuplicate = (a: PrintHistoryEntry, b: PrintHistoryEntry): boolean => {
+    if (a.stickerType !== b.stickerType) return false;
+    if (a.headerTextContent !== b.headerTextContent) return false;
+    if (a.subHeaderTextContent !== b.subHeaderTextContent) return false;
+    if (a.footerTextContent !== b.footerTextContent) return false;
+    if (a.showBarcode !== b.showBarcode) return false;
+    if (a.discountDisplayMode !== b.discountDisplayMode) return false;
+    if (a.pageCount !== b.pageCount) return false;
+
+    if (a.stickerType === 'draw') {
+        if (a.drawStartNumber !== b.drawStartNumber) return false;
+        if (a.drawTotalTickets !== b.drawTotalTickets) return false;
+        if (a.drawAutoIncrement !== b.drawAutoIncrement) return false;
+        const ticketsA = a.drawTickets || [];
+        const ticketsB = b.drawTickets || [];
+        if (ticketsA.length !== ticketsB.length) return false;
+        for (let i = 0; i < ticketsA.length; i++) {
+            const tA = ticketsA[i];
+            const tB = ticketsB[i];
+            if (tA.title !== tB.title ||
+                tA.contentTop !== tB.contentTop ||
+                tA.contentTopRight !== tB.contentTopRight ||
+                tA.contentBottom !== tB.contentBottom ||
+                tA.contentBottomRight !== tB.contentBottomRight ||
+                tA.contentBottomRightSub !== tB.contentBottomRightSub ||
+                tA.footer !== tB.footer) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Compare batchItems (exact content fields)
+    if (a.batchItems.length !== b.batchItems.length) return false;
+    for (let i = 0; i < a.batchItems.length; i++) {
+        const itemA = a.batchItems[i];
+        const itemB = b.batchItems[i];
+        if (itemA.name !== itemB.name ||
+            itemA.oldPrice !== itemB.oldPrice ||
+            itemA.newPrice !== itemB.newPrice ||
+            itemA.percent !== itemB.percent ||
+            itemA.imei !== itemB.imei ||
+            itemA.selected !== itemB.selected) {
+            return false;
+        }
+    }
+
+    // Compare manualPages (exact content fields)
+    if (a.manualPages.length !== b.manualPages.length) return false;
+    for (let i = 0; i < a.manualPages.length; i++) {
+        const pA = a.manualPages[i];
+        const pB = b.manualPages[i];
+        if (pA.label !== pB.label ||
+            pA.oldPrice !== pB.oldPrice ||
+            pA.newPrice !== pB.newPrice ||
+            pA.percent !== pB.percent ||
+            pA.code !== pB.code ||
+            pA.header !== pB.header ||
+            pA.subHeader !== pB.subHeader ||
+            pA.footer !== pB.footer ||
+            pA.selected !== pB.selected) {
+            return false;
+        }
+    }
+
+    return true;
+};

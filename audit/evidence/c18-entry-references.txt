@@ -1,0 +1,29 @@
+App.tsx:97:    // (2026-10-12) Bỏ prefetch /check-thuong.html: Check thưởng nay là component React (không còn iframe) — chunk của nó
+public/check-thuong.html:12:         họ; package.json của app cũng đã trỏ về đúng nguồn này từ Đợt 1. File check-thuong.html
+public/check-thuong.html:2478:            // check-thuong.html là file HTML độc lập, không dùng chung TS module đó được nên viết
+features/bi-dashboard/services/checkThuongBonus.ts:5: * đó là iframe vanilla JS ở public/check-thuong.html).
+features/bi-dashboard/services/checkThuongBonus.ts:7: * LUẬT hiển thị thưởng chép đúng từ check-thuong.html (renderSingleRow + preProcessData +
+features/bi-dashboard/services/checkThuongBonus.ts:19:/** Vị trí cột trong file Excel Check Thưởng — khoá cứng giống COLS ở check-thuong.html. */
+features/bi-dashboard/services/checkThuongBonus.ts:44: * Người ghi: iframe `public/check-thuong.html` (saveState) — từ v1 ghi thêm `schemaVersion`/`source`.
+tests/e2e/tang-toc-gd2.spec.ts:10: *  4. Tải trước tab chính khi rảnh: chunk Check thưởng + Report BI (không còn tải trang iframe check-thuong.html).
+tests/e2e/tang-toc-gd2.spec.ts:75:    expect(urls.some(u => u.endsWith('/check-thuong.html'))).toBe(false);
+tests/e2e/ios-report-bi-check-thuong.spec.ts:99:// GĐ9 (2026-10-13): chủ dự án viết lại Check thưởng bằng React (2026-10-11, bỏ iframe `public/check-thuong.html`) — bản cũ của test
+tests/e2e/check-thuong-xuat-anh-toan-dien.spec.ts:24:    await page.goto('/check-thuong.html');
+tests/e2e/check-thuong-iphone-khong-cat.spec.ts:8: * GĐ7 (2026-10-13): chuyển sang bản React (bản iframe `check-thuong.html` đã bỏ). Chromium giả lập — không phải Safari thật.
+tests/e2e/o-nhap-a17.spec.ts:27:        await page.goto('/check-thuong.html');
+tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:4: * Trang LIFF bấm dùng coupon (public/liff-copy.html) — 2026-10-20 chủ dự án chốt "Tắt tin nhắn xác nhận khi dùng coupon":
+tests/e2e/liff-dung-coupon-khong-gui-tin.spec.ts:25:    await page.goto('/liff-copy.html?code=ABC123&type=PMH&index=3');
+tests/e2e/iframe-tabs-csp.spec.ts:8: * /check-thuong.html) và Hoàn thuế (iframe ra Cloud Run). Lý do không ai phát hiện: lúc đó
+tests/e2e/iframe-tabs-csp.spec.ts:30:        // iframe /check-thuong.html. Test cũ chờ thẻ iframe đó nên đỏ từ khi đổi; kiểm đúng hiện trạng (như tab Tính thuế).
+tests/e2e/iframe-tabs-csp.spec.ts:62:    test('check-thuong.html dùng xlsx đã vá lỗ hổng (>= 0.20.3), không phải bản 0.18.5', async ({ page }) => {
+tests/e2e/iframe-tabs-csp.spec.ts:63:        await page.goto('/check-thuong.html');
+tests/e2e/iframe-tabs-csp.spec.ts:76:        expect(version, 'không nạp được thư viện XLSX trong check-thuong.html').toBeTruthy();
+tests/e2e/check-thuong-top-feature.spec.ts:7: * VIẾT LẠI HOÀN TOÀN 2026-09-18. Bản cũ mở thẳng trang vanilla `public/check-thuong.html` và tìm
+tests/e2e/helpers/checkThuongNative.ts:11: * Check thưởng bản React (chủ dự án viết lại 2026-10-11, bỏ iframe `public/check-thuong.html`). Các spec cũ còn chờ iframe nên đỏ
+tests/e2e/check-thuong-mobile-topbar.spec.ts:7: * GĐ7 (2026-10-13): chuyển sang bản React (bản cũ chờ iframe `check-thuong.html` đã bỏ nên đỏ sẵn) và thêm: dưới 540px chữ tiêu đề
+tests/e2e/perf-apple.spec.ts:57:        // Check thưởng: chủ dự án viết lại bằng React (2026-10-11, bỏ iframe /check-thuong.html) → đo như 2 tab kia. Chưa có file
+features/bi-dashboard/hooks/useCheckThuongBonus.ts:93:    // 2. Thử từ database 'keyval-store' của iframe Check Thưởng (nơi public/check-thuong.html ghi)
+tests/unit/csp-frame-src-va-cdn-pin.test.ts:15: *   - Hạ ngược phiên bản xlsx trong `public/check-thuong.html` → đỏ ngay, và đỏ vì ĐÚNG LÝ DO
+tests/unit/csp-frame-src-va-cdn-pin.test.ts:60:    it("cho phép 'self' — thiếu thì iframe nội bộ /check-thuong.html bị chặn", () => {
+tests/unit/csp-frame-src-va-cdn-pin.test.ts:97:describe('Ghim phiên bản xlsx của check-thuong.html', () => {
+tests/unit/csp-frame-src-va-cdn-pin.test.ts:98:    const html = readRepoFile('public/check-thuong.html');

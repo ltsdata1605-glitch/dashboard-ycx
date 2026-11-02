@@ -1,0 +1,11 @@
+[WebServer] (node:32124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 390 › progress names and bounded visual/ARIA values (4.8s)
+  ✓  2 [webkit] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 390 › banner disclosure has independent controlled content and keyboard toggle (1.8s)
+  ✓  3 [webkit] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 1366 › progress names and bounded visual/ARIA values (2.1s)
+  ✓  4 [webkit] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 1366 › banner disclosure has independent controlled content and keyboard toggle (2.1s)
+
+  4 passed (16.1s)

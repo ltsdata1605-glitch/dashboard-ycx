@@ -1,0 +1,244 @@
+
+import { useState, useMemo } from 'react';
+import type { DataRow, ProductConfig, IndustryData } from '../types';
+import { getRowValue, getParentGroup, getSubgroup, calculateRowMetrics } from '../utils/dataUtils';
+import { COL } from '../constants';
+import { INDUSTRY_COLOR_KEY } from '../utils/industryColors';
+
+export interface GridItem {
+    name: string;
+    revenue: number;
+    quantity: number;
+    icon: string;
+    color: string;
+}
+
+// Icons for each industry group (parent groups) — all verified in lucide-react
+const industryIcons: { [key: string]: string } = {
+    'Smartphone': 'smartphone', 'Laptop': 'laptop', 'Tablet': 'tablet',
+    'Phụ kiện': 'headphones', 'Gia dụng': 'plug-zap', 'Wearable': 'watch',
+    'CE': 'tv', 'Bảo hiểm': 'shield-check', 'Sim': 'signal',
+    'Máy lọc nước': 'droplets', 'Vieon': 'film', 'IT': 'printer', 'Office & Virus': 'file-key-2',
+    'Khác': 'package'
+};
+
+// Icons for subgroups — all verified available in lucide-react
+const subgroupIcons: { [key: string]: string } = {
+    'Smartphone': 'smartphone',
+    'Laptop': 'laptop',
+    'Tablet': 'tablet',
+    'Phụ kiện Laptop, PC': 'keyboard',
+    'Phụ kiện Gaming': 'gamepad-2',
+    'Thiết bị mạng': 'router',
+    'Linh kiện PC, Laptop': 'cpu',
+    'Loa': 'speaker',
+    'Tai nghe': 'headphones',
+    'Webcam': 'webcam',
+    'Bàn phím': 'keyboard',
+    'Chuột': 'mouse-pointer-2',
+    'Apple': 'apple',
+    'Sạc dự phòng': 'battery-charging',
+    'Cáp sạc': 'cable',
+    'Thẻ nhớ': 'memory-stick',
+    'Bếp điện': 'zap',
+    'Tủ lạnh': 'thermometer-snowflake',
+    'Máy giặt': 'waves',
+    'Máy lạnh': 'wind',
+    'Nồi cơm điện': 'flame',
+    'Máy xay sinh tố': 'coffee',
+    'Lò vi sóng': 'box',
+    'Máy hút bụi': 'tornado',
+    'Quạt điều hòa': 'fan',
+    'Đồng hồ thông minh': 'watch',
+    'Vòng đeo tay thông minh': 'activity',
+    'Đồng hồ định vị trẻ em': 'map-pin',
+    'Tivi': 'tv',
+    'Máy lọc nước': 'droplets',
+    'Phụ kiện Apple': 'apple',
+    'Bao da, ốp lưng': 'smartphone',
+    'Miếng dán màn hình': 'layers',
+    'Túi chống sốc': 'briefcase',
+    'Balo': 'backpack'
+};
+
+// Màu ngành: utils/industryColors.ts (một bảng cho thẻ ngành Phân tích + 2 modal chưa xuất/chưa thu).
+const industryColors = INDUSTRY_COLOR_KEY;
+
+// List of unimportant groups to hide from the main view
+const hiddenGroups = new Set(['IT', 'DCNB', 'Software', 'Thẻ cào', 'Phụ kiện lắp đặt', 'Office & Virus', 'Khác', 'ICT', 'Vieon']);
+const specialGroups = new Set(['Smartphone', 'Laptop', 'Tablet', 'Máy lọc nước']);
+
+interface UseIndustryGridLogicProps {
+    industryData: IndustryData[];
+    // ✅ Phải là data CHƯА bị filter theo parent để drilldown hoạt động đúng
+    allSalesData: DataRow[];
+    productConfig: ProductConfig | null;
+}
+
+export const useIndustryGridLogic = ({ industryData, allSalesData, productConfig }: UseIndustryGridLogicProps) => {
+    const [drilldownPath, setDrilldownPath] = useState<string[]>([]);
+    
+    // State for chart tab logic (moved here for consistency if needed, but primarily for Grid view now)
+    const [selectedChartSubgroups, setSelectedChartSubgroups] = useState<string[]>([]);
+
+    const currentView = useMemo(() => {
+        if (!productConfig) return { data: [], totalRevenue: 0, levelType: 'end' };
+
+        const level = drilldownPath.length;
+
+        // Level 0: Top-level Industries
+        if (level === 0) {
+            const displayData = industryData.filter(item => !hiddenGroups.has(item.name));
+            const topData = displayData.slice(0, 12);
+            const totalRevenue = topData.reduce((sum, item) => sum + item.revenue, 0);
+            const totalQuantity = topData.reduce((sum, item) => sum + item.quantity, 0);
+            const finalData: GridItem[] = topData.map(item => ({
+                ...item,
+                icon: industryIcons[item.name] || 'package',
+                color: industryColors[item.name] || 'slate'
+            }));
+            return { data: finalData, totalRevenue, totalQuantity, levelType: 'industry' };
+        }
+
+        const parentGroup = drilldownPath[0];
+        const parentIcon = industryIcons[parentGroup] || 'package';
+        const parentColor = industryColors[parentGroup] || 'slate';
+        
+        // Filter data relevant to the selected top-level industry
+        const dataForParent = allSalesData.filter(row => {
+            const maNhomHang = getRowValue(row, COL.MA_NHOM_HANG);
+            const pGroup = getParentGroup(maNhomHang, productConfig) || 'Khác';
+            const cGroup = getSubgroup(maNhomHang, productConfig);
+
+            let displayParentGroup = pGroup;
+            if (pGroup === 'ICT' && ['Smartphone', 'Laptop', 'Tablet'].includes(cGroup)) {
+                displayParentGroup = cGroup;
+            } else if (pGroup === 'Gia dụng' && cGroup === 'Máy lọc nước') {
+                displayParentGroup = 'Máy lọc nước';
+            }
+            return displayParentGroup === parentGroup;
+        });
+        
+        // Dùng calculateRowMetrics (revenue + weightedQuantity) — CÙNG công thức đã tạo ra
+        // industryData cấp cha, để card cấp cha và card khi drill-down luôn khớp số (số lượng có
+        // nhân hệ số quy đổi VAS/Bảo hiểm/Vieon giống nhau ở mọi cấp).
+        const totalRevenueForPath = dataForParent.reduce((sum, row) => sum + calculateRowMetrics(row, productConfig).revenue, 0);
+        const totalQuantityForPath = dataForParent.reduce((sum, row) => sum + calculateRowMetrics(row, productConfig).weightedQuantity, 0);
+
+        // Level 1: Subgroups or Special Choices
+        if (level === 1) {
+            if (specialGroups.has(parentGroup)) {
+                const choiceData: GridItem[] = [
+                    { name: 'Hãng sản xuất', revenue: totalRevenueForPath, quantity: totalQuantityForPath, icon: 'factory', color: parentColor },
+                    { name: 'Người tạo', revenue: totalRevenueForPath, quantity: totalQuantityForPath, icon: 'user-cog', color: parentColor }
+                ];
+                return { data: choiceData, totalRevenue: totalRevenueForPath, totalQuantity: totalQuantityForPath, levelType: 'choice' };
+            } else {
+                const groupedData = dataForParent.reduce((acc, row) => {
+                    const subgroup = getSubgroup(getRowValue(row, COL.MA_NHOM_HANG), productConfig) || 'Khác';
+                    if (!acc[subgroup]) acc[subgroup] = { revenue: 0, quantity: 0 };
+                    const metrics = calculateRowMetrics(row, productConfig);
+                    acc[subgroup].revenue += metrics.revenue;
+                    acc[subgroup].quantity += metrics.weightedQuantity;
+                    return acc;
+                }, {} as { [key: string]: { revenue: number; quantity: number } });
+
+                const formattedData: GridItem[] = Object.entries(groupedData).map(([name, values]) => ({
+                    name, 
+                    revenue: values.revenue,
+                    quantity: values.quantity, 
+                    icon: subgroupIcons[name] || 'package',
+                    color: parentColor
+                }));
+                formattedData.sort((a,b) => b.revenue - a.revenue);
+                return { data: formattedData, totalRevenue: totalRevenueForPath, totalQuantity: totalQuantityForPath, levelType: 'subgroup' };
+            }
+        }
+
+        // Level 2: Manufacturer or Creator Breakdown
+        if (level === 2) {
+            const childItem = drilldownPath[1];
+            let dataToProcess = dataForParent;
+            let groupByFn: (row: DataRow) => string;
+
+            if (specialGroups.has(parentGroup)) {
+                groupByFn = (row: DataRow) => (childItem === 'Hãng sản xuất' 
+                    ? getRowValue(row, COL.MANUFACTURER) 
+                    : getRowValue(row, COL.NGUOI_TAO)) || 'Không rõ';
+            } else {
+                dataToProcess = dataToProcess.filter(row => (getSubgroup(getRowValue(row, COL.MA_NHOM_HANG), productConfig) || 'Khác') === childItem);
+                groupByFn = (row: DataRow) => getRowValue(row, COL.MANUFACTURER) || 'Không rõ';
+            }
+
+            const groupedData = dataToProcess.reduce((acc, row) => {
+                const key = groupByFn(row);
+                if (!acc[key]) acc[key] = { revenue: 0, quantity: 0 };
+                const metrics = calculateRowMetrics(row, productConfig);
+                acc[key].revenue += metrics.revenue;
+                acc[key].quantity += metrics.weightedQuantity;
+                return acc;
+            }, {} as { [key: string]: { revenue: number; quantity: number } });
+            
+            const inheritedIcon = specialGroups.has(parentGroup) 
+                ? parentIcon 
+                : (subgroupIcons[childItem] || 'package');
+            
+            const formattedData: GridItem[] = Object.entries(groupedData).map(([name, values]) => ({
+                name, 
+                revenue: values.revenue,
+                quantity: values.quantity, 
+                icon: inheritedIcon, 
+                color: parentColor
+            }));
+            formattedData.sort((a,b) => b.revenue - a.revenue);
+            const totalRevenueForSubpath = formattedData.reduce((sum, item) => sum + item.revenue, 0);
+            const totalQuantityForSubpath = formattedData.reduce((sum, item) => sum + item.quantity, 0);
+            return { data: formattedData, totalRevenue: totalRevenueForSubpath, totalQuantity: totalQuantityForSubpath, levelType: 'breakdown' };
+        }
+
+        return { data: [], totalRevenue: 0, totalQuantity: 0, levelType: 'end' };
+    }, [drilldownPath, industryData, allSalesData, productConfig]);
+
+    const allSubgroups = useMemo(() => {
+        if (!productConfig) return [];
+        const subgroups = new Set<string>();
+        Object.entries(productConfig.subgroups).forEach(([parentKey, parent]) => {
+            if (parentKey !== 'Không tính doanh thu') {
+                Object.keys(parent).forEach(subgroup => {
+                    if (subgroup !== 'Không tính doanh thu') {
+                        subgroups.add(subgroup);
+                    }
+                });
+            }
+        });
+        return Array.from(subgroups).sort();
+    }, [productConfig]);
+
+    const getTitle = (activeTab: 'card' | 'chart') => {
+        if (activeTab === 'chart') return "Biểu đồ tỷ trọng";
+        const level = drilldownPath.length;
+        if (level === 0) return "TỶ TRỌNG NGÀNH HÀNG";
+        
+        const [parent, child] = drilldownPath;
+        if (level === 1) return `Chi tiết: ${parent}`;
+
+        if (level === 2) {
+            if (specialGroups.has(parent)) {
+                return `${child} trong ${parent}`;
+            }
+            return `Hãng sản xuất trong ${child}`;
+        }
+        return "";
+    };
+
+    return {
+        drilldownPath,
+        setDrilldownPath,
+        currentView,
+        allSubgroups,
+        selectedChartSubgroups,
+        setSelectedChartSubgroups,
+        getTitle,
+        specialGroups
+    };
+};

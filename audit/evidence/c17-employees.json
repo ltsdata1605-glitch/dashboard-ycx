@@ -1,0 +1,329 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c17-employees.config.mjs",
+      "analysis-employees-sync.spec.ts",
+      "analysis-only-all-in-one.spec.ts",
+      "bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+      "bi-nhan-vien-theo-sieu-thi.spec.ts"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c17-employees.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c17-employees",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "sidebar-hover-flyout.spec.ts",
+          "menu-khac-xoay-ngang.spec.ts",
+          "bi-deep-link-khong-vong-lap.spec.ts",
+          "bi-chuyen-che-do-khong-sap.spec.ts",
+          "phan-tich-mat-mang-cau-hinh.spec.ts",
+          "bi-competition.spec.ts",
+          "xss-header-sanitization.spec.ts",
+          "analysis-employees-sync.spec.ts",
+          "analysis-only-all-in-one.spec.ts",
+          "bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+          "bi-nhan-vien-theo-sieu-thi.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c17-employees.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "analysis-employees-sync.spec.ts",
+      "file": "analysis-employees-sync.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "cập nhật danh sách nhân viên (không có file YCX) → Report BI nhận đủ",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9072,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "DANH SÁCH BI: {\"total\":3,\"names\":[\"17952 - Đinh Thị Mỹ Hương\",\"95970 - Chế Thị Út\",\"107617 - Phạm Anh Nhân\"]}\n"
+                    }
+                  ],
+                  "stderr": [
+                    {
+                      "text": "(node:25888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:48.013Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2a0d0ec5b57a744cb254-b4ca172127d20594ef9f",
+          "file": "analysis-employees-sync.spec.ts",
+          "line": 15,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "analysis-only-all-in-one.spec.ts",
+      "file": "analysis-only-all-in-one.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "nạp danh sách nhân viên: chỉ giữ BP All In One, báo rõ số bị bỏ qua",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10100,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "INPUT \u001b[33m0\u001b[39m accept= .xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel multiple= \n"
+                    },
+                    {
+                      "text": "INPUT \u001b[33m1\u001b[39m accept= .xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel multiple= \n"
+                    },
+                    {
+                      "text": "INPUT \u001b[33m2\u001b[39m accept= .xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel multiple= \n"
+                    },
+                    {
+                      "text": "DANH SÁCH SAU KHI NẠP: {\"101\":\"BP All In One - ĐMX;;101 - Nguyễn Văn A;;1024\",\"102\":\"BP All In One - ĐMX;;102 - Trần Thị B;;1024\"}\n"
+                    },
+                    {
+                      "text": "THÔNG BÁO: Đã nạp 2 nhân viên BP All In One (Kho 1024) • bỏ qua 3 người thuộc BP Bảo Vệ, BP Kho\n"
+                    },
+                    {
+                      "text": "DANH SÁCH ĐẨY SANG REPORT BI: [\"101 - Nguyễn Văn A\",\"102 - Trần Thị B\"]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:47:57.211Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a4af89a028751771cc9a-f2300d2b64de32a3639c",
+          "file": "analysis-only-all-in-one.spec.ts",
+          "line": 27,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+      "file": "bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "4 tab Nhân viên chỉ hiện nhân viên của Phân Tích",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12403,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:48:07.325Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1570d7d79b1958d955d6-5b1f2e0f487accee203e",
+          "file": "bi-nhan-vien-moi-tab-tu-phan-tich.spec.ts",
+          "line": 32,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "bi-nhan-vien-theo-sieu-thi.spec.ts",
+      "file": "bi-nhan-vien-theo-sieu-thi.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 60418,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts",
+                        "column": 29,
+                        "line": 79
+                      },
+                      "message": "Error: locator.innerText: Test timeout of 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/^\\d+ NV$/).first()\u001b[22m\n\n\n  77 |         await page.waitForTimeout(1200);\n  78 |         const badge = page.getByText(/^\\d+ NV$/).first();\n> 79 |         return (await badge.innerText()).trim();\n     |                             ^\n  80 |     };\n  81 |\n  82 |     await page.getByText('Target Doanh thu').first().click();\n    at readCount (/Users/ltson/dashboardycx/tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:79:29)\n    at /Users/ltson/dashboardycx/tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts:86:21"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T05:48:19.741Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c17-employees/bi-nhan-vien-theo-sieu-thi-1583a-ẩn-tính-riêng-từng-siêu-thị-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "9dd90d559c6eab5055da-7abffd558a259a857a64",
+          "file": "bi-nhan-vien-theo-sieu-thi.spec.ts",
+          "line": 36,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:47:45.152Z",
+    "duration": 95557.958,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

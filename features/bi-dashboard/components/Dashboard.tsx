@@ -1,0 +1,637 @@
+
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import { DEFAULT_HQQD_TARGET, DEFAULT_TRA_CHAM_TARGET } from '../services/kpiOverviewCalc';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { toast } from '../../../components/shared/ui/toast';
+import { useDashboardLogic } from '../hooks/useDashboardLogic';
+import SummaryTableView from './dashboard/SummaryTableView';
+import CompetitionView from './dashboard/CompetitionView';
+import IndustryView from './dashboard/IndustryView';
+import DashboardHeader from './dashboard/DashboardHeader';
+import KpiOverview from './dashboard/KpiOverview';
+import { shortenSupermarketName, type SubTab } from '../utils/dashboardHelpers';
+import { useExportOptions } from '../hooks/useExportOptions';
+import ExportOptionsModal from '../../../components/shared/export/ExportOptionsModal';
+import { ExportOptionsProvider } from '../contexts/ExportOptionsContext';
+import { exportElementAsImage, downloadBlob, shareBlob } from '../services/uiService';
+import { Button } from '../../../components/shared/ui/Button';
+import { FeatureLandingLayout } from '../../../components/shared/ui';
+import { useBiAutoSync } from '../hooks/useBiAutoSync';
+import { useAuth } from '../../../contexts/AuthContext';
+import { saveAutoReportImagesToFirebase } from '../../../services/autoReportExportService';
+
+interface DashboardProps {
+    onNavigateToUpdater: (options?: { configTab?: 'data' | 'revenueTarget' | 'competitionTarget'; supermarketName?: string; scrollToConfig?: boolean }) => void;
+    isActive?: boolean;
+    onStartAutoSync?: (mode: 'realtime' | 'luyke') => void;
+}
+
+/**
+ * Màn hình khi CHƯA có dữ liệu — Đồng bộ chuẩn Landing Page sang trọng giống Phân Tích:
+ * - Ambient background grid + 3 quả cầu phát sáng nhịp nhàng
+ * - Typography 3-phase gradient (sky via rose to sky)
+ * - Glassmorphism card với quầng sáng viền mờ ảo
+ * - Card upload / điều hướng thao tác cập nhật dữ liệu
+ * - Dải huy hiệu tin cậy chân trang
+ */
+const EmptyState: React.FC<{ onNavigate: () => void; message?: string }> = ({ onNavigate, message }) => (
+    <FeatureLandingLayout>
+        <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-control bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-100/50 dark:border-sky-500/20">
+                <AppIcon name="upload" size="lg" />
+            </div>
+            <div className="text-left flex-1">
+                <h3 className="font-bold text-slate-900 dark:text-white text-[13px]">Nhập dữ liệu Báo cáo BI</h3>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Hỗ trợ dán hoặc nạp dữ liệu BI</p>
+            </div>
+        </div>
+
+        <Button
+            variant="card"
+            size="none"
+            type="button"
+            onClick={onNavigate}
+            className="w-full relative group/dropzone flex flex-col items-center justify-center min-h-[120px] border-2 border-dashed border-slate-200 dark:border-slate-700/60 hover:border-sky-400/50 dark:hover:border-sky-500/50 rounded-popup bg-slate-50/50 dark:bg-slate-800/20 hover:bg-sky-50/30 dark:hover:bg-sky-950/20 duration-300 overflow-hidden p-4"
+        >
+            <div className="w-10 h-10 mb-3 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-slate-100 dark:border-slate-700 group-hover/dropzone:scale-110 transition-transform duration-300 group-hover/dropzone:shadow-sky-100 text-slate-400 group-hover/dropzone:text-sky-500">
+                <AppIcon name="upload" size="lg" />
+            </div>
+            <p className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">
+                <span className="text-sky-600 dark:text-sky-400 font-semibold">Cập nhật dữ liệu</span> hoặc nạp báo cáo mới
+            </p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                Tự động đồng bộ từ Tampermonkey hoặc nhập thủ công
+            </p>
+        </Button>
+
+        <p className="mt-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 text-center">
+            {message || 'Chưa có dữ liệu nào được nạp.'}
+        </p>
+    </FeatureLandingLayout>
+);
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigateToUpdater, isActive, onStartAutoSync }) => {
+    const {
+        activeMainTab, setActiveMainTab,
+        activeSubTab, setActiveSubTab,
+        activeSupermarket, setActiveSupermarket,
+        supermarkets,
+        isBatchExporting, setIsBatchExporting,
+        isBatchExportingCumulative, setIsBatchExportingCumulative,
+        isBatchExportingCompetition, setIsBatchExportingCompetition,
+        summaryRealtimeParsed, summaryLuyKeParsed,
+        industryRealtimeParsed, industryLuyKeParsed,
+        augmentedRealtimeData, augmentedLuyKeData,
+        supermarketDailyTargets, supermarketMonthlyTargets, supermarketTargets,
+        summaryRealtimeTs,
+        competitionRealtimeTs,
+        competitionLuyKeTs,
+        getKpiData,
+        summaryLuyKe,
+        hasRealtimeData,
+        hasCumulativeData,
+        useAdjustedTarget,
+        setUseAdjustedTarget
+    } = useDashboardLogic(isActive);
+
+    const { user, departmentId } = useAuth();
+
+    const printableRef = useRef<HTMLDivElement>(null);
+    const summaryTableRef = useRef<HTMLDivElement>(null);
+    const industryTableRef = useRef<HTMLDivElement>(null);
+    const competitionViewRef = useRef<HTMLDivElement>(null);
+    const pageRef = useRef<HTMLDivElement>(null);
+    // Nếu BiWrapper đã quản lý useBiAutoSync tập trung, dùng onStartAutoSync từ prop; fallback nếu dùng lẻ loi
+    const fallbackAutoSync = useBiAutoSync(onStartAutoSync ? null : activeSupermarket);
+    const handleStartAutoSync = onStartAutoSync || fallbackAutoSync.handleStartAutoSync;
+    const exportOptions = useExportOptions();
+    const exportOptionsContextValue = useMemo(
+        () => ({ showExportOptions: exportOptions.showExportOptions }),
+        [exportOptions.showExportOptions]
+    );
+    const [isHeaderExporting, setIsHeaderExporting] = useState(false);
+
+    // Xác định ID và Tên khu vực đang xem cho tính năng Cấu hình tự xuất Bot LINE
+    const { autoExportAreaId, autoExportAreaName } = useMemo(() => {
+        const isTong = !activeSupermarket || activeSupermarket === 'Tổng';
+        const smLabel = isTong ? 'Tổng' : shortenSupermarketName(activeSupermarket);
+        if (activeSubTab === 'revenue') {
+            return {
+                autoExportAreaId: isTong ? 'bi-doanh-thu-tong' : 'bi-doanh-thu-tung-st',
+                autoExportAreaName: isTong ? 'BI: Doanh Thu — Tổng' : `BI: Doanh Thu — ${smLabel}`
+            };
+        }
+        if (activeSubTab === 'competition') {
+            return {
+                autoExportAreaId: isTong ? 'bi-thi-dua-tong' : 'bi-thi-dua-tung-st',
+                autoExportAreaName: isTong ? 'BI: Thi Đua — Tổng' : `BI: Thi Đua — ${smLabel}`
+            };
+        }
+        return {
+            autoExportAreaId: 'bi-doanh-thu-tong',
+            autoExportAreaName: 'BI: Doanh Thu — Tổng'
+        };
+    }, [activeSubTab, activeSupermarket]);
+
+    // Hàm chụp thử nghiệm phục vụ kiểm tra trên modal Cấu hình tự xuất Bot LINE
+    const handleTestAutoExport = useCallback(async (): Promise<Blob | null> => {
+        const isRealtime = activeMainTab === 'realtime';
+        if (activeSubTab === 'competition') {
+            const original = printableRef.current;
+            if (!original) return null;
+            const filename = `BI_PRO_Thi_Dua_${activeSupermarket}.png`;
+            return await exportElementAsImage(original, filename, {
+                mode: 'blob-only',
+                elementsToHide: ['.no-print', '.export-button-component', '.column-customizer', '#competition-view-controls', '.hide-on-export'],
+                fitAllColumns: true,
+                fitWidthToTable: true,
+            });
+        } else {
+            const hasIndustry = activeSupermarket !== 'Tổng' && !!(isRealtime ? industryRealtimeParsed : industryLuyKeParsed);
+            const original = (hasIndustry ? pageRef.current : printableRef.current);
+            if (!original) return null;
+            const filename = `BI_PRO_Doanh_Thu_${activeSupermarket}.png`;
+            return await exportElementAsImage(original, filename, {
+                mode: 'blob-only',
+                elementsToHide: ['.no-print', '.export-button-component', '.column-customizer', '.industry-view-controls', '.hide-on-export'],
+                captureAsDisplayed: true,
+            });
+        }
+    }, [activeSubTab, activeMainTab, activeSupermarket, industryRealtimeParsed, industryLuyKeParsed]);
+
+    // --- Export Logic Tối Ưu Tuyệt Đối Cho Bảng Báo Cáo ---
+    const handleExportPNG = async (
+        targetRef: React.RefObject<HTMLDivElement | null>,
+        filenamePart: string,
+        autoAction?: 'download' | 'share' | 'cancel' | null,
+        /** Tuỳ chọn thêm cho exportElementAsImage — vd bảng Thi đua dùng fitAllColumns + fitWidthToTable. */
+        extraOptions?: Record<string, unknown>,
+    ): Promise<'download' | 'share' | 'cancel' | null> => {
+        const original = targetRef.current;
+        if (!original) return null;
+
+        try {
+            const safeName = filenamePart.replace(/[\\/:*?"<>|]/g, '_');
+            const filename = `BI_PRO_${safeName}_${new Date().toISOString().slice(0, 10)}.png`;
+
+            const blob = await exportElementAsImage(original, filename, {
+                mode: 'blob-only', elementsToHide: ['.no-print', '.export-button-component', '.column-customizer', '.industry-view-controls', '#competition-view-controls', '.js-individual-view-toolbar', '.hide-on-export'],
+                ...(extraOptions || {})
+            });
+
+            if (blob) {
+                // Tự động lưu và cập nhật ảnh báo cáo lên Bot LINE (bcrt / bclk / bc)
+                const targetDept = (activeSupermarket && activeSupermarket !== 'Tổng' ? activeSupermarket : departmentId);
+                void saveAutoReportImagesToFirebase({
+                    mode: activeMainTab === 'realtime' ? 'realtime' : 'luyke',
+                    images: [{ reportKey: autoExportAreaName || 'Báo Cáo BI', blob, fileName: filename }],
+                    user,
+                    departmentId: targetDept
+                });
+
+                if (autoAction === 'download') {
+                    downloadBlob(blob, filename);
+                    return 'download';
+                } else if (autoAction === 'share') {
+                    await shareBlob(blob, filename);
+                    return 'share';
+                } else {
+                    return await exportOptions.showExportOptions(blob, filename);
+                }
+            } else {
+                toast.error('Có lỗi xảy ra khi tạo ảnh. Vui lòng thử lại!');
+            }
+            return null;
+        } catch (err) {
+            console.error('Export error', err);
+            toast.error('Có lỗi xảy ra khi tạo ảnh. Vui lòng thử lại!');
+            return null;
+        }
+    };
+
+    /**
+     * Xuất ảnh Doanh thu:
+     * Khi có khối Chi Tiết Ngành Hàng (siêu thị cụ thể, không phải 'Tổng' và có dữ liệu),
+     * BẮT BUỘC xuất trọn vẹn cả 2 khu vực REALTIME và CHI TIẾT NGÀNH HÀNG (pageRef) giống hình 1,
+     * tuyệt đối không xuất riêng lẻ từng khối.
+     */
+    const handleRevenueExport = async (autoAction?: 'download' | 'share' | 'cancel' | null) => {
+        setIsHeaderExporting(true);
+        try {
+            const isRealtime = activeMainTab === 'realtime';
+            const hasIndustry = activeSupermarket !== 'Tổng' && !!(isRealtime ? industryRealtimeParsed : industryLuyKeParsed);
+            const targetRef = hasIndustry ? pageRef : printableRef;
+            const subTabLabel = 'Doanh Thu';
+            const label = `${subTabLabel} ${isRealtime ? 'Thời Gian Thực' : 'Lũy Kế'} - ${activeSupermarket}`;
+            return await handleExportPNG(targetRef, label, autoAction, { captureAsDisplayed: true });
+        } finally {
+            setIsHeaderExporting(false);
+        }
+    };
+
+    const runBatchExport = async (mode: 'realtime' | 'cumulative' | 'competition') => {
+        const setExporting = mode === 'competition' ? setIsBatchExportingCompetition : (mode === 'realtime' ? setIsBatchExporting : setIsBatchExportingCumulative);
+        setExporting(true);
+        const originalSm = activeSupermarket;
+        const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+
+        try {
+            for (const sm of ['Tổng', ...supermarkets]) {
+                setActiveSupermarket(sm);
+                await sleep(1500);
+                const targetRef = pageRef;
+                const label = mode === 'competition'
+                    ? `Thi Đua ${activeMainTab === 'realtime' ? 'Thời Gian Thực' : 'Lũy Kế'}`
+                    : (mode === 'realtime' ? 'Doanh Thu' : 'Doanh Thu Lũy Kế');
+                const extraOpts = mode === 'competition' ? { fitAllColumns: true, fitWidthToTable: true } : { captureAsDisplayed: true };
+                const action = await handleExportPNG(targetRef, `${label} - ${sm}`, autoAction, extraOpts);
+                if (action === 'cancel') break;
+                autoAction = action;
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Lỗi xuất hàng loạt.');
+        } finally {
+            setActiveSupermarket(originalSm);
+            setExporting(false);
+        }
+    };
+
+    // Tự động chuyển sang Luỹ kế nếu khởi động mà Realtime chưa có dữ liệu nhưng Luỹ kế đã có sẵn
+    const hasAutoSwitchedRef = useRef(false);
+    useEffect(() => {
+        if (!hasAutoSwitchedRef.current && !hasRealtimeData && hasCumulativeData && activeMainTab === 'realtime') {
+            hasAutoSwitchedRef.current = true;
+            setActiveMainTab('cumulative');
+        }
+    }, [hasRealtimeData, hasCumulativeData, activeMainTab, setActiveMainTab]);
+
+    // ─── Tự xuất ảnh theo hẹn giờ (2026-10-02) ───
+    // Khung Auto Sync Pro (gốc) gửi `ycx-bi-auto-export:request` {requestId, mode, areas} sau khi lượt BI hẹn giờ đổ dữ
+    // liệu xong; ở đây dựng ảnh từng khu vực rồi trả `ycx-bi-auto-export:done` {images, errors}. Hai khu vực chỉ nói
+    // chuyện qua sự kiện (CLAUDE.md mục 1) — gửi LINE là việc của bên gốc.
+    const autoRef = useRef({ isActive, supermarkets, activeMainTab, activeSubTab, activeSupermarket, setActiveMainTab, setActiveSubTab, setActiveSupermarket });
+    autoRef.current = { isActive, supermarkets, activeMainTab, activeSubTab, activeSupermarket, setActiveMainTab, setActiveSubTab, setActiveSupermarket };
+    useEffect(() => {
+        const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+        const KHU_VUC: Record<string, { sub: SubTab; tong: boolean; kind: 'page' | 'industry' | 'competition'; ten: string }> = {
+            'bi-doanh-thu-tong': { sub: 'revenue', tong: true, kind: 'page', ten: 'Doanh Thu' },
+            'bi-doanh-thu-tung-st': { sub: 'revenue', tong: false, kind: 'page', ten: 'Doanh Thu' },
+            'bi-nganh-hang-tung-st': { sub: 'revenue', tong: false, kind: 'industry', ten: 'Ngành Hàng' },
+            'bi-thi-dua-tong': { sub: 'competition', tong: true, kind: 'competition', ten: 'Thi Đua' },
+            'bi-thi-dua-tung-st': { sub: 'competition', tong: false, kind: 'competition', ten: 'Thi Đua' },
+        };
+        let dangChay = false;
+        const daNhan = new Set<string>();
+        const onRequest = async (e: Event) => {
+            const d = (e as CustomEvent).detail as { requestId?: string; mode?: string; areas?: string[] } | null;
+            if (!d?.requestId || dangChay || daNhan.has(d.requestId)) return;
+            daNhan.add(d.requestId);
+            dangChay = true;
+            // Bên gốc gửi lại yêu cầu tới khi nhận xác nhận này (mục Report BI có thể vừa mới mount)
+            window.dispatchEvent(new CustomEvent('ycx-bi-auto-export:ack', { detail: { requestId: d.requestId } }));
+            const images: { area: string; label: string; blob: Blob }[] = [];
+            const errors: { area: string; error: string }[] = [];
+            const r = () => autoRef.current;
+            const t0 = Date.now();
+            while (!r().isActive && Date.now() - t0 < 20_000) await sleep(250);
+            const truoc = { main: r().activeMainTab, sub: r().activeSubTab, sm: r().activeSupermarket };
+            const realtime = d.mode !== 'luyke';
+            try {
+                if (!r().isActive) throw new Error('mục Siêu thị của Report BI chưa mở được');
+                r().setActiveMainTab(realtime ? 'realtime' : 'cumulative');
+                const nhan = realtime ? 'Thời Gian Thực' : 'Lũy Kế';
+                const laDienThoai = window.innerWidth < 1024 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+                for (const area of d.areas || []) {
+                    const kv = KHU_VUC[area];
+                    if (!kv) { errors.push({ area, error: 'khu vực không rõ' }); continue; }
+                    // Chỉ xuất 1 ảnh đang hiển thị/chọn, không xuất nhiều ảnh lặp qua mọi siêu thị
+                    const currentSm = r().activeSupermarket && r().activeSupermarket !== 'Tổng'
+                        ? r().activeSupermarket
+                        : (r().supermarkets.find(sm => sm !== 'Tổng') || 'Tổng');
+                    const ds = kv.tong ? ['Tổng'] : [currentSm];
+                    if (ds.length === 0) errors.push({ area, error: 'chưa có siêu thị nào' });
+                    for (const sm of ds) {
+                        r().setActiveSubTab(kv.sub);
+                        r().setActiveSupermarket(sm);
+                        await sleep(1800);
+                        const hasIndustryData = sm !== 'Tổng' && !!(realtime ? industryRealtimeParsed : industryLuyKeParsed);
+                        const el = kv.kind === 'competition'
+                            ? printableRef.current
+                            : (kv.kind === 'industry'
+                                ? industryTableRef.current
+                                : (hasIndustryData ? pageRef.current : printableRef.current));
+                        const label = `${kv.ten} ${nhan} - ${sm}`;
+                        if (!el) { errors.push({ area, error: `${sm}: chưa có dữ liệu` }); continue; }
+                        try {
+                            const blob = await exportElementAsImage(el, `BI_PRO_${label.replace(/[\\/:*?"<>|]/g, '_')}.png`, {
+                                mode: 'blob-only',
+                                elementsToHide: ['.no-print', '.export-button-component', '.column-customizer', '.industry-view-controls', '#competition-view-controls', '.js-individual-view-toolbar', '.hide-on-export'],
+                                ...(kv.kind === 'competition' ? { fitAllColumns: true, fitWidthToTable: true } : { captureAsDisplayed: true }),
+                            });
+                            if (blob) images.push({ area, label, blob }); else errors.push({ area, error: `${sm}: không dựng được ảnh` });
+                        } catch (err) {
+                            errors.push({ area, error: `${sm}: ${err instanceof Error ? err.message : String(err)}` });
+                        }
+                    }
+                }
+            } catch (err) {
+                errors.push({ area: 'Report BI', error: err instanceof Error ? err.message : String(err) });
+            } finally {
+                r().setActiveMainTab(truoc.main);
+                r().setActiveSubTab(truoc.sub);
+                r().setActiveSupermarket(truoc.sm);
+                dangChay = false;
+                window.dispatchEvent(new CustomEvent('ycx-bi-auto-export:done', { detail: { requestId: d.requestId, images, errors } }));
+            }
+        };
+        window.addEventListener('ycx-bi-auto-export:request', onRequest);
+        return () => window.removeEventListener('ycx-bi-auto-export:request', onRequest);
+    }, []);
+
+    // Lắng nghe chuyển tab chế độ (Realtime / Luỹ kế) và tab con (Doanh thu / Thi đua)
+    useEffect(() => {
+        const onSwitchTab = (e: Event) => {
+            const d = (e as CustomEvent).detail;
+            if (d?.mainTab) setActiveMainTab(d.mainTab);
+            if (d?.subTab) setActiveSubTab(d.subTab);
+        };
+        window.addEventListener('dashboard-switch-tab', onSwitchTab);
+        return () => window.removeEventListener('dashboard-switch-tab', onSwitchTab);
+    }, [setActiveMainTab, setActiveSubTab]);
+
+    // Đọc URL query parameters (?mode=... & ?sub=...) khi xem phân hệ Siêu thị — CHỈ lúc màn hình được mở (deep link).
+    // SỬA 2026-10-02: bản đầu để effect này phụ thuộc activeMainTab/activeSubTab → người dùng bấm đổi chế độ thì effect
+    // đọc URL (vẫn ghi chế độ CŨ) kéo state về cũ, effect đồng bộ bên dưới lại ghi URL theo state → vòng lặp vô hạn,
+    // Report BI sập "Maximum update depth exceeded" (chạy thật trên dashboard.pro.vn 12:22 → sửa ngay).
+    // Giá trị lấy từ URL đang CHỜ có hiệu lực — trong lúc chờ không ghi URL (xem chú thích cùng ngày ở NhanVien.tsx).
+    const urlPendingRef = useRef<{ mode?: string; sub?: string } | null>(null);
+    const urlSettersRef = useRef({ setActiveMainTab, setActiveSubTab });
+    urlSettersRef.current = { setActiveMainTab, setActiveSubTab };
+    useEffect(() => {
+        if (isActive === false || typeof window === 'undefined') return;
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'employees' && (urlParams.get('view') === 'dashboard' || !urlParams.get('view'))) {
+            const m = urlParams.get('mode');
+            const s = urlParams.get('sub');
+            const pending: { mode?: string; sub?: string } = {};
+            if (m === 'realtime' || m === 'cumulative') { pending.mode = m; urlSettersRef.current.setActiveMainTab(m); }
+            if (s === 'revenue' || s === 'competition') { pending.sub = s; urlSettersRef.current.setActiveSubTab(s); }
+            urlPendingRef.current = pending.mode || pending.sub ? pending : null;
+        }
+    }, [isActive]);
+
+    // Đồng bộ URL query parameters khi người dùng chuyển mode hoặc subtab trong Siêu thị
+    useEffect(() => {
+        if (isActive === false || typeof window === 'undefined') return;
+        const pending = urlPendingRef.current;
+        if (pending) {
+            const modeOk = !pending.mode || pending.mode === activeMainTab;
+            const subOk = !pending.sub || pending.sub === activeSubTab;
+            if (!modeOk || !subOk) {
+                if (!modeOk) urlSettersRef.current.setActiveMainTab(pending.mode as typeof activeMainTab);
+                if (!subOk) urlSettersRef.current.setActiveSubTab(pending.sub as typeof activeSubTab);
+                return;
+            }
+            urlPendingRef.current = null;
+        }
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('tab') === 'employees' && (url.searchParams.get('view') === 'dashboard' || !url.searchParams.get('view'))) {
+            let changed = false;
+            if (url.searchParams.get('view') !== 'dashboard') {
+                url.searchParams.set('view', 'dashboard');
+                changed = true;
+            }
+            if (url.searchParams.get('mode') !== activeMainTab) {
+                url.searchParams.set('mode', activeMainTab);
+                changed = true;
+            }
+            if (url.searchParams.get('sub') !== activeSubTab) {
+                url.searchParams.set('sub', activeSubTab);
+                changed = true;
+            }
+            if (changed) {
+                window.history.replaceState(null, '', url.toString());
+            }
+        }
+    }, [isActive, activeMainTab, activeSubTab]);
+
+    if (isActive === false) {
+        return <div className="hidden" />;
+    }
+
+    if (!hasRealtimeData && !hasCumulativeData) {
+        return (
+            <>
+                <EmptyState onNavigate={onNavigateToUpdater} />
+            </>
+        );
+    }
+
+    const isRealtimeView = activeMainTab === 'realtime';
+    const hasData = isRealtimeView ? hasRealtimeData : hasCumulativeData;
+    const currentKpiData = getKpiData(isRealtimeView);
+    const activeTargets = supermarketTargets[activeSupermarket]
+        || supermarketTargets[shortenSupermarketName(activeSupermarket)]
+        || supermarketTargets[activeSupermarket.toUpperCase()]
+        || supermarketTargets['Tổng']
+        || { quyDoi: DEFAULT_HQQD_TARGET, traGop: DEFAULT_TRA_CHAM_TARGET };
+
+    if (!hasData) {
+        return (
+            <div className="space-y-6">
+                <DashboardHeader
+                    title="SIÊU THỊ"
+                    activeMainTab={activeMainTab}
+                    setActiveMainTab={setActiveMainTab}
+                    activeSubTab={activeSubTab}
+                    setActiveSubTab={setActiveSubTab}
+                    supermarkets={supermarkets}
+                    activeSupermarket={activeSupermarket}
+                    setActiveSupermarket={setActiveSupermarket}
+                    autoExportAreaId={autoExportAreaId}
+                    autoExportAreaName={autoExportAreaName}
+                    onTestAutoExport={handleTestAutoExport}
+                    onBatchExport={() => { }}
+                    isBatchExporting={false}
+                    onStartAutoSync={handleStartAutoSync}
+                >
+                    <div className="py-12 px-6 sm:py-16 sm:px-8 border-t border-slate-200 dark:border-slate-700/60 bg-gradient-to-b from-slate-50/50 to-white dark:from-slate-900/40 dark:to-slate-900/20 flex flex-col items-center justify-center text-center">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-card bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-4 shadow-sm">
+                            <AppIcon name="clock" size="state" />
+                        </div>
+                        <h3 className="text-base sm:text-[17px] font-bold text-slate-800 dark:text-slate-100 sm:leading-7">
+                            {isRealtimeView ? 'Chưa có dữ liệu Realtime hôm nay' : 'Chưa có dữ liệu Luỹ kế'}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md leading-relaxed">
+                            {isRealtimeView
+                                ? 'Hệ thống chưa ghi nhận dữ liệu thời gian thực trong ngày. Dữ liệu sẽ tự động hiển thị khi đồng bộ từ Tampermonkey hoặc tải lên từ Báo cáo BI.'
+                                : 'Hệ thống chưa ghi nhận dữ liệu báo cáo luỹ kế. Vui lòng nạp file báo cáo để xem phân tích chi tiết.'}
+                        </p>
+
+                        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                            {isRealtimeView && hasCumulativeData && (
+                                <Button
+                                    variant="primary"
+                                    onClick={() => setActiveMainTab('cumulative')}
+                                    className="ycx-hit inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-full shadow-2xs cursor-pointer"
+                                >
+                                    <AppIcon name="trendUp" size="md" />
+                                    <span>Xem báo cáo Luỹ kế</span>
+                                </Button>
+                            )}
+                            {!isRealtimeView && hasRealtimeData && (
+                                <Button
+                                    variant="primary"
+                                    onClick={() => setActiveMainTab('realtime')}
+                                    className="ycx-hit inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-full shadow-2xs cursor-pointer"
+                                >
+                                    <AppIcon name="clock" size="md" />
+                                    <span>Xem báo cáo Realtime</span>
+                                </Button>
+                            )}
+                            <Button
+                                variant="outline"
+                                onClick={() => onNavigateToUpdater({ configTab: 'data' })}
+                                className="ycx-hit inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-full border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs cursor-pointer"
+                            >
+                                <AppIcon name="upload" size="md" className="text-sky-500" />
+                                <span>Cập nhật dữ liệu</span>
+                            </Button>
+                        </div>
+
+                        {isRealtimeView && (
+                            <div className="mt-8 pt-6 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-center gap-2 text-[11px] sm:text-xs text-slate-400 dark:text-slate-500">
+                                <AppIcon name="sparkles" size="sm" className="text-amber-500/80" />
+                                <span>Mẹo: Bạn có thể bật UserScript Tampermonkey trên trang báo cáo MWG để tự động thu thập số liệu.</span>
+                            </div>
+                        )}
+                    </div>
+                </DashboardHeader>
+            </div>
+        );
+    }
+
+    return (
+        <ExportOptionsProvider value={exportOptionsContextValue}>
+            <div className="space-y-3 sm:space-y-6" ref={pageRef}>
+                <div ref={printableRef} className="space-y-3 sm:space-y-6">
+                    <DashboardHeader
+                        title="SIÊU THỊ"
+                        activeMainTab={activeMainTab}
+                        setActiveMainTab={setActiveMainTab}
+                        activeSubTab={activeSubTab}
+                        setActiveSubTab={setActiveSubTab}
+                        supermarkets={supermarkets}
+                        activeSupermarket={activeSupermarket}
+                        setActiveSupermarket={setActiveSupermarket}
+                        autoExportAreaId={autoExportAreaId}
+                        autoExportAreaName={autoExportAreaName}
+                        onTestAutoExport={handleTestAutoExport}
+                        onBatchExport={() => {
+                            if (activeSubTab === 'competition') runBatchExport('competition');
+                            else runBatchExport(isRealtimeView ? 'realtime' : 'cumulative');
+                        }}
+                        isBatchExporting={isBatchExporting || isBatchExportingCumulative || isBatchExportingCompetition}
+                        onExport={async () => {
+                            if (activeSubTab === 'competition') {
+                                setIsHeaderExporting(true);
+                                try {
+                                    await handleExportPNG(printableRef, `Thi Đua ${isRealtimeView ? 'Thời Gian Thực' : 'Lũy Kế'} - ${activeSupermarket}`, null, { fitAllColumns: true, fitWidthToTable: true });
+                                } finally {
+                                    setIsHeaderExporting(false);
+                                }
+                            } else {
+                                await handleRevenueExport();
+                            }
+                        }}
+                        isExporting={isHeaderExporting}
+                        onStartAutoSync={handleStartAutoSync}
+                    >
+                        {/* Revenue tab: KpiOverview + SummaryTableView merges into header container */}
+                        {activeSubTab === 'revenue' && (
+                            <div>
+                                <KpiOverview
+                                    isRealtime={isRealtimeView}
+                                    kpiData={currentKpiData}
+                                    targets={activeTargets}
+                                    supermarketDailyTargets={supermarketDailyTargets}
+                                    supermarketMonthlyTargets={supermarketMonthlyTargets}
+                                    activeSupermarket={activeSupermarket}
+                                    summaryLuyKeData={summaryLuyKe}
+                                    onNavigateToUpdater={onNavigateToUpdater}
+                                />
+                                <SummaryTableView
+                                    key={isRealtimeView ? 'summary-realtime' : 'summary-luyke'}
+                                    ref={summaryTableRef}
+                                    data={isRealtimeView ? summaryRealtimeParsed.table : summaryLuyKeParsed.table}
+                                    isCumulative={!isRealtimeView}
+                                    supermarketDailyTargets={supermarketDailyTargets}
+                                    supermarketMonthlyTargets={supermarketMonthlyTargets}
+                                    activeSupermarket={activeSupermarket}
+                                    onExport={async () => { await handleExportPNG(summaryTableRef, `Bảng Doanh Thu${!isRealtimeView ? ' Lũy Kế' : ''} - ${activeSupermarket}`, null, { captureAsDisplayed: true }); }}
+                                    updateTimestamp={isRealtimeView ? summaryRealtimeTs : null}
+                                    supermarketTargets={supermarketTargets}
+                                    useAdjustedTarget={useAdjustedTarget}
+                                    setUseAdjustedTarget={setUseAdjustedTarget}
+                                />
+                            </div>
+                        )}
+
+                        {/* Competition tab: CompetitionView merges into header container */}
+                        {activeSubTab === 'competition' && (
+                            <CompetitionView
+                                key={isRealtimeView ? 'competition-realtime' : 'competition-luyke'}
+                                ref={competitionViewRef}
+                                data={isRealtimeView ? augmentedRealtimeData : augmentedLuyKeData}
+                                isRealtime={isRealtimeView}
+                                activeSupermarket={activeSupermarket}
+                                setActiveSupermarket={setActiveSupermarket}
+                                onBatchExport={() => runBatchExport('competition')}
+                                isBatchExporting={isBatchExportingCompetition}
+                                updateTimestamp={isRealtimeView ? competitionRealtimeTs : competitionLuyKeTs}
+                                onExport={async () => { await handleExportPNG(printableRef, `Thi Đua ${isRealtimeView ? 'Thời Gian Thực' : 'Lũy Kế'} - ${activeSupermarket}`, null, { fitAllColumns: true, fitWidthToTable: true }); }}
+                                onNavigateToUpdater={onNavigateToUpdater}
+                            />
+                        )}
+                    </DashboardHeader>
+                </div>
+
+                <div className="mt-3 sm:mt-4">
+                    {activeSubTab === 'revenue' && activeSupermarket !== 'Tổng' && (isRealtimeView ? industryRealtimeParsed : industryLuyKeParsed) && (
+                        <div className="js-industry-view-container">
+                            <IndustryView
+                                ref={industryTableRef}
+                                isRealtime={isRealtimeView}
+                                realtimeData={industryRealtimeParsed}
+                                luykeData={industryLuyKeParsed}
+                                activeSupermarket={activeSupermarket}
+                                onExport={async () => {
+                                    await handleExportPNG(
+                                        industryTableRef,
+                                        `Chi Tiết Ngành Hàng ${isRealtimeView ? 'Thời Gian Thực' : 'Lũy Kế'} - ${activeSupermarket}`,
+                                        null,
+                                        { captureAsDisplayed: true }
+                                    );
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+            <ExportOptionsModal
+                isOpen={!!exportOptions.pendingExport}
+                onClose={exportOptions.handleClose}
+                onDownload={exportOptions.handleDownload}
+                onShare={exportOptions.handleShare}
+                canShare={exportOptions.canShare}
+                filename={exportOptions.pendingExport?.filename || ''}
+            />
+            {!onStartAutoSync && fallbackAutoSync.renderAutoSyncModal()}
+        </ExportOptionsProvider>
+    );
+};
+
+export default React.memo(Dashboard);

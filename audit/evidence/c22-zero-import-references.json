@@ -1,0 +1,137 @@
+{
+  "papaparse": [
+    {
+      "path": "package.json",
+      "line": 36,
+      "text": "    \"@types/papaparse\": \"^5.5.2\","
+    },
+    {
+      "path": "package.json",
+      "line": 46,
+      "text": "    \"papaparse\": \"^5.5.3\","
+    },
+    {
+      "path": "vite.config.ts",
+      "line": 122,
+      "text": "                        if (id.includes('xlsx') || id.includes('papaparse')) return 'vendor-excel';"
+    }
+  ],
+  "autoprefixer": [
+    {
+      "path": "package.json",
+      "line": 66,
+      "text": "    \"autoprefixer\": \"^10.4.27\","
+    }
+  ],
+  "eslint-import-resolver-typescript": [
+    {
+      "path": "package.json",
+      "line": 68,
+      "text": "    \"eslint-import-resolver-typescript\": \"^3.10.1\","
+    }
+  ],
+  "@vitest/coverage-v8": [
+    {
+      "path": "package.json",
+      "line": 65,
+      "text": "    \"@vitest/coverage-v8\": \"^4.1.11\","
+    }
+  ],
+  "@types/node": [
+    {
+      "path": "package.json",
+      "line": 60,
+      "text": "    \"@types/node\": \"^22.14.0\","
+    }
+  ],
+  "@types/qrcode": [
+    {
+      "path": "package.json",
+      "line": 61,
+      "text": "    \"@types/qrcode\": \"^1.5.6\","
+    }
+  ],
+  "@types/react": [
+    {
+      "path": "package.json",
+      "line": 62,
+      "text": "    \"@types/react\": \"^19.2.14\","
+    },
+    {
+      "path": "package.json",
+      "line": 63,
+      "text": "    \"@types/react-dom\": \"^19.2.3\","
+    }
+  ],
+  "@types/react-dom": [
+    {
+      "path": "package.json",
+      "line": 63,
+      "text": "    \"@types/react-dom\": \"^19.2.3\","
+    }
+  ],
+  "firebase-tools": [
+    {
+      "path": "functions/scripts/audit-firestore-readonly.cjs",
+      "line": 99,
+      "text": " * còn `firebase login` lưu refresh token ở chỗ KHÁC (`~/.config/configstore/firebase-tools.json`)."
+    },
+    {
+      "path": "functions/scripts/audit-firestore-readonly.cjs",
+      "line": 105,
+      "text": " * `firebase-tools` đã cài (2 hằng số công khai của CLI), KHÔNG hard-code vào mã nguồn — CLAUDE.md"
+    },
+    {
+      "path": "functions/scripts/audit-firestore-readonly.cjs",
+      "line": 111,
+      "text": "    const cfgPath = path.join(os.homedir(), '.config', 'configstore', 'firebase-tools.json');"
+    },
+    {
+      "path": "functions/scripts/audit-firestore-readonly.cjs",
+      "line": 125,
+      "text": "        api = require(path.join(REPO_ROOT, 'node_modules', 'firebase-tools', 'lib', 'api.js'));"
+    },
+    {
+      "path": "functions/scripts/clean-sticker-target-default.cjs",
+      "line": 27,
+      "text": "// firebase-admin nằm trong functions/node_modules (giống migrate script), firebase-tools ở root."
+    },
+    {
+      "path": "functions/scripts/clean-sticker-target-default.cjs",
+      "line": 37,
+      "text": "    const cfgPath = path.join(os.homedir(), '.config', 'configstore', 'firebase-tools.json');"
+    },
+    {
+      "path": "functions/scripts/clean-sticker-target-default.cjs",
+      "line": 46,
+      "text": "    try { api = require(path.join(REPO_ROOT, 'node_modules', 'firebase-tools', 'lib', 'api.js')); }"
+    },
+    {
+      "path": "functions/scripts/migrate-sticker-to-default.cjs",
+      "line": 37,
+      "text": "    const cfgPath = path.join(os.homedir(), '.config', 'configstore', 'firebase-tools.json');"
+    },
+    {
+      "path": "functions/scripts/migrate-sticker-to-default.cjs",
+      "line": 51,
+      "text": "        api = require(path.join(REPO_ROOT, 'node_modules', 'firebase-tools', 'lib', 'api.js'));"
+    },
+    {
+      "path": "package.json",
+      "line": 71,
+      "text": "    \"firebase-tools\": \"^15.24.0\","
+    }
+  ],
+  "gh-pages": [
+    {
+      "path": "package.json",
+      "line": 21,
+      "text": "    \"deploy\": \"git add -A && git commit -m \\\"chore: sync source code and deploy latest web changes\\\" || echo \\\"No changes to commit\\\" && git push origin main && gh-pages -d dist\","
+    },
+    {
+      "path": "package.json",
+      "line": 72,
+      "text": "    \"gh-pages\": \"^6.3.0\","
+    }
+  ]
+}

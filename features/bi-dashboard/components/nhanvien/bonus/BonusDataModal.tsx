@@ -1,0 +1,145 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Employee, BonusMetrics } from '../../../types/nhanVienTypes';
+import { parseBonusBlock } from '../../../utils/bonusParser';
+import { extractEmployeeId } from '../../../utils/nhanVienHelpers';
+import { Button } from '../../../../../components/shared/ui/Button';
+import { Textarea } from '../../../../../components/shared/ui/Textarea';
+import { Modal } from '../../../../../components/shared/ui/Modal';
+import { appendBonusHistory } from '../../../utils/bonusHistory';
+import { focusHrmWindow } from './hrmWindow';
+import { toast } from '../../../../../components/shared/ui/toast';
+
+export const BonusDataModal: React.FC<{
+    employee: Employee;
+    nextEmployee?: Employee | null;
+    supermarketName: string;
+    onClose: (reason: 'save' | 'skip' | 'stop') => void;
+    onSave: (name: string, metrics: BonusMetrics) => void;
+    remainingInBatch?: number;
+}> = ({ employee, nextEmployee, supermarketName, onClose, onSave, remainingInBatch }) => {
+    const [pastedData, setPastedData] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        setPastedData('');
+        setError(null);
+        textareaRef.current?.focus();
+
+        const employeeId = extractEmployeeId(employee.originalName) || extractEmployeeId(employee.name);
+        if (employeeId) {
+            navigator.clipboard.writeText(employeeId)
+                .then(() => toast.success(`Đã copy: ${employeeId}`, { duration: 1500, position: 'top-center' }))
+                .catch(err => console.error('Lỗi copy:', err));
+        }
+    }, [employee.originalName]);
+
+    const processAndSave = async (data: string) => {
+        const result = parseBonusBlock(data);
+        if ('error' in result) { setError(result.error); return false; }
+        const { metrics } = result;
+
+        await appendBonusHistory(supermarketName, employee.originalName, metrics);
+
+        onSave(employee.originalName, metrics);
+        return true;
+    };
+
+    return (
+        <Modal
+            isOpen={true}
+            onClose={() => onClose('stop')}
+            zIndex="z-[300]"
+            maxWidth="lg"
+            title={
+                <span className="flex items-center gap-3 uppercase">
+                    <span className="text-slate-500 dark:text-slate-400">Cập nhật:</span>
+                    <span className="text-sky-600 dark:text-sky-400">{employee.name}</span>
+                    {remainingInBatch && remainingInBatch > 0 ? (
+                        <span className="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold rounded-control uppercase whitespace-nowrap">Batch Mode</span>
+                    ) : null}
+                </span>
+            }
+            subTitle="Dán dữ liệu HRM > Quản lý điểm thưởng > Điểm thưởng nhân viên"
+            footer={
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        {remainingInBatch && remainingInBatch > 0 ? (
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Chờ duyệt</span>
+                                <div className="flex items-end gap-1.5">
+                                     <span className="text-[25px] font-black text-rose-600 tabular-nums leading-none">{remainingInBatch}</span>
+                                     <span className="text-[11px] font-semibold text-slate-500">nhân viên</span>
+                                </div>
+                            </div>
+                        ) : <div />}
+                    </div>
+
+                    <div className="flex gap-3 w-full sm:w-auto">
+                        <Button
+                            variant="destructive" data-ui="bi" size="md"
+                            onClick={() => onClose('stop')}
+                            className="flex-1 sm:flex-none"
+                        >
+                            Kết thúc
+                        </Button>
+                        <Button
+                            variant="secondary" data-ui="bi" size="md"
+                            onClick={() => onClose('skip')}
+                            className="flex-1 sm:flex-none dark:text-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"
+                        >
+                            Bỏ qua
+                        </Button>
+                        <Button
+                            variant="primary" data-ui="bi" size="none"
+                            onClick={async () => (await processAndSave(pastedData)) && onClose('save')}
+                            className="flex-1 sm:flex-none px-8 py-2.5 text-sm font-bold text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 shadow-sm transition-colors"
+                        >
+                            Lưu & Tiếp tục
+                        </Button>
+                    </div>
+                </div>
+            }
+        >
+            {/* Body Content */}
+            <div className="flex-1 w-full">
+                    <Textarea
+                        aria-label="Dữ liệu thưởng HRM"
+                        ref={textareaRef}
+                        value={pastedData}
+                        onChange={e => setPastedData(e.target.value)}
+                        onPaste={async (e) => {
+                            e.preventDefault();
+                            const text = e.clipboardData.getData('text');
+                            if (await processAndSave(text)) {
+                                toast.success(`Lưu thành công: ${employee.name}`, { duration: 1500 });
+
+                                if (nextEmployee) {
+                                    const nextId = extractEmployeeId(nextEmployee.originalName) || extractEmployeeId(nextEmployee.name);
+                                    if (nextId) {
+                                        try {
+                                            await navigator.clipboard.writeText(nextId);
+                                            toast.success(`Đã copy: ${nextId}`, { duration: 1500, position: 'top-center' });
+                                        } catch {
+                                            // Trình duyệt từ chối quyền clipboard (hoặc tab mất
+                                            // focus) → CÓ CHỦ Ý im lặng: không hiện toast "Đã
+                                            // copy" nên người dùng không bị báo sai, việc lưu
+                                            // chính đã xong. Chỉ mất tiện ích copy sẵn mã kế tiếp.
+                                        }
+                                    }
+                                }
+
+                                onClose('save');
+                                focusHrmWindow();
+                            } else {
+                                setPastedData(text);
+                            }
+                        }}
+                        placeholder="Click vào đây hoặc nhấn tự động dán (Ctrl + V)..."
+                        className="min-h-0 h-48 py-3 px-4 border-dashed rounded-sm bg-slate-50 font-mono text-xs sm:text-sm text-slate-700 transition-colors resize-none"
+                    />
+                    {error && <p className="mt-2 text-xs font-semibold text-rose-500">{error}</p>}
+            </div>
+        </Modal>
+    );
+};

@@ -1,0 +1,2 @@
+path,before_sha256,after_sha256,evidence
+tests/e2e/bi-competition.spec.ts,77bd7f9b13e924a237c822dcfe3a63db9f25b102bca587d89dc1bc38cd97c007,ecd1c01cc0958551bac174665fcd905d784292a54f5b5d2badfc12cd85a31e19,audit/correction-batch-c17.md

@@ -1,0 +1,8 @@
+{
+  "components/shared/ui/SearchableSelect.tsx": "Full source review: outside listeners/filter/custom/clear/callback paths. Shared Input/Button, native label, expanded/controls, keyboard selection and Escape restore added. Keeps filtering and custom trim behavior. Chromium/WebKit5cases each; real consumer data pending.",
+  "components/shared/ui/ConfirmDialog.tsx": "Full source review150lines: shared Modal/variants/loading/extra actions. Loading disables actions but onClose still forwarded to Modal; contract/race validation pending. No change, no runtime verification.",
+  "components/modals/GtdhTargetModal.tsx": "Full source review: two SearchableSelect consumers; category resets subgroup/value; save numeric target conversion preserved. Actual context/save journey NOT_RUN; no business change.",
+  "components/shared/ui/Input.tsx": "Full source reread: forwarded native attributes/ref, semantic height/coarse target and error states; SearchableSelect uses shared Input with accessible name. No source change.",
+  "tests/e2e/helpers/materialHarness.html": "Authored actual React SearchableSelect fixture with state output/custom mode and containing shared Modal. Synthetic local options only.",
+  "tests/e2e/searchable-select-keyboard.spec.ts": "Authored/read5safe local cases:390/1366 native keyboard/filter/clear/custom plus nested Escape. No credentials/services/production writes."
+}

@@ -1,0 +1,260 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c17-playwright.config.mjs",
+      "bi-competition.spec.ts"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c17-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c17-columns",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "sidebar-hover-flyout.spec.ts",
+          "menu-khac-xoay-ngang.spec.ts",
+          "bi-deep-link-khong-vong-lap.spec.ts",
+          "bi-chuyen-che-do-khong-sap.spec.ts",
+          "phan-tich-mat-mang-cau-hinh.spec.ts",
+          "bi-competition.spec.ts",
+          "xss-header-sanitization.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c17-columns.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "bi-competition.spec.ts",
+      "file": "bi-competition.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Report BI — bảng Thi đua Luỹ kế",
+          "file": "bi-competition.spec.ts",
+          "line": 13,
+          "column": 6,
+          "specs": [
+            {
+              "title": "bộ cột mặc định: đủ số cột, có nhóm Vượt trội và cột Còn Lại",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 16155,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "CỘT MẶC ĐỊNH: [\"#\",\"NHÓM THI ĐUA\",\"LUỸ KẾ\",\"TAR V.TRỘI\",\"%HT V.TRỘI\",\"%DKHT V.TRỘI\",\"C.LẠI\"]\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:26123) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:49:07.441Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-6ca92fdace56349d8869",
+              "file": "bi-competition.spec.ts",
+              "line": 23,
+              "column": 5
+            },
+            {
+              "title": "2 cột vượt trội có số liệu (không còn \"-\")",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10911,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:49:23.799Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-d512f0b6ab2b0416e5ad",
+              "file": "bi-competition.spec.ts",
+              "line": 47,
+              "column": 5
+            },
+            {
+              "title": "mặc định sắp xếp giảm dần theo %DKHT",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10644,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:49:34.718Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-453cce038fc733cd2489",
+              "file": "bi-competition.spec.ts",
+              "line": 58,
+              "column": 5
+            },
+            {
+              "title": "popup Bộ lọc thi đua mở được và có nút gạt cột",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11253,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "SỐ NÚT GẠT: \u001b[33m13\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:49:45.367Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "dd57634732cabe98d347-9edf2fcf053c839d4bc5",
+              "file": "bi-competition.spec.ts",
+              "line": 73,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:49:03.301Z",
+    "duration": 53409.012,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

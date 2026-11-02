@@ -1,0 +1,131 @@
+
+export type Tab = 'revenue' | 'installment' | 'competition' | 'bonus';
+export type Criterion = 'DTLK' | 'DTQĐ' | 'SLLK';
+
+export interface CompetitionHeader {
+    title: string;
+    originalTitle: string;
+    metric: string;
+}
+
+export interface BonusMetrics {
+    erp: number;
+    tNong: number;
+    tong: number;
+    dKien: number;
+    pNong: number;
+    updatedAt?: string;
+    dailyData?: Record<string, number>;
+}
+
+export type BonusComparePart = 'current' | 'previous';
+
+export interface BonusComparePeriod {
+    fromDate: string;
+    toDate: string;
+    data: Record<string, BonusMetrics>;
+}
+
+/** Kho "So sánh cùng kỳ tháng" — key `bonus-compare-${safeName}`, 1 bản ghi/siêu thị chứa
+ * cả 2 kỳ của cùng 1 lượt chạy (runId). Thiếu 1 trong 2 kỳ = lượt chạy chưa trọn vẹn. */
+export interface BonusCompareStore {
+    runId: string;
+    current?: BonusComparePeriod;
+    previous?: BonusComparePeriod;
+    updatedAt: string;
+}
+
+export interface PrevCompData {
+    dtlk: number;
+    dtqd: number;
+    target: number;
+    completion: number;
+    hqqd: number;
+    installment: number;
+    pctBillBk: number;
+    duKien?: number;
+    dkht?: number;
+}
+
+export interface RevenueRow {
+    type: 'total' | 'department' | 'employee';
+    name: string;
+    originalName?: string;
+    department?: string;
+    dtlk: number;
+    dtqd: number;
+    hieuQuaQD: number;
+    soLuong?: number;
+    donGia?: number;
+    pctBillBk?: number;
+    prevCompData?: PrevCompData | null;
+    rank?: number;
+    calculatedCompletion?: number;
+    calculatedTarget?: number;
+    calculatedInstallment?: number;
+    remaining_total?: number;
+    remaining_daily?: number;
+    remaining_daily_status?: 'warning' | 'success';
+    bonus_tong?: number;
+    bonus_tier?: 'top' | 'bot' | 'normal';
+    duKien?: number;
+    pctDkht?: number;
+    comp_dat?: number;
+    comp_total?: number;
+    comp_pct_dat?: number;
+}
+
+export interface CrossSellingRow {
+    type: 'total' | 'department' | 'employee';
+    name: string;
+    originalName?: string;
+    department?: string;
+    dtlk: number;
+    billBk: number;
+    pctBillBk: number;
+    // Không có ở dòng tổng phòng ban/tổng cộng (chỉ tính cho từng nhân viên khi parse)
+    billMngn?: number;
+    pctBillMngn?: number;
+    slMngn?: number;
+    pctSpMngn?: number;
+    totalBill: number;
+    slBk: number;
+    pctSpBk: number;
+    totalSl: number;
+}
+
+export interface InstallmentProvider {
+    name: string;
+    shortName: string;
+    dt: number;
+    percent: number;
+}
+
+export interface InstallmentRow {
+    type: 'total' | 'department' | 'employee';
+    name: string;
+    originalName?: string;
+    department?: string;
+    providers: InstallmentProvider[];
+    totalDtSieuThi: number;
+    totalPercent: number;
+}
+
+export interface Version {
+    name: string;
+    selectedCompetitions: string[];
+}
+
+export interface Employee {
+    name: string;
+    originalName: string;
+    department: string;
+}
+
+export type ManualDeptMapping = Record<string, string[]>;
+
+export interface SummaryTableConfig {
+    id: string;
+    name: string;
+    selectedTitles: string[];
+}

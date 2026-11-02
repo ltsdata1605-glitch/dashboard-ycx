@@ -1,0 +1,8 @@
+{
+  "features/bi-dashboard/components/dashboard/CompetitionView.tsx": "Full571line source read: two row-click selectors have unnamed Switch; now label opts/display column supplied. Row onClick and Switch stopPropagation unchanged, nativekeyboard+row/switchclick tests. Portal/dense/table/selectionemptymeansall conventions retained; fullmodes/visual/storage pending.",
+  "features/bi-dashboard/components/dashboard/DashboardWidgets.tsx": "Full source re-read; optional label forwarded to shared Switch aria-label; existing id/onChange consumers compatible. No ProgressBar changes.",
+  "features/bi-dashboard/services/competitionViewCalc.ts": "Full source read: clone/remap/filter allowed columns, derive percent and remaining, preserve mode-specific logic. No formula changes; business acceptance independent pending.",
+  "features/bi-dashboard/hooks/useCheckThuongBonus.ts": "Full source read for safety: realTime disables payload/map fetching but event listeners remain; scoped/iframe/legacy localDB fallbacks. Missing return after resolving absent legacy settings store may throw in event callback; pending targeted regression, not changed.",
+  "tests/e2e/helpers/materialHarness.html": "Added actual CompetitionView synthetic realtime fixture, portal mounted before consumer, fresh localIDB; enabled bonus false, externalproxy blocked.",
+  "tests/e2e/competition-switch-labels.spec.ts": "Full authored safetyread: named program/column Switch, native Tab/Space and row vs Switch click once at390/1366. No real service/auth or formula validation."
+}

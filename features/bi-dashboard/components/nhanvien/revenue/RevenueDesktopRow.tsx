@@ -1,0 +1,151 @@
+import React from 'react';
+import { DEFAULT_HQQD_TARGET } from '../../../services/kpiOverviewCalc';
+import { RevenueRow } from '../../../types/nhanVienTypes';
+import { roundUp } from '../../../utils/nhanVienHelpers';
+import { MedalBadge, DeltaBadge } from '../../shared/Badges';
+import { Pill } from '../../shared/Pill';
+import AvatarDisplay from '../shared/AvatarDisplay';
+import { onActivateKey } from '../../../../../components/shared/ui';
+
+import { ColorSettings, CriterionConfig, getDkhtColor as defaultGetDkhtColor, getMetricColorByTarget } from './ColorSettingsModal';
+
+interface RevenueDesktopRowProps {
+    row: RevenueRow;
+    isHighlighted: boolean;
+    onHighlightToggle: (name: string) => void;
+    supermarketName: string;
+    colorSettings: ColorSettings;
+    getHtColor: (val: number | undefined, hasTarget?: boolean) => string;
+    getDynamicColor: (val: number | undefined, config: CriterionConfig) => string | undefined;
+    getDkhtColor?: (val?: number | null, hasTarget?: boolean) => string;
+    isShowRemaining?: boolean;
+    targetTraGop?: number;
+    targetQuyDoi?: number;
+    isRealtimeMode?: boolean;
+    storeDatPercent?: number;
+}
+
+const f = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+
+export const RevenueDesktopRow = React.memo(({
+    row,
+    isHighlighted,
+    onHighlightToggle,
+    supermarketName,
+    colorSettings,
+    getHtColor,
+    getDynamicColor,
+    getDkhtColor = defaultGetDkhtColor,
+    isShowRemaining = false,
+    targetTraGop = 45,
+    targetQuyDoi = DEFAULT_HQQD_TARGET,
+    isRealtimeMode = false,
+    storeDatPercent
+}: RevenueDesktopRowProps) => {
+    const prev = row.prevCompData;
+    const hasTarget = (row.calculatedTarget || 0) > 0;
+
+    // Vạch trạng thái mép trái dòng — đồng bộ chuẩn xác với màu phân khúc của %DKHT:
+    // <80%: Đỏ đậm (#dc2626) | 80-100%: Cam đậm (#ea580c) | 100-120%: Xanh lá đậm (#059669) | >120%: Xanh dương đậm (#2563eb)
+    const stripeColor = getDkhtColor(row.pctDkht, hasTarget);
+
+    return (
+        <tr
+            style={{ borderLeft: `3.5px solid ${stripeColor}` }}
+            className={`border-l-[3.5px] transition-colors duration-150 text-[13px] border-b border-slate-100 dark:border-slate-800/60 last:border-b-0 ${isHighlighted ? 'bg-sky-50/70 dark:bg-sky-900/20' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/50'}`}
+        >
+            <td className="px-2.5 py-[3px] whitespace-nowrap min-w-[190px] border-r border-slate-100 dark:border-slate-800/60">
+                <div className="flex items-center gap-2">
+                    <MedalBadge rank={row.rank} />
+                    <AvatarDisplay employeeName={row.originalName!} supermarketName={supermarketName} />
+                    <div role="button" tabIndex={0} className="flex flex-col cursor-pointer" onClick={() => onHighlightToggle(row.originalName!)} onKeyDown={onActivateKey(() => onHighlightToggle(row.originalName!))}>
+                        <span className="font-semibold text-slate-800 dark:text-slate-100 text-[13px] tracking-tight whitespace-nowrap hover:text-sky-600 dark:hover:text-sky-400 transition-colors">{row.name}</span>
+                    </div>
+                </div>
+            </td>
+            <td className="export-col-revenue px-2 py-[3px] text-[13px] text-center font-bold text-slate-800 dark:text-slate-200 tabular-nums border-r border-slate-100 dark:border-slate-800/60">
+                <div>{f.format(roundUp(row.calculatedTarget || 0))}</div>
+                <DeltaBadge current={row.calculatedTarget} previous={prev?.target} isCurrency />
+            </td>
+            <td className="export-col-revenue px-2 py-[3px] text-[13px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60" style={{ color: getDynamicColor(row.dtlk, colorSettings.dtthuc) }}>
+                <div>{f.format(roundUp(row.dtlk))}</div>
+                <DeltaBadge current={row.dtlk} previous={prev?.dtlk} isCurrency />
+            </td>
+            {/* NỔI BẬT 1: DTQĐ */}
+            <td 
+                className="export-col-revenue px-2 py-[3px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60 bg-sky-50/70 dark:bg-sky-950/30" 
+                style={{ color: getDynamicColor(row.dtqd, colorSettings.dtqd) || getHtColor(row.calculatedCompletion, hasTarget) }}
+            >
+                <div className="font-bold text-[13px] tracking-tight">{f.format(roundUp(row.dtqd))}</div>
+                <DeltaBadge current={row.dtqd} previous={prev?.dtqd} isCurrency />
+            </td>
+            {!isRealtimeMode && (
+                <td className="export-col-revenue px-2 py-[3px] text-[13px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60 text-slate-800 dark:text-slate-100">
+                    <div>{f.format(roundUp(row.duKien || 0))}</div>
+                    <DeltaBadge current={row.duKien} previous={prev?.duKien} isCurrency />
+                </td>
+            )}
+            <td className="export-col-revenue px-2 py-[3px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60">
+                <Pill className="font-bold" color={getDkhtColor(row.pctDkht || 0, hasTarget)}>{hasTarget ? `${roundUp(row.pctDkht || 0)}%` : '—'}</Pill>
+                <DeltaBadge current={row.pctDkht} previous={prev?.dkht} isPercent />
+            </td>
+            {/* NHÓM THI ĐUA: Đạt & %Đạt đặt sau %D.KIẾN (Ẩn ở chế độ Realtime) */}
+            {!isRealtimeMode && (
+                <>
+                    <td className="export-col-competition px-1.5 py-[3px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60">
+                        {row.comp_total ? (
+                            <span className={storeDatPercent !== undefined && (row.comp_pct_dat || 0) < storeDatPercent ? 'text-rose-700 dark:text-rose-400 font-extrabold' : 'text-emerald-700 dark:text-emerald-400 font-bold'}>
+                                {row.comp_dat ?? 0}/{row.comp_total}
+                            </span>
+                        ) : (
+                            <span className="text-slate-400 dark:text-slate-500 font-normal">-</span>
+                        )}
+                    </td>
+                    <td className="export-col-competition px-1.5 py-[3px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60">
+                        {row.comp_total ? (
+                            <span className={storeDatPercent !== undefined && (row.comp_pct_dat || 0) < storeDatPercent ? 'text-rose-700 dark:text-rose-400 font-extrabold' : 'text-emerald-700 dark:text-emerald-400 font-extrabold'}>
+                                {roundUp(row.comp_pct_dat || 0)}%
+                            </span>
+                        ) : (
+                            <span className="text-slate-400 dark:text-slate-500 font-normal">-</span>
+                        )}
+                    </td>
+                </>
+            )}
+            {isShowRemaining && (
+                <>
+                    <td className="export-col-revenue px-2 py-[3px] text-[13px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60 bg-amber-50/10 dark:bg-amber-950/5 text-slate-500 dark:text-slate-400">
+                        <div>{f.format(roundUp(row.remaining_total || 0))}</div>
+                    </td>
+                    <td className={`export-col-revenue px-2 py-[3px] text-[13px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60 bg-amber-50/10 dark:bg-amber-950/5 ${
+                        row.type === 'employee' && row.remaining_daily_status === 'warning' ? 'text-rose-600 dark:text-rose-400' :
+                        row.type === 'employee' && row.remaining_daily_status === 'success' ? 'text-emerald-600 dark:text-emerald-400' :
+                        'text-amber-700 dark:text-amber-400'
+                    }`}>
+                        <div>{f.format(roundUp(row.remaining_daily || 0))}</div>
+                    </td>
+                </>
+            )}
+            {/* NỔI BẬT 2: HQQĐ */}
+            <td className="export-col-performance px-2 py-[3px] text-center font-bold tabular-nums border-r border-slate-100 dark:border-slate-800/60 bg-emerald-50/50 dark:bg-emerald-950/20">
+                <Pill className="font-bold" color={getMetricColorByTarget(isNaN(row.hieuQuaQD) ? 0 : row.hieuQuaQD * 100, targetQuyDoi)}>{isNaN(row.hieuQuaQD) ? '0%' : (row.hieuQuaQD * 100).toFixed(0)}%</Pill>
+                <DeltaBadge current={row.hieuQuaQD * 100} previous={Number(prev?.hqqd) * 100} isPercent />
+            </td>
+            {/* NỔI BẬT 3: %T.Chậm */}
+            <td className={`export-col-performance px-2 py-[3px] text-center font-bold tabular-nums bg-amber-50/50 dark:bg-amber-950/20 ${!isRealtimeMode ? 'border-r border-slate-100 dark:border-slate-800/60' : ''}`}>
+                <Pill className="font-bold" color={getMetricColorByTarget(row.calculatedInstallment, targetTraGop)}>{roundUp(row.calculatedInstallment)}%</Pill>
+                <DeltaBadge current={row.calculatedInstallment} previous={prev?.installment} isPercent />
+            </td>
+            {!isRealtimeMode && (
+                <td className={`export-col-performance px-2 py-[3px] text-center tabular-nums ${
+                    !row.bonus_tong ? 'text-slate-400 dark:text-slate-500 font-medium text-[13px]' :
+                    row.bonus_tier === 'top' ? 'text-emerald-600 dark:text-emerald-400 text-[14px] font-black' :
+                    row.bonus_tier === 'bot' ? 'text-rose-500 dark:text-rose-400 text-[13px] font-bold' :
+                    'text-slate-900 dark:text-white text-[13px] font-black'
+                }`}>
+                    <div>{row.bonus_tong ? f.format(Math.ceil(row.bonus_tong / 1000)) : '-'}</div>
+                </td>
+            )}
+        </tr>
+    );
+});

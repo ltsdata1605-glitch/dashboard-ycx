@@ -1,0 +1,1316 @@
+{
+  "Card": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 28,
+      "text": "Card",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 48,
+      "text": "Card",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "text": "Card",
+      "kind": "barrel"
+    }
+  ],
+  "CardHeader": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 58,
+      "text": "CardHeader",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 91,
+      "text": "CardHeader",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "text": "CardHeader",
+      "kind": "barrel"
+    }
+  ],
+  "CardBody": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 93,
+      "text": "CardBody",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 102,
+      "text": "CardBody",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "text": "CardBody",
+      "kind": "barrel"
+    }
+  ],
+  "CardFooter": [
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 104,
+      "text": "CardFooter",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/Card.tsx",
+      "line": 116,
+      "text": "CardFooter",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 59,
+      "text": "CardFooter",
+      "kind": "barrel"
+    }
+  ],
+  "SectionCard": [
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 11,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 224,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 508,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 12,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 418,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 710,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 11,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 208,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 309,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 18,
+      "text": "SectionCard",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 33,
+      "text": "SectionCard",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/SectionCard.tsx",
+      "line": 35,
+      "text": "SectionCard",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 96,
+      "text": "SectionCard",
+      "kind": "barrel"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 54,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 561,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 671,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 2,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 52,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 57,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 28,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 614,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 621,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 622,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 706,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 6,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 162,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 514,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+      "line": 2,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+      "line": 228,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintPreview.tsx",
+      "line": 429,
+      "text": "SectionCard",
+      "kind": "source_binding"
+    }
+  ],
+  "SectionHeader": [
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 9,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 229,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 314,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 10,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 424,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 541,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 9,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 210,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/EmployeeAnalysis.tsx",
+      "line": 249,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/SectionHeader.tsx",
+      "line": 34,
+      "text": "SectionHeader",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 97,
+      "text": "SectionHeader",
+      "kind": "barrel"
+    },
+    {
+      "path": "components/summary/WarehouseSummary.tsx",
+      "line": 6,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/summary/WarehouseSummary.tsx",
+      "line": 768,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/summary/WarehouseSummary.tsx",
+      "line": 844,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 53,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 622,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/DashboardView.tsx",
+      "line": 663,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 3,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 27,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/Card.tsx",
+      "line": 36,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 29,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 624,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 633,
+      "text": "SectionHeader",
+      "kind": "source_binding"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 12,
+      "text": "SectionHeader",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 88,
+      "text": "SectionHeader",
+      "kind": "test"
+    }
+  ],
+  "ListGroup": [
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 16,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 210,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 233,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 358,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 371,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 374,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 381,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 13,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 446,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 468,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 486,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 517,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 518,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 520,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 7,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 214,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 224,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 7,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 41,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 98,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 100,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 106,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 108,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 114,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 5,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 43,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 56,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 30,
+      "text": "ListGroup",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 37,
+      "text": "ListGroup",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 30,
+      "text": "ListGroup",
+      "kind": "barrel"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 4,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 42,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 46,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 48,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 60,
+      "text": "ListGroup",
+      "kind": "source_binding"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 6,
+      "text": "ListGroup",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 71,
+      "text": "ListGroup",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 75,
+      "text": "ListGroup",
+      "kind": "test"
+    }
+  ],
+  "ListRow": [
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 16,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 211,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 218,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 219,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 225,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 362,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/filters/FilterSection.tsx",
+      "line": 375,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 13,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 447,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 519,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 7,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/FontSelector.tsx",
+      "line": 216,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 7,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 102,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/layout/MobileMoreSheet.tsx",
+      "line": 110,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 5,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 44,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/UploadTypeSelectionModal.tsx",
+      "line": 50,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 58,
+      "text": "ListRow",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/ListGroup.tsx",
+      "line": 97,
+      "text": "ListRow",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 30,
+      "text": "ListRow",
+      "kind": "barrel"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 4,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 44,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 52,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 54,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 56,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/AboutView.tsx",
+      "line": 58,
+      "text": "ListRow",
+      "kind": "source_binding"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 6,
+      "text": "ListRow",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 72,
+      "text": "ListRow",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 73,
+      "text": "ListRow",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 74,
+      "text": "ListRow",
+      "kind": "test"
+    }
+  ],
+  "EmptyState": [
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 12,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 338,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/IndustryGrid.tsx",
+      "line": 500,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 13,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/charts/TrendChart.tsx",
+      "line": 329,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/TopSellerList.tsx",
+      "line": 4,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/TopSellerList.tsx",
+      "line": 160,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/performance/PerformanceSingleTable.tsx",
+      "line": 4,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/employees/performance/PerformanceSingleTable.tsx",
+      "line": 247,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 15,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/kpis/modals/KpiCardConfigModal.tsx",
+      "line": 473,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/FileHistoryModal.tsx",
+      "line": 3,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/FileHistoryModal.tsx",
+      "line": 97,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/GtdhTargetModal.tsx",
+      "line": 9,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/modals/GtdhTargetModal.tsx",
+      "line": 141,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/DrillDownModal.tsx",
+      "line": 9,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/DrillDownModal.tsx",
+      "line": 107,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/DataTable.tsx",
+      "line": 3,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/DataTable.tsx",
+      "line": 298,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/shared/ui/EmptyState.tsx",
+      "line": 23,
+      "text": "EmptyState",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/EmptyState.tsx",
+      "line": 68,
+      "text": "EmptyState",
+      "kind": "definition"
+    },
+    {
+      "path": "components/shared/ui/index.ts",
+      "line": 74,
+      "text": "EmptyState",
+      "kind": "barrel"
+    },
+    {
+      "path": "components/tables/MonthlyTrendTable.tsx",
+      "line": 6,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/tables/MonthlyTrendTable.tsx",
+      "line": 101,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/tables/SummaryTable.tsx",
+      "line": 8,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/tables/SummaryTable.tsx",
+      "line": 467,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/LandingPageView.tsx",
+      "line": 2,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/LandingPageView.tsx",
+      "line": 51,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/UserManagementView.tsx",
+      "line": 12,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "components/views/UserManagementView.tsx",
+      "line": 914,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 8,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/BiSupermarketMapAdmin.tsx",
+      "line": 400,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 40,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/DataUpdater.tsx",
+      "line": 1103,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/SupermarketConfig.tsx",
+      "line": 24,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/SupermarketConfig.tsx",
+      "line": 983,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+      "line": 16,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+      "line": 546,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/CompetitionView.tsx",
+      "line": 561,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 12,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/dashboard/IndustryView.tsx",
+      "line": 516,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 25,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/CompetitionTab.tsx",
+      "line": 1089,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+      "line": 13,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/InstallmentTab.tsx",
+      "line": 401,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 25,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/RevenueTab.tsx",
+      "line": 409,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx",
+      "line": 3,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusCompareTable.tsx",
+      "line": 171,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx",
+      "line": 4,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/BonusDailyTable.tsx",
+      "line": 61,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx",
+      "line": 3,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/bi-dashboard/components/nhanvien/bonus/MonthlyBonusTable.tsx",
+      "line": 238,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 31,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/PhanCaView.tsx",
+      "line": 692,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/ConflictListModal.tsx",
+      "line": 6,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/ConflictListModal.tsx",
+      "line": 52,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/EditPatternModal.tsx",
+      "line": 11,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/EditPatternModal.tsx",
+      "line": 484,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/EditRulesModal.tsx",
+      "line": 7,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/EditRulesModal.tsx",
+      "line": 125,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/EditShiftModal.tsx",
+      "line": 9,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/EditShiftModal.tsx",
+      "line": 545,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/HistoryModal.tsx",
+      "line": 6,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/phan-ca/components/HistoryModal.tsx",
+      "line": 28,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/ManualInputModal.tsx",
+      "line": 12,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/ManualInputModal.tsx",
+      "line": 332,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/ResultsDisplay.tsx",
+      "line": 7,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/ResultsDisplay.tsx",
+      "line": 343,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/SavedListsModal.tsx",
+      "line": 9,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/SavedListsModal.tsx",
+      "line": 130,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/SuperAdminModal.tsx",
+      "line": 9,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/SuperAdminModal.tsx",
+      "line": 174,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+      "line": 5,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+      "line": 402,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerManualQueue.tsx",
+      "line": 460,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 6,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "features/sticker-event/stickerprinter/StickerPrintControls.tsx",
+      "line": 451,
+      "text": "EmptyState",
+      "kind": "source_binding"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 11,
+      "text": "EmptyState",
+      "kind": "test"
+    },
+    {
+      "path": "tests/e2e/helpers/appleUiHarness.tsx",
+      "line": 89,
+      "text": "EmptyState",
+      "kind": "test"
+    }
+  ]
+}

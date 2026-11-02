@@ -1,0 +1,406 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Modal } from '../../../../../components/shared/ui/Modal';
+import { Button } from '../../../../../components/shared/ui/Button';
+import { Tabs } from '../../../../../components/shared/ui/Tabs';
+import { Select } from '../../../../../components/shared/ui/Select';
+import { Input } from '../../../../../components/shared/ui/Input';
+import { AppIcon } from '../../../../../components/shared/ui/icon/AppIcon';
+import { ConfirmDialog } from '../../../../../components/shared/ui/ConfirmDialog';
+import {
+    getCurrentRangeDefault,
+    getComparePeriodDefault,
+    getMonthRange,
+    listRecentMonths,
+    getYearMonthPlan,
+    estimateRunTime,
+    isSameMonthDDMMYYYY,
+    parseDDMMYYYY,
+    toYYYYMM,
+} from '../../../utils/bonusDateRange';
+
+type PickerTab = 'current' | 'month' | 'year' | 'range' | 'compare';
+
+export interface AutoBonusRangePickerModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    employeeCount: number;
+    /** Chạy 1 job đơn (tab Hiện tại/Tháng/Khoảng thời gian). `label` dùng để cập nhật
+     * tiêu đề báo cáo (VD "THÁNG 6/2026") — xem AutoBonusPanel. */
+    onRunSingle: (range: { fromDate: string; toDate: string; label: string }) => void;
+    /** Chạy trọn 1 năm (hoặc dải tháng trong năm) — lặp tuần tự nhiều job (tab Năm). */
+    onRunYear: (year: number, label: string, fromMonthIndex0?: number, toMonthIndex0?: number) => void;
+    /** So sánh cùng kỳ tháng — 2 job tuần tự [kỳ này, kỳ trước] (tab So sánh cùng kỳ). */
+    onRunCompare: (periods: { current: { fromDate: string; toDate: string }; previous: { fromDate: string; toDate: string } }, label: string) => void;
+    canResume?: boolean;
+    resumeInfo?: { label: string; remainingCount: number } | null;
+    onResume?: () => void;
+}
+
+/** "06/07/2026" -> "6/7" — khớp định dạng getYesterdayDateString() đang dùng làm tiêu đề mặc định. */
+function toShortDDMM(ddmmyyyy: string): string {
+    const d = parseDDMMYYYY(ddmmyyyy);
+    return d ? `${d.getDate()}/${d.getMonth() + 1}` : ddmmyyyy;
+}
+
+const TABS: { id: PickerTab; label: string }[] = [
+    { id: 'current', label: 'Hiện tại' },
+    { id: 'month', label: 'Tháng' },
+    { id: 'year', label: 'Năm' },
+    { id: 'range', label: 'Khoảng thời gian' },
+    { id: 'compare', label: 'So sánh cùng kỳ' },
+];
+
+function toApiInputValue(ddmmyyyy: string): string {
+    const m = ddmmyyyy.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return '';
+    return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+function fromApiInputValue(yyyymmdd: string): string {
+    const m = yyyymmdd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+export const AutoBonusRangePickerModal: React.FC<AutoBonusRangePickerModalProps> = ({
+    isOpen, onClose, employeeCount, onRunSingle, onRunYear, onRunCompare,
+    canResume, resumeInfo, onResume,
+}) => {
+    const [now, setNow] = useState(() => new Date());
+    const [activeTab, setActiveTab] = useState<PickerTab>('current');
+    const recentMonths = useMemo(() => listRecentMonths(12, now), [now]);
+    const [selectedMonth, setSelectedMonth] = useState(recentMonths[0]?.yyyymm || '');
+    const [selectedYear, setSelectedYear] = useState<number | null>(null);
+    const [fromMonth, setFromMonth] = useState(0);
+    const [toMonth, setToMonth] = useState<number | null>(null);
+    const [customFrom, setCustomFrom] = useState('');
+    const [customTo, setCustomTo] = useState('');
+    const [showYearConfirm, setShowYearConfirm] = useState(false);
+
+    const maxMonthIndex = useMemo(() => {
+        if (!selectedYear) return 11;
+        return selectedYear === now.getFullYear() ? now.getMonth() : 11;
+    }, [selectedYear, now]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const currentNow = new Date();
+        setNow(currentNow);
+        setActiveTab('current');
+        const months = listRecentMonths(12, currentNow);
+        setSelectedMonth(months[0]?.yyyymm || '');
+        setSelectedYear(null);
+        setFromMonth(0);
+        setToMonth(null);
+        const def = getCurrentRangeDefault(currentNow);
+        setCustomFrom(def.fromDate);
+        setCustomTo(def.toDate);
+        setShowYearConfirm(false);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (selectedYear) {
+            setFromMonth(0);
+            setToMonth(selectedYear === now.getFullYear() ? now.getMonth() : 11);
+        }
+    }, [selectedYear, now]);
+
+    const currentRange = useMemo(() => getCurrentRangeDefault(now), [now]);
+    const comparePeriods = useMemo(() => getComparePeriodDefault(now), [now]);
+    // Nhãn tiêu đề sau khi so sánh xong = đúng nhãn "Hiện tại": dữ liệu kỳ này cũng được mirror
+    // sang bonus-data-* nên bảng Tổng hợp hiển thị đúng "ĐẾN NGÀY hôm qua"; riêng chế độ xem
+    // So sánh tự đặt tiêu đề "SO SÁNH ... VS ..." từ kho compare (xem BonusTab).
+    const compareLabel = `ĐẾN NGÀY ${toShortDDMM(comparePeriods.current.toDate)}`;
+    const monthRange = useMemo(() => selectedMonth ? getMonthRange(selectedMonth, now) : null, [selectedMonth, now]);
+    const actualToMonth = toMonth != null ? toMonth : maxMonthIndex;
+    const yearPlan = useMemo(
+        () => (selectedYear ? getYearMonthPlan(selectedYear, now, fromMonth, actualToMonth) : null),
+        [selectedYear, now, fromMonth, actualToMonth],
+    );
+    const yearEstimate = useMemo(
+        () => (yearPlan ? estimateRunTime(yearPlan.length, employeeCount) : null),
+        [yearPlan, employeeCount],
+    );
+
+    const rangeValidation = useMemo(() => {
+        const fromDate = parseDDMMYYYY(customFrom);
+        const toDate = parseDDMMYYYY(customTo);
+        if (!fromDate || !toDate) return { valid: false, error: 'Chọn đủ ngày bắt đầu và ngày kết thúc.' };
+        if (toDate < fromDate) return { valid: false, error: 'Ngày kết thúc phải sau ngày bắt đầu.' };
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        if (toDate > yesterday) return { valid: false, error: 'Ngày kết thúc không được vượt quá hôm qua.' };
+        if (!isSameMonthDDMMYYYY(customFrom, customTo)) {
+            return { valid: false, error: '2 ngày phải cùng tháng. Muốn lấy nhiều tháng, dùng lựa chọn Tháng hoặc Năm.' };
+        }
+        return { valid: true as const };
+    }, [customFrom, customTo, now]);
+
+    if (!isOpen) return null;
+
+    const yearOptions = [
+        { year: now.getFullYear(), label: `${now.getFullYear()} — năm nay` },
+        { year: now.getFullYear() - 1, label: `${now.getFullYear() - 1} — năm trước` },
+    ];
+
+    const handleRunClick = () => {
+        if (activeTab === 'current') {
+            onRunSingle({ ...currentRange, label: `ĐẾN NGÀY ${toShortDDMM(currentRange.toDate)}` });
+            onClose();
+        } else if (activeTab === 'month' && monthRange) {
+            onRunSingle({ ...monthRange, label: `THÁNG ${selectedMonth ? recentMonths.find(m => m.yyyymm === selectedMonth)?.label : ''}` });
+            onClose();
+        } else if (activeTab === 'range' && rangeValidation.valid) {
+            onRunSingle({ fromDate: customFrom, toDate: customTo, label: `${customFrom} → ${customTo}` });
+            onClose();
+        } else if (activeTab === 'year' && selectedYear) {
+            setShowYearConfirm(true);
+        } else if (activeTab === 'compare') {
+            onRunCompare({ current: comparePeriods.current, previous: comparePeriods.previous }, compareLabel);
+            onClose();
+        }
+    };
+
+    const confirmYearRun = () => {
+        if (selectedYear == null) return;
+        setShowYearConfirm(false);
+        const label = fromMonth === 0 && actualToMonth === maxMonthIndex
+            ? `NĂM ${selectedYear} (LUỸ KẾ)`
+            : `NĂM ${selectedYear} (T${fromMonth + 1} → T${actualToMonth + 1})`;
+        onRunYear(selectedYear, label, fromMonth, actualToMonth);
+        onClose();
+    };
+
+    const isCurrentMonthSelected = monthRange && selectedMonth === recentMonths[0]?.yyyymm;
+
+    const primaryLabel = activeTab === 'year'
+        ? (yearPlan ? `Chạy ${yearPlan.length} tháng` : 'Chạy ngay')
+        : activeTab === 'compare' ? 'Chạy 2 kỳ' : 'Chạy ngay';
+    const primaryDisabled = (activeTab === 'range' && !rangeValidation.valid)
+        || (activeTab === 'year' && !selectedYear);
+
+    return (
+        <>
+            <Modal
+                isOpen={isOpen}
+                onClose={onClose}
+                title="Chọn thời gian đổ thưởng"
+                maxWidth="md"
+                footer={
+                    <div className="flex justify-end gap-3">
+                        <Button variant="secondary" onClick={onClose}>Huỷ</Button>
+                        <Button variant="primary" onClick={handleRunClick} disabled={primaryDisabled}>{primaryLabel}</Button>
+                    </div>
+                }
+            >
+                <Tabs
+                    variant="segment"
+                    size="sm"
+                    className="mb-4"
+                    activeId={activeTab}
+                    onChange={(id) => setActiveTab(id as typeof activeTab)}
+                    items={TABS.map(t => ({ id: t.id, label: t.label }))}
+                />
+
+                {activeTab === 'current' && (
+                    <div className="space-y-2">
+                        {currentRange.isFullPreviousMonth && (
+                            <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                Hôm nay là ngày 01 — tự động lấy TRỌN THÁNG TRƯỚC
+                            </p>
+                        )}
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Sẽ chạy: <span className="tabular-nums">{currentRange.fromDate} → {currentRange.toDate}</span>
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{employeeCount} nhân viên</p>
+                    </div>
+                )}
+
+                {activeTab === 'month' && (
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Chọn tháng</label>
+                            <Select
+                                aria-label="Chọn tháng"
+                                value={selectedMonth}
+                                onChange={e => setSelectedMonth(e.target.value)}
+                                className="h-auto pl-3 py-2 text-sm rounded-md text-slate-700"
+                            >
+                                {recentMonths.map(m => (
+                                    <option key={m.yyyymm} value={m.yyyymm}>{m.label}</option>
+                                ))}
+                            </Select>
+                        </div>
+                        {monthRange && (
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Sẽ chạy: <span className="tabular-nums">{monthRange.fromDate} → {monthRange.toDate}</span>
+                                <span className="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1">
+                                    {isCurrentMonthSelected ? '(tháng hiện tại — chưa hết tháng)' : '(đã đủ tháng)'}
+                                </span>
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'year' && (
+                    <div className="space-y-3">
+                        {canResume && resumeInfo && onResume && (
+                            <div className="p-3 bg-amber-50 dark:bg-amber-900/25 border border-amber-300 dark:border-amber-700/60 rounded-popup flex items-center justify-between gap-3">
+                                <div className="space-y-0.5">
+                                    <p className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-300"><AppIcon name="idea" size="sm" className="text-sky-600" />Có đợt chạy trước chưa hoàn tất:</p>
+                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">{resumeInfo.label}</p>
+                                </div>
+                                <Button
+                                    variant="warning" data-ui="bi" size="sm"
+                                    onClick={() => { onResume(); onClose(); }}
+                                    className="flex-shrink-0"
+                                >
+                                    Tiếp tục ngay
+                                </Button>
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">Chọn năm</label>
+                            <div className="flex gap-2">
+                                {yearOptions.map(y => (
+                                    <Button
+                                        key={y.year}
+                                        variant="toggle" data-ui="bi" aria-pressed={selectedYear === y.year} size="sm"
+                                        onClick={() => setSelectedYear(y.year)}
+                                        className="flex-1 aria-pressed:border-sky-500 aria-pressed:bg-sky-50 aria-pressed:text-sky-700"
+                                    >
+                                        {y.label}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        {selectedYear && (
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Từ tháng</label>
+                                    <Select
+                                        aria-label="Từ tháng"
+                                        value={fromMonth}
+                                        onChange={e => {
+                                            const v = Number(e.target.value);
+                                            setFromMonth(v);
+                                            if (toMonth != null && toMonth < v) setToMonth(v);
+                                        }}
+                                        className="h-auto pl-2.5 py-1.5 text-xs rounded-md text-slate-700"
+                                    >
+                                        {Array.from({ length: maxMonthIndex + 1 }, (_, i) => (
+                                            <option key={i} value={i}>Tháng {i + 1}</option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Đến tháng</label>
+                                    <Select
+                                        aria-label="Đến tháng"
+                                        value={actualToMonth}
+                                        onChange={e => setToMonth(Number(e.target.value))}
+                                        className="h-auto pl-2.5 py-1.5 text-xs rounded-md text-slate-700"
+                                    >
+                                        {Array.from({ length: maxMonthIndex - fromMonth + 1 }, (_, idx) => {
+                                            const m = fromMonth + idx;
+                                            return <option key={m} value={m}>Tháng {m + 1}</option>;
+                                        })}
+                                    </Select>
+                                </div>
+                            </div>
+                        )}
+                        {yearPlan && yearEstimate && (() => {
+                            const lastItem = yearPlan[yearPlan.length - 1];
+                            const isLastMonthPartial = lastItem.yyyymm === toYYYYMM(now.getFullYear(), now.getMonth());
+                            return (
+                                <>
+                                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                        Sẽ chạy {yearPlan.length} tháng: T{yearPlan[0].label.split('/')[0]} → T{lastItem.label}
+                                        {isLastMonthPartial && (
+                                            <span className="text-xs text-slate-400 dark:text-slate-500 font-normal"> (T{lastItem.label.split('/')[0]} chỉ đến {lastItem.toDate})</span>
+                                        )}
+                                    </p>
+                                    <div className="rounded-control border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5">
+                                        <p className="flex items-start gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+                                            <AppIcon name="warning" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+                                            <span>Sẽ chạy {yearPlan.length} tháng × {employeeCount} nhân viên ≈ {yearEstimate.totalRequests} lượt lấy dữ liệu,
+                                            mất khoảng {yearEstimate.estimatedMinutes} phút. Tiếp tục?</span>
+                                        </p>
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                )}
+
+                {activeTab === 'compare' && (
+                    <div className="space-y-2">
+                        {comparePeriods.isFullPreviousMonth && (
+                            <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                Hôm nay là ngày 01 — so TRỌN THÁNG TRƯỚC với trọn tháng trước nữa
+                            </p>
+                        )}
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Kỳ này: <span className="tabular-nums">{comparePeriods.current.fromDate} → {comparePeriods.current.toDate}</span>
+                        </p>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Kỳ trước: <span className="tabular-nums">{comparePeriods.previous.fromDate} → {comparePeriods.previous.toDate}</span>
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                            Chạy 2 lượt × {employeeCount} nhân viên = {employeeCount * 2} lượt lấy dữ liệu. Xong sẽ tự chuyển sang chế độ xem &quot;So sánh cùng kỳ&quot;.
+                        </p>
+                    </div>
+                )}
+
+                {activeTab === 'range' && (
+                    <div className="space-y-3">
+                        <div className="flex gap-3">
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ngày bắt đầu</label>
+                                <Input
+                                    aria-label="Ngày bắt đầu"
+                                    type="date"
+                                    value={toApiInputValue(customFrom)}
+                                    onChange={e => setCustomFrom(fromApiInputValue(e.target.value))}
+                                    className="block h-auto px-3 py-2 text-sm rounded-md text-slate-700"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ngày kết thúc</label>
+                                <Input
+                                    aria-label="Ngày kết thúc"
+                                    type="date"
+                                    value={toApiInputValue(customTo)}
+                                    onChange={e => setCustomTo(fromApiInputValue(e.target.value))}
+                                    className="block h-auto px-3 py-2 text-sm rounded-md text-slate-700"
+                                />
+                            </div>
+                        </div>
+                        {rangeValidation.valid ? (
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Sẽ chạy: <span className="tabular-nums">{customFrom} → {customTo}</span>
+                            </p>
+                        ) : (
+                            <p className="flex items-start gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400"><AppIcon name="warning" size="sm" className="text-rose-600 mt-0.5 shrink-0" /><span>{rangeValidation.error}</span></p>
+                        )}
+                    </div>
+                )}
+            </Modal>
+
+            <ConfirmDialog
+                isOpen={showYearConfirm}
+                onClose={() => setShowYearConfirm(false)}
+                onConfirm={confirmYearRun}
+                title="Xác nhận chạy trọn năm"
+                variant="warning"
+                confirmText="Tiếp tục"
+                message={yearPlan && yearEstimate
+                    ? `Sẽ chạy ${yearPlan.length} tháng × ${employeeCount} nhân viên ≈ ${yearEstimate.totalRequests} lượt lấy dữ liệu, mất khoảng ${yearEstimate.estimatedMinutes} phút.\n\nMỗi tháng sẽ mở 1 tab MWG mới, chạy tuần tự. Bạn có thể dừng lại giữa chừng, dữ liệu các tháng đã xong vẫn được giữ.`
+                    : ''}
+            />
+        </>
+    );
+};
+
+export default AutoBonusRangePickerModal;

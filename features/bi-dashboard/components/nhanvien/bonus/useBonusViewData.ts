@@ -1,0 +1,498 @@
+import { useState, useMemo, useCallback } from 'react';
+import { useIndexedDBState } from '../../../hooks/useIndexedDBState';
+import { useMonthlyBonusArchive } from '../../../hooks/useMonthlyBonusArchive';
+import { useBonusCompareData } from '../../../hooks/useBonusCompareData';
+import { Employee, BonusMetrics, RevenueRow } from '../../../types/nhanVienTypes';
+import { BonusDisplayRow } from './BonusDisplayRow';
+import { getRevenueForEmployee } from './bonusTableHelpers';
+import { extractEmployeeId, standardizeEmployeeName, formatEmployeeName } from '../../../utils/nhanVienHelpers';
+
+/** Chế độ xem theo thời gian của tab Thưởng — 1 giá trị thay cho 2 boolean isDaily/isMonthly cũ
+ * (key IndexedDB cũ `bonus-view-mode-daily-v2`/`-monthly-v2` bỏ hoang, không cần dọn). */
+export type BonusPeriodMode = 'summary' | 'daily' | 'monthly' | 'compare';
+
+interface UseBonusViewDataParams {
+    employees: Employee[];
+    bonusData: Record<string, BonusMetrics | null>;
+    revenueRows: RevenueRow[];
+    activeSupermarkets: string[];
+    activeDepartments: string[];
+    isActive?: boolean;
+}
+
+// Toàn bộ state + tính toán phái sinh của BonusView — tách khỏi phần render để
+// BonusTab.tsx/BonusDailyTable/BonusGroupListTable chỉ còn lo hiển thị.
+export function useBonusViewData({
+    employees,
+    bonusData,
+    revenueRows,
+    activeSupermarkets,
+    activeDepartments,
+    isActive,
+}: UseBonusViewDataParams) {
+    const [sortField, setSortField] = useState<string>('dKien');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+    const [viewMode, setViewMode] = useIndexedDBState<'group' | 'list'>('bonus-view-mode-multi-v2', 'group');
+    const [periodMode, setPeriodMode] = useIndexedDBState<BonusPeriodMode>('bonus-view-period-mode-v3', 'summary');
+    const isDaily = periodMode === 'daily';
+    const isMonthly = periodMode === 'monthly';
+    const isCompare = periodMode === 'compare';
+    const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
+
+    const monthlyArchive = useMonthlyBonusArchive(activeSupermarkets, isMonthly);
+    const compareData = useBonusCompareData(activeSupermarkets, isCompare);
+    const monthlyEmployees = useMemo(
+        () => employees.filter(e => activeDepartments.includes(e.department)),
+        [employees, activeDepartments],
+    );
+
+    const getWeekTotalForEmployee = (employeeName: string, weekDates: string[]) => {
+        const bonus = bonusData[employeeName];
+        if (!bonus || !bonus.dailyData) return 0;
+        return weekDates.reduce((sum, dateStr) => sum + (bonus.dailyData?.[dateStr] || 0), 0);
+    };
+
+    const getWeekAverage = (weekDates: string[]) => {
+        if (employees.length === 0) return 0;
+        const totalSum = employees.reduce((sum, e) => sum + getWeekTotalForEmployee(e.originalName, weekDates), 0);
+        return totalSum / employees.length;
+    };
+
+    const getWeekGrandTotal = (weekDates: string[]) => {
+        return employees.reduce((sum, e) => sum + getWeekTotalForEmployee(e.originalName, weekDates), 0);
+    };
+
+    const getWeekDeptTotal = (deptEmployees: Employee[], weekDates: string[]) => {
+        return deptEmployees.reduce((sum, e) => sum + getWeekTotalForEmployee(e.originalName, weekDates), 0);
+    };
+
+    const toggleWeek = (weekId: string) => {
+        setExpandedWeeks(prev => ({
+            ...prev,
+            [weekId]: !prev[weekId]
+        }));
+    };
+
+    const allDates = useMemo(() => {
+        if (isActive === false) return [];
+        const datesSet = new Set<string>();
+        Object.values(bonusData).forEach(metrics => {
+            if (metrics && metrics.dailyData) {
+                Object.keys(metrics.dailyData).forEach(d => datesSet.add(d));
+            }
+        });
+        const sorted = Array.from(datesSet).sort((a, b) => {
+            const [da, ma, ya] = a.split('/').map(Number);
+            const [db, mb, yb] = b.split('/').map(Number);
+            return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
+        });
+
+        if (sorted.length === 0) return [];
+
+        // Lấy tháng và năm của ngày gần nhất có dữ liệu để đại diện cho kỳ hiện tại
+        const lastDateStr = sorted[sorted.length - 1];
+        const [, targetMonth, targetYear] = lastDateStr.split('/').map(Number);
+
+        // Chỉ giữ lại các ngày thuộc tháng/năm này để tránh lẫn lộn dữ liệu các tháng cũ
+        return sorted.filter(dateStr => {
+            const [, m, y] = dateStr.split('/').map(Number);
+            return m === targetMonth && y === targetYear;
+        });
+    }, [bonusData, isActive]);
+
+    const weeks = useMemo(() => {
+        if (isActive === false) return [];
+        // Nhóm các ngày theo tuần của tháng
+        const groups: Record<string, { name: string; dates: string[] }> = {};
+        allDates.forEach(dateStr => {
+            const [d, m, y] = dateStr.split('/').map(Number);
+            const dateOf1st = new Date(y, m - 1, 1);
+            const dayOf1st = dateOf1st.getDay(); // 0: CN, 1: T2, ...
+            const firstSunday = dayOf1st === 0 ? 1 : 8 - dayOf1st;
+
+            let weekNum = 1;
+            if (d > firstSunday) {
+                const diff = d - firstSunday;
+                weekNum = 1 + Math.ceil(diff / 7);
+            }
+
+            const weekKey = `${y}-${String(m).padStart(2, '0')}-W${weekNum}`;
+            if (!groups[weekKey]) {
+                groups[weekKey] = {
+                    name: `Tuần ${weekNum}`,
+                    dates: []
+                };
+            }
+            groups[weekKey].dates.push(dateStr);
+        });
+
+        // Sắp xếp các tuần theo thứ tự thời gian tăng dần
+        const sortedKeys = Object.keys(groups).sort();
+
+        // Tạo mảng tuần: { id: string, name: string, dates: string[] }
+        return sortedKeys.map(key => ({
+            id: key,
+            name: groups[key].name,
+            dates: groups[key].dates
+        }));
+    }, [allDates, isActive]);
+
+    const weekAverages = useMemo(() => {
+        const avgs: Record<string, number> = {};
+        weeks.forEach(week => {
+            if (employees.length === 0) {
+                avgs[week.id] = 0;
+                return;
+            }
+            const totalSum = employees.reduce((sum, e) => {
+                const bonus = bonusData[e.originalName];
+                if (!bonus || !bonus.dailyData) return sum;
+                const weekSum = week.dates.reduce((s, dateStr) => s + (bonus.dailyData?.[dateStr] || 0), 0);
+                return sum + weekSum;
+            }, 0);
+            avgs[week.id] = totalSum / employees.length;
+        });
+        return avgs;
+    }, [weeks, employees, bonusData]);
+
+    const weekStats = useMemo(() => {
+        const stats: Record<string, { top3Threshold: number }> = {};
+        weeks.forEach(week => {
+            const values = employees
+                .map(e => {
+                    const bonus = bonusData[e.originalName];
+                    if (!bonus || !bonus.dailyData) return 0;
+                    return week.dates.reduce((sum, dateStr) => sum + (bonus.dailyData?.[dateStr] || 0), 0);
+                })
+                .filter(v => v > 0);
+
+            const sortedUnique = Array.from(new Set(values)).sort((a, b) => b - a);
+            const top3Threshold = sortedUnique.length > 0 ? sortedUnique[Math.min(2, sortedUnique.length - 1)] : 0;
+            stats[week.id] = { top3Threshold };
+        });
+        return stats;
+    }, [weeks, employees, bonusData]);
+
+    const getEmployeeWeeksBelowAvgCount = useCallback((employeeName: string) => {
+        let count = 0;
+        weeks.forEach(week => {
+            const bonus = bonusData[employeeName];
+            if (!bonus || !bonus.dailyData) return;
+            const weekTotal = week.dates.reduce((sum, dateStr) => sum + (bonus.dailyData?.[dateStr] || 0), 0);
+            const weekAvg = weekAverages[week.id] || 0;
+            if (weekTotal > 0 && weekTotal < weekAvg) {
+                count++;
+            }
+        });
+        return count;
+    }, [weeks, bonusData, weekAverages]);
+
+    const colStats = useMemo(() => {
+        if (isActive === false || allDates.length === 0) return {};
+        const stats: Record<string, { avg: number; top3Threshold: number }> = {};
+        allDates.forEach(dateStr => {
+            const values = employees
+                .map(e => (e.originalName ? bonusData[e.originalName] : undefined)?.dailyData?.[dateStr] || 0)
+                .filter(v => v > 0);
+            const sum = values.reduce((s, v) => s + v, 0);
+            const avg = employees.length > 0 ? sum / employees.length : 0;
+
+            const sortedUnique = Array.from(new Set(values)).sort((a, b) => b - a);
+            const top3Threshold = sortedUnique.length > 0 ? sortedUnique[Math.min(2, sortedUnique.length - 1)] : 0;
+
+            stats[dateStr] = { avg, top3Threshold };
+        });
+        return stats;
+    }, [employees, bonusData, allDates, isActive]);
+
+    const { avgTong, avgWeeksBelowAvg, avgBelowAvgDays } = useMemo(() => {
+        if (isActive === false || employees.length === 0) return { avgTong: 0, avgWeeksBelowAvg: 0, avgBelowAvgDays: 0 };
+        const sumTong = employees.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.tong || 0), 0);
+        const avgTong = sumTong / employees.length;
+
+        const sumWeeksBelowAvg = employees.reduce((sum, e) => {
+            return sum + getEmployeeWeeksBelowAvgCount(e.originalName);
+        }, 0);
+        const avgWeeksBelowAvg = sumWeeksBelowAvg / employees.length;
+
+        const sumBelowAvgDays = employees.reduce((sum, e) => {
+            const bonus = bonusData[e.originalName];
+            const count = allDates.reduce((c, dateStr) => {
+                const val = bonus?.dailyData?.[dateStr] || 0;
+                const avg = colStats[dateStr]?.avg || 0;
+                return (val > 0 && val < avg) ? c + 1 : c;
+            }, 0);
+            return sum + count;
+        }, 0);
+        const avgBelowAvgDays = sumBelowAvgDays / employees.length;
+
+        return { avgTong, avgWeeksBelowAvg, avgBelowAvgDays };
+    }, [employees, bonusData, allDates, colStats, getEmployeeWeeksBelowAvgCount, isActive]);
+
+    const revenueMap = useMemo(() => {
+        if (isActive === false) return new Map<string, RevenueRow>();
+        const m = new Map<string, RevenueRow>();
+        revenueRows.forEach((r) => {
+            if (r.type === 'employee') {
+                if (r.originalName) {
+                    m.set(r.originalName, r);
+                    m.set(r.originalName.toLowerCase().trim(), r);
+                    const canonical = standardizeEmployeeName(r.originalName);
+                    m.set(canonical, r);
+                    m.set(canonical.toLowerCase().trim(), r);
+                    const formatted = formatEmployeeName(r.originalName);
+                    m.set(formatted, r);
+                    m.set(formatted.toLowerCase().trim(), r);
+                    const empId = extractEmployeeId(r.originalName);
+                    if (empId) m.set(empId, r);
+                    if (r.originalName.includes(' - ')) {
+                        const parts = r.originalName.split(' - ').map(p => p.trim());
+                        m.set(`${parts[1]} - ${parts[0]}`, r);
+                    }
+                }
+                if (r.name) {
+                    m.set(r.name, r);
+                    m.set(r.name.toLowerCase().trim(), r);
+                    const empId = extractEmployeeId(r.name);
+                    if (empId) m.set(empId, r);
+                }
+            }
+        });
+        return m;
+    }, [revenueRows, isActive]);
+
+    const displayList = useMemo(() => {
+        if (isActive === false) return [];
+        const isFiltering = !activeDepartments.includes('all');
+        const allUniqueDepts = Array.from(new Set(employees.map(e => e.department))).sort();
+        const depts = isFiltering ? activeDepartments : allUniqueDepts;
+
+        if (viewMode === 'list') {
+            const list = employees.filter(e => isFiltering ? activeDepartments.includes(e.department) : true);
+            list.sort((a, b) => {
+                const bA = bonusData[a.originalName], bB = bonusData[b.originalName];
+                const rA = getRevenueForEmployee(revenueMap, a.originalName, a.name);
+                const rB = getRevenueForEmployee(revenueMap, b.originalName, b.name);
+                let vA = 0, vB = 0;
+                if (sortField === 'name') return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+                if (sortField === 'dtqd') { vA = rA?.dtqd || 0; vB = rB?.dtqd || 0; }
+                else if (sortField === 'hqqd') { vA = (rA?.hieuQuaQD || 0) * 100; vB = (rB?.hieuQuaQD || 0) * 100; }
+                else if (sortField === 'weekBelowAvg') {
+                    vA = getEmployeeWeeksBelowAvgCount(a.originalName);
+                    vB = getEmployeeWeeksBelowAvgCount(b.originalName);
+                }
+                else if (sortField === 'belowAvgDays') {
+                    vA = allDates.reduce((count, dateStr) => {
+                        const val = bA?.dailyData?.[dateStr] || 0;
+                        const avg = colStats[dateStr]?.avg || 0;
+                        return (val > 0 && val < avg) ? count + 1 : count;
+                    }, 0);
+                    vB = allDates.reduce((count, dateStr) => {
+                        const val = bB?.dailyData?.[dateStr] || 0;
+                        const avg = colStats[dateStr]?.avg || 0;
+                        return (val > 0 && val < avg) ? count + 1 : count;
+                    }, 0);
+                }
+                else if (sortField.startsWith('date:')) {
+                    const dStr = sortField.substring(5);
+                    vA = bA?.dailyData?.[dStr] || 0;
+                    vB = bB?.dailyData?.[dStr] || 0;
+                } else if (sortField.startsWith('week:')) {
+                    const wId = sortField.substring(5);
+                    const targetWeek = weeks.find(w => w.id === wId);
+                    const weekDates = targetWeek ? targetWeek.dates : [];
+                    vA = weekDates.reduce((sum, dStr) => sum + (bA?.dailyData?.[dStr] || 0), 0);
+                    vB = weekDates.reduce((sum, dStr) => sum + (bB?.dailyData?.[dStr] || 0), 0);
+                } else { vA = (bA as unknown as Record<string, unknown>)?.[sortField] as number || 0; vB = (bB as unknown as Record<string, unknown>)?.[sortField] as number || 0; }
+                return sortDir === 'asc' ? vA - vB : vB - vA;
+            });
+            const result: BonusDisplayRow[] = list.map((e, idx) => ({ ...e, rank: idx + 1 }));
+            if (result.length > 0) {
+                const sumDtqd = result.reduce((s, e) => s + (getRevenueForEmployee(revenueMap, e.originalName, e.name)?.dtqd || 0), 0);
+                const sumDtlk = result.reduce((s, e) => s + (getRevenueForEmployee(revenueMap, e.originalName, e.name)?.dtlk || 0), 0);
+                const origTotalRow = revenueRows.find(r => r.type === 'total');
+                const sumHqqd = origTotalRow && origTotalRow.hieuQuaQD ? (origTotalRow.hieuQuaQD * 100) : (sumDtlk > 0 ? ((sumDtqd - sumDtlk) / sumDtlk) * 100 : 0);
+                const sumErp = result.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.erp || 0), 0);
+                const sumTnong = result.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.tNong || 0), 0);
+                const sumTong = result.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.tong || 0), 0);
+                const sumDkien = result.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.dKien || 0), 0);
+
+                const dailySums: Record<string, number> = {};
+                allDates.forEach(dateStr => {
+                    dailySums[dateStr] = result.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.dailyData?.[dateStr] || 0), 0);
+                });
+
+                result.push({
+                    type: 'total',
+                    name: 'TỔNG CỘNG',
+                    sumDtqd, sumHqqd, sumDtlk, sumErp, sumTnong, sumTong, sumDkien, dailySums
+                });
+            }
+            return result;
+        }
+
+        let deptGroups = depts.map(d => {
+            let emps = employees.filter(e => e.department === d);
+            emps.sort((a, b) => {
+                const bA = bonusData[a.originalName], bB = bonusData[b.originalName];
+                const rA = getRevenueForEmployee(revenueMap, a.originalName, a.name);
+                const rB = getRevenueForEmployee(revenueMap, b.originalName, b.name);
+                let vA = 0, vB = 0;
+                if (sortField === 'name') return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+                if (sortField === 'dtqd') { vA = rA?.dtqd || 0; vB = rB?.dtqd || 0; }
+                else if (sortField === 'hqqd') { vA = (rA?.hieuQuaQD || 0) * 100; vB = (rB?.hieuQuaQD || 0) * 100; }
+                else if (sortField === 'weekBelowAvg') {
+                    vA = getEmployeeWeeksBelowAvgCount(a.originalName);
+                    vB = getEmployeeWeeksBelowAvgCount(b.originalName);
+                }
+                else if (sortField === 'belowAvgDays') {
+                    vA = allDates.reduce((count, dateStr) => {
+                        const val = bA?.dailyData?.[dateStr] || 0;
+                        const avg = colStats[dateStr]?.avg || 0;
+                        return (val > 0 && val < avg) ? count + 1 : count;
+                    }, 0);
+                    vB = allDates.reduce((count, dateStr) => {
+                        const val = bB?.dailyData?.[dateStr] || 0;
+                        const avg = colStats[dateStr]?.avg || 0;
+                        return (val > 0 && val < avg) ? count + 1 : count;
+                    }, 0);
+                }
+                else if (sortField.startsWith('date:')) {
+                    const dStr = sortField.substring(5);
+                    vA = bA?.dailyData?.[dStr] || 0;
+                    vB = bB?.dailyData?.[dStr] || 0;
+                } else if (sortField.startsWith('week:')) {
+                    const wId = sortField.substring(5);
+                    const targetWeek = weeks.find(w => w.id === wId);
+                    const weekDates = targetWeek ? targetWeek.dates : [];
+                    vA = weekDates.reduce((sum, dStr) => sum + (bA?.dailyData?.[dStr] || 0), 0);
+                    vB = weekDates.reduce((sum, dStr) => sum + (bB?.dailyData?.[dStr] || 0), 0);
+                } else { vA = (bA as unknown as Record<string, unknown>)?.[sortField] as number || 0; vB = (bB as unknown as Record<string, unknown>)?.[sortField] as number || 0; }
+                return sortDir === 'asc' ? vA - vB : vB - vA;
+            });
+
+            const sumDtqd = emps.reduce((s, e) => s + (getRevenueForEmployee(revenueMap, e.originalName, e.name)?.dtqd || 0), 0);
+            const sumDtlk = emps.reduce((s, e) => s + (getRevenueForEmployee(revenueMap, e.originalName, e.name)?.dtlk || 0), 0);
+            const origDeptRow = revenueRows.find(r => r.type === 'department' && r.name === d);
+            const sumHqqd = origDeptRow && origDeptRow.hieuQuaQD ? (origDeptRow.hieuQuaQD * 100) : (sumDtlk > 0 ? ((sumDtqd - sumDtlk) / sumDtlk) * 100 : 0);
+            const sumErp = emps.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.erp || 0), 0);
+            const sumTnong = emps.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.tNong || 0), 0);
+            const sumTong = emps.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.tong || 0), 0);
+            const sumDkien = emps.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.dKien || 0), 0);
+
+            const dailySums: Record<string, number> = {};
+            allDates.forEach(dateStr => {
+                dailySums[dateStr] = emps.reduce((s, e) => s + ((e.originalName ? bonusData[e.originalName] : undefined)?.dailyData?.[dateStr] || 0), 0);
+            });
+
+            let sortValue = 0;
+            if (sortField === 'dtqd') sortValue = sumDtqd;
+            else if (sortField === 'hqqd') sortValue = sumHqqd;
+            else if (sortField === 'erp') sortValue = sumErp;
+            else if (sortField === 'tNong') sortValue = sumTnong;
+            else if (sortField === 'tong') sortValue = sumTong;
+            else if (sortField === 'dKien') sortValue = sumDkien;
+            else if (sortField === 'weekBelowAvg') {
+                sortValue = emps.reduce((sum, e) => sum + getEmployeeWeeksBelowAvgCount(e.originalName), 0);
+            }
+            else if (sortField === 'belowAvgDays') {
+                sortValue = emps.reduce((sum, e) => {
+                    const b = bonusData[e.originalName];
+                    return sum + allDates.reduce((count, dateStr) => {
+                        const val = b?.dailyData?.[dateStr] || 0;
+                        const avg = colStats[dateStr]?.avg || 0;
+                        return (val > 0 && val < avg) ? count + 1 : count;
+                    }, 0);
+                }, 0);
+            }
+            else if (sortField.startsWith('date:')) {
+                const dStr = sortField.substring(5);
+                sortValue = dailySums[dStr] || 0;
+            } else if (sortField.startsWith('week:')) {
+                const wId = sortField.substring(5);
+                const targetWeek = weeks.find(w => w.id === wId);
+                const weekDates = targetWeek ? targetWeek.dates : [];
+                sortValue = weekDates.reduce((sum, dStr) => sum + (dailySums[dStr] || 0), 0);
+            } else {
+                sortValue = sumDkien;
+            }
+
+            return { name: d, employees: emps, sumDtqd, sumHqqd, sumDtlk, sumErp, sumTnong, sumTong, sumDkien, dailySums, sortValue };
+        });
+
+        deptGroups.sort((a, b) => {
+            if (sortField === 'name') return sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+            return sortDir === 'asc' ? a.sortValue - b.sortValue : b.sortValue - a.sortValue;
+        });
+
+        let out: BonusDisplayRow[] = [];
+        let grandSumDtqd = 0, grandSumDtlk = 0, grandSumErp = 0, grandSumTnong = 0, grandSumTong = 0, grandSumDkien = 0;
+        const grandDailySums: Record<string, number> = {};
+        allDates.forEach(dateStr => {
+            grandDailySums[dateStr] = 0;
+        });
+
+        deptGroups.forEach(group => {
+            if (group.employees.length > 0) {
+                out.push({
+                    type: 'department',
+                    name: group.name,
+                    sumDtqd: group.sumDtqd,
+                    sumHqqd: group.sumHqqd,
+                    sumDtlk: group.sumDtlk,
+                    sumErp: group.sumErp,
+                    sumTnong: group.sumTnong,
+                    sumTong: group.sumTong,
+                    sumDkien: group.sumDkien,
+                    dailySums: group.dailySums
+                });
+                out.push(...group.employees.map((e, idx) => ({ ...e, rank: idx + 1 })));
+
+                grandSumDtqd += group.sumDtqd;
+                grandSumDtlk += group.sumDtlk || 0;
+                grandSumErp += group.sumErp;
+                grandSumTnong += group.sumTnong;
+                grandSumTong += group.sumTong;
+                grandSumDkien += group.sumDkien;
+
+                allDates.forEach(dateStr => {
+                    grandDailySums[dateStr] += group.dailySums[dateStr] || 0;
+                });
+            }
+        });
+
+        if (out.length > 0) {
+            const grandOrigTotalRow = revenueRows.find(r => r.type === 'total');
+            const grandSumHqqd = grandOrigTotalRow && grandOrigTotalRow.hieuQuaQD ? (grandOrigTotalRow.hieuQuaQD * 100) : (grandSumDtlk > 0 ? ((grandSumDtqd - grandSumDtlk) / grandSumDtlk) * 100 : 0);
+
+            out.push({
+                type: 'total',
+                name: 'TỔNG CỘNG',
+                sumDtqd: grandSumDtqd,
+                sumHqqd: grandSumHqqd,
+                sumDtlk: grandSumDtlk,
+                sumErp: grandSumErp,
+                sumTnong: grandSumTnong,
+                sumTong: grandSumTong,
+                sumDkien: grandSumDkien,
+                dailySums: grandDailySums
+            });
+        }
+        return out;
+    }, [employees, activeDepartments, bonusData, revenueMap, revenueRows, sortField, sortDir, viewMode, isActive, allDates, getEmployeeWeeksBelowAvgCount, colStats]);
+
+    return {
+        sortField, setSortField, sortDir, setSortDir,
+        viewMode, setViewMode,
+        periodMode, setPeriodMode,
+        isDaily, isMonthly, isCompare,
+        expandedWeeks, toggleWeek,
+        monthlyArchive, monthlyEmployees, compareData,
+        allDates, weeks, weekAverages, weekStats, colStats,
+        avgTong, avgWeeksBelowAvg, avgBelowAvgDays,
+        revenueMap, displayList,
+        getWeekTotalForEmployee, getWeekAverage, getWeekGrandTotal, getWeekDeptTotal,
+        getEmployeeWeeksBelowAvgCount,
+    };
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "styles/tokens.css",
+    "line": 320,
+    "text": "--btn-radius: var(--p-radius-lg);"
+  },
+  {
+    "path": "styles/tokens.css",
+    "line": 334,
+    "text": "--input-radius: var(--p-radius-lg);"
+  },
+  {
+    "path": "styles.css",
+    "line": 16,
+    "text": "--radius-control: var(--btn-radius);"
+  },
+  {
+    "path": "tests/e2e/login-view-redesign.spec.ts",
+    "line": 44,
+    "text": "// Bo góc chuẩn rounded-control: 8px (token --btn-radius / --radius-control)"
+  },
+  {
+    "path": "tests/e2e/shared-form-states.spec.ts",
+    "line": 27,
+    "text": "await page.evaluate(() => document.documentElement.style.setProperty('--btn-radius', '17px'));"
+  },
+  {
+    "path": "tests/e2e/shared-form-states.spec.ts",
+    "line": 29,
+    "text": "await page.evaluate(() => document.documentElement.style.removeProperty('--btn-radius'));"
+  },
+  {
+    "path": "tests/e2e/shared-form-states.spec.ts",
+    "line": 107,
+    "text": "document.documentElement.style.setProperty('--btn-radius', '17px');"
+  },
+  {
+    "path": "tests/e2e/shared-form-states.spec.ts",
+    "line": 116,
+    "text": "for (const token of ['--btn-radius', '--card-radius', '--popup-radius']) document.documentElement.style.removeProperty(token);"
+  }
+]

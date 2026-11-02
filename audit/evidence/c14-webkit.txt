@@ -1,0 +1,25 @@
+[WebServer] (node:14276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+  ✓   1 [webkit] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 390 › Escape cancels a pending hover timer (1.3s)
+  ✓   2 [webkit] › tests/e2e/shared-tooltip.spec.ts:24:9 › Tooltip 1366 › Escape cancels a pending hover timer (489ms)
+  ✓   3 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto top tooltip and leaves without focus (1.3s)
+  ✓   4 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto bottom tooltip and leaves without focus (1.2s)
+  ✓   5 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto left tooltip and leaves without focus (1.9s)
+  ✓   6 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 390 › pointer crosses gap onto right tooltip and leaves without focus (1.4s)
+  ✓   7 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto top tooltip and leaves without focus (1.3s)
+  ✓   8 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto bottom tooltip and leaves without focus (1.4s)
+  ✓   9 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto left tooltip and leaves without focus (1.3s)
+  ✓  10 [webkit] › tests/e2e/shared-tooltip.spec.ts:56:13 › Tooltip lifecycle 1366 › pointer crosses gap onto right tooltip and leaves without focus (1.3s)
+  ✓  11 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at top edge stays readable inside viewport (445ms)
+  ✓  12 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at bottom edge stays readable inside viewport (455ms)
+  ✓  13 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at left edge stays readable inside viewport (469ms)
+  ✓  14 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at right edge stays readable inside viewport (495ms)
+  ✓  15 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at top edge stays readable inside viewport (473ms)
+  ✓  16 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at bottom edge stays readable inside viewport (463ms)
+  ✓  17 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at left edge stays readable inside viewport (478ms)
+  ✓  18 [webkit] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at right edge stays readable inside viewport (612ms)
+
+  18 passed (18.6s)

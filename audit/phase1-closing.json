@@ -1,0 +1,37 @@
+{
+  "head": "c4df4d1d5ba30cf3c317cc9c42644d917c557537",
+  "total_files": 136946,
+  "total_directories": 18326,
+  "included_files": 1350,
+  "excluded_files": 135596,
+  "checkpoint_entries": 1346,
+  "checkpoint_status": {
+    "UNCHANGED": 1346,
+    "OUTSIDE_CHECKPOINT_SCOPE": 135548,
+    "ADDED_SINCE_CHECKPOINT": 52
+  },
+  "paths_missing_from_ledger": [],
+  "paths_added_during_scan": [],
+  "paths_removed_during_scan": [],
+  "directories_changed": [],
+  "errors": [],
+  "included_by_type": {
+    "DOCUMENTATION": 185,
+    "STYLE": 5,
+    "SOURCE": 624,
+    "CONFIG": 50,
+    "SCRIPT": 38,
+    "OTHER": 8,
+    "TEST": 394,
+    "ASSET": 46
+  },
+  "file_reconciliation_pass": true,
+  "phase1_status": "COMPLETE_INVENTORY_ONLY",
+  "closed_at": "2026-10-24T14:25:44.534052+07:00",
+  "ast_files": 1039,
+  "ui_files": 331,
+  "component_declarations": 467,
+  "surface_candidates": 169,
+  "routing_records": 941,
+  "modules": 29
+}

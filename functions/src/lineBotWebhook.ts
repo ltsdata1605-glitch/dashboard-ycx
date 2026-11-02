@@ -1,0 +1,4141 @@
+/**
+ * Firebase Cloud Function - Tiếp nhận Webhook LINE Messaging API đa người dùng
+ */
+
+import { withSecrets, botsWithSecrets, canCallerUseBot, SECRET_KEYS, BOT_SECRETS_COL } from './lineBotSecrets';
+import { onRequest } from 'firebase-functions/v2/https';
+import { verifyLineSignature } from './lineSignature';
+import { signLiffUris, verifyLiffTicket, LEGACY_LIFF_UNTIL } from './liffTicket';
+import * as crypto from 'crypto';
+import { db, auth as adminAuth } from './firebaseAdmin';
+import { FieldPath } from 'firebase-admin/firestore';
+import { isRelistUnusedCommand, getVnMonthStartIso, selectUnusedThisMonth } from './relistUnused';
+import { formatShortUserName } from './userName';
+import { isStrictPmhRequestForm } from './pmhForm';
+import { extractBareCouponCode, buildCouponStatusReply } from './couponLookup';
+import { getGroupFeatures, type GroupFeatures, type GroupFeatureKey } from './groupFeatureHelper';
+import { allocatePmhSequence, formatPmhLabel, buildCouponUsedText, couponKind } from './pmhSequence';
+import { enqueuePmhRelay } from './pmhRelay';
+import { laIdDocHopLe } from './firestoreDocId';
+import { moTaLoiLine, laHetHanMuc } from './lineErrors';
+import { layHanMuc, uocTinhNotifyCuaBot } from './lineQuota';
+import { vnNow } from './lineBotScheduleDue';
+import { autoRevokeStaleCouponsForBot } from './couponAutoRevoke';
+
+const DEFAULT_REGION = 'asia-southeast1';
+
+interface LineEvent {
+    type: string;
+    mode?: string;
+    timestamp?: number;
+    source?: {
+        type: string;
+        userId?: string;
+        groupId?: string;
+        roomId?: string;
+    };
+    replyToken?: string;
+    message?: {
+        id: string;
+        type: string;
+        text?: string;
+        quoteToken?: string;
+    };
+    postback?: {
+        data: string;
+        params?: any;
+    };
+}
+
+/**
+ * Lấy thông tin hiển thị của thành viên từ LINE API (để tag tên)
+ */
+async function getLineUserProfile(token: string, userId: string, groupId?: string): Promise<{ displayName: string; pictureUrl?: string; statusMessage?: string } | null> {
+    if (!token || !userId) return null;
+    try {
+        const url = groupId
+            ? `https://api.line.me/v2/bot/group/${groupId}/member/${userId}`
+            : `https://api.line.me/v2/bot/profile/${userId}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3000);
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal
+        }).finally(() => clearTimeout(timer));
+
+        if (!res.ok) return null;
+        const data = await res.json() as any;
+        return data && typeof data.displayName === 'string'
+            ? { displayName: data.displayName, pictureUrl: data.pictureUrl, statusMessage: data.statusMessage }
+            : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Gửi tin nhắn trả lời (reply) qua LINE Messaging API có fallback tự động
+ * Nếu gửi kèm mention bị lỗi (hết lượt miễn phí tag hoặc lỗi cú pháp tag), tự động gửi lại tin nhắn chỉ dùng quoteToken (trích dẫn)
+ */
+/**
+ * Kết quả gửi kèm `sentMessages` (id + quoteToken của từng tin đã gửi) — cần để bot TRÍCH DẪN lại
+ * đúng thẻ coupon khi người dùng bấm "Chạm để copy" (xem action mark-used). Thẻ Flex có quoteToken
+ * (khi trích dẫn LINE hiển thị altText), tài liệu: developers.line.biz/en/docs/messaging-api/get-quote-tokens/
+ */
+interface LineSentMessage { id: string; quoteToken?: string }
+interface LineSendResult { ok: boolean; sentMessages: LineSentMessage[] }
+
+async function readSentMessages(res: Response): Promise<LineSentMessage[]> {
+    try {
+        const data = await res.json() as any;
+        return Array.isArray(data?.sentMessages) ? data.sentMessages : [];
+    } catch {
+        return [];
+    }
+}
+
+async function replyLineMessage(token: string, replyToken: string, messages: any[]): Promise<boolean> {
+    return (await replyLineMessageDetailed(token, replyToken, messages)).ok;
+}
+
+async function replyLineMessageDetailed(token: string, replyToken: string, messages: any[]): Promise<LineSendResult> {
+    const fail: LineSendResult = { ok: false, sentMessages: [] };
+    if (!token || !replyToken || !messages || messages.length === 0) return fail;
+    try {
+        // Sanitize messages: LINE Messaging API chỉ cho phép quoteToken trên text, image, video, audio, location, sticker.
+        // Tuyệt đối không cho phép quoteToken trên tin nhắn 'flex' (sẽ gây lỗi HTTP 400).
+        const sanitized = messages.map(m => {
+            const copy = { ...m };
+            if (copy.type === 'flex' || copy.type !== 'text' || !copy.quoteToken) {
+                delete copy.quoteToken;
+            }
+            return copy;
+        });
+
+        const res = await fetch('https://api.line.me/v2/bot/message/reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ replyToken, messages: sanitized })
+        });
+
+        console.info(`[LINE Reply] Sent ${sanitized.length} msg(s). Status: ${res.status}`);
+
+        if (res.ok) return { ok: true, sentMessages: await readSentMessages(res) };
+
+        {
+            const errData = await res.json().catch(() => ({}));
+            console.warn('[LINE Reply Error]', res.status, errData);
+
+            // Fallback 1: Nếu gửi Flex Message bị lỗi (ví dụ phiên bản LINE cũ hoặc cấu trúc bị từ chối), tự động fallback sang text
+            const hasFlex = sanitized.some(m => m.type === 'flex');
+            if (hasFlex) {
+                console.info('[LINE Reply Fallback] Retrying with text fallback for flex messages...');
+                const textFallbackMsgs = sanitized.map(m => {
+                    if (m.type === 'flex') {
+                        return {
+                            type: 'text',
+                            text: m.altText || '🎁 Bạn đã nhận được mã PMH.'
+                        };
+                    }
+                    const copy = { ...m };
+                    delete copy.mention;
+                    return copy;
+                });
+                const retryRes = await fetch('https://api.line.me/v2/bot/message/reply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ replyToken, messages: textFallbackMsgs })
+                });
+                if (retryRes.ok) return { ok: true, sentMessages: await readSentMessages(retryRes) };
+            }
+
+            // Fallback 2: Kiểm tra xem có tin nhắn nào chứa mention không
+            const hasMention = sanitized.some(m => m.mention);
+            if (hasMention) {
+                // Fallback: Nếu hết lượt miễn phí tag hoặc lỗi mention, gửi lại chỉ dùng quoteToken (trả lời trích dẫn)
+                const fallbackMsgs = sanitized.map(m => {
+                    const copy = { ...m };
+                    delete copy.mention;
+                    return copy;
+                });
+                const retryRes = await fetch('https://api.line.me/v2/bot/message/reply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ replyToken, messages: fallbackMsgs })
+                });
+                return retryRes.ok ? { ok: true, sentMessages: await readSentMessages(retryRes) } : fail;
+            }
+            return fail;
+        }
+    } catch (e) {
+        console.error('[LINE Reply Error]', e);
+        return fail;
+    }
+}
+
+/**
+ * Bot chủ động gửi (push) vào 1 chat. Dùng cho tin xác nhận trích dẫn thẻ coupon — không có replyToken
+ * vì người dùng bấm từ LIFF chứ không nhắn gì. ⚠️ Push TÍNH VÀO hạn mức tin nhắn tháng của OA
+ * (reply thì miễn phí); hết hạn mức LINE trả 429 → trả ok=false để LIFF tự gửi thay như trước.
+ * Nếu quoteToken bị từ chối (400, vd thẻ đã bị thu hồi) thì gửi lại không trích dẫn.
+ */
+async function pushLineMessage(token: string, to: string, messages: any[]): Promise<{ ok: boolean; status: number; error?: string }> {
+    if (!token || !to || !messages || messages.length === 0) return { ok: false, status: 0, error: 'missing-params' };
+    const send = async (msgs: any[]) => fetch('https://api.line.me/v2/bot/message/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ to, messages: msgs })
+    });
+    try {
+        const sanitized = messages.map(m => {
+            const copy = { ...m };
+            if (copy.type !== 'text' || !copy.quoteToken) delete copy.quoteToken;
+            return copy;
+        });
+        let res = await send(sanitized);
+        if (res.ok) return { ok: true, status: res.status };
+        const errData = await res.json().catch(() => ({})) as any;
+        console.warn('[LINE Push Error]', res.status, errData);
+        if (res.status === 400 && sanitized.some(m => m.quoteToken)) {
+            res = await send(sanitized.map(m => { const c = { ...m }; delete c.quoteToken; return c; }));
+            if (res.ok) return { ok: true, status: res.status };
+        }
+        return { ok: false, status: res.status, error: errData?.message || `HTTP ${res.status}` };
+    } catch (e: any) {
+        console.error('[LINE Push Error]', e);
+        return { ok: false, status: 0, error: e?.message || 'network' };
+    }
+}
+
+export { createCouponFlexBubble, createCouponFlexMessage, createFilteredPmhFlexMessages } from './pmhFlexCard';
+import { createCouponFlexBubble, createCouponFlexMessage, createFilteredPmhFlexMessages } from './pmhFlexCard';
+
+/**
+ * Format tin nhắn cho lệnh "cp" (Danh sách cú pháp đăng ký của tất cả sản phẩm)
+ */
+function formatSyntaxListMessage(
+    coupons: Array<{ productName?: string; syntax?: string; type?: string; status?: string }>,
+    fallbackSyntax?: string
+): string {
+    const productMap = new Map<string, { productName: string; syntax: string }>();
+
+    for (const c of coupons) {
+        const prodName = (c.productName || c.type || '').trim();
+        if (!prodName) continue;
+        const syntax = (c.syntax || '').trim();
+
+        const existing = productMap.get(prodName);
+        if (!existing) {
+            productMap.set(prodName, {
+                productName: prodName,
+                syntax: syntax || `📝 FORM MẪU LẤY PMH\nLoại PMH: ${prodName}\nMĐH Áp dụng: 12345678`
+            });
+        } else if (!existing.syntax && syntax) {
+            existing.syntax = syntax;
+        }
+    }
+
+    if (productMap.size === 0) {
+        const defaultSyntax = fallbackSyntax || `📝 FORM MẪU LẤY PMH\nLoại PMH: Bếp gas đôi Sunhouse SHB3105MD\nMĐH Áp dụng: 12345678`;
+        return `📋 MẪU CÚ PHÁP ĐĂNG KÝ PMH:\n\n${defaultSyntax}\n\n(Hiện kho chưa có mã sản phẩm cụ thể. Quản lý hãy nạp mã vào Dashboard!)`;
+    }
+
+    let text = '📋 DANH SÁCH CÚ PHÁP ĐĂNG KÝ PMH\n━━━━━━━━━━━━━━━━━━━━━\n';
+    let idx = 1;
+    for (const item of productMap.values()) {
+        text += `${idx}. 🛍️ ${item.productName}\n   ➜ Cú pháp:\n${item.syntax}\n\n`;
+        idx++;
+    }
+    text += '━━━━━━━━━━━━━━━━━━━━━\n';
+    text += '💡 Sao chép cú pháp sản phẩm tương ứng và gửi kèm thông tin để xin mã!\n';
+    text += '👉 Gõ "tk" để kiểm tra số lượng tồn kho từng sản phẩm.';
+    return text.trim();
+}
+
+/**
+ * Kiểm tra xem tin nhắn có phải là lệnh yêu cầu hướng dẫn (hd / help / huong dan...) không
+ */
+function isHelpCommand(text: string): boolean {
+    if (!text || typeof text !== 'string') return false;
+    const clean = text.trim().toLowerCase().replace(/^@[^\s]+\s*/, '');
+    return /^(?:[./!]?(?:hd|help|huongdan|hướng dẫn|\?)|huong\s*dan|hdsd)$/i.test(clean);
+}
+
+/**
+ * Tạo nội dung tin nhắn hướng dẫn sử dụng bot toàn diện cho lệnh "hd"
+ */
+function formatHelpGuideMessage(): string {
+    return [
+        '📖 HƯỚNG DẪN SỬ DỤNG BOT PMH ICT',
+        '━━━━━━━━━━━━━━━━━━━━━',
+        '📊 1. XEM TỒN KHO:',
+        '• "tk" hoặc "tk event" (tk e): Tồn kho PMH Event',
+        '• "tk gvgs" (tk gv): Tồn kho PMH Giờ Vàng',
+        '',
+        '⚡ 2. XIN NHẬN MÃ:',
+        '• Chọn trực tiếp vào sản phẩm cần lấy Coupon',
+        '💡 Gõ "tk" để xem danh sách & chạm lấy mã nhanh.',
+        '',
+        '🔄 3. HỦY / TRẢ MÃ VỀ KHO:',
+        '• Soạn: "huy [Mã coupon]"',
+        '',
+        '🎯 4. LỌC MÃ RIÊNG (CHAT 1-1):',
+        '• Chuyển tiếp tin nhắn gộp cho BOT để tự lọc mã tên bạn.',
+        '• "csd": Hiện lại mọi thẻ đã lọc nhưng CHƯA sử dụng trong tháng.',
+        '• Dán 1 mã coupon vào chat: BOT báo mã đã được ai dùng lúc nào / chưa dùng.',
+        '',
+        '📸 5. NHẬN ẢNH BÁO CÁO TỨC THÌ:',
+        '• Gõ "bc": Nhận ảnh Báo cáo Chi Tiết Theo Kho mới nhất.',
+        '• Gõ "dsbc": Xem toàn bộ danh sách lệnh nhận ảnh báo cáo.'
+    ].join('\n');
+}
+
+/**
+ * Nhận diện lệnh huỷ/trả mã coupon vừa xin (nếu không dùng)
+ * Cú pháp: huy [mã coupon hoặc MĐH]
+ */
+function parseCancelCouponCommand(text: string): { isCancel: boolean; target?: string; isBareCancel?: boolean } {
+    if (!text || typeof text !== 'string') return { isCancel: false };
+    const clean = text.trim().normalize('NFC').replace(/^@[^\s]+\s*/, '');
+    const match = clean.match(/^(?:[./!]?(?:huỷ\s*mã|hủy\s*mã|huy\s*mã|huy\s*ma|tra\s*mã|tra\s*ma|revoke|cancel|huỷ|hủy|huy|tra|trả))\s*[:\-]?\s*([A-Za-z0-9_-]{4,40})$/i);
+    if (match && match[1]) {
+        return { isCancel: true, target: match[1].trim().toUpperCase() };
+    }
+    const bareMatch = clean.match(/^(?:[./!]?(?:huỷ\s*mã|hủy\s*mã|huy\s*mã|huy\s*ma|tra\s*mã|tra\s*ma|revoke|cancel|huỷ|hủy|huy|tra|trả))$/i);
+    if (bareMatch) {
+        return { isCancel: true, isBareCancel: true };
+    }
+    return { isCancel: false };
+}
+
+/**
+ * Lấy chuỗi ngày hôm nay theo múi giờ Việt Nam (Asia/Ho_Chi_Minh) dạng 'YYYY-MM-DD'
+ */
+export function getVietnamTodayString(): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+}
+
+/**
+ * Định dạng YYYY-MM-DD sang DD/MM/YYYY
+ */
+function formatDisplayDate(dateStr?: string): string {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return dateStr;
+}
+
+/**
+ * Tự động quét và xoá các mã coupon UNUSED đã quá ngày hết hạn khỏi kho
+ * Đồng thời lưu vết thông tin sản phẩm hết hạn vào 'expired_products'
+ */
+async function cleanupExpiredCoupons(uid: string): Promise<{ deleted: number; products: string[] }> {
+    if (!uid) return { deleted: 0, products: [] };
+    try {
+        const todayVN = getVietnamTodayString();
+        const colRef = db.collection('line_bots').doc(uid).collection('coupons');
+        const snap = await colRef.get();
+        if (snap.empty) return { deleted: 0, products: [] };
+
+        const expiredDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+        const productMap = new Map<string, { productName: string; syntax?: string; type?: string; expiryDate: string; count: number }>();
+
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            if (data.expiryDate && data.expiryDate < todayVN) {
+                expiredDocs.push(doc);
+                const pName = (data.productName || data.type || 'PMH').trim();
+                const key = pName.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'pmh';
+                const existing = productMap.get(key);
+                if (!existing) {
+                    productMap.set(key, {
+                        productName: pName,
+                        syntax: data.syntax || '',
+                        type: data.type || '',
+                        expiryDate: data.expiryDate,
+                        count: 1
+                    });
+                } else {
+                    existing.count++;
+                    if (data.expiryDate > existing.expiryDate) {
+                        existing.expiryDate = data.expiryDate;
+                    }
+                }
+            }
+        }
+
+        if (expiredDocs.length === 0) return { deleted: 0, products: [] };
+
+        // Xoá các document coupon hết hạn khỏi kho UNUSED
+        const batchSize = 450;
+        const now = new Date().toISOString();
+        for (let i = 0; i < expiredDocs.length; i += batchSize) {
+            const chunk = expiredDocs.slice(i, i + batchSize);
+            const batch = db.batch();
+            for (const d of chunk) {
+                batch.delete(d.ref);
+            }
+            await batch.commit();
+        }
+
+        // Lưu thông tin vào expired_products để Bot nhận diện và báo hết hạn
+        for (const [key, item] of productMap.entries()) {
+            await db.collection('line_bots').doc(uid).collection('expired_products').doc(key).set({
+                id: key,
+                productName: item.productName,
+                syntax: item.syntax || '',
+                type: item.type || '',
+                expiryDate: item.expiryDate,
+                expiredAt: now,
+                count: item.count
+            }, { merge: true });
+        }
+
+        return { deleted: expiredDocs.length, products: Array.from(productMap.values()).map(p => p.productName) };
+    } catch (e) {
+        console.error('[cleanupExpiredCoupons error]', e);
+        return { deleted: 0, products: [] };
+    }
+}
+
+/**
+ * Tìm kiếm xem sản phẩm có trong danh sách đã hết hạn hay không
+ */
+async function findExpiredProduct(uid: string, searchKey: string): Promise<{ productName: string; expiryDate: string } | null> {
+    if (!uid || !searchKey) return null;
+    try {
+        const cleanKey = searchKey.trim().toLowerCase();
+        if (!cleanKey) return null;
+
+        const snap = await db.collection('line_bots').doc(uid).collection('expired_products').get();
+        if (snap.empty) return null;
+
+        for (const d of snap.docs) {
+            const data = d.data();
+            const pName = (data.productName || '').toLowerCase();
+            const syn = (data.syntax || '').toLowerCase();
+            if (pName.includes(cleanKey) || cleanKey.includes(pName) || (syn && (syn.includes(cleanKey) || cleanKey.includes(syn)))) {
+                return {
+                    productName: data.productName || searchKey,
+                    expiryDate: data.expiryDate || ''
+                };
+            }
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Kiểm tra xem một coupon có khớp với từ khoá tìm kiếm / tên sản phẩm / cú pháp không
+ */
+function matchesProductSearch(
+    coupon: { productName?: string; syntax?: string; type?: string },
+    searchKey: string
+): boolean {
+    if (!searchKey || !coupon) return false;
+    const key = searchKey.trim().toLowerCase();
+    if (!key) return false;
+    const cleanKey = key.replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '');
+
+    const pName = (coupon.productName || '').trim().toLowerCase();
+    const syn = (coupon.syntax || '').trim().toLowerCase();
+    const type = (coupon.type || '').trim().toLowerCase();
+
+    // 1. Khớp chính xác cú pháp / model
+    if (syn) {
+        const cleanSyn = syn.replace(/[^a-z0-9]/g, '');
+        if (syn === key || (cleanKey.length >= 3 && cleanSyn === cleanKey)) return true;
+        if (key.includes(syn) && syn.length >= 3) return true;
+    }
+
+    // 2. Khớp theo tên sản phẩm
+    if (pName) {
+        if (pName === key) return true;
+        if (pName.includes(key)) return true;
+        if (key.length >= 5 && key.includes(pName)) return true;
+
+        // Trích xuất mã model trong tên sản phẩm để so sánh
+        const modelMatch = pName.match(/\b([A-Z0-9-]{4,20})\b/i);
+        if (modelMatch && modelMatch[1]) {
+            const m = modelMatch[1].toLowerCase();
+            if (m === key || key.includes(m)) return true;
+        }
+    }
+
+    // 3. Khớp theo nhóm Event / Giờ Vàng
+    if (key === 'event' || key === 'pmh event') {
+        return type.includes('event');
+    }
+    if (key === 'giờ vàng' || key === 'gio vang' || key === 'gvgs' || key === 'gv' || key === 'giờ vàng giá sốc') {
+        return !type.includes('event') && (type.includes('giờ vàng') || type.includes('gvgs'));
+    }
+
+    return false;
+}
+
+interface ProductInventoryItem {
+    index: number;
+    productName: string;
+    total: number;
+    unused: number;
+}
+
+interface CategoryMeta {
+    id: string;
+    name: string;
+    title: string;
+    prefix: string;
+    headerColor: string;
+}
+
+function getCategoryMeta(type?: string): CategoryMeta {
+    if (!type) {
+        return {
+            id: 'EVENT',
+            name: 'Event',
+            title: 'PMH EVENT',
+            prefix: 'e',
+            headerColor: '#059669'
+        };
+    }
+    const t = type.toLowerCase().trim();
+
+    if (t.includes('giờ vàng') || t.includes('gio vang') || t.includes('gvgs') || t === 'gv' || t.startsWith('gv')) {
+        return {
+            id: 'GVGS',
+            name: 'Giờ Vàng',
+            title: 'PMH GIỜ VÀNG GIÁ SỐC',
+            prefix: 'gv',
+            headerColor: '#BE123C'
+        };
+    }
+    if (t.includes('honor')) {
+        return {
+            id: 'HONOR',
+            name: 'Honor',
+            title: 'PMH HONOR',
+            prefix: 'h',
+            headerColor: '#2563EB'
+        };
+    }
+    if (t.includes('vivo')) {
+        return {
+            id: 'VIVO',
+            name: 'Vivo',
+            title: 'PMH VIVO',
+            prefix: 'v',
+            headerColor: '#0EA5E9'
+        };
+    }
+    if (t.includes('samsung')) {
+        return {
+            id: 'SAMSUNG',
+            name: 'Samsung',
+            title: 'PMH SAMSUNG',
+            prefix: 'ss',
+            headerColor: '#4F46E5'
+        };
+    }
+    if (t.includes('apple') || t.includes('iphone') || t.includes('ipad')) {
+        return {
+            id: 'APPLE',
+            name: 'Apple',
+            title: 'PMH APPLE',
+            prefix: 'ap',
+            headerColor: '#64748B'
+        };
+    }
+    if (t.includes('oppo')) {
+        return {
+            id: 'OPPO',
+            name: 'Oppo',
+            title: 'PMH OPPO',
+            prefix: 'op',
+            headerColor: '#10B981'
+        };
+    }
+    if (t.includes('xiaomi') || t.includes('redmi')) {
+        return {
+            id: 'XIAOMI',
+            name: 'Xiaomi',
+            title: 'PMH XIAOMI',
+            prefix: 'mi',
+            headerColor: '#EA580C'
+        };
+    }
+    if (t.includes('event')) {
+        return {
+            id: 'EVENT',
+            name: 'Event',
+            title: 'PMH EVENT',
+            prefix: 'e',
+            headerColor: '#059669'
+        };
+    }
+
+    // Dynamic brand or custom category
+    const cleanId = type.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+    const words = type.trim().split(/\s+/).filter(Boolean);
+    let pfx = words.length > 1 ? words.map(w => w[0]).join('').toLowerCase().slice(0, 3) : type.trim().slice(0, 2).toLowerCase();
+    if (!pfx || ['e', 'gv', 'h', 'v', 'ss', 'ap', 'op', 'mi'].includes(pfx)) {
+        pfx = `${pfx}x`;
+    }
+
+    return {
+        id: cleanId,
+        name: type.trim(),
+        title: `PMH ${type.trim().toUpperCase()}`,
+        prefix: pfx,
+        headerColor: '#8B5CF6'
+    };
+}
+
+type CouponCategory = 'EVENT' | 'GVGS' | 'HONOR' | 'VIVO' | 'SAMSUNG' | 'APPLE' | 'OPPO' | 'XIAOMI' | 'ALL' | string;
+
+function getCouponCategoryMeta(coupon?: { type?: string; productName?: string; syntax?: string } | string): CategoryMeta {
+    if (!coupon) {
+        return getCategoryMeta();
+    }
+    if (typeof coupon === 'string') {
+        return getCategoryMeta(coupon);
+    }
+    const { type, productName, syntax } = coupon;
+    const rawType = (type || '').trim().toLowerCase();
+
+    // 1. Nếu type là thương hiệu / loại cụ thể và KHÔNG PHẢI generic ("event", "pmh", "khác", "")
+    if (rawType && rawType !== 'event' && rawType !== 'pmh' && rawType !== 'khac' && rawType !== 'khác') {
+        return getCategoryMeta(type);
+    }
+
+    // 2. Nhận diện thông minh theo tên sản phẩm hoặc cú pháp nếu type là generic (Event / PMH / để trống)
+    const fullText = [productName, syntax, type].filter(Boolean).join(' ').toLowerCase();
+
+    if (fullText.includes('giờ vàng') || fullText.includes('gio vang') || fullText.includes('gvgs') || fullText.startsWith('gv')) {
+        return getCategoryMeta('GVGS');
+    }
+    if (fullText.includes('vivo')) {
+        return getCategoryMeta('VIVO');
+    }
+    if (fullText.includes('honor')) {
+        return getCategoryMeta('HONOR');
+    }
+    if (fullText.includes('samsung') || fullText.includes('galaxy')) {
+        return getCategoryMeta('SAMSUNG');
+    }
+    if (fullText.includes('apple') || fullText.includes('iphone') || fullText.includes('ipad')) {
+        return getCategoryMeta('APPLE');
+    }
+    if (fullText.includes('oppo') || fullText.includes('reno')) {
+        return getCategoryMeta('OPPO');
+    }
+    if (fullText.includes('xiaomi') || fullText.includes('redmi')) {
+        return getCategoryMeta('XIAOMI');
+    }
+
+    return getCategoryMeta(type);
+}
+
+function isEventCategory(coupon?: { type?: string; productName?: string; syntax?: string } | string): boolean {
+    return getCouponCategoryMeta(coupon).id === 'EVENT';
+}
+
+function isGvgsCategory(coupon?: { type?: string; productName?: string; syntax?: string } | string): boolean {
+    return getCouponCategoryMeta(coupon).id === 'GVGS';
+}
+
+function filterCouponsByCategory(
+    coupons: Array<{ productName?: string; syntax?: string; type?: string; status?: string }>,
+    category?: CouponCategory
+) {
+    if (!category || category === 'ALL') return coupons;
+    const targetId = getCategoryMeta(category).id;
+    return coupons.filter(c => getCouponCategoryMeta(c).id === targetId);
+}
+
+/**
+ * Kiểm tra trạng thái hết hạn và số lượng khả dụng của toàn bộ nhóm coupon (EVENT, GVGS, HONOR, VIVO...)
+ */
+async function getCategoryExpiryInfo(
+    uid: string,
+    coupons: Array<{ productName?: string; syntax?: string; type?: string; status?: string; expiryDate?: string }>,
+    category: string
+): Promise<{
+    isExpired: boolean;
+    latestExpiryDate?: string;
+    totalAll: number;
+    totalUnused: number;
+    hasCoupons: boolean;
+}> {
+    const todayVN = getVietnamTodayString();
+    const targetId = getCategoryMeta(category).id;
+    const catCoupons = (coupons || []).filter(c => getCouponCategoryMeta(c).id === targetId);
+
+    let totalAll = catCoupons.length;
+    let validUnused = 0;
+    let latestExpiryDate: string | undefined;
+
+    for (const c of catCoupons) {
+        const isUnused = c.status === 'UNUSED' || !c.status;
+        if (c.expiryDate) {
+            if (!latestExpiryDate || c.expiryDate > latestExpiryDate) {
+                latestExpiryDate = c.expiryDate;
+            }
+            if (isUnused && c.expiryDate >= todayVN) {
+                validUnused++;
+            }
+        } else if (isUnused) {
+            validUnused++;
+        }
+    }
+
+    if (validUnused > 0) {
+        return {
+            isExpired: false,
+            latestExpiryDate,
+            totalAll,
+            totalUnused: validUnused,
+            hasCoupons: true
+        };
+    }
+
+    // Nếu không còn mã UNUSED nào hợp lệ và ngày hết hạn mới nhất đã qua -> Nhóm đã hết hạn
+    if (latestExpiryDate && latestExpiryDate < todayVN) {
+        return {
+            isExpired: true,
+            latestExpiryDate,
+            totalAll,
+            totalUnused: 0,
+            hasCoupons: catCoupons.length > 0
+        };
+    }
+
+    // Nếu trong coupons không còn mã hoặc các mã còn lại không ghi nhận date, kiểm tra subcollection 'expired_products'
+    try {
+        const expSnap = await db.collection('line_bots').doc(uid).collection('expired_products').get();
+        if (!expSnap.empty) {
+            let expCatLatestDate: string | undefined;
+            let countInExp = 0;
+            for (const d of expSnap.docs) {
+                const data = d.data();
+                if (getCouponCategoryMeta(data).id === targetId) {
+                    countInExp++;
+                    if (data.expiryDate && (!expCatLatestDate || data.expiryDate > expCatLatestDate)) {
+                        expCatLatestDate = data.expiryDate;
+                    }
+                }
+            }
+            if (countInExp > 0 && expCatLatestDate && expCatLatestDate < todayVN) {
+                return {
+                    isExpired: true,
+                    latestExpiryDate: expCatLatestDate,
+                    totalAll: totalAll + countInExp,
+                    totalUnused: 0,
+                    hasCoupons: true
+                };
+            }
+        }
+    } catch (e) {
+        console.warn('[getCategoryExpiryInfo error checking expired_products]', e);
+    }
+
+    return {
+        isExpired: false,
+        latestExpiryDate,
+        totalAll,
+        totalUnused: 0,
+        hasCoupons: catCoupons.length > 0
+    };
+}
+
+/**
+ * Trích xuất danh sách tồn kho theo từng sản phẩm có đánh số thứ tự (1, 2, 3...)
+ * Hỗ trợ lọc theo loại Event hoặc Giờ Vàng Giá Sốc
+ */
+function getProductInventoryList(
+    coupons: Array<{ productName?: string; syntax?: string; type?: string; status?: string }>,
+    category?: CouponCategory
+): ProductInventoryItem[] {
+    if (!coupons || coupons.length === 0) return [];
+
+    const targetCoupons = filterCouponsByCategory(coupons, category);
+    if (targetCoupons.length === 0) return [];
+
+    const productMap = new Map<string, {
+        productName: string;
+        total: number;
+        unused: number;
+    }>();
+
+    for (const c of targetCoupons) {
+        const prodName = (c.productName || c.type || 'Sản phẩm khác').trim();
+        const isUnused = c.status === 'UNUSED' || !c.status;
+
+        const existing = productMap.get(prodName);
+        if (!existing) {
+            productMap.set(prodName, {
+                productName: prodName,
+                total: 1,
+                unused: isUnused ? 1 : 0
+            });
+        } else {
+            existing.total += 1;
+            if (isUnused) existing.unused += 1;
+        }
+    }
+
+    // Sắp xếp: Ưu tiên hết mã (unused === 0), rồi đến sắp hết (unused < 3), rồi đến còn nhiều, ổn định theo tên
+    const items = Array.from(productMap.values()).sort((a, b) => {
+        const aLow = a.unused < 3 ? 1 : 0;
+        const bLow = b.unused < 3 ? 1 : 0;
+        if (aLow !== bLow) return bLow - aLow;
+        if (a.unused !== b.unused) return a.unused - b.unused;
+        return a.productName.localeCompare(b.productName, 'vi');
+    });
+
+    return items.map((item, idx) => ({
+        index: idx + 1,
+        productName: item.productName,
+        total: item.total,
+        unused: item.unused
+    }));
+}
+
+interface CouponClaimSelection {
+    isClaim: boolean;
+    isBareNumber?: boolean;
+    category?: CouponCategory;
+    productIndex?: number;
+    orderId?: string;
+}
+
+/**
+ * Nhận diện cú pháp xin nhận mã PMH:
+ * - "e1", "e 2", "e2 12345678" -> Cấp mã Event số 2
+ * - "gv1", "gv 2", "gv1 12345678" -> Cấp mã Giờ Vàng số 1
+ * - "h1", "h 2", "h1 12345678" -> Cấp mã Honor số 1
+ * - "v1", "v 2", "v1 12345678" -> Cấp mã Vivo số 1
+ * - "ss1", "ap1", "op1", "mi1" -> Các dòng thương hiệu khác
+ * - "2", "2 12345678" -> Số trần (hệ thống nhắc chọn đúng tiền tố)
+ */
+function parseCouponClaimCommand(text: string): CouponClaimSelection {
+    if (!text || typeof text !== 'string') return { isClaim: false };
+    const clean = text.trim();
+
+    // 1. Khớp lệnh nhận mã Event: "e1", "e 2", "event 1", "e1 01602SO26090873565", "e2: 12345678"
+    const eventMatch = clean.match(/^(?:e|event)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (eventMatch) {
+        const index = parseInt(eventMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'EVENT',
+                productIndex: index,
+                orderId: eventMatch[2] ? eventMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 2. Khớp lệnh nhận mã Giờ Vàng: "gv1", "gv 2", "gvgs 1", "gv1 01602SO26090873565", "gv2: 12345678"
+    const gvMatch = clean.match(/^(?:gv|gvgs)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (gvMatch) {
+        const index = parseInt(gvMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'GVGS',
+                productIndex: index,
+                orderId: gvMatch[2] ? gvMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 3. Khớp lệnh nhận mã Honor: "h1", "h 2", "honor 1", "h1 01602SO26090873565"
+    const honorMatch = clean.match(/^(?:h|honor)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (honorMatch) {
+        const index = parseInt(honorMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'HONOR',
+                productIndex: index,
+                orderId: honorMatch[2] ? honorMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 4. Khớp lệnh nhận mã Vivo: "v1", "v 2", "vivo 1", "v1 01602SO26090873565"
+    const vivoMatch = clean.match(/^(?:v|vivo)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (vivoMatch) {
+        const index = parseInt(vivoMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'VIVO',
+                productIndex: index,
+                orderId: vivoMatch[2] ? vivoMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 5. Khớp lệnh nhận mã Samsung: "ss1", "ss 2", "samsung 1"
+    const ssMatch = clean.match(/^(?:ss|samsung)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (ssMatch) {
+        const index = parseInt(ssMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'SAMSUNG',
+                productIndex: index,
+                orderId: ssMatch[2] ? ssMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 6. Khớp lệnh nhận mã Apple: "ap1", "ap 2", "apple 1", "iphone 1"
+    const apMatch = clean.match(/^(?:ap|apple|iphone)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (apMatch) {
+        const index = parseInt(apMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'APPLE',
+                productIndex: index,
+                orderId: apMatch[2] ? apMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 7. Khớp lệnh nhận mã Oppo: "op1", "op 2", "oppo 1"
+    const opMatch = clean.match(/^(?:op|oppo)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (opMatch) {
+        const index = parseInt(opMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'OPPO',
+                productIndex: index,
+                orderId: opMatch[2] ? opMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 8. Khớp lệnh nhận mã Xiaomi: "mi1", "mi 2", "xiaomi 1", "redmi 1"
+    const miMatch = clean.match(/^(?:mi|xiaomi|redmi)\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (miMatch) {
+        const index = parseInt(miMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: true,
+                category: 'XIAOMI',
+                productIndex: index,
+                orderId: miMatch[2] ? miMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    // 9. Số trần (ví dụ: "2", "2 12345678", "#2", "sp 2", ".2")
+    const bareMatch = clean.match(/^(?:stt|sp|số|#|\.)?\s*(\d{1,3})(?:[\s:.-]+([A-Za-z0-9_-]{4,30}))?$/i);
+    if (bareMatch) {
+        const index = parseInt(bareMatch[1], 10);
+        if (!isNaN(index) && index >= 1 && index <= 99) {
+            return {
+                isClaim: false,
+                isBareNumber: true,
+                productIndex: index,
+                orderId: bareMatch[2] ? bareMatch[2].trim() : undefined
+            };
+        }
+    }
+
+    return { isClaim: false };
+}
+
+/**
+ * Format tin nhắn cho lệnh "tk", "tk event", "tk gvgs"
+ */
+export function formatInventoryReportMessage(
+    coupons: Array<{ productName?: string; syntax?: string; type?: string; status?: string }>,
+    category?: CouponCategory
+): {
+    replyText: string;
+    lowStockCount: number;
+    totalUnused: number;
+    totalAll: number;
+    products: ProductInventoryItem[];
+} {
+    const isSpecific = Boolean(category && category !== 'ALL');
+    const meta = isSpecific ? getCategoryMeta(category) : undefined;
+    const categoryTitle = meta ? meta.title : 'THEO SẢN PHẨM';
+
+    if (!coupons || coupons.length === 0) {
+        return {
+            replyText: `📊 BÁO CÁO TỒN KHO ${categoryTitle}\n━━━━━━━━━━━━━━━━━━━━━\nKho hiện tại chưa có mã nào!\nQuản lý vui lòng nạp mã vào Dashboard.`,
+            lowStockCount: 0,
+            totalUnused: 0,
+            totalAll: 0,
+            products: []
+        };
+    }
+
+    const products = getProductInventoryList(coupons, category);
+    if (products.length === 0) {
+        return {
+            replyText: `📊 BÁO CÁO TỒN KHO ${categoryTitle}\n━━━━━━━━━━━━━━━━━━━━━\nHiện tại kho chưa có mã nào thuộc nhóm ${categoryTitle}.\nQuản lý vui lòng nạp mã vào Dashboard!`,
+            lowStockCount: 0,
+            totalUnused: 0,
+            totalAll: 0,
+            products: []
+        };
+    }
+
+    let totalAll = 0;
+    let totalUnused = 0;
+    for (const p of products) {
+        totalAll += p.total;
+        totalUnused += p.unused;
+    }
+
+    const lowStockItems = products.filter(i => i.unused < 3);
+    const lowStockCount = lowStockItems.length;
+
+    let text = `📊 BÁO CÁO TỒN KHO ${categoryTitle}\n━━━━━━━━━━━━━━━━━\n`;
+
+    if (meta) {
+        text += `📈 Tổng tồn kho ${meta.name}: ${totalUnused} mã khả dụng / ${totalAll} tổng mã\n`;
+        text += `💡 Cú pháp nhận mã ${meta.name}: Gõ "${meta.prefix} + STT" (ví dụ: ${meta.prefix}1, ${meta.prefix}2, ${meta.prefix}3...)\n`;
+    } else {
+        text += `📈 Tổng tồn kho: ${totalUnused} mã khả dụng / ${totalAll} tổng mã\n`;
+        text += '💡 Nhận mã Event: Gõ "e + STT" (ví dụ: e1, e2...)\n';
+        text += '⚡ Nhận mã Giờ Vàng: Gõ "gv + STT" (ví dụ: gv1, gv2...)\n';
+        text += '👉 Xem riêng từng loại: Gõ "tk [tên loại]" (ví dụ: tk honor, tk vivo, tk event, tk gvgs)\n';
+    }
+    text += '━━━━━━━━━━━━━━━━━\n';
+
+    if (lowStockCount > 0) {
+        text += `🚨 CẢNH BÁO TỒN KHO THẤP (< 3 MÃ):\nCó [${lowStockCount}] sản phẩm sắp hết hoặc đã hết mã! Quản lý vui lòng nạp bổ sung mã mới.\n━━━━━━━━━━━━━━━━━\n`;
+    }
+
+    for (const item of products) {
+        const itemPrefix = meta ? meta.prefix : 'e';
+        const cmdCode = `${itemPrefix}${item.index}`;
+        if (item.unused === 0) {
+            text += `🔴 [${cmdCode}] ❌ ${item.productName}: HẾT MÃ (0/${item.total} mã)\n`;
+        } else if (item.unused < 3) {
+            text += `🟡 [${cmdCode}] ⚠️ ${item.productName}: SẮP HẾT: Còn ${item.unused}/${item.total} mã (CẦN NẠP GẤP!)\n`;
+        } else {
+            text += `🟢 [${cmdCode}] ${item.index}. ${item.productName}: Còn khả dụng: ${item.unused}/${item.total} mã\n`;
+        }
+    }
+
+    return {
+        replyText: text.trim(),
+        lowStockCount,
+        totalUnused,
+        totalAll,
+        products
+    };
+}
+
+/**
+ * Tạo LINE Flex Message dạng Dashboard hiển thị danh sách tồn kho PMH
+ * Thiết kế hiện đại, có badge màu số lượng và cho phép chạm vào từng sản phẩm để nhận mã ngay lập tức
+ */
+export function createInventoryReportFlexMessage(params: {
+    category: CouponCategory;
+    totalAll: number;
+    totalUnused: number;
+    products: ProductInventoryItem[];
+    altText?: string;
+}) {
+    const { category, totalAll, totalUnused, products } = params;
+    const meta = getCategoryMeta(category);
+    const categoryTitle = meta.title.replace('GIỜ VÀNG GIÁ SỐC', 'GIỜ VÀNG');
+    const headerColor = meta.headerColor;
+    const cmdPrefix = meta.prefix;
+    const pct = totalAll > 0 ? Math.round((totalUnused / totalAll) * 100) : 0;
+    const defaultAlt = `📊 Báo cáo tồn kho ${categoryTitle}: ${totalUnused}/${totalAll} mã khả dụng (${pct}%)`;
+    const altText = (params.altText && params.altText.length <= 400) ? params.altText : defaultAlt;
+
+    const PAGE_SIZE = 10;
+    const totalPages = Math.min(Math.ceil(products.length / PAGE_SIZE) || 1, 10);
+    const pages: ProductInventoryItem[][] = [];
+
+    for (let i = 0; i < products.length && pages.length < 10; i += PAGE_SIZE) {
+        pages.push(products.slice(i, i + PAGE_SIZE));
+    }
+    if (pages.length === 0) {
+        pages.push([]);
+    }
+
+    const bubbles = pages.map((pageItems, pageIdx) => {
+        const pageLabel = totalPages > 1 ? ` (${pageIdx + 1}/${totalPages})` : '';
+
+        const itemBoxes = pageItems.map(item => {
+            const cmdCode = `${cmdPrefix}${item.index}`;
+            const isOut = item.unused === 0;
+            const isLow = item.unused > 0 && item.unused < 3;
+            const badgeBg = isOut ? '#FEE2E2' : isLow ? '#FEF3C7' : '#ECFDF5';
+            const badgeColor = isOut ? '#DC2626' : isLow ? '#D97706' : '#059669';
+            const statusText = isOut ? 'HẾT MÃ' : `${item.unused}/${item.total}`;
+
+            return {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'xs',
+                alignItems: 'center',
+                backgroundColor: isOut ? '#FEF2F2' : isLow ? '#FFFBEB' : (item.index % 2 === 0 ? '#F8FAFC' : '#FFFFFF'),
+                cornerRadius: 'md',
+                paddingStart: '6px',
+                paddingEnd: '6px',
+                paddingTop: '3px',
+                paddingBottom: '3px',
+                action: {
+                    type: 'postback',
+                    label: cmdCode,
+                    data: `action=claim_pmh&cat=${encodeURIComponent(category)}&prod=${encodeURIComponent(item.productName)}`,
+                    displayText: `[Nhận PMH] ${item.productName}`
+                },
+                contents: [
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        backgroundColor: badgeBg,
+                        cornerRadius: 'sm',
+                        paddingAll: '2px',
+                        width: '32px',
+                        alignItems: 'center',
+                        contents: [
+                            {
+                                type: 'text',
+                                text: cmdCode,
+                                weight: 'bold',
+                                size: 'xxs',
+                                color: badgeColor
+                            }
+                        ]
+                    },
+                    {
+                        type: 'text',
+                        text: item.productName,
+                        size: 'xxs',
+                        color: isOut ? '#94A3B8' : '#1E293B',
+                        weight: isOut ? 'regular' : 'bold',
+                        flex: 7,
+                        wrap: true
+                    },
+                    {
+                        type: 'text',
+                        text: statusText,
+                        size: 'xxs',
+                        color: badgeColor,
+                        weight: 'bold',
+                        align: 'end',
+                        flex: 3
+                    }
+                ]
+            };
+        });
+
+        return {
+            type: 'bubble',
+            size: 'mega',
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: headerColor,
+                paddingAll: '10px',
+                contents: [
+                    {
+                        type: 'box',
+                        layout: 'horizontal',
+                        contents: [
+                            {
+                                type: 'text',
+                                text: `📊 TỒN KHO ${categoryTitle}${pageLabel}`,
+                                color: '#FFFFFF',
+                                weight: 'bold',
+                                size: 'sm',
+                                flex: 8
+                            },
+                            {
+                                type: 'text',
+                                text: `${pct}%`,
+                                color: '#FCD34D',
+                                weight: 'bold',
+                                size: 'xs',
+                                align: 'end',
+                                flex: 2
+                            }
+                        ]
+                    },
+                    {
+                        type: 'text',
+                        text: `Khả dụng: ${totalUnused}/${totalAll} mã`,
+                        color: '#E2E8F0',
+                        size: 'xxs',
+                        margin: 'xs'
+                    }
+                ]
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: '8px',
+                contents: [
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        backgroundColor: '#F1F5F9',
+                        cornerRadius: 'sm',
+                        paddingAll: '4px',
+                        margin: 'none',
+                        contents: [
+                            {
+                                type: 'text',
+                                text: `💡 Chạm trực tiếp vào sản phẩm để nhận mã PMH!`,
+                                size: 'xxs',
+                                color: '#475569',
+                                align: 'center'
+                            }
+                        ]
+                    },
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        spacing: 'xs',
+                        margin: 'xs',
+                        contents: itemBoxes.length > 0 ? itemBoxes : [
+                            {
+                                type: 'text',
+                                text: 'Hiện không có sản phẩm nào.',
+                                size: 'xs',
+                                color: '#94A3B8',
+                                align: 'center',
+                                margin: 'md'
+                            }
+                        ]
+                    }
+                ]
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'xs',
+                paddingAll: '8px',
+                contents: [
+                    {
+                        type: 'button',
+                        style: 'secondary',
+                        height: 'sm',
+                        color: '#F1F5F9',
+                        action: {
+                            type: 'message',
+                            label: '❓ Hướng dẫn (hd)',
+                            text: 'hd'
+                        }
+                    }
+                ]
+            }
+        };
+    });
+
+    if (bubbles.length === 1) {
+        return {
+            type: 'flex',
+            altText,
+            contents: bubbles[0]
+        };
+    }
+
+    return {
+        type: 'flex',
+        altText,
+        contents: {
+            type: 'carousel',
+            contents: bubbles
+        }
+    };
+}
+
+/**
+ * Bóc tách form đăng ký PMH
+ */
+function parseQuickForm(text: string) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    let warehouse = '';
+    let orderId = '';
+    let couponType = '';
+    let managerName = '';
+    let requestedProduct = '';
+
+    for (const line of lines) {
+        const lower = line.toLowerCase();
+
+        // 1. Kiểm tra header cú pháp: 📝 FORM MẪU LẤY PMH hoặc [ĐĂNG KÝ PMH] <Tên sản phẩm>
+        if (
+            line.startsWith('📝') ||
+            line.startsWith('[') ||
+            line.startsWith('==') ||
+            line.startsWith('━━') ||
+            lower.includes('form mẫu') ||
+            lower.includes('lấy pmh')
+        ) {
+            const headerMatch = line.match(/^\[(?:đăng ký pmh|pmh)\]\s*(.*)$/i);
+            if (headerMatch && headerMatch[1].trim()) {
+                requestedProduct = headerMatch[1].trim();
+            }
+            continue;
+        }
+
+        // 2. Tìm mã kho (tuỳ chọn)
+        if (!warehouse && (lower.includes('kho') || lower.includes('siêu thị') || lower.includes('st:'))) {
+            const m = line.match(/(?:kho|siêu thị|st)[\s:.-]*([A-Za-z0-9_-]{2,10})/i);
+            if (m) warehouse = m[1].trim();
+        }
+
+        // 3. Tìm mã đơn hàng (MĐH Áp dụng / MĐH / Đơn hàng)
+        if (!orderId && (lower.includes('mđh') || lower.includes('mdh') || lower.includes('đơn hàng') || lower.includes('mã đh') || lower.includes('don hang') || lower.includes('áp dụng'))) {
+            const m = line.match(/(?:mđh\s*(?:áp dụng)?|mdh\s*(?:ap dung)?|đơn hàng\s*(?:áp dụng)?|mã đh|áp dụng)[\s:.-]*([A-Za-z0-9_-]{4,25})/i);
+            if (m) orderId = m[1].trim().toUpperCase();
+        }
+
+        // 4. Tìm loại PMH (Loại PMH / Loại / Sản phẩm / SP)
+        if (!couponType && (lower.startsWith('loại') || lower.includes('loại:') || lower.includes('mệnh giá') || lower.startsWith('pmh:') || lower.startsWith('phiếu:') || lower.includes('sản phẩm') || lower.startsWith('sp:'))) {
+            const m = line.match(/(?:loại\s*(?:pmh)?|mệnh giá|pmh|phiếu|sản phẩm|sp)[\s:.-]+(.+)/i);
+            if (m) {
+                let t = m[1].trim();
+                if (/100k|100\.000/i.test(t)) t = 'PMH 100K';
+                else if (/200k|200\.000/i.test(t)) t = 'PMH 200K';
+                else if (/500k|500\.000/i.test(t)) t = 'PMH 500K';
+                couponType = t;
+            }
+        }
+        if (!requestedProduct && (lower.includes('sản phẩm') || lower.includes('sp:'))) {
+            const m = line.match(/(?:sản phẩm|sp)[\s:.-]+(.+)/i);
+            if (m) requestedProduct = m[1].trim();
+        }
+        if (!managerName && (lower.includes('quản lý') || lower.includes('ql') || lower.includes('người xin'))) {
+            const m = line.match(/(?:quản lý|ql|người xin)[\s:.-]*(.+)/i);
+            if (m) managerName = m[1].trim();
+        }
+    }
+
+    if (!orderId) {
+        const direct = text.match(/\b([0-9]{8,15})\b/);
+        if (direct) orderId = direct[1];
+    }
+    if (!couponType && requestedProduct) {
+        couponType = requestedProduct;
+    }
+    if (!requestedProduct && couponType) {
+        requestedProduct = couponType;
+    }
+
+    return { warehouse, orderId, couponType, managerName, requestedProduct };
+}
+
+/**
+ * Kiểm tra xem tin nhắn có phải là Báo cáo Thống kê / Tồn kho / Phân bổ PMH hay không.
+ * (Để tuyệt đối không nhận diện nhầm thành form chuyển tiếp phát mã PMH).
+ */
+function isInventoryOrStatisticsReport(text: string): boolean {
+    if (!text || typeof text !== 'string') return false;
+    const lower = text.toLowerCase();
+
+    // 1. Tiêu đề hoặc cụm từ đặc trưng của bảng thống kê / tồn kho / phân bổ
+    const reportKeywords = [
+        'thống kê pmh',
+        'thong ke pmh',
+        'thống kê tồn kho',
+        'thong ke ton kho',
+        'pmh còn lại',
+        'pmh con lai',
+        'tồn kho pmh',
+        'ton kho pmh',
+        'báo cáo pmh',
+        'bao cao pmh',
+        'báo cáo tồn kho',
+        'số lượng phân bổ',
+        'so luong phan bo',
+        'bảng thống kê',
+        'bang thong ke'
+    ];
+    if (reportKeywords.some(kw => lower.includes(kw))) {
+        return true;
+    }
+
+    // Tiêu đề thống kê kèm mốc giờ hoặc ngày (ví dụ: "THỐNG KÊ 20H00", "THỐNG KÊ 19H", "TỒN KHO 20H")
+    if (/(?:thống\s*kê|báo\s*cáo|tồn\s*kho).*(?:\d{1,2}h|\bpmh\b|còn\s*lại)/i.test(text)) {
+        return true;
+    }
+
+    // 2. Chứa nhiều dòng kiểm đếm số lượng phiếu (ví dụ: ": 0 Phiếu", ": 2.155 Phiếu", ": 42 Phiếu")
+    const countWithUnitMatches = text.match(/:\s*(?:\d+[\.,]?\d*)\s*(?:phiếu|phieu|cái|chiếc|[❌⚠️])/gi) || [];
+    if (countWithUnitMatches.length >= 2) {
+        return true;
+    }
+
+    // 3. Chứa nhiều dòng định mức hạn mức theo khoảng giá và số đếm (ví dụ: "- Dưới 5 Triệu: 0", "- Từ 10 Đến 20 Triệu: 3673")
+    const tierCountMatches = text.match(/(?:dưới|từ|trên)\s*\d+.*:\s*\d+/gi) || [];
+    if (tierCountMatches.length >= 2) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Kiểm tra tính hợp lệ của mã Coupon PMH thực tế
+ * (Loại trừ các số đếm tồn kho như 0, 1, 3673, 2155 hoặc các chữ số lượng "0 Phiếu")
+ */
+function isValidCouponCode(code: string): boolean {
+    if (!code || typeof code !== 'string') return false;
+    const clean = code.trim();
+    // Mã coupon thực tế dài tối thiểu 5 ký tự, tối đa 40 ký tự
+    if (clean.length < 5 || clean.length > 40) return false;
+    // Nếu thuần là số, phải dài từ 7 chữ số trở lên (loại trừ các số đếm tồn kho như 0, 10, 186, 350, 3673)
+    if (/^\d+$/.test(clean) && clean.length < 7) return false;
+    // Không chứa các từ đơn vị, số lượng, hoặc trạng thái
+    if (/(?:phiếu|phieu|triệu|trieu|nghìn|nghin|\btr\b|\bvnd\b|hết|het|hạn|han)/i.test(clean)) return false;
+    return /^[A-Za-z0-9_-]+$/.test(clean);
+}
+
+/**
+ * Tách nội dung tin nhắn chuyển tiếp thành từng khối chứa PMH
+ */
+function parsePmhBlocks(text: string): string[] {
+    if (!text || typeof text !== 'string') return [];
+
+    // Nếu toàn bộ tin nhắn là báo cáo thống kê / tồn kho / phân bổ -> Bỏ qua ngay lập tức
+    if (isInventoryOrStatisticsReport(text)) {
+        return [];
+    }
+
+    let rawBlocks = text.split(/[━─—\-\=_~]{3,}/).map(b => b.trim()).filter(Boolean);
+
+    const hasMultipleEntries = (text.match(/(?:➜|->|=>|►|•)\s*(?:PMH|phiếu|[❌⚠️])|^\s*[❌⚠️]/giu) || []).length > 1;
+    if (rawBlocks.length <= 1 && hasMultipleEntries) {
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const entries: string[] = [];
+        let currentEntry: string[] = [];
+        let currentHasResult = false;
+
+        for (const line of lines) {
+            const isResultLine = /(?:➜|->|=>|►|•)\s*(?:PMH|phiếu|[❌⚠️])|\bPMH\s*[:\s]|^\s*[❌⚠️]/iu.test(line);
+
+            if (currentHasResult && currentEntry.length > 0) {
+                entries.push(currentEntry.join('\n'));
+                currentEntry = [];
+                currentHasResult = false;
+            }
+
+            currentEntry.push(line);
+            if (isResultLine) {
+                currentHasResult = true;
+            }
+        }
+        if (currentEntry.length > 0) {
+            entries.push(currentEntry.join('\n'));
+        }
+        if (entries.length > 1) {
+            rawBlocks = entries;
+        }
+    }
+
+    return rawBlocks.filter(block => {
+        // Nếu khối là thống kê/tồn kho con -> Bỏ qua
+        if (isInventoryOrStatisticsReport(block)) return false;
+
+        // Bỏ qua nếu là hướng dẫn chuyển tiếp đơn thuần không có kết quả
+        if (block.includes('Hãy chuyển tiếp tin nhắn này') && !block.includes(':') && !/[❌⚠️🚫❗⛔]/.test(block)) return false;
+
+        // Kiểm tra xem khối có chứa kết quả cấp mã hợp lệ hay không:
+        // a) Có dòng cấp mã PMH với mã coupon hợp lệ (từ 5 ký tự trở lên, không phải số đếm 0, 1, 350...)
+        const lines = block.split(/\r?\n/).map(l => l.trim());
+        let hasValidCode = false;
+        for (const line of lines) {
+            const pmhMatch = line.match(/(?:➜|->|=>|►|•)?\s*(?:pmh|phiếu)\s*([^:]*?)\s*:\s*([A-Za-z0-9_-]{4,40})/i);
+            if (pmhMatch && isValidCouponCode(pmhMatch[2])) {
+                hasValidCode = true;
+                break;
+            }
+        }
+
+        // b) Hoặc có dòng báo lỗi/từ chối của bot phát mã (ví dụ: ➜ ❌ MĐH Áp Dụng Thiếu Hoặc Sai Cú Pháp, ❌ Đơn hàng chưa duyệt...)
+        const hasBotError = /(?:➜|->|=>|►|•|^\s*)\s*[❌⚠️🚫❗⛔]\s*(?:mđh|áp dụng|thiếu|sai|lỗi|hết|chưa|không|hợp lệ|thu hồi)/iu.test(block) ||
+            (/(?:➜|->|=>|►|•)\s*(?:thiếu|sai|lỗi|hết hạn|không hợp lệ|đã thu hồi)/iu.test(block) && /mđh|áp dụng|cú pháp/iu.test(block));
+
+        return hasValidCode || hasBotError;
+    });
+}
+
+/**
+ * Kiểm tra khối PMH có thuộc về người dùng đang lọc không
+ */
+function isBlockBelongToUser(block: string, candidateNames: string[]): boolean {
+    if (!block || !candidateNames || candidateNames.length === 0) return false;
+
+    // Chuẩn hoá Unicode NFC, chữ thường, chuyển mọi dạng gạch ngang (–, —, −, ‐) về '-' và chuẩn hoá khoảng trắng
+    const cleanNorm = (s: string) => (s || '')
+        .normalize('NFC')
+        .toLowerCase()
+        .replace(/[\u2010-\u2015\u2212]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const normalizedBlock = cleanNorm(block);
+
+    for (const name of candidateNames) {
+        if (!name || name.trim().length < 2) continue;
+        const normName = cleanNorm(name);
+        if (normalizedBlock.includes(normName)) {
+            return true;
+        }
+        const parts = normName.split(/\s+/).filter(p => p.length >= 2);
+        if (parts.length >= 2) {
+            const lastName = parts[parts.length - 1];
+            if (normalizedBlock.includes(lastName) && parts.some(p => p !== lastName && normalizedBlock.includes(p))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Bóc tách chi tiết và làm gọn từng khối mã PMH
+ */
+function parsePmhBlockDetails(block: string): {
+    recipient: string;
+    typeOrProduct: string;
+    code: string;
+    orderId?: string;
+    revokedCode?: string;
+    compactBlock: string;
+    allCodes?: Array<{
+        typeOrProduct: string;
+        code: string;
+        revokedCode?: string;
+        orderId?: string;
+        rawLine?: string;
+    }>;
+} {
+    const lines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    let recipient = '';
+    let typeOrProduct = '';
+    let code = '';
+    let orderId = '';
+    let revokedCode = '';
+    let isReissue = false;
+
+    // Tìm MĐH trên toàn khối (hỗ trợ cả trường hợp rớt dòng hoặc ngắt dòng)
+    const blockMdhMatch = block.match(/(?:mđh\s*(?:áp dụng)?|mdh|đơn hàng|trùng\s*mđh)[\s:.\-\r\n]*([A-Za-z0-9_-]{6,30})/i);
+    if (blockMdhMatch) {
+        orderId = blockMdhMatch[1].trim();
+    }
+
+    const allCodes: Array<{
+        typeOrProduct: string;
+        code: string;
+        revokedCode?: string;
+        orderId?: string;
+        rawLine?: string;
+    }> = [];
+
+    for (const line of lines) {
+        const lower = line.toLowerCase();
+        if (lower.includes('thu hồi') || lower.includes('cấp lại') || lower.includes('trùng')) {
+            isReissue = true;
+        }
+
+        const pmhMatch = line.match(/(?:➜|->|=>|►|•)?\s*(?:pmh|phiếu)\s*([^:]*?)\s*:\s*([A-Za-z0-9_-]{4,40})/i);
+        if (pmhMatch) {
+            const rawType = pmhMatch[1].trim();
+            const foundCode = pmhMatch[2].trim();
+            if (isValidCouponCode(foundCode)) {
+                if (rawType && !typeOrProduct) typeOrProduct = rawType;
+                if (!code) code = foundCode;
+                allCodes.push({
+                    typeOrProduct: rawType,
+                    code: foundCode
+                });
+                continue;
+            }
+        }
+
+        // 1b. Dòng thông báo lỗi hoặc trạng thái từ BOT phát mã: ➜ ❌ MĐH Áp Dụng..., ❌ ...
+        const isStatusOrErrorLine = /^(?:➜|->|=>|►|•)?\s*[❌⚠️🚫❗⛔]/.test(line) ||
+            (/^(?:➜|->|=>|►|•)/.test(line) && (lower.includes('thiếu') || lower.includes('sai') || lower.includes('lỗi') || lower.includes('hết') || lower.includes('không')));
+        if (isStatusOrErrorLine) {
+            const cleanText = line.startsWith('➜') ? line : `➜ ${line.replace(/^(?:->|=>|►|•)\s*/, '')}`;
+            allCodes.push({
+                typeOrProduct: 'ERROR',
+                code: '',
+                rawLine: cleanText
+            });
+            continue;
+        }
+
+        const revokeMatch = line.match(/(?:thu hồi|đã thu hồi|mã cũ)[\s:.-]*(?:mã\s*)?[:.-]*\s*["'\(]?([A-Za-z0-9_-]{4,40})["'\)]?/i);
+        if (revokeMatch && !revokedCode) {
+            revokedCode = revokeMatch[1].trim();
+        }
+
+        if (!typeOrProduct && (lower.includes('loại pmh') || lower.includes('loai pmh') || lower.includes('sản phẩm') || lower.startsWith('sp:'))) {
+            const m = line.match(/(?:loại\s*(?:pmh)?|sản phẩm|sp)[\s:.-]+(.+)/i);
+            if (m) typeOrProduct = m[1].trim();
+            continue;
+        }
+
+        if (!orderId && (lower.includes('mđh') || lower.includes('mdh') || lower.includes('đơn hàng'))) {
+            const m = line.match(/(?:mđh\s*(?:áp dụng)?|mdh|đơn hàng)[\s:.-]*([A-Za-z0-9_-]{4,25})/i);
+            if (m) orderId = m[1].trim();
+            continue;
+        }
+
+        const isSystemLine = lower.includes('pmh') || lower.includes('mđh') || lower.includes('áp dụng') ||
+            lower.includes('kho') || lower.includes('loại') || lower.includes('thu hồi') ||
+            lower.includes('cấp lại') || lower.includes('trùng') || lower.includes('chuyển tiếp') ||
+            lower.includes('lưu ý') || lower.includes('chú ý') ||
+            (orderId && line.includes(orderId)) ||
+            /^[A-Za-z0-9_-]{6,30}\)?$/.test(line);
+
+        if (!recipient && !isSystemLine) {
+            recipient = line.replace(/^[@👤ℹ️🔄\s]+/, '').trim();
+        }
+    }
+
+    if (!recipient) {
+        for (const line of lines) {
+            const lower = line.toLowerCase();
+            if (!lower.includes('thu hồi') && !lower.includes('cấp lại') && !lower.includes('pmh') && !lower.includes('mđh')) {
+                recipient = line.replace(/^[@👤ℹ️🔄\s]+/, '').trim();
+                break;
+            }
+        }
+    }
+
+    const finalRecipient = recipient || 'Quản lý';
+    const finalType = typeOrProduct || 'PMH';
+
+    if (allCodes.length === 0 && code) {
+        allCodes.push({
+            typeOrProduct: finalType,
+            code,
+            revokedCode: revokedCode || undefined,
+            orderId: orderId || undefined
+        });
+    } else if (allCodes.length === 0) {
+        const otherLines = lines.filter(l => l !== finalRecipient && !l.startsWith('---') && !l.startsWith('━━━') && (l.includes('❌') || l.includes('⚠️') || l.includes('Lưu ý') || l.includes('Chú ý') || /mđh|áp dụng/i.test(l)));
+        if (otherLines.length > 0) {
+            otherLines.forEach(l => {
+                const cleanL = l.startsWith('➜') ? l : `➜ ${l}`;
+                allCodes.push({
+                    typeOrProduct: 'NOTE',
+                    code: '',
+                    rawLine: cleanL
+                });
+            });
+        }
+    } else {
+        allCodes.forEach(c => {
+            if (!c.revokedCode && revokedCode) c.revokedCode = revokedCode;
+            if (!c.orderId && orderId) c.orderId = orderId;
+        });
+    }
+
+    let compactBlock = '';
+    if (isReissue) {
+        const orderPart = orderId ? ` [MĐH: ${orderId}]` : '';
+        const revokePart = revokedCode ? ` (Thu hồi: ${revokedCode})` : '';
+        compactBlock = `${finalRecipient} 🔄 Cấp lại${orderPart}\n➜ PMH ${finalType} : ${code}${revokePart}`;
+    } else {
+        compactBlock = `${finalRecipient}\n➜ PMH ${finalType} : ${code}`;
+    }
+
+    return {
+        recipient: finalRecipient,
+        typeOrProduct: finalType,
+        code,
+        orderId: orderId || undefined,
+        revokedCode: revokedCode || undefined,
+        compactBlock,
+        allCodes
+    };
+}
+
+/**
+ * Lọc các khối PMH theo tên và format kết quả trả về (Rút gọn & gôm theo người nhận)
+ */
+function filterPmhByUsers(text: string, candidateNames: string[], liffId?: string): {
+    totalBlocks: number;
+    matchedBlocks: string[];
+    replyText: string;
+    flexMessages?: any[];
+    matchedItems?: Array<{
+        recipient: string;
+        productName: string;
+        categoryLabel: string;
+        code: string;
+        orderId?: string;
+        warningSuffix?: string;
+    }>;
+} {
+    if (isInventoryOrStatisticsReport(text)) {
+        return {
+            totalBlocks: 0,
+            matchedBlocks: [],
+            replyText: ''
+        };
+    }
+
+    const allBlocks = parsePmhBlocks(text);
+    const cleanNames = (candidateNames || []).map(n => (n || '').trim()).filter(Boolean);
+
+    if (cleanNames.length === 0) {
+        return {
+            totalBlocks: allBlocks.length,
+            matchedBlocks: [],
+            replyText: `💡 Bot nhận diện có ${allBlocks.length} mã PMH trong tin nhắn.\nTuy nhiên bạn chưa cấu hình tên người để lọc trên Dashboard (Tab Cú pháp & Lọc)!`
+        };
+    }
+
+    const matchedBlocks = allBlocks.filter(b => isBlockBelongToUser(b, cleanNames));
+    const nameLabel = cleanNames.slice(0, 3).join(', ') + (cleanNames.length > 3 ? '...' : '');
+
+    if (matchedBlocks.length === 0) {
+        return {
+            totalBlocks: allBlocks.length,
+            matchedBlocks: [],
+            replyText: `🔍 BOT KHÔNG TÌM THẤY MÃ PMH\n━━━━━━\nKhông có mã PMH nào thuộc về [${nameLabel}] trong tổng số [${allBlocks.length}] mã chuyển tiếp.\n👉 Vui lòng kiểm tra lại danh sách tên cấu hình trên Dashboard!`
+        };
+    }
+
+    // Gôm mã theo từng người nhận & chuẩn bị dữ liệu Thẻ Flex Card (mỗi mã 1 thẻ)
+    interface RecipientGroup {
+        recipient: string;
+        items: string[];
+    }
+
+    const groups = new Map<string, RecipientGroup>();
+    const matchedItemsForFlex: Array<{
+        recipient: string;
+        productName: string;
+        categoryLabel: string;
+        code: string;
+        orderId?: string;
+        warningSuffix?: string;
+    }> = [];
+
+    for (const block of matchedBlocks) {
+        const details = parsePmhBlockDetails(block);
+        const recipient = details.recipient || 'Quản lý';
+        const key = recipient.toLowerCase().trim();
+
+        const codesToProcess = (details.allCodes && details.allCodes.length > 0)
+            ? details.allCodes
+            : [{
+                typeOrProduct: details.typeOrProduct,
+                code: details.code,
+                revokedCode: details.revokedCode,
+                orderId: details.orderId
+            }];
+
+        for (const item of codesToProcess) {
+            let line = '';
+            if (item.rawLine) {
+                line = item.rawLine;
+            } else if (item.code) {
+                const rawType = item.typeOrProduct ? item.typeOrProduct.trim() : '';
+                const typeLabel = rawType
+                    ? (rawType.toUpperCase().startsWith('PMH') ? rawType : `PMH ${rawType}`)
+                    : 'PMH';
+
+                line = `➜ ${typeLabel} : ${item.code}`;
+                if (item.revokedCode) {
+                    line += ` (Thu hồi: ${item.revokedCode})`;
+                }
+
+                // Chuẩn bị item cho Flex Card
+                let cat = 'EVENT';
+                if (/event/i.test(rawType)) cat = 'EVENT';
+                else if (/gv|giờ vàng/i.test(rawType)) cat = 'GIỜ VÀNG';
+                else if (rawType) cat = rawType.replace(/^pmh\s*/i, '').trim() || 'EVENT';
+
+                let prod = rawType || 'Phiếu mua hàng PMH';
+                if (!prod.toLowerCase().startsWith('pmh') && !prod.toLowerCase().startsWith('bếp') && !prod.toLowerCase().startsWith('nồi') && !prod.toLowerCase().startsWith('quạt') && !prod.toLowerCase().startsWith('tủ') && !prod.toLowerCase().startsWith('máy')) {
+                    prod = `PMH ${prod}`;
+                }
+
+                matchedItemsForFlex.push({
+                    recipient,
+                    productName: prod,
+                    categoryLabel: cat,
+                    code: item.code,
+                    orderId: item.orderId || details.orderId,
+                    warningSuffix: item.revokedCode ? `(Thu hồi: ${item.revokedCode})` : undefined
+                });
+            } else {
+                continue;
+            }
+
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    recipient,
+                    items: [line]
+                });
+            } else {
+                const grp = groups.get(key)!;
+                if (!grp.items.includes(line)) {
+                    grp.items.push(line);
+                }
+            }
+        }
+    }
+
+    let msg = `🎯 KẾT QUẢ LỌC PMH:\n`;
+    msg += `━━━━━━\n`;
+
+    const groupList = Array.from(groups.values());
+    groupList.forEach((grp, idx) => {
+        msg += `${grp.recipient}\n`;
+        grp.items.forEach(item => {
+            msg += `${item}\n`;
+        });
+        if (idx < groupList.length - 1) {
+            msg += `━━━━━━\n`;
+        }
+    });
+
+    msg += `━━━━━━\n`;
+    msg += `💡 Sao chép mã phía trên để sử dụng!`;
+
+    const flexMessages = createFilteredPmhFlexMessages(matchedItemsForFlex, liffId);
+
+    return {
+        totalBlocks: allBlocks.length,
+        matchedBlocks,
+        replyText: msg.trim(),
+        flexMessages,
+        matchedItems: matchedItemsForFlex
+    };
+}
+
+/**
+ * Giữ chỗ 1 coupon trong TRANSACTION (audit 2026-10-07, D09): chỉ chuyển sang SENT nếu lúc ghi mã vẫn
+ * còn UNUSED. Trước đây chọn mã từ 1 lần đọc rồi update thẳng — 2 yêu cầu đến cùng lúc đọc cùng 1 mã
+ * UNUSED và cùng được cấp → 1 coupon giao cho 2 người.
+ */
+async function reserveCoupon(ref: FirebaseFirestore.DocumentReference, updates: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>): Promise<boolean> {
+    return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const status = snap.data()?.status;
+        if (!snap.exists || (status && status !== 'UNUSED')) return false;
+        tx.update(ref, updates);
+        return true;
+    });
+}
+
+const COUPON_BUSY_TEXT = '⏳ Mã vừa chọn đã được cấp cho người khác cùng lúc. Vui lòng gửi lại yêu cầu.';
+
+const MEDIA_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+/** Kiểm "chữ ký" đầu file (magic bytes) — MIME khai báo có thể nói dối. */
+function looksLikeImage(base64: string): boolean {
+    const head = Buffer.from(base64.slice(0, 24), 'base64');
+    const hex = head.toString('hex');
+    return hex.startsWith('ffd8ff') /* JPEG */ || hex.startsWith('89504e47') /* PNG */
+        || hex.startsWith('47494638') /* GIF */
+        || (head.slice(0, 4).toString('ascii') === 'RIFF' && head.slice(8, 12).toString('ascii') === 'WEBP');
+}
+
+/**
+ * Người chat có được DUYỆT / thu hồi mã hộ người khác không (audit 2026-10-07, S08). Chữ ký
+ * x-line-signature chỉ chứng minh sự kiện đến từ LINE — KHÔNG chứng minh người gõ là Admin.
+ * Danh sách Admin quản lý ở Dashboard (line_bots/{uid}/admins, role SUPER_ADMIN/APPROVER).
+ * Bot CHƯA khai Admin nào → giữ hành vi cũ (ai cũng duyệt được) để không làm đứng việc cấp mã;
+ * khai ít nhất 1 Admin là chế độ chặt tự bật.
+ */
+async function canApproveOnBot(uid: string, senderUserId: string): Promise<boolean> {
+    const adminsSnap = await db.collection('line_bots').doc(uid).collection('admins').get();
+    const active = adminsSnap.docs.map(d => d.data()).filter(a => a.active !== false);
+    if (active.length === 0) return true;
+    return Boolean(senderUserId) && active.some(a =>
+        a.lineUserId === senderUserId && (a.role === 'SUPER_ADMIN' || a.role === 'APPROVER'));
+}
+
+/**
+ * Lấy Channel Access Token cho các action "proxy" (verifyToken/sendTestPush/pushImage/sendBroadcast/getProfile).
+ * - Có `botId` (cách mới, audit S13): bắt buộc ID token Dashboard + quyền dùng bot đó (chủ bot, admin, hoặc manager
+ *   cùng Mã Kho — cùng luật firestore.rules canUseBot); token lấy từ `line_bot_secrets`, KHÔNG bao giờ về client.
+ * - Không có `botId`: CHỈ `verifyToken` với token người dùng vừa gõ (kiểm trước khi lưu), vẫn phải có ID token (AUD-016).
+ * Trả null khi đã tự phản hồi lỗi (caller chỉ việc `return`).
+ */
+async function resolveActionToken(req: any, res: any): Promise<string | null> {
+    const botId = String(req.body?.botId || req.query?.botId || '').trim();
+    const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const caller = idToken ? await adminAuth.verifyIdToken(idToken).catch(() => null) : null;
+    if (!caller) {
+        res.status(401).json({ success: false, error: 'Cần đăng nhập Dashboard để dùng Bot LINE.' });
+        return null;
+    }
+    if (!botId) {
+        // Token tự gõ (chưa lưu) CHỈ dùng để kiểm trước khi lưu (verifyToken). AUD-016 (2026-10-28): trước đây không cần đăng nhập
+        // và mọi action proxy (sendTestPush/pushImage/sendBroadcast/getProfile) nhận token tự gõ → hàm thành trạm chuyển tiếp
+        // MỞ tới api.line.me cho bất kỳ ai. Client mới chỉ còn verifyBotToken đi đường này (kèm ID token).
+        if (String(req.query?.action || req.body?.action || '').trim() !== 'verifyToken') {
+            res.status(400).json({ success: false, error: 'Thiếu botId.' });
+            return null;
+        }
+        return String(req.body?.token || req.query?.token || '').trim();
+    }
+    const botSnap = laIdDocHopLe(botId) ? await db.collection('line_bots').doc(botId).get() : null;
+    if (!botSnap?.exists || !canCallerUseBot({ uid: caller.uid, role: (caller as any).role, departmentId: (caller as any).departmentId }, botId, botSnap.data())) {
+        res.status(403).json({ success: false, error: 'Bạn không có quyền dùng Bot LINE này.' });
+        return null;
+    }
+    const token = String((await withSecrets(botId, botSnap.data())).channelAccessToken || '');
+    if (!token) {
+        res.status(200).json({ success: false, error: 'Bot này chưa có Channel Access Token.' });
+        return null;
+    }
+    return token;
+}
+
+/**
+ * Cấp phát mã PMH khi người dùng bấm chọn trực tiếp vào sản phẩm trên thẻ Flex Message
+ * Tìm trực tiếp theo tên sản phẩm chính xác, không phụ thuộc vào STT số thứ tự dễ bị nhảy vị trí
+ */
+async function handleIssueCouponByProductName(params: {
+    uid: string;
+    token: string;
+    replyToken: string;
+    senderUserId?: string;
+    groupId?: string;
+    eventChatId?: string;
+    productName: string;
+    category: CouponCategory;
+    config: any;
+    orderId?: string;
+    quoteToken?: string;
+}): Promise<boolean> {
+    const { uid, token, replyToken, senderUserId, groupId, eventChatId, productName, category, config, orderId, quoteToken } = params;
+
+    await cleanupExpiredCoupons(uid);
+    // Tự động hoàn kho các mã SENT quá 30 phút chưa copy sử dụng
+    await autoRevokeStaleCouponsForBot(uid, token).catch(() => {});
+    const snap = await db.collection('line_bots').doc(uid).collection('coupons').get();
+
+    // Tự động khôi phục mã bị kẹt do REVOKED hoặc lỗi quoteToken cũ
+    for (const d of snap.docs) {
+        const c = d.data();
+        if (c.status === 'REVOKED' || (c.status === 'SENT' && !c.orderId && c.updatedAt && c.updatedAt.startsWith('2026-09-20T08:50'))) {
+            await d.ref.update({
+                status: 'UNUSED',
+                recipient: '',
+                recipientId: '',
+                orderId: '',
+                updatedAt: new Date().toISOString()
+            });
+            c.status = 'UNUSED';
+            delete c.recipient;
+            delete c.recipientId;
+        }
+    }
+
+    const catMeta = getCategoryMeta(category);
+    const catLabel = catMeta.name;
+    const cleanTargetName = productName.toLowerCase().trim();
+
+    // Lấy profile người yêu cầu
+    const userProfile = senderUserId ? await getLineUserProfile(token, senderUserId, groupId) : null;
+    const displayName = userProfile?.displayName || 'Bạn';
+    const tagString = `@${displayName}`;
+
+    // Kiểm tra trùng MĐH nếu có
+    if (orderId) {
+        const dupSnap = await db.collection('line_bots').doc(uid).collection('coupons')
+            .where('orderId', '==', orderId).limit(1).get();
+
+        if (!dupSnap.empty) {
+            const existing = dupSnap.docs[0].data();
+            const prodTag = existing.productName || existing.type || 'PMH';
+            const dupText = `${tagString}\n⚠️ CẢNH BÁO TRÙNG MÃ ĐƠN HÀNG!\nĐơn hàng [${orderId}] đã được cấp mã trước đó:\nLoại PMH: ${prodTag}\n➜ PMH: ${existing.code}\n👤 Người nhận: ${existing.recipient || displayName}`;
+            const dupPayload: any = {
+                type: 'text',
+                text: dupText,
+                ...(quoteToken ? { quoteToken } : {})
+            };
+            if (senderUserId) {
+                dupPayload.mention = {
+                    mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                };
+            }
+            await replyLineMessage(token, replyToken, [dupPayload]);
+            return true;
+        }
+    }
+
+    // Tự động phát mã nếu autoApprove !== false
+    if (config.autoApprove !== false) {
+        let chosenDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+
+        // 1. Ưu tiên tìm khớp chính xác 100% tên sản phẩm
+        for (const d of snap.docs) {
+            const c = d.data();
+            if (c.status === 'UNUSED' || !c.status) {
+                const matchesCat = getCouponCategoryMeta(c).id === category;
+                if (matchesCat) {
+                    const pName = (c.productName || c.type || '').toLowerCase().trim();
+                    if (pName === cleanTargetName) {
+                        chosenDoc = d;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2. Dự phòng: nếu không khớp chính xác, tìm khớp tương đối
+        if (!chosenDoc) {
+            for (const d of snap.docs) {
+                const c = d.data();
+                if (c.status === 'UNUSED' || !c.status) {
+                    const matchesCat = getCouponCategoryMeta(c).id === category;
+                    if (matchesCat) {
+                        const pName = (c.productName || c.type || '').toLowerCase().trim();
+                        if (pName.includes(cleanTargetName) || cleanTargetName.includes(pName)) {
+                            chosenDoc = d;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!chosenDoc) {
+            const expiredInfo = await findExpiredProduct(uid, productName);
+            if (expiredInfo) {
+                const expDateVN = formatDisplayDate(expiredInfo.expiryDate);
+                await replyLineMessage(token, replyToken, [
+                    {
+                        type: 'text',
+                        text: `⚠️ THÔNG BÁO HẾT HẠN MÃ PMH!\nMã PMH cho sản phẩm [${productName}] đã HẾT HẠN SỬ DỤNG${expDateVN ? ` (Hạn dùng đến hết ngày ${expDateVN})` : ''}.\nKho đã tự động huỷ bỏ mã này theo quy định!`,
+                        ...(quoteToken ? { quoteToken } : {})
+                    }
+                ]);
+                return true;
+            }
+
+            await replyLineMessage(token, replyToken, [
+                {
+                    type: 'text',
+                    text: `❌ Rất tiếc, sản phẩm [${productName}] (${catLabel}) hiện đã HẾT MÃ trong kho!\n👉 Gõ "tk" để kiểm tra các sản phẩm khác còn mã.`,
+                    ...(quoteToken ? { quoteToken } : {})
+                }
+            ]);
+            return true;
+        }
+
+        const cData = chosenDoc.data();
+        const now = new Date().toISOString();
+        const shortCatForSeq = catLabel;
+        const seqStock = await allocatePmhSequence(uid, 1, new Date(), couponKind(shortCatForSeq));
+
+        if (!(await reserveCoupon(chosenDoc.ref, {
+            status: 'SENT',
+            sentAt: now,
+            chatId: eventChatId,
+            orderId: orderId || '',
+            recipient: displayName,
+            recipientId: senderUserId,
+            ...(seqStock > 0 ? { cardIndex: seqStock } : {}),
+            updatedAt: now
+        }))) {
+            await replyLineMessage(token, replyToken, [
+                {
+                    type: 'text',
+                    text: COUPON_BUSY_TEXT,
+                    ...(quoteToken ? { quoteToken } : {})
+                }
+            ]);
+            return true;
+        }
+
+        const flexMsg = createCouponFlexMessage({
+            displayName,
+            productName: productName,
+            categoryLabel: shortCatForSeq,
+            code: cData.code,
+            orderId: orderId,
+            cardIndex: seqStock > 0 ? seqStock : undefined,
+            liffId: (config as any).liffId
+        });
+        signLiffUris(flexMsg, uid, config.channelSecret);
+
+        const sendOk = await replyLineMessage(token, replyToken, [flexMsg]);
+        if (!sendOk) {
+            console.error(`[replyLineMessage failed] Reverting coupon ${chosenDoc.id} back to UNUSED`);
+            await chosenDoc.ref.update({
+                status: 'UNUSED',
+                orderId: '',
+                recipient: '',
+                recipientId: '',
+                updatedAt: now
+            });
+        }
+        return true;
+    } else {
+        // Chờ Admin duyệt
+        await db.collection('line_bots').doc(uid).collection('pending_requests').add({
+            productName: productName,
+            requestedProduct: productName,
+            category: category,
+            managerName: displayName,
+            senderUserId,
+            groupId: groupId || null,
+            chatId: eventChatId || null,
+            orderId: orderId || '',
+            status: 'PENDING',
+            quoteToken: quoteToken || null,
+            createdAt: new Date().toISOString()
+        });
+
+        const replyMsg = `${tagString}\n📋 Đã ghi nhận yêu cầu lấy PMH [${productName}] (${catLabel})!\n⏳ Vui lòng chờ Admin duyệt (Admin gõ "DUYỆT").`;
+        const payload: any = {
+            type: 'text',
+            text: replyMsg,
+            ...(quoteToken ? { quoteToken } : {})
+        };
+        if (senderUserId) {
+            payload.mention = {
+                mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+            };
+        }
+        await replyLineMessage(token, replyToken, [payload]);
+        return true;
+    }
+}
+
+export const lineBotWebhook = onRequest(
+    { region: DEFAULT_REGION, cors: true },
+    async (req, res) => {
+        // GET handler: Kiểm tra webhook hoặc phục vụ trực tiếp ảnh đính kèm (mediaId)
+        if (req.method === 'GET') {
+            const mediaId = String(req.query.mediaId || req.query.media || '').trim();
+            if (mediaId) {
+                try {
+                    const snap = await db.collection('bot_media').doc(mediaId).get();
+                    if (!snap.exists) {
+                        res.status(404).send('Media not found');
+                        return;
+                    }
+                    const data = snap.data() || {};
+                    // Ảnh HD (2026-10-02): bản gốc > 1MB không vừa 1 document → chia `parts` mảnh `<id>_p<i>`, ghép lại ở đây
+                    let base64Data = String(data.base64 || '').trim();
+                    const parts = Number(data.parts || 0);
+                    if (!base64Data && parts > 0 && parts <= 40) {
+                        const snaps = await Promise.all(Array.from({ length: parts }, (_, i) => db.collection('bot_media').doc(`${mediaId}_p${i}`).get()));
+                        if (snaps.some((s) => !s.exists)) {
+                            res.status(404).send('Media part missing');
+                            return;
+                        }
+                        base64Data = snaps.map((s) => String(s.data()?.base64 || '')).join('');
+                    }
+                    // Audit B5: chỉ phục vụ đúng loại ẢNH — trước đây trả nguyên contentType đã lưu (kể cả
+                    // text/html) → trang HTML tuỳ ý chạy trên domain của function.
+                    const contentType = MEDIA_IMAGE_TYPES.includes(String(data.contentType)) ? String(data.contentType) : 'image/jpeg';
+                    if (!base64Data) {
+                        res.status(404).send('Image data empty');
+                        return;
+                    }
+                    const cleanBase64 = base64Data.replace(/^data:image\/[a-zA-Z0-9+]+;base64,/, '');
+                    const buffer = Buffer.from(cleanBase64, 'base64');
+                    res.setHeader('Content-Type', contentType);
+                    res.setHeader('X-Content-Type-Options', 'nosniff');
+                    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+                    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                    res.setHeader('Content-Length', buffer.length);
+                    res.status(200).send(buffer);
+                    return;
+                } catch (err: any) {
+                    console.error('Lỗi phục vụ media bot:', err);
+                    res.status(500).send('Error loading media');
+                    return;
+                }
+            }
+            // Trang web dò xem function đã có ghép ảnh HD chưa (bản cũ trả câu chữ bên dưới → trang chỉ gửi bản ≤1MB)
+            if (req.query.caps !== undefined) {
+                res.status(200).json({ hdMedia: true });
+                return;
+            }
+            res.status(200).send('LINE Bot Webhook is active!');
+            return;
+        }
+
+        const action = String(req.query.action || req.body?.action || '').trim();
+
+        // 0. Action: Tải ảnh trực tiếp lên Cloud (Upload Media Proxy)
+        if (action === 'uploadMedia') {
+            try {
+                // Audit S07: trước đây ẩn danh ghi được document tuỳ ý (kể cả ghi đè ID có sẵn, MIME tuỳ ý).
+                const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+                const caller = idToken ? await adminAuth.verifyIdToken(idToken).catch(() => null) : null;
+                if (!caller) {
+                    res.status(401).json({ success: false, error: 'Cần đăng nhập Dashboard để tải ảnh.' });
+                    return;
+                }
+                const { base64, contentType, mediaId: customId, name } = req.body || {};
+                if (!base64) {
+                    res.status(400).json({ success: false, error: 'Thiếu dữ liệu base64 hình ảnh' });
+                    return;
+                }
+                const cleanBase64 = String(base64).replace(/^data:image\/[a-zA-Z0-9+]+;base64,/, '');
+                const type = String(contentType || 'image/jpeg');
+                if (!MEDIA_IMAGE_TYPES.includes(type) || cleanBase64.length > 1_048_000 || !looksLikeImage(cleanBase64)) {
+                    res.status(400).json({ success: false, error: 'Chỉ nhận ảnh JPEG/PNG/WebP/GIF dưới 1MB.' });
+                    return;
+                }
+                const mediaId = /^[A-Za-z0-9_-]{6,80}$/.test(String(customId || '')) ? String(customId)
+                    : `media_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                // create() — lỗi nếu ID đã tồn tại: không ghi đè ảnh của người khác.
+                await db.collection('bot_media').doc(mediaId).create({
+                    id: mediaId,
+                    base64: cleanBase64,
+                    contentType: type,
+                    name: String(name || 'image.jpg').slice(0, 120),
+                    ownerUid: caller.uid,
+                    createdAt: new Date().toISOString()
+                });
+                const url = `https://${DEFAULT_REGION}-dashboa-7e20b.cloudfunctions.net/lineBotWebhook?mediaId=${mediaId}`;
+                res.status(200).json({ success: true, mediaId, url });
+                return;
+            } catch (err: any) {
+                console.error('Lỗi uploadMedia:', err);
+                res.status(500).json({ success: false, error: err.message || 'Lỗi lưu media' });
+                return;
+            }
+        }
+
+        // 0.5. Action: LƯU bí mật Bot (Token/Secret/PMH relay) vào `line_bot_secrets` — client không còn ghi chúng
+        // vào `line_bots` (audit S13). Chỉ chủ bot hoặc admin. Field không gửi lên = giữ nguyên; chuỗi rỗng = xoá.
+        if (action === 'saveSecrets') {
+            try {
+                const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+                const caller = idToken ? await adminAuth.verifyIdToken(idToken).catch(() => null) : null;
+                if (!caller) { res.status(401).json({ success: false, error: 'Cần đăng nhập Dashboard.' }); return; }
+                const botId = String(req.body?.botId || caller.uid).trim();
+                if (botId !== caller.uid && (caller as any).role !== 'admin') {
+                    res.status(403).json({ success: false, error: 'Chỉ chủ bot hoặc Admin được đổi Token/Secret.' });
+                    return;
+                }
+                const patch: Record<string, string> = {};
+                for (const k of SECRET_KEYS) {
+                    const v = req.body?.[k];
+                    if (typeof v === 'string') patch[k] = v.trim().replace(/^["']|["']$/g, '');
+                }
+                if (Object.keys(patch).length === 0) { res.status(400).json({ success: false, error: 'Không có gì để lưu.' }); return; }
+                await db.collection(BOT_SECRETS_COL).doc(botId).set(patch, { merge: true });
+                const merged = await withSecrets(botId, {});
+                // Cờ công khai cho client (không chứa giá trị): hiện "Đã lưu ••••" mà không lộ bí mật.
+                await db.collection('line_bots').doc(botId).set({
+                    hasToken: Boolean(merged.channelAccessToken),
+                    hasSecret: Boolean(merged.channelSecret),
+                    updatedAt: new Date().toISOString(),
+                }, { merge: true });
+                res.status(200).json({ success: true, hasToken: Boolean(merged.channelAccessToken), hasSecret: Boolean(merged.channelSecret) });
+                return;
+            } catch (err: any) {
+                console.error('Lỗi saveSecrets:', err);
+                res.status(500).json({ success: false, error: err.message || 'Lỗi lưu bí mật Bot' });
+                return;
+            }
+        }
+
+        // 1. Action: Xác thực token & lấy thông tin Bot (Proxy cho Frontend tránh lỗi CORS từ api.line.me)
+        // Hạn mức tin nhắn LINE của bot trong tháng (2026-10-15) — giao diện "Gửi Notify" hiện đã dùng/còn lại để người
+        // dùng biết vì sao tin không đi. BẮT BUỘC botId (không nhận token thô) — chỉ chủ bot/admin/quản lý cùng Kho.
+        if (action === 'quota') {
+            if (!String(req.body?.botId || '').trim()) { res.status(400).json({ success: false, error: 'Thiếu botId' }); return; }
+            const token = await resolveActionToken(req, res);
+            if (token === null) return;
+            try {
+                const botId = String(req.body.botId).trim();
+                const [{ limit, used }, ut] = await Promise.all([
+                    layHanMuc(token),
+                    uocTinhNotifyCuaBot(db.collection('line_bots').doc(botId), token, vnNow()),
+                ]);
+                res.status(200).json({
+                    success: true, limit, used,
+                    exhausted: limit !== null && used !== null && used >= limit,
+                    // Ước tính tin các lịch Gửi Notify đang bật (lượt × số thành viên nhóm) — để biết trước có vượt hạn mức không.
+                    notifyCaThang: ut.caThang, notifyConLai: ut.conLai,
+                });
+            } catch (err: any) {
+                res.status(200).json({ success: false, error: err?.message || 'Không đọc được hạn mức từ LINE' });
+            }
+            return;
+        }
+
+        if (action === 'verifyToken') {
+            const token = await resolveActionToken(req, res);
+            if (token === null) return;
+            if (!token) {
+                res.status(200).json({ success: false, error: 'Vui lòng nhập Channel Access Token' });
+                return;
+            }
+            try {
+                const lineRes = await fetch('https://api.line.me/v2/bot/info', {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                const data = await lineRes.json().catch(() => ({}));
+                if (!lineRes.ok) {
+                    const lineMsg = (data as any)?.message || `Mã lỗi HTTP ${lineRes.status}`;
+                    res.status(200).json({
+                        success: false,
+                        error: `Token không hợp lệ hoặc đã hết hạn: ${lineMsg}`
+                    });
+                    return;
+                }
+                res.status(200).json({ success: true, info: data });
+                return;
+            } catch (err: any) {
+                res.status(200).json({
+                    success: false,
+                    error: err.message || 'Không thể kết nối đến máy chủ LINE API'
+                });
+                return;
+            }
+        }
+
+        // 1.5. Action: Đánh dấu coupon đã sử dụng khi người dùng bấm qua LIFF
+        if (action === 'mark-used' || action === 'markUsed') {
+            const code = String(req.body?.code || req.query.code || '').trim().toUpperCase();
+            const usedBy = String(req.body?.usedBy || req.query.usedBy || 'Người dùng LINE').trim();
+            const now = new Date().toISOString();
+
+            if (!code) {
+                res.status(200).json({ success: false, error: 'Thiếu mã coupon' });
+                return;
+            }
+
+            try {
+                // Audit 2026-10-07 (S06): thẻ mới mang vé `b` (bot) + `t` (HMAC Channel Secret) — chỉ chạm
+                // đúng bot đó. Thẻ cũ chưa có vé: giữ cách quét mọi bot tới LEGACY_LIFF_UNTIL rồi từ chối.
+                const botParam = String(req.body?.b || req.query.b || '').trim();
+                const ticket = String(req.body?.t || req.query.t || '').trim();
+                let uids: string[];
+                const tokenByUid = new Map<string, string>();
+                if (botParam || ticket) {
+                    const botSnap = botParam && laIdDocHopLe(botParam) ? await db.collection('line_bots').doc(botParam).get() : null;
+                    const botCfg = botSnap?.exists ? await withSecrets(botParam, botSnap.data()) : null;
+                    if (!botCfg || !verifyLiffTicket(String(botCfg.channelSecret || ''), code, ticket)) {
+                        res.status(403).json({ success: false, error: 'Thẻ coupon không hợp lệ.' });
+                        return;
+                    }
+                    uids = [botParam];
+                    tokenByUid.set(botParam, String(botCfg.channelAccessToken || ''));
+                } else if (Date.now() < LEGACY_LIFF_UNTIL) {
+                    // Tốc độ là ưu tiên (LIFF đang chờ xoay): 1 truy vấn lấy bot → quét SONG SONG cả 2 collection
+                    // của mọi bot → cập nhật USED và push xác nhận SONG SONG → trả lời.
+                    const botsSnap = await db.collection('line_bots').where('active', '==', true).get();
+                    uids = botsSnap.empty
+                        ? (await db.collection('line_bots').limit(5).get()).docs.map(d => d.id)
+                        : botsSnap.docs.map(d => d.id);
+                    for (const { doc: d, config: c } of await botsWithSecrets(botsSnap.docs)) tokenByUid.set(d.id, String(c.channelAccessToken || ''));
+                } else {
+                    res.status(403).json({ success: false, error: 'Thẻ coupon cũ đã hết hạn dùng nút copy. Vui lòng yêu cầu thẻ mới.' });
+                    return;
+                }
+
+                const scans = await Promise.all(uids.flatMap(bUid => [
+                    db.collection('line_bots').doc(bUid).collection('filtered_coupons').where('code', '==', code).get()
+                        .then(snap => ({ bUid, kind: 'filtered' as const, docs: snap.docs })),
+                    db.collection('line_bots').doc(bUid).collection('coupons').where('code', '==', code).get()
+                        .then(snap => ({ bUid, kind: 'stock' as const, docs: snap.docs }))
+                ]));
+
+                let wasAlreadyUsed = false;
+                let wasRevoked = false;
+                let previousUser = '';
+                const toUpdate: FirebaseFirestore.DocumentReference[] = [];
+                // Thẻ lọc đầu tiên vừa chuyển USED có đủ quoteToken + chatId → bot gửi xác nhận trích dẫn thẻ đó
+                let quoteTarget: { bUid: string; chatId: string; quoteToken: string; cardIndex: number; categoryLabel?: string } | null = null;
+                for (const scan of scans) {
+                    for (const docItem of scan.docs) {
+                        const d = docItem.data();
+                        if (d.status === 'USED') {
+                            wasAlreadyUsed = true;
+                            if (d.usedBy && !previousUser) previousUser = d.usedBy;
+                            continue;
+                        }
+                        if (scan.kind === 'stock') {
+                            // Đối với coupon kho tồn: chỉ cho phép chuyển USED khi mã đang ở trạng thái SENT.
+                            // Nếu đã hoàn về UNUSED (do hết 30 phút chờ sao chép), không cho phép nhận nữa.
+                            if (d.status !== 'SENT') {
+                                wasRevoked = true;
+                                continue;
+                            }
+                        }
+                        toUpdate.push(docItem.ref);
+                        if (scan.kind === 'filtered' && !quoteTarget && d.quoteToken && d.chatId) {
+                            quoteTarget = { bUid: scan.bUid, chatId: d.chatId, quoteToken: d.quoteToken, cardIndex: Number(d.cardIndex) || Number(req.body?.index || req.query.index) || 1, categoryLabel: d.categoryLabel || d.type || '' };
+                        }
+                    }
+                }
+                const updatedCount = toUpdate.length;
+                const isDuplicate = wasAlreadyUsed && updatedCount === 0;
+                const isRevoked = !wasAlreadyUsed && wasRevoked && updatedCount === 0;
+
+                // Bot gửi tin xác nhận TRÍCH DẪN thẻ coupon (LIFF sendMessages không hỗ trợ quoteToken —
+                // developers.line.biz/en/reference/liff/#send-messages). Thất bại (hết hạn mức push…) →
+                // quotedSent=false, LIFF tự gửi tin thường thay người dùng như trước.
+                // TẮT HẲN tin xác nhận dùng coupon (chủ dự án chốt 2026-10-15 bỏ push, 2026-10-20 "Tắt tin nhắn xác nhận khi dùng coupon"):
+                // bot không PUSH (tốn hạn mức LINE theo số thành viên nhóm) và trang LIFF cũng không gửi thay — chỉ đánh dấu đã dùng.
+                // Đặt true là bot push lại, nhưng public/liff-copy.html không còn nhánh hiển thị tương ứng.
+                const BOT_TRICH_DAN_COUPON = false;
+                const pushPromise: Promise<{ ok: boolean; status: number; error?: string } | null> = (BOT_TRICH_DAN_COUPON && !isDuplicate && quoteTarget)
+                    ? (async () => {
+                        let botToken = tokenByUid.get(quoteTarget!.bUid) || '';
+                        if (!botToken) {
+                            const botSnap = await db.collection('line_bots').doc(quoteTarget!.bUid).get();
+                            botToken = String((await withSecrets(quoteTarget!.bUid, botSnap.data())).channelAccessToken || '');
+                        }
+                        const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+                        // Tin xác nhận ghi tên gọn "Mã NV - Tên" (DMST-Nhân-107617SALE -> 107617 - Nhân); Firestore vẫn lưu usedBy đầy đủ.
+                        // Nội dung theo LOẠI thẻ: "PMH 68" / "Coupon Event 68" / "Coupon GVGS 68"
+                        const text = buildCouponUsedText({
+                            categoryLabel: quoteTarget!.categoryLabel,
+                            index: quoteTarget!.cardIndex,
+                            timeStr,
+                            userName: formatShortUserName(usedBy),
+                        });
+                        return pushLineMessage(botToken, quoteTarget!.chatId, [{ type: 'text', text, quoteToken: quoteTarget!.quoteToken }]);
+                    })().catch((e: any) => ({ ok: false, status: 0, error: e?.message || 'push-failed' }))
+                    : Promise.resolve(null);
+
+                const updatePromise = updatedCount > 0
+                    ? (async () => {
+                        const batch = db.batch();
+                        toUpdate.forEach(ref => batch.update(ref, { status: 'USED', usedBy, usedAt: now }));
+                        await batch.commit();
+                    })()
+                    : Promise.resolve();
+
+                const [pushed] = await Promise.all([pushPromise, updatePromise]);
+                const quotedSent = Boolean(pushed?.ok);
+                const quoteError = pushed && !pushed.ok ? (pushed.status === 429 ? 'quota' : pushed.error) : undefined;
+
+                res.status(200).json({
+                    success: true,
+                    updatedCount,
+                    alreadyUsed: isDuplicate,
+                    revoked: isRevoked,
+                    previousUser: previousUser || undefined,
+                    quotedSent,
+                    quoteError
+                });
+                return;
+            } catch (err: any) {
+                res.status(200).json({ success: false, error: err.message });
+                return;
+            }
+        }
+
+        // 2. Action: Gửi tin nhắn kiểm tra push (Proxy cho Frontend)
+        if (action === 'sendTestPush') {
+            const token = await resolveActionToken(req, res);
+            if (token === null) return;
+            const toUserId = String(req.body?.toUserId || '').trim();
+            const text = String(req.body?.text || '').trim() || '🔔 Tin nhắn kiểm tra kết nối từ Dashboard thành công!';
+            if (!token || !toUserId) {
+                res.status(200).json({ success: false, error: 'Thiếu Token hoặc LINE User ID' });
+                return;
+            }
+            try {
+                const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        to: toUserId,
+                        messages: [{ type: 'text', text }]
+                    })
+                });
+                const data = await lineRes.json().catch(() => ({}));
+                if (!lineRes.ok) {
+                    res.status(200).json({
+                        success: false,
+                        error: moTaLoiLine(lineRes.status, (data as any)?.message),
+                        quotaExceeded: laHetHanMuc(lineRes.status, (data as any)?.message),
+                    });
+                    return;
+                }
+                res.status(200).json({ success: true });
+                return;
+            } catch (err: any) {
+                res.status(200).json({ success: false, error: err.message || 'Lỗi mạng khi gửi tin nhắn test' });
+                return;
+            }
+        }
+
+        // 2b. Action: Gửi ẢNH báo cáo (kèm chú thích) vào nhóm LINE — Dashboard Phân tích "xuất ảnh → gửi nhóm LINE"
+        // (2026-10-01). Ảnh đã được tải lên bot_media trước (URL https của chính function này). Chỉ nhận ID nhóm/người
+        // LINE và URL ảnh https — không phải proxy push tuỳ ý.
+        if (action === 'pushImage') {
+            const token = await resolveActionToken(req, res);
+            if (token === null) return;
+            const to = String(req.body?.to || '').trim();
+            const imageUrl = String(req.body?.imageUrl || '').trim();
+            // Bản xem trước ≤1MB riêng (2026-10-02) — ảnh gốc HD có thể tới 10MB, LINE không cho làm ảnh xem trước
+            const previewRaw = String(req.body?.previewUrl || '').trim();
+            const previewUrl = /^https:\/\//.test(previewRaw) ? previewRaw : imageUrl;
+            const text = String(req.body?.text || '').trim().slice(0, 1000);
+            if (!token || !/^[CRU][0-9a-f]{32}$/.test(to) || !/^https:\/\//.test(imageUrl)) {
+                res.status(200).json({ success: false, error: 'Thiếu Token, ID nhóm LINE hoặc đường dẫn ảnh' });
+                return;
+            }
+            try {
+                const messages: any[] = [];
+                if (text) messages.push({ type: 'text', text });
+                messages.push({ type: 'image', originalContentUrl: imageUrl, previewImageUrl: previewUrl });
+                const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ to, messages })
+                });
+                const data = await lineRes.json().catch(() => ({}));
+                if (!lineRes.ok) {
+                    res.status(200).json({ success: false, error: (data as any)?.message || `Gửi ảnh thất bại (mã lỗi HTTP ${lineRes.status})` });
+                    return;
+                }
+                res.status(200).json({ success: true });
+                return;
+            } catch (err: any) {
+                res.status(200).json({ success: false, error: err.message || 'Lỗi mạng khi gửi ảnh' });
+                return;
+            }
+        }
+
+        // 3. Action: Broadcast tin nhắn (Proxy cho Frontend)
+        if (action === 'sendBroadcast') {
+            const token = await resolveActionToken(req, res);
+            if (token === null) return;
+            const text = String(req.body?.text || '').trim();
+            if (!token || !text) {
+                res.status(200).json({ success: false, error: 'Thiếu Token hoặc nội dung tin nhắn' });
+                return;
+            }
+            try {
+                const lineRes = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        messages: [{ type: 'text', text }]
+                    })
+                });
+                const data = await lineRes.json().catch(() => ({}));
+                if (!lineRes.ok) {
+                    res.status(200).json({
+                        success: false,
+                        error: (data as any)?.message || `Lỗi phát sóng (mã lỗi HTTP ${lineRes.status})`
+                    });
+                    return;
+                }
+                res.status(200).json({ success: true });
+                return;
+            } catch (err: any) {
+                res.status(200).json({ success: false, error: err.message });
+                return;
+            }
+        }
+
+        // 4. Action: Lấy thông tin profile người dùng (Proxy cho Frontend)
+        if (action === 'getProfile') {
+            const token = await resolveActionToken(req, res);
+            if (token === null) return;
+            const targetUserId = String(req.body?.userId || req.query.userId || '').trim();
+            const targetGroupId = String(req.body?.groupId || req.query.groupId || '').trim();
+            if (!token || !targetUserId) {
+                res.status(200).json({ success: false, error: 'Thiếu Token hoặc LINE User ID' });
+                return;
+            }
+            try {
+                const profile = await getLineUserProfile(token, targetUserId, targetGroupId || undefined);
+                if (profile) {
+                    res.status(200).json({ success: true, profile });
+                } else {
+                    res.status(200).json({ success: false, error: 'Không tìm thấy thông tin profile người dùng này' });
+                }
+                return;
+            } catch (err: any) {
+                res.status(200).json({ success: false, error: err.message });
+                return;
+            }
+        }
+
+        // 1. Phản hồi 200 ngay cho LINE webhook verification ping nếu events rỗng
+        const events: LineEvent[] = req.body.events || [];
+        if (!Array.isArray(events) || events.length === 0) {
+            res.status(200).send('OK');
+            return;
+        }
+
+        // 2. Tìm uid Quản lý: ưu tiên query param -> destination botUserId -> doc line_bots có sẵn
+        let uid = String(req.query.uid || req.query.userId || '').trim();
+        if (!uid) {
+            const destination = (req.body as any)?.destination;
+            if (destination) {
+                const bSnap = await db.collection('line_bots').where('botUserId', '==', destination).limit(1).get();
+                if (!bSnap.empty) {
+                    uid = bSnap.docs[0].id;
+                }
+            }
+            if (!uid) {
+                const activeSnap = await db.collection('line_bots').where('active', '==', true).limit(1).get();
+                if (!activeSnap.empty) {
+                    uid = activeSnap.docs[0].id;
+                } else {
+                    const anySnap = await db.collection('line_bots').limit(1).get();
+                    if (!anySnap.empty) {
+                        uid = anySnap.docs[0].id;
+                    }
+                }
+            }
+        }
+
+        if (!uid) {
+            console.warn('[lineBotWebhook] Chưa có tài khoản Quản lý nào được thiết lập bot trong hệ thống.');
+            res.status(200).send('OK');
+            return;
+        }
+
+        // Lấy config của Quản lý từ Firestore
+        const configDoc = await db.collection('line_bots').doc(uid).get();
+        if (!configDoc.exists) {
+            res.status(200).send('Manager LINE bot config not found');
+            return;
+        }
+        const config = await withSecrets(uid, configDoc.data());
+
+        // KIỂM CHỮ KÝ LINE (2026-10-02) — chặn sự kiện giả. Đặt SAU khi biết bot nào (mỗi bot một Channel secret) và
+        // TRƯỚC mọi xử lý sự kiện. Thiếu secret = TỪ CHỐI (fail-closed): bot dùng để kiểm soát nhân viên, thà ngừng
+        // trả lời (log báo rõ, Cài đặt Bot hiện cảnh báo) còn hơn nhận sự kiện giả. Trả 200 khi thiếu secret để LINE
+        // không đánh dấu webhook lỗi; trả 401 khi chữ ký sai.
+        const channelSecret = String(config.channelSecret || '').trim();
+        if (!channelSecret) {
+            console.error(`[lineBotWebhook] Bot ${uid}: CHƯA nhập Channel secret → bỏ qua ${events.length} sự kiện (không kiểm được chữ ký). Nhập ở Bot LINE › Cài đặt.`);
+            res.status(200).send('Channel secret not configured');
+            return;
+        }
+        if (!verifyLineSignature(req.rawBody, req.headers['x-line-signature'], channelSecret)) {
+            console.warn(`[lineBotWebhook] Bot ${uid}: chữ ký x-line-signature KHÔNG khớp → từ chối ${events.length} sự kiện (giả mạo, hoặc Channel secret nhập sai).`);
+            res.status(401).send('Invalid signature');
+            return;
+        }
+
+        const token = config.channelAccessToken;
+        if (!token) {
+            res.status(200).send('Bot token not configured yet');
+            return;
+        }
+
+        for (const event of events) {
+            const senderUserId = event.source?.userId || '';
+            const groupId = event.source?.groupId;
+            const replyToken = event.replyToken;
+            let currentGroupName = 'Nhóm LINE';
+
+            // TỰ ĐỘNG GHI NHẬN & CẬP NHẬT NHÓM: Bất kỳ khi nào có event từ Group
+            if (groupId) {
+                try {
+                    // Gọi LINE API lấy thông tin thật của Group nếu có token
+                    const gRes = await fetch(`https://api.line.me/v2/bot/group/${groupId}/summary`, {
+                        method: 'GET',
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                    if (gRes.ok) {
+                        const gData = (await gRes.json()) as any;
+                        if (gData?.groupName) currentGroupName = gData.groupName;
+                    }
+
+                    await db.collection('line_bots').doc(uid).collection('groups').doc(groupId).set({
+                        groupId,
+                        groupName: currentGroupName,
+                        active: true,
+                        lastActiveAt: new Date().toISOString()
+                    }, { merge: true });
+                } catch (gErr) {
+                    console.warn('[lineBotWebhook] Lỗi lưu group:', gErr);
+                }
+            }
+
+            // TỰ ĐỘNG GHI NHẬN & CẬP NHẬT NGƯỜI DÙNG TƯƠNG TÁC (trong nhóm hoặc nhắn riêng)
+            if (senderUserId && senderUserId.startsWith('U')) {
+                try {
+                    const uProfile = await getLineUserProfile(token, senderUserId, groupId);
+                    const now = new Date().toISOString();
+                    const userData: Record<string, any> = {
+                        id: senderUserId,
+                        lineUserId: senderUserId,
+                        displayName: uProfile?.displayName || 'Thành viên LINE',
+                        lastInteractionType: groupId ? 'GROUP' : 'DIRECT',
+                        lastInteractedAt: now
+                    };
+                    if (uProfile?.pictureUrl) userData.pictureUrl = uProfile.pictureUrl;
+                    if (uProfile?.statusMessage) userData.statusMessage = uProfile.statusMessage;
+                    if (groupId) {
+                        userData.lastGroupId = groupId;
+                        userData.lastGroupName = currentGroupName;
+                    }
+                    if (event.message?.type === 'text') {
+                        userData.lastMessage = String(event.message.text || '').slice(0, 100);
+                    }
+                    await db.collection('line_bots').doc(uid).collection('interacted_users').doc(senderUserId).set(userData, { merge: true });
+                } catch (uErr) {
+                    console.warn('[lineBotWebhook] Lỗi lưu interacted_user:', uErr);
+                }
+            }
+
+            // Xử lý khi được thêm vào nhóm (join event) - Không gửi thông báo chào mừng để tránh làm phiền nhóm
+            if (event.type === 'join') {
+                console.info(`[lineBotWebhook] Bot joined group ${groupId || 'unknown'} (${currentGroupName}) - silent join.`);
+                continue;
+            }
+
+            // Xử lý sự kiện postback khi người dùng bấm chọn trực tiếp vào thẻ Flex Message
+            if (event.type === 'postback' && replyToken) {
+                const postbackData = event.postback?.data || '';
+                console.info(`[lineBotWebhook] Received postback "${postbackData}" from ${groupId ? 'GROUP:' + groupId : 'DIRECT:' + senderUserId}`);
+
+                const groupFeatures: GroupFeatures | null = groupId ? await getGroupFeatures(uid, groupId) : null;
+                const allow = (key: GroupFeatureKey) => !groupFeatures || groupFeatures[key] !== false;
+                const denyLog = (key: GroupFeatureKey, what: string) => {
+                    console.info(`[Giới hạn tính năng] Nhóm ${groupId} đã TẮT "${key}" — bỏ qua ${what}.`);
+                };
+
+                let pbAction = '';
+                let pbCat = 'EVENT';
+                let pbProd = '';
+
+                if (postbackData.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(postbackData);
+                        pbAction = parsed.action || parsed.a || '';
+                        pbCat = parsed.cat || parsed.c || 'EVENT';
+                        pbProd = parsed.prod || parsed.p || '';
+                    } catch (_) {}
+                } else {
+                    const params = new URLSearchParams(postbackData);
+                    pbAction = params.get('action') || '';
+                    pbCat = params.get('cat') || 'EVENT';
+                    pbProd = params.get('prod') || '';
+                }
+
+                if (pbAction === 'claim_pmh' && pbProd) {
+                    if (!allow('issueCoupon')) {
+                        denyLog('issueCoupon', 'lệnh xin cấp mã PMH qua chạm thẻ Flex');
+                        continue;
+                    }
+
+                    const validCat = getCategoryMeta(pbCat).id;
+                    const eventChatId = groupId || event.source?.roomId || senderUserId;
+
+                    await handleIssueCouponByProductName({
+                        uid,
+                        token,
+                        replyToken,
+                        senderUserId,
+                        groupId,
+                        eventChatId,
+                        productName: pbProd,
+                        category: validCat,
+                        config
+                    });
+                    continue;
+                }
+            }
+
+
+            // Xử lý tin nhắn văn bản
+            if (event.type === 'message' && event.message?.type === 'text' && replyToken) {
+                const rawText = (event.message.text || '').trim();
+                // Bỏ tiền tố @mention tên bot nếu có (ví dụ: "@Bot cp" -> "cp", "@DM_Tây Nam Bộ tk" -> "tk")
+                const cleanText = rawText.replace(/^@[^\s]+\s*/, '').trim();
+                const lower = cleanText.toLowerCase();
+
+                console.info(`[lineBotWebhook] Received message "${cleanText}" from ${groupId ? 'GROUP:' + groupId : 'DIRECT:' + senderUserId}`);
+
+                // Giới hạn tính năng theo nhóm (tab "Giới Hạn Tính Năng" trên Dashboard). Đọc 1 lần
+                // cho cả tin nhắn này (có cache 60s trong groupFeatureHelper) rồi chặn đúng nhánh.
+                // Chat 1-1 không bị giới hạn. Trước 2026-09-22 cấu hình này KHÔNG có tác dụng gì.
+                const groupFeatures: GroupFeatures | null = groupId ? await getGroupFeatures(uid, groupId) : null;
+                const allow = (key: GroupFeatureKey) => !groupFeatures || groupFeatures[key] !== false;
+                const denyLog = (key: GroupFeatureKey, what: string) => {
+                    console.info(`[Giới hạn tính năng] Nhóm ${groupId} đã TẮT "${key}" — bỏ qua ${what}.`);
+                };
+
+                // 1. Kiểm tra lệnh hỏi ID (id, lineid, groupid)
+                if (lower === 'id' || lower === 'admin' || lower === 'lineid' || lower === 'groupid' || lower === '.id' || lower === '/id' || lower === '!id') {
+                    if (groupId) {
+                        const gDoc = await db.collection('line_bots').doc(uid).collection('groups').doc(groupId).get();
+                        const gName = gDoc.exists ? (gDoc.data()?.groupName || 'Nhóm LINE') : 'Nhóm LINE';
+
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: `👥 THÔNG TIN NHÓM LINE:\n━━━━━━━━━━━━━━━━━━━━━\n🏷️ Tên nhóm: ${gName}\n🆔 Group ID:\n${groupId}\n\n✅ Đã tự động kết nối với Dashboard!\n(Bạn có thể chọn nhóm này trong mục Hẹn Giờ Báo)`
+                            }
+                        ]);
+                    } else {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: `🆔 LINE User ID của bạn:\n${senderUserId}\n\n(Hãy copy chuỗi này dán vào mục Khai Báo Admin trên Dashboard)`
+                            }
+                        ]);
+                    }
+                    continue;
+                }
+
+                // 1.2. Kiểm tra danh sách lệnh báo cáo (dsbc)
+                const cleanCmd = lower.replace(/^[./!#\s]+/, '').replace(/\s+/g, '').trim();
+                if (cleanCmd === 'dsbc' || lower === 'lệnh bc' || lower === 'lenh bc' || lower === 'danh sách báo cáo' || lower === 'danh sach bao cao') {
+                    let reportList = '📋 DANH SÁCH LỆNH NHẬN ẢNH BÁO CÁO:\n━━━━━━━━━━━━━━━━━━━━━\n';
+                    reportList += '• "bcrt": Báo cáo Realtime mới nhất (Tự động sau Auto Realtime)\n';
+                    reportList += '• "bclk": Báo cáo Luỹ kế mới nhất (Tự động sau Auto Luỹ kế)\n';
+                    reportList += '• "bc": Báo cáo tổng quan mới nhất\n';
+                    let customCount = 0;
+                    try {
+                        const snap = await db.collection('line_bots').doc(uid).collection('report_commands').get();
+                        if (!snap.empty) {
+                            snap.docs.forEach((d) => {
+                                const data = d.data();
+                                if (data.command && !['bc', 'bcrt', 'bclk'].includes(data.command)) {
+                                    reportList += `• "${data.command}": ${data.reportKey || 'Báo cáo'}\n`;
+                                    customCount++;
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.warn('[lineBotWebhook] Lỗi đọc report_commands:', err);
+                    }
+                    reportList += '━━━━━━━━━━━━━━━━━━━━━\n💡 Gõ lệnh tương ứng vào nhóm LINE để Bot gửi ảnh mới nhất (Hoàn toàn MIỄN PHÍ)!';
+                    await replyLineMessage(token, replyToken, [
+                        {
+                            type: 'text',
+                            text: reportList,
+                            quoteToken: event.message?.quoteToken
+                        }
+                    ]);
+                    continue;
+                }
+
+                // 1.3. Xử lý gõ lệnh nhận ảnh báo cáo (ví dụ "bc", "bcrt", "bclk", "cttk", "dt", "thidua"...)
+                // Cơ chế Reply qua LINE Messaging API: Hoàn toàn MIỄN PHÍ & KHÔNG GIỚI HẠN
+                const isReportCmd = ['bc', 'bcrt', 'bclk'].includes(cleanCmd) ||
+                    (cleanCmd && cleanCmd.length >= 2 && cleanCmd.length <= 30 && laIdDocHopLe(cleanCmd) && !['id', 'admin', 'lineid', 'groupid', 'hd', 'help', 'huongdan', 'cp', 'tk', 'csd', 'huy', 'tra'].includes(cleanCmd));
+
+                if (isReportCmd) {
+                    let cmdDoc = await db.collection('line_bots').doc(uid).collection('report_commands').doc(cleanCmd).get();
+                    let cmdData = cmdDoc.exists ? cmdDoc.data() : null;
+
+                    // Fallback thông minh:
+                    // 1. Nếu gõ "bc": nếu chưa có doc "bc", kiểm tra "bcrt" hoặc "bclk" mới hơn
+                    if (!cmdData && cleanCmd === 'bc') {
+                        try {
+                            const [rtDoc, lkDoc] = await Promise.all([
+                                db.collection('line_bots').doc(uid).collection('report_commands').doc('bcrt').get(),
+                                db.collection('line_bots').doc(uid).collection('report_commands').doc('bclk').get(),
+                            ]);
+                            const rtData = rtDoc.exists ? rtDoc.data() : null;
+                            const lkData = lkDoc.exists ? lkDoc.data() : null;
+                            if (rtData && lkData) {
+                                const tRt = new Date(rtData.updatedAt || 0).getTime();
+                                const tLk = new Date(lkData.updatedAt || 0).getTime();
+                                cmdData = tRt >= tLk ? rtData : lkData;
+                            } else {
+                                cmdData = rtData || lkData || null;
+                            }
+                        } catch (e) {
+                            console.warn('[lineBotWebhook] Fallback bcrt/bclk cho bc lỗi:', e);
+                        }
+                    }
+
+                    // 2. Fallback cho bcrt/bclk nếu chưa có doc riêng: thử lấy doc "bc" nhưng CHỈ KHI doc "bc" mới (< 24h)
+                    if (!cmdData && (cleanCmd === 'bcrt' || cleanCmd === 'bclk')) {
+                        try {
+                            const fallbackBc = await db.collection('line_bots').doc(uid).collection('report_commands').doc('bc').get();
+                            if (fallbackBc.exists) {
+                                const bcVal = fallbackBc.data();
+                                const ageMs = Date.now() - new Date(bcVal?.updatedAt || 0).getTime();
+                                if (ageMs < 24 * 60 * 60 * 1000) {
+                                    cmdData = bcVal;
+                                } else {
+                                    console.info(`[lineBotWebhook] Doc "bc" đã cũ (${Math.round(ageMs / 3600000)}h trước), không dùng fallback cho ${cleanCmd}.`);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[lineBotWebhook] Fallback bc cho bcrt/bclk lỗi:', e);
+                        }
+                    }
+
+                    // 3. Fallback tìm ảnh mới nhất trong bot_media cho bc, bcrt, bclk
+                    if (!cmdData && ['bc', 'bcrt', 'bclk'].includes(cleanCmd)) {
+                        try {
+                            const botDept = String(config?.departmentId || '').trim();
+                            const mSnap = await db.collection('bot_media')
+                                .where('source', '==', 'analysis-export')
+                                .orderBy('createdAt', 'desc')
+                                .limit(40)
+                                .get();
+                            const matchDoc = mSnap.docs.find(d => {
+                                const mData = d.data();
+                                const isOwner = mData.ownerUid === uid;
+                                const n = (mData.name || '').toLowerCase();
+                                const isDeptMatch = Boolean(botDept && (n.includes(botDept.toLowerCase()) || mData.departmentId === botDept));
+                                if (!isOwner && !isDeptMatch && !['ALL', ''].includes(botDept)) return false;
+                                return n.includes('chi tiết theo kho') || n.includes('chi tiet theo kho') || n.includes('kho tổng hợp');
+                            });
+                            if (matchDoc) {
+                                const mData = matchDoc.data();
+                                const ageMs = Date.now() - new Date(mData.createdAt || 0).getTime();
+                                if (ageMs < 48 * 60 * 60 * 1000) {
+                                    const mUrl = `https://${DEFAULT_REGION}-dashboa-7e20b.cloudfunctions.net/lineBotWebhook?mediaId=${matchDoc.id}`;
+                                    const dateObj = new Date(mData.createdAt || Date.now());
+                                    const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')} ${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                                    cmdData = {
+                                        command: cleanCmd,
+                                        reportKey: 'Chi Tiết Theo Kho',
+                                        imageUrl: mUrl,
+                                        previewUrl: mUrl,
+                                        caption: `📊 Chi Tiết Theo Kho — cập nhật ${timeStr}`,
+                                        updatedAt: mData.createdAt
+                                    };
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[lineBotWebhook] Fallback tìm ảnh bot_media lỗi:', e);
+                        }
+                    }
+
+                    const isTargetReport = ['bc', 'bcrt', 'bclk'].includes(cleanCmd);
+                    if (cmdData || isTargetReport) {
+                        const reportTitle = cmdData?.reportKey || (cleanCmd === 'bcrt' ? 'Realtime' : (cleanCmd === 'bclk' ? 'Luỹ Kế' : 'Chi Tiết Theo Kho'));
+                        const hasImagesArray = cmdData?.images && Array.isArray(cmdData.images) && cmdData.images.length > 0;
+                        const imgUrl = cmdData?.imageUrl;
+                        const prvUrl = cmdData?.previewUrl || imgUrl;
+
+                        // Trường hợp nhiều ảnh được tự xuất & nạp lên (Multi-Image Reply)
+                        if (cmdData && hasImagesArray) {
+                            const replyMsgs: any[] = [];
+                            const modeStr = cmdData.mode === 'luyke' ? 'LŨY KẾ' : (cmdData.mode === 'realtime' ? 'REALTIME' : '');
+                            const captionHeader = cmdData.caption || `📊 BÁO CÁO ${modeStr ? `${modeStr} ` : ''}(Lệnh "${cleanCmd.toUpperCase()}")`;
+                            replyMsgs.push({
+                                type: 'text',
+                                text: `${captionHeader}\n━━━━━━━━━━━━━━━━━━━━━\n👉 Bao gồm ${cmdData.images.length} phần báo cáo:`,
+                                quoteToken: event.message?.quoteToken
+                            });
+
+                            // LINE Messaging API cho phép tối đa 5 message objects trong 1 lượt reply.
+                            // 1 text + tối đa 4 ảnh = 5 message objects hoàn toàn hợp lệ.
+                            const imagesToSend = (cmdData.images as any[]).slice(0, 4);
+                            for (const im of imagesToSend) {
+                                const mUrl = im.imageUrl || im.url;
+                                const pUrl = im.previewUrl || mUrl;
+                                if (mUrl) {
+                                    replyMsgs.push({
+                                        type: 'image',
+                                        originalContentUrl: mUrl,
+                                        previewImageUrl: pUrl
+                                    });
+                                }
+                            }
+
+                            await replyLineMessage(token, replyToken, replyMsgs);
+                            console.info(`[lineBotWebhook] Đã reply ${imagesToSend.length} ảnh báo cáo cho lệnh "${cleanCmd}" (${reportTitle})`);
+                            continue;
+                        } else if (imgUrl) {
+                            // Trường hợp 1 ảnh đơn lẻ
+                            const replyMsgs: any[] = [];
+                            const captionText = cmdData?.caption || `📊 Báo cáo ${reportTitle} — cập nhật mới nhất`;
+                            replyMsgs.push({
+                                type: 'text',
+                                text: captionText,
+                                quoteToken: event.message?.quoteToken
+                            });
+                            replyMsgs.push({
+                                type: 'image',
+                                originalContentUrl: imgUrl,
+                                previewImageUrl: prvUrl
+                            });
+                            await replyLineMessage(token, replyToken, replyMsgs);
+                            console.info(`[lineBotWebhook] Đã reply 1 ảnh báo cáo cho lệnh "${cleanCmd}" (${reportTitle})`);
+                            continue;
+                        } else {
+                            // Đã có lệnh hoặc gõ bc/bcrt/bclk nhưng chưa có ảnh nào được xuất lên Bot
+                            const cmdUpper = cleanCmd.toUpperCase();
+                            await replyLineMessage(token, replyToken, [
+                                {
+                                    type: 'text',
+                                    text: `📊 BÁO CÁO: ${reportTitle.toUpperCase()} (Lệnh "${cmdUpper}")\n━━━━━━━━━━━━━━━━━━━━━\n⚠️ Chưa có ảnh báo cáo nào được lưu cho lệnh "${cmdUpper}".\n👉 Bạn hãy chạy Auto Sync (BI/YCX Realtime hoặc Luỹ kế) trên Dashboard để hệ thống tự động xuất và nạp ảnh mới nhất lên Bot nhé!`,
+                                    quoteToken: event.message?.quoteToken
+                                }
+                            ]);
+                            continue;
+                        }
+                    }
+                }
+
+                // 1.4 Chào hỏi & menu trong chat riêng 1-1 (hi, hello, alo, xin chào...)
+                if (!groupId && /^(?:hi|hello|alo|xin\s*chào|chào|chao|start|bắt\s*đầu|bat\s*dau|ơi|oi|menu)$/i.test(cleanText)) {
+                    const welcomeMsg = `👋 Chào bạn! Em là BOT Quản Lý PMH ICT.\n━━━━━━━━━━━━━━━━━━━━━\n${formatHelpGuideMessage()}`;
+                    await replyLineMessage(token, replyToken, [
+                        {
+                            type: 'text',
+                            text: welcomeMsg,
+                            quoteToken: event.message?.quoteToken
+                        }
+                    ]);
+                    continue;
+                }
+
+                // 1.5 Kiểm tra lệnh hướng dẫn sử dụng (hd, help, huong dan, ...)
+                if (isHelpCommand(cleanText)) {
+                    if (!allow('autoReply')) { denyLog('autoReply', 'hướng dẫn "hd"'); continue; }
+                    const helpMsg = formatHelpGuideMessage();
+                    await replyLineMessage(token, replyToken, [
+                        {
+                            type: 'text',
+                            text: helpMsg,
+                            quoteToken: event.message?.quoteToken
+                        }
+                    ]);
+                    continue;
+                }
+
+                // 1.6 Kiểm tra lệnh huỷ mã vừa xin nếu không dùng (huy [mã coupon] hoặc huy [MĐH])
+                const cancelCmd = parseCancelCouponCommand(cleanText);
+                if (cancelCmd.isCancel && !allow('syntax_cancel')) { denyLog('syntax_cancel', 'lệnh huỷ mã'); continue; }
+                if (cancelCmd.isCancel && cancelCmd.target) {
+                    const target = cancelCmd.target;
+                    const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                    const displayName = userProfile?.displayName || 'Bạn';
+
+                    // Tìm mã theo coupon code hoặc MĐH
+                    let querySnap = await db.collection('line_bots').doc(uid).collection('coupons')
+                        .where('code', '==', target).limit(1).get();
+
+                    if (querySnap.empty) {
+                        querySnap = await db.collection('line_bots').doc(uid).collection('coupons')
+                            .where('orderId', '==', target).limit(1).get();
+                    }
+
+                    if (!querySnap.empty) {
+                        const cDoc = querySnap.docs[0];
+                        const cData = cDoc.data();
+                        const now = new Date().toISOString();
+
+                        // Audit S08: mã ĐÃ DÙNG là lịch sử, không trả về kho; chỉ người nhận mã (hoặc
+                        // Admin bot) được trả — trước đây ai trong nhóm cũng thu hồi được mã của người khác.
+                        const isRecipient = Boolean(senderUserId) && cData.recipientId === senderUserId;
+                        const refuse = cData.status === 'USED'
+                            ? '⚠️ Mã này đã được SỬ DỤNG — không thể trả về kho.'
+                            : (!isRecipient && !(await canApproveOnBot(uid, senderUserId)))
+                                ? '⛔ Chỉ người đã nhận mã này (hoặc Admin bot) mới được huỷ/trả mã.'
+                                : '';
+                        if (refuse) {
+                            await replyLineMessage(token, replyToken, [{ type: 'text', text: refuse, quoteToken: event.message?.quoteToken }]);
+                            continue;
+                        }
+
+                        await cDoc.ref.update({
+                            status: 'UNUSED',
+                            orderId: '',
+                            recipient: '',
+                            recipientId: '',
+                            revokedAt: now,
+                            revokeReason: `Huỷ qua lệnh LINE bot bởi ${displayName}`,
+                            updatedAt: now
+                        });
+
+                        const cancelMsg = `✅ ĐÃ THU HỒI MÃ VỀ KHO THÀNH CÔNG!\n━━━━━━━━━━━━━━━━━━━━━\n• Mã PMH: ${cData.code}\n• Sản phẩm: ${cData.productName || cData.type}\n• MĐH đã huỷ: ${cData.orderId || target}\n• Người huỷ: ${displayName}\n━━━━━━━━━━━━━━━━━━━━━\n👉 Mã coupon này đã được đưa về trạng thái "Khả dụng" trong kho để bạn khác có thể sử dụng!`;
+
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: cancelMsg,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    } else {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: `⚠️ Không tìm thấy mã coupon hoặc MĐH [${target}] trong danh sách đã cấp của kho!\n👉 Vui lòng kiểm tra lại chính xác mã coupon hoặc MĐH cần huỷ.`,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    }
+                }
+
+                if (cancelCmd.isBareCancel) {
+                    const bareGuide = `⚠️ HƯỚNG DẪN HUỶ / THU HỒI MÃ PMH:\n━━━━━━━━━━━━━━━━━━━━━\n👉 Cú pháp: Gõ "huy [Mã coupon hoặc MĐH]"\n\nVí dụ:\n• huy 6W43J4BI2S (huỷ theo mã coupon)\n• huy 01602SO26090873565 (huỷ theo Mã Đơn Hàng)\n\n💡 Sau khi huỷ, mã sẽ được tự động hoàn lại kho để bạn khác có thể sử dụng!`;
+                    await replyLineMessage(token, replyToken, [
+                        {
+                            type: 'text',
+                            text: bareGuide,
+                            quoteToken: event.message?.quoteToken
+                        }
+                    ]);
+                    continue;
+                }
+
+                // 1.8. Kiểm tra tin nhắn xác nhận sử dụng thẻ PMH từ LIFF
+                // Nhận cả câu CŨ ("… đã được sử dụng lúc") lẫn câu MỚI theo loại thẻ
+                // ("👉 Coupon Event 68 sử dụng lúc …") — xem buildCouponUsedText ở pmhSequence.ts.
+                // Bỏ sót ở đây thì mã KHÔNG còn được đánh dấu USED nữa.
+                const isUsedConfirm = cleanText.includes('sử dụng lúc') && cleanText.includes('👉');
+                if (isUsedConfirm) {
+                    // Số thẻ là cụm số NGAY TRƯỚC "sử dụng lúc" — hợp cho "PMH 68",
+                    // "Coupon Event 68", "Coupon GVGS 68" và cả câu cũ "… 68 đã được sử dụng lúc".
+                    // KHÔNG được lấy "số đầu tiên sau 👉": câu "👉 Mã này sử dụng lúc 14:33" sẽ vớ
+                    // phải số GIỜ (14) và đánh dấu nhầm thẻ — test đã bắt đúng lỗi này.
+                    const cardMatch = cleanText.match(/👉[^\n]*?(\d+)\s*(?:đã\s*được\s*)?sử\s*dụng\s*lúc/i);
+                    const matchedCardIndex = (cardMatch && cardMatch[1]) ? Number(cardMatch[1]) : undefined;
+
+                    // Định dạng mới: "↳ User: [Tên]"
+                    const userMatch = cleanText.match(/↳\s*(?:User|Người dùng):\s*(.+)/i);
+                    let matchedUser = userMatch ? userMatch[1].trim() : '';
+
+                    if (!matchedUser) {
+                        // Tương thích ngược: "đã được [Tên] sử dụng lúc"
+                        const oldMatch = cleanText.match(/đã\s*được\s*(.+?)\s*sử\s*dụng\s*lúc/i);
+                        if (oldMatch) {
+                            matchedUser = oldMatch[1].trim();
+                        }
+                    }
+
+                    const now = new Date().toISOString();
+
+                    try {
+                        const fRef = db.collection('line_bots').doc(uid).collection('filtered_coupons');
+                        let q = fRef.where('status', '==', 'UNUSED');
+                        if (matchedCardIndex) {
+                            q = q.where('cardIndex', '==', matchedCardIndex);
+                        }
+                        const fSnap = await q.orderBy('filteredAt', 'desc').limit(1).get();
+                        if (!fSnap.empty) {
+                            await fSnap.docs[0].ref.update({
+                                status: 'USED',
+                                usedBy: matchedUser || 'Người dùng LINE',
+                                usedAt: now
+                            });
+                            console.log(`[Filtered Coupons] Đã đánh dấu USED từ tin nhắn nhóm: PMH ${matchedCardIndex || 1} - ${matchedUser}`);
+                        }
+                    } catch (e) {
+                        console.warn('[Webhook] Cập nhật USED từ tin nhắn thất bại:', e);
+                    }
+                    continue;
+                }
+
+                // 1.9. Lệnh "csd" — hiện lại TẤT CẢ thẻ PMH đã lọc nhưng CHƯA SỬ DỤNG trong tháng này
+                // (thẻ cũ trôi mất trong nhóm, người dùng cần bấm "Chạm để copy" lại). Chỉ lọc theo
+                // status ở Firestore (1 field, không cần composite index — project hiện KHÔNG có index
+                // nào), còn "trong tháng" lọc bằng tay theo filteredAt (ISO UTC) so với đầu tháng giờ VN.
+                if (isRelistUnusedCommand(cleanText)) {
+                    if (!allow('filterCoupon')) { denyLog('filterCoupon', 'lệnh "csd"'); continue; }
+                    const { label: monthLabel } = getVnMonthStartIso();
+                    const MAX_CARDS = 40; // 4 carousel × 10 thẻ, chừa 1 tin văn bản báo phần còn lại (reply tối đa 5 tin)
+
+                    let unusedDocs: Array<{ ref: FirebaseFirestore.DocumentReference; data: FirebaseFirestore.DocumentData }> = [];
+                    try {
+                        const fSnap = await db.collection('line_bots').doc(uid).collection('filtered_coupons').where('status', '==', 'UNUSED').get();
+                        unusedDocs = selectUnusedThisMonth(
+                            fSnap.docs.map(d => ({ ref: d.ref, data: d.data(), code: d.data().code, status: d.data().status, filteredAt: d.data().filteredAt })),
+                        );
+                    } catch (err) {
+                        console.warn('[csd] Lỗi đọc filtered_coupons:', err);
+                        await replyLineMessage(token, replyToken, [{ type: 'text', text: '⚠️ Không đọc được danh sách thẻ đã lọc, vui lòng thử lại sau.', quoteToken: event.message?.quoteToken }]);
+                        continue;
+                    }
+
+                    if (unusedDocs.length === 0) {
+                        await replyLineMessage(token, replyToken, [{
+                            type: 'text',
+                            text: `✅ Không còn thẻ PMH nào chưa sử dụng trong tháng ${monthLabel}.`,
+                            quoteToken: event.message?.quoteToken
+                        }]);
+                        continue;
+                    }
+
+                    const shown = unusedDocs.slice(0, MAX_CARDS);
+                    // Giữ NGUYÊN số thứ tự đã cấp lúc lọc (số chạy theo tháng, xem pmhSequence) —
+                    // thẻ hiện lại phải mang đúng tên gọi cũ để xác nhận "PMH 0007 đã dùng" khớp nhau.
+                    const items = shown.map(d => ({
+                        recipient: String(d.data.recipient || ''),
+                        productName: String(d.data.productName || d.data.categoryLabel || 'PMH'),
+                        categoryLabel: String(d.data.categoryLabel || d.data.productName || 'PMH'),
+                        code: String(d.data.code),
+                        orderId: d.data.orderId ? String(d.data.orderId) : undefined,
+                        cardIndex: Number(d.data.cardIndex) || undefined,
+                    }));
+                    const flexMessages = signLiffUris(createFilteredPmhFlexMessages(items, (config as any).liffId), uid, config.channelSecret);
+                    const messages: any[] = [...flexMessages];
+                    if (unusedDocs.length > MAX_CARDS) {
+                        messages.push({
+                            type: 'text',
+                            text: `📋 Tháng ${monthLabel} còn ${unusedDocs.length} thẻ chưa sử dụng — đang hiện ${MAX_CARDS} thẻ cũ nhất. Dùng xong gõ "csd" lần nữa để xem tiếp.`
+                        });
+                    }
+
+                    const sent = await replyLineMessageDetailed(token, replyToken, messages);
+                    // Thẻ vừa gửi lại có quoteToken/cardIndex MỚI — cập nhật để LIFF "Chạm để copy" và xác
+                    // nhận trích dẫn trỏ đúng thẻ mới nhất (cùng quy ước với luồng lọc ở mục 3.8).
+                    if (sent.ok && sent.sentMessages.length > 0) {
+                        try {
+                            const qBatch = db.batch();
+                            const chatId = groupId || event.source?.roomId || senderUserId;
+                            shown.forEach((d, idx) => {
+                                const quoteToken = sent.sentMessages[Math.floor(idx / 10)]?.quoteToken;
+                                const patch: Record<string, string | number> = { relistedAt: new Date().toISOString() };
+                                if (quoteToken && chatId) {
+                                    patch.quoteToken = quoteToken;
+                                    patch.chatId = chatId;
+                                    patch.chatType = groupId ? 'group' : (event.source?.roomId ? 'room' : 'user');
+                                }
+                                qBatch.update(d.ref, patch);
+                            });
+                            await qBatch.commit();
+                        } catch (err) {
+                            console.warn('[csd] Lỗi cập nhật quoteToken/cardIndex:', err);
+                        }
+                    }
+                    console.info(`[csd] Hiện lại ${shown.length}/${unusedDocs.length} thẻ chưa sử dụng tháng ${monthLabel}`);
+                    continue;
+                }
+
+                // 1.10. Tra cứu mã: người dùng dán ĐÚNG 1 mã coupon (8-12 ký tự) vào chat → bot báo mã đã
+                // được ai dùng lúc nào (trích dẫn tin của người hỏi) hoặc chưa sử dụng. Không tìm thấy:
+                // chat 1-1 báo rõ, trong nhóm im lặng (tránh nhiễu khi ai đó gõ 1 từ HOA dài).
+                const bareCode = extractBareCouponCode(cleanText);
+                if (bareCode && !allow('syntax_search')) { denyLog('syntax_search', 'tra cứu mã'); continue; }
+                if (bareCode) {
+                    try {
+                        const [fSnap, cSnap] = await Promise.all([
+                            db.collection('line_bots').doc(uid).collection('filtered_coupons').where('code', '==', bareCode).get(),
+                            db.collection('line_bots').doc(uid).collection('coupons').where('code', '==', bareCode).get(),
+                        ]);
+                        const docs = [...fSnap.docs, ...cSnap.docs].map(d => d.data());
+                        const replyText = buildCouponStatusReply(docs);
+                        if (replyText) {
+                            await replyLineMessage(token, replyToken, [{ type: 'text', text: replyText, quoteToken: event.message?.quoteToken }]);
+                            console.info(`[Tra mã] ${bareCode}: ${docs.length} bản ghi -> ${replyText.split('\n')[0]}`);
+                            continue;
+                        }
+                        if (!groupId && !event.source?.roomId) {
+                            await replyLineMessage(token, replyToken, [{ type: 'text', text: `⚠️ Không tìm thấy mã này trong hệ thống của kho.`, quoteToken: event.message?.quoteToken }]);
+                            continue;
+                        }
+                        console.log(`[Tra mã] ${bareCode}: không có trong hệ thống — nhóm chat, bot im lặng.`);
+                        continue;
+                    } catch (err) {
+                        console.warn('[Tra mã] Lỗi đọc Firestore:', err);
+                        // rơi xuống các bước sau như bình thường
+                    }
+                }
+
+                // 2. Kiểm tra lệnh thống kê tồn kho (tk, tk event, tk gvgs, tk honor, tk vivo...)
+                const isTkMatch = cleanText.match(/^[./!]?(?:tk|thống kê|thong ke|tonkho|ton kho|tồn kho|kiem tra ton|kiểm tra tồn)(?:\s+(.+))?$/i);
+
+                if (isTkMatch && !allow('syntax_tk')) { denyLog('syntax_tk', 'lệnh thống kê tồn kho'); continue; }
+                if (isTkMatch) {
+                    // Dọn dẹp các coupon UNUSED đã quá hạn trước khi thống kê tồn kho
+                    await cleanupExpiredCoupons(uid);
+                    // Tự động hoàn kho các mã SENT quá 30 phút chưa copy sử dụng
+                    await autoRevokeStaleCouponsForBot(uid, token).catch(() => {});
+
+                    const snap = await db.collection('line_bots').doc(uid).collection('coupons').get();
+
+                    // Tự động khôi phục mã bị kẹt REVOKED hoặc quoteToken cũ
+                    for (const d of snap.docs) {
+                        const c = d.data();
+                        if (c.status === 'REVOKED' || (c.status === 'SENT' && !c.orderId && c.updatedAt && c.updatedAt.startsWith('2026-09-20T08:50'))) {
+                            await d.ref.update({
+                                status: 'UNUSED',
+                                recipient: '',
+                                recipientId: '',
+                                orderId: '',
+                                updatedAt: new Date().toISOString()
+                            });
+                            c.status = 'UNUSED';
+                            delete c.recipient;
+                            delete c.recipientId;
+                        }
+                    }
+
+                    const coupons = snap.docs.map(d => d.data());
+                    const subQuery = isTkMatch[1]?.trim().toLowerCase();
+
+                    // Nếu người dùng chỉ định xem riêng 1 loại cụ thể (ví dụ: tk honor, tk vivo, tk event, tk gvgs, tk h, tk v...)
+                    if (subQuery) {
+                        let targetCategory: string | undefined;
+                        if (['e', 'event', 'evt'].includes(subQuery)) targetCategory = 'EVENT';
+                        else if (['gv', 'gvgs', 'giovang', 'giờ vàng'].includes(subQuery)) targetCategory = 'GVGS';
+                        else if (['h', 'honor'].includes(subQuery)) targetCategory = 'HONOR';
+                        else if (['v', 'vivo'].includes(subQuery)) targetCategory = 'VIVO';
+                        else if (['ss', 'samsung'].includes(subQuery)) targetCategory = 'SAMSUNG';
+                        else if (['ap', 'apple', 'iphone', 'ipad'].includes(subQuery)) targetCategory = 'APPLE';
+                        else if (['op', 'oppo'].includes(subQuery)) targetCategory = 'OPPO';
+                        else if (['mi', 'xiaomi'].includes(subQuery)) targetCategory = 'XIAOMI';
+                        else {
+                            const matchedMeta = coupons.map(c => getCouponCategoryMeta(c)).find(m =>
+                                m.name.toLowerCase().includes(subQuery) ||
+                                m.id.toLowerCase() === subQuery ||
+                                m.prefix.toLowerCase() === subQuery
+                            );
+                            if (matchedMeta) {
+                                targetCategory = matchedMeta.id;
+                            }
+                        }
+
+                        if (targetCategory) {
+                            const catMeta = getCategoryMeta(targetCategory);
+                            const expInfo = await getCategoryExpiryInfo(uid, coupons, targetCategory);
+                            if (expInfo.isExpired) {
+                                const dateStr = expInfo.latestExpiryDate ? ` (hạn dùng đến hết ngày ${formatDisplayDate(expInfo.latestExpiryDate)})` : '';
+                                await replyLineMessage(token, replyToken, [{
+                                    type: 'text',
+                                    text: `⏰ NHÓM ${catMeta.title} ĐÃ HẾT HẠN SỬ DỤNG${dateStr}!\n━━━━━━━━━━━━━━━━━━━━━\n💡 Hiện tại kho không còn mã khả dụng. Quản lý vui lòng nạp mã đợt mới vào Dashboard.`
+                                }]);
+                                continue;
+                            }
+
+                            const { replyText, products, totalAll, totalUnused } = formatInventoryReportMessage(coupons, targetCategory);
+                            if (products.length === 0 || totalUnused === 0) {
+                                await replyLineMessage(token, replyToken, [{
+                                    type: 'text',
+                                    text: products.length === 0
+                                        ? replyText
+                                        : `⚠️ BÁO CÁO TỒN KHO ${catMeta.title}\n━━━━━━━━━━━━━━━━━━━━━\nHiện tại nhóm ${catMeta.name} đã phát hết mã khả dụng (0/${totalAll} mã)!\nQuản lý vui lòng nạp thêm mã vào Dashboard.`
+                                }]);
+                                continue;
+                            }
+
+                            const flexMsg = createInventoryReportFlexMessage({
+                                category: targetCategory,
+                                totalAll,
+                                totalUnused,
+                                products,
+                                altText: `📊 Báo cáo tồn kho ${catMeta.title}: ${totalUnused}/${totalAll} mã khả dụng`
+                            });
+                            await replyLineMessage(token, replyToken, [flexMsg]);
+                            continue;
+                        }
+                    }
+
+                    // Lệnh "tk" tổng thể: Tự động gom theo tất cả các Category thực tế có trong kho
+                    // CHỈ GỬI THỐNG KÊ CÁC NHÓM CÒN TỒN KHO KHẢ DỤNG (>0) VÀ CHƯA HẾT HẠN
+                    const categoryMap = new Map<string, { meta: CategoryMeta; count: number; unused: number }>();
+                    const priorityOrder = ['EVENT', 'GVGS', 'HONOR', 'VIVO', 'SAMSUNG', 'APPLE', 'OPPO', 'XIAOMI'];
+
+                    for (const c of coupons) {
+                        const meta = getCouponCategoryMeta(c);
+                        const isUnused = c.status === 'UNUSED' || !c.status;
+                        if (!categoryMap.has(meta.id)) {
+                            categoryMap.set(meta.id, { meta, count: 0, unused: 0 });
+                        }
+                        const item = categoryMap.get(meta.id)!;
+                        item.count++;
+                        if (isUnused) item.unused++;
+                    }
+
+                    const sortedCategories = Array.from(categoryMap.values()).sort((a, b) => {
+                        const idxA = priorityOrder.indexOf(a.meta.id);
+                        const idxB = priorityOrder.indexOf(b.meta.id);
+                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                        if (idxA !== -1) return -1;
+                        if (idxB !== -1) return 1;
+                        return b.unused - a.unused;
+                    });
+
+                    const flexMsgs: any[] = [];
+
+                    for (const cat of sortedCategories) {
+                        if (cat.unused <= 0) continue;
+                        const expInfo = await getCategoryExpiryInfo(uid, coupons, cat.meta.id);
+                        if (expInfo.isExpired) continue;
+
+                        const rep = formatInventoryReportMessage(coupons, cat.meta.id);
+                        if (rep.totalUnused > 0 && rep.products.length > 0) {
+                            flexMsgs.push(createInventoryReportFlexMessage({
+                                category: cat.meta.id,
+                                totalAll: rep.totalAll,
+                                totalUnused: rep.totalUnused,
+                                products: rep.products,
+                                altText: `📊 Báo cáo tồn kho ${cat.meta.title}: ${rep.totalUnused}/${rep.totalAll} mã khả dụng`
+                            }));
+                        }
+                        if (flexMsgs.length >= 5) break;
+                    }
+
+                    if (flexMsgs.length === 0) {
+                        await replyLineMessage(token, replyToken, [
+                            { type: 'text', text: '📊 BÁO CÁO TỒN KHO PMH\n━━━━━━━━━━━━━━━━━━━━━\nKho hiện tại chưa có mã nào khả dụng!\nQuản lý vui lòng nạp mã vào Dashboard.' }
+                        ]);
+                        continue;
+                    }
+
+                    await replyLineMessage(token, replyToken, flexMsgs);
+                    continue;
+                }
+
+                // 3. Nhận diện lệnh xin nhận mã PMH: e+STT (Event) hoặc gv+STT (Giờ Vàng) hoặc số trần (nhắc nhở)
+                const claimCmd = parseCouponClaimCommand(cleanText);
+                if ((claimCmd.isBareNumber || claimCmd.isClaim) && !allow('issueCoupon')) { denyLog('issueCoupon', 'lệnh xin cấp mã PMH'); continue; }
+
+                if (claimCmd.isBareNumber && claimCmd.productIndex) {
+                    // Người dùng gõ số trần (ví dụ: 1, 2, 2 12345678) mà chưa ghi rõ loại tiền tố
+                    const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                    const displayName = userProfile?.displayName || 'Bạn';
+                    const tagString = `@${displayName}`;
+                    const guideMsg = `${tagString}\n⚠️ Hệ thống chỉ cấp mã PMH khi bấm chọn trực tiếp trên thẻ Tồn Kho!\n👉 Vui lòng gõ "tk" để mở danh sách tồn kho và BẤM CHỌN TRỰC TIẾP vào sản phẩm bạn cần nhận nhé!`;
+
+                    const payload: any = {
+                        type: 'text',
+                        text: guideMsg,
+                        quoteToken: event.message?.quoteToken
+                    };
+                    if (senderUserId) {
+                        payload.mention = {
+                            mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                        };
+                    }
+                    await replyLineMessage(token, replyToken, [payload]);
+                    continue;
+                }
+
+                if (claimCmd.isClaim) {
+                    // Người dùng tự gõ cú pháp tay (e6, e 2, gv1, v1, h1, ...) -> KHÔNG phát mã mà yêu cầu chọn trực tiếp trên thẻ Flex
+                    const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                    const displayName = userProfile?.displayName || 'Bạn';
+                    const tagString = `@${displayName}`;
+                    const guideMsg = `${tagString}\n⚠️ Hệ thống chỉ cấp mã PMH khi bấm chọn trực tiếp trên thẻ Tồn Kho, không phản hồi mã qua cú pháp tự gõ!\n👉 Vui lòng gõ "tk" (hoặc "tk event", "tk gv") rồi BẤM CHỌN TRỰC TIẾP vào sản phẩm bạn muốn nhận trên thẻ nhé!`;
+
+                    const payload: any = {
+                        type: 'text',
+                        text: guideMsg,
+                        quoteToken: event.message?.quoteToken
+                    };
+                    if (senderUserId) {
+                        payload.mention = {
+                            mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                        };
+                    }
+                    await replyLineMessage(token, replyToken, [payload]);
+                    continue;
+                }
+
+                // 3.5. Kiểm tra lệnh DUYỆT từ Admin (ví dụ: DUYỆT 12345678 hoặc DUYỆT / OK / ALL)
+                const isApprovalAll = /^(?:duyệt|duyet|ok|all|approve)$/i.test(cleanText);
+                const approvalMatch = cleanText.match(/^(?:duyệt|duyet|approve)\s+([A-Za-z0-9_-]{4,25})/i);
+                const senderCanApprove = (isApprovalAll || approvalMatch) ? await canApproveOnBot(uid, senderUserId) : false;
+                if ((isApprovalAll || approvalMatch) && !senderCanApprove && /^(?:duyệt|duyet|approve)/i.test(cleanText)) {
+                    await replyLineMessage(token, replyToken, [{
+                        type: 'text',
+                        text: '⛔ Chỉ Admin của bot (khai báo trên Dashboard) mới được duyệt cấp mã.',
+                        quoteToken: event.message?.quoteToken
+                    }]);
+                    continue;
+                }
+
+                if (isApprovalAll && senderCanApprove) {
+                    await cleanupExpiredCoupons(uid);
+                    const pendingSnap = await db.collection('line_bots').doc(uid).collection('pending_requests')
+                        .where('status', '==', 'PENDING').get();
+
+                    if (pendingSnap.empty) {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: 'Hiện tại không có yêu cầu nào đang nằm trong danh sách chờ duyệt.',
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    }
+
+                    const unusedSnap = await db.collection('line_bots').doc(uid).collection('coupons')
+                        .where('status', '==', 'UNUSED').get();
+
+                    if (unusedSnap.empty) {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: '❌ Kho hiện tại đã hết mã khả dụng để duyệt! Vui lòng nạp thêm mã vào Dashboard.',
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    }
+
+                    let availableDocs = [...unusedSnap.docs];
+                    const approvedEntries: string[] = [];
+                    const now = new Date().toISOString();
+
+                    for (const pDoc of pendingSnap.docs) {
+                        const pData = pDoc.data();
+                        const reqLower = (pData.requestedProduct || pData.couponType || '').toLowerCase();
+
+                        // Tìm mã khớp
+                        let chosenIdx = -1;
+                        if (reqLower) {
+                            chosenIdx = availableDocs.findIndex(d => {
+                                const c = d.data();
+                                const pName = (c.productName || '').toLowerCase();
+                                const tName = (c.type || '').toLowerCase();
+                                const syn = (c.syntax || '').toLowerCase();
+                                return pName.includes(reqLower) || reqLower.includes(pName) || tName.includes(reqLower) || syn.includes(reqLower);
+                            });
+                        }
+                        if (chosenIdx === -1 && availableDocs.length > 0) {
+                            chosenIdx = 0;
+                        }
+
+                        if (chosenIdx !== -1) {
+                            const chosenDoc = availableDocs[chosenIdx];
+                            availableDocs.splice(chosenIdx, 1);
+                            const cData = chosenDoc.data();
+
+                            const targetChatId = pData.chatId || pData.groupId || pData.senderUserId || groupId || '';
+                            if (!(await reserveCoupon(chosenDoc.ref, {
+                                status: 'SENT',
+                                sentAt: now,
+                                chatId: targetChatId,
+                                warehouse: pData.warehouse || '',
+                                orderId: pData.orderId,
+                                recipient: pData.managerName || 'Nhân viên',
+                                recipientId: pData.senderUserId || '',
+                                updatedAt: now
+                            }))) {
+                                continue; // mã vừa bị lượt khác giữ — yêu cầu này vẫn PENDING, lần duyệt sau xử lý
+                            }
+
+                            await pDoc.ref.update({
+                                status: 'APPROVED',
+                                couponCode: cData.code,
+                                approvedBy: senderUserId,
+                                updatedAt: now
+                            });
+
+                            const dispName = pData.managerName || 'Quản lý';
+                            const pTitle = cData.productName || cData.type || pData.couponType || 'PMH';
+                            approvedEntries.push(`${dispName}\n➜ PMH ${pTitle} : ${cData.code}`);
+                        }
+                    }
+
+                    if (approvedEntries.length > 0) {
+                        const replyContent = approvedEntries.join('\n━━━━━━\n');
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: replyContent,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                    } else {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: '❌ Không đủ mã phù hợp trong kho để duyệt các yêu cầu đang chờ!',
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                    }
+                    continue;
+                }
+
+                if (approvalMatch && senderCanApprove) {
+                    await cleanupExpiredCoupons(uid);
+                    const targetOrderId = approvalMatch[1].trim().toUpperCase();
+                    const pendingDoc = await db.collection('line_bots').doc(uid).collection('pending_requests').doc(targetOrderId).get();
+                    if (!pendingDoc.exists) {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: `⚠️ Không tìm thấy yêu cầu chờ duyệt cho đơn hàng [${targetOrderId}]!`,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    }
+
+                    const pData = pendingDoc.data()!;
+                    if (pData.status === 'APPROVED') {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: `⚠️ Đơn hàng [${targetOrderId}] đã được duyệt trước đó:\n➜ PMH: ${pData.couponCode}`,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    }
+
+                    // Lấy mã khả dụng UNUSED
+                    const unusedSnap = await db.collection('line_bots').doc(uid).collection('coupons')
+                        .where('status', '==', 'UNUSED').get();
+
+                    if (unusedSnap.empty) {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: `❌ Kho hiện tại đã hết mã khả dụng để duyệt cho đơn [${targetOrderId}]! Vui lòng nạp thêm mã vào Dashboard.`,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                        continue;
+                    }
+
+                    // Khớp sản phẩm
+                    let chosenDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+                    const reqLower = (pData.requestedProduct || pData.couponType || '').toLowerCase();
+                    if (reqLower) {
+                        for (const d of unusedSnap.docs) {
+                            const c = d.data();
+                            const pName = (c.productName || '').toLowerCase();
+                            const tName = (c.type || '').toLowerCase();
+                            const syn = (c.syntax || '').toLowerCase();
+                            if (pName.includes(reqLower) || reqLower.includes(pName) || tName.includes(reqLower) || syn.includes(reqLower)) {
+                                chosenDoc = d;
+                                break;
+                            }
+                        }
+                    }
+                    if (!chosenDoc) chosenDoc = unusedSnap.docs[0];
+
+                    const cData = chosenDoc.data();
+                    const now = new Date().toISOString();
+
+                    // Cùng bộ đếm theo tháng với thẻ "LỌC PMH" — xem pmhSequence.ts
+                    const seqApprove = await allocatePmhSequence(uid, 1, new Date(), couponKind(pData.category === 'EVENT' ? 'Event' : 'Giờ Vàng'));
+
+                    const targetChatId = pData.chatId || pData.groupId || pData.senderUserId || groupId || '';
+                    if (!(await reserveCoupon(chosenDoc.ref, {
+                        status: 'SENT',
+                        sentAt: now,
+                        chatId: targetChatId,
+                        warehouse: pData.warehouse || '',
+                        orderId: targetOrderId,
+                        recipient: pData.managerName || 'Nhân viên',
+                        recipientId: pData.senderUserId || senderUserId,
+                        ...(seqApprove > 0 ? { cardIndex: seqApprove } : {}),
+                        updatedAt: now
+                    }))) {
+                        await replyLineMessage(token, replyToken, [{ type: 'text', text: COUPON_BUSY_TEXT, quoteToken: event.message?.quoteToken }]);
+                        continue;
+                    }
+
+                    await pendingDoc.ref.update({
+                        status: 'APPROVED',
+                        couponCode: cData.code,
+                        approvedBy: senderUserId,
+                        updatedAt: now
+                    });
+
+                    const displayTitle = cData.productName || cData.type || pData.couponType || 'PMH';
+                    const categoryLabel = pData.category === 'EVENT' ? 'Event' : 'Giờ Vàng';
+
+                    // Gửi Flex Message Card hỗ trợ chạm tự động copy mã
+                    const flexMsg = createCouponFlexMessage({
+                        displayName: pData.managerName || 'Bạn',
+                        productName: displayTitle,
+                        categoryLabel,
+                        code: cData.code,
+                        orderId: targetOrderId,
+                        warehouse: pData.warehouse,
+                        cardIndex: seqApprove > 0 ? seqApprove : undefined,
+                        liffId: (config as any).liffId
+                    });
+                    signLiffUris(flexMsg, uid, config.channelSecret);
+
+                    await replyLineMessage(token, replyToken, [flexMsg]);
+                    continue;
+                }
+
+                // 3.8. Kiểm tra tính năng LỌC PMH khi nhận tin nhắn chuyển tiếp
+                const isReport = isInventoryOrStatisticsReport(rawText);
+                const pmhBlocks = isReport ? [] : parsePmhBlocks(rawText);
+                const parsed = parseQuickForm(cleanText);
+                const isExplicitFilter = lower.startsWith('lọc') || lower.startsWith('loc') || lower.startsWith('.loc');
+                const isForwardedPmhList = !isReport && pmhBlocks.length > 0 && (pmhBlocks.length > 1 || isExplicitFilter || (!parsed.orderId && /(?:➜|->|=>|►|•)\s*(?:PMH|phiếu|[❌⚠️])/i.test(rawText)));
+
+                if (isForwardedPmhList && !allow('filterCoupon')) { denyLog('filterCoupon', 'lọc PMH từ tin chuyển tiếp'); continue; }
+                if (isForwardedPmhList) {
+                    const isGroupOrRoom = Boolean(groupId || event.source?.roomId);
+                    let candidates: string[] = [];
+                    if (Array.isArray(config.filterUserNames) && config.filterUserNames.length > 0) {
+                        candidates = config.filterUserNames;
+                    } else {
+                        const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                        if (userProfile?.displayName) {
+                            candidates = [userProfile.displayName];
+                        }
+                    }
+
+                    const filterResult = filterPmhByUsers(rawText, candidates, (config as any).liffId);
+
+                    const makeFilteredDocId = (item: { code: string; recipient: string }) =>
+                        `${item.code}_${item.recipient}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                    // BỎ THẺ ĐÃ LỌC TRƯỚC ĐÓ (chủ dự án chốt 2026-09-22): người dùng dán lại y hệt
+                    // danh sách cũ thì bot IM LẶNG, chỉ gửi những mã CHƯA từng lọc. Doc id đã là
+                    // `${mã}_${người nhận}` nên chỉ cần hỏi Firestore các id đó có tồn tại không
+                    // (query theo documentId, tối đa 30 id/lượt — chỉ tính phí đọc cho id KHỚP).
+                    let newItems = filterResult.matchedItems || [];
+                    let duplicateCount = 0;
+                    if (newItems.length > 0) {
+                        try {
+                            const fCol = db.collection('line_bots').doc(uid).collection('filtered_coupons');
+                            const ids = Array.from(new Set(newItems.map(makeFilteredDocId)));
+                            const existing = new Set<string>();
+                            for (let i = 0; i < ids.length; i += 30) {
+                                const chunk = ids.slice(i, i + 30);
+                                const snap = await fCol.where(FieldPath.documentId(), 'in', chunk).get();
+                                snap.docs.forEach(d => existing.add(d.id));
+                            }
+                            if (existing.size > 0) {
+                                const before = newItems.length;
+                                newItems = newItems.filter(item => !existing.has(makeFilteredDocId(item)));
+                                duplicateCount = before - newItems.length;
+                            }
+                        } catch (err) {
+                            console.warn('[Filter PMH] Không kiểm tra được thẻ trùng, cứ gửi như cũ:', err);
+                        }
+                    }
+
+                    if (duplicateCount > 0 && newItems.length === 0) {
+                        console.info(`[Filter PMH] Toàn bộ ${duplicateCount} mã đã được lọc trước đó — không gửi lại thẻ.`);
+                        // Trong NHÓM: im lặng tuyệt đối (đúng yêu cầu chủ dự án — dán lại danh sách cũ
+                        // không được spam thẻ). Chat 1-1 hoặc khi gõ rõ lệnh lọc: nói 1 câu để người
+                        // dùng biết bot có nhận, không tưởng bot chết.
+                        if (!isGroupOrRoom || isExplicitFilter) {
+                            await replyLineMessage(token, replyToken, [{
+                                type: 'text',
+                                text: `ℹ️ ${duplicateCount} mã trong tin này đã được lọc trước đó rồi.\n👉 Gõ "csd" để xem lại các thẻ chưa sử dụng trong tháng.`,
+                                quoteToken: event.message?.quoteToken
+                            }]);
+                        }
+                        continue;
+                    }
+
+                    // Số thứ tự thẻ CHẠY THEO THÁNG (0001, 0002…, reset đầu tháng) — cấp cả dải
+                    // trong 1 transaction, xem functions/src/pmhSequence.ts.
+                    if (newItems.length > 0) {
+                        // Mỗi LOẠI một dải số riêng (Event 0001…, GVGS 0001…, PMH lọc 0001…).
+                        // MỘT LẦN LỌC CÓ THỂ LẪN NHIỀU LOẠI (xem filterPmhByUsers: cat có thể là
+                        // EVENT / GIỜ VÀNG / MM200…), nên phải cấp theo từng nhóm — cấp một dải
+                        // chung sẽ khiến số của loại này đè lên loại kia.
+                        const nhomTheoLoai = new Map<string, number[]>();
+                        newItems.forEach((item, idx) => {
+                            const k = couponKind((item as { categoryLabel?: string }).categoryLabel);
+                            if (!nhomTheoLoai.has(k)) nhomTheoLoai.set(k, []);
+                            nhomTheoLoai.get(k)!.push(idx);
+                        });
+                        const daDanhSo: Array<(typeof newItems)[number] & { cardIndex?: number }> = [...newItems];
+                        for (const [loai, viTri] of nhomTheoLoai) {
+                            const batDau = await allocatePmhSequence(uid, viTri.length, new Date(), loai as 'event' | 'gvgs' | 'pmh');
+                            if (batDau > 0) {
+                                viTri.forEach((pos, i) => {
+                                    daDanhSo[pos] = { ...daDanhSo[pos], cardIndex: batDau + i } as typeof daDanhSo[number];
+                                });
+                            }
+                        }
+                        newItems = daDanhSo;
+                    }
+
+                    // Danh sách rút gọn (bỏ thẻ trùng) -> phải dựng lại thẻ Flex theo đúng số thứ tự mới
+                    const flexMessages = newItems.length > 0
+                        ? signLiffUris(createFilteredPmhFlexMessages(newItems, (config as any).liffId), uid, config.channelSecret)
+                        : [];
+
+                    // Tự động lưu các coupon lọc được vào Firestore để Admin theo dõi
+                    if (newItems.length > 0) {
+                        try {
+                            const fBatch = db.batch();
+                            const fNow = new Date().toISOString();
+                            newItems.forEach((item, fIdx) => {
+                                const docId = makeFilteredDocId(item);
+                                const docRef = db.collection('line_bots').doc(uid).collection('filtered_coupons').doc(docId);
+                                fBatch.set(docRef, {
+                                    id: docId,
+                                    code: item.code,
+                                    productName: item.productName,
+                                    categoryLabel: item.categoryLabel,
+                                    recipient: item.recipient,
+                                    orderId: item.orderId || null,
+                                    cardIndex: (item as { cardIndex?: number }).cardIndex || fIdx + 1,
+                                    status: 'UNUSED',
+                                    filteredAt: fNow
+                                }, { merge: true });
+                            });
+                            await fBatch.commit();
+                        } catch (err) {
+                            console.warn('[Filtered Coupons] Lỗi lưu Firestore:', err);
+                        }
+                    }
+
+                    // QUY TẮC NGHIÊM NGẶT TRONG NHÓM / ROOM:
+                    // 1. Nếu không tìm thấy mã nào thuộc về cấu hình:
+                    //    -> Trong nhóm chat và KHÔNG có lệnh gõ trực tiếp (.loc, lọc): IM LẶNG TUYỆT ĐỐI!
+                    //    -> Chỉ phản hồi thông báo không tìm thấy khi ở chat 1-1 hoặc khi gõ rõ lệnh lọc.
+                    if (filterResult.matchedBlocks.length === 0) {
+                        if (isGroupOrRoom && !isExplicitFilter) {
+                            console.log('[Filter PMH] Nhóm chat: Không tìm thấy mã và không có lệnh lọc tường minh. Bot giữ im lặng.');
+                            continue;
+                        }
+                    }
+
+                    if (flexMessages.length > 0) {
+                        const sent = await replyLineMessageDetailed(token, replyToken, flexMessages);
+                        // Lưu quoteToken của thẻ + chat đích để mark-used (LIFF) cho bot gửi xác nhận TRÍCH DẪN đúng thẻ.
+                        // Thẻ thứ fIdx nằm trong tin nhắn thứ floor(fIdx/10) (carousel gom 10 thẻ/tin, xem createFilteredPmhFlexMessages).
+                        if (sent.ok && sent.sentMessages.length > 0 && newItems.length > 0) {
+                            try {
+                                const qBatch = db.batch();
+                                const chatId = groupId || event.source?.roomId || senderUserId;
+                                newItems.forEach((item, fIdx) => {
+                                    const quoteToken = sent.sentMessages[Math.floor(fIdx / 10)]?.quoteToken;
+                                    if (!quoteToken || !chatId) return;
+                                    const docId = makeFilteredDocId(item);
+                                    qBatch.update(db.collection('line_bots').doc(uid).collection('filtered_coupons').doc(docId), {
+                                        quoteToken,
+                                        chatId,
+                                        chatType: groupId ? 'group' : (event.source?.roomId ? 'room' : 'user')
+                                    });
+                                });
+                                await qBatch.commit();
+                            } catch (err) {
+                                console.warn('[Filtered Coupons] Lỗi lưu quoteToken:', err);
+                            }
+                        }
+                    } else if (filterResult.matchedBlocks.length > 0 || !isGroupOrRoom || isExplicitFilter) {
+                        await replyLineMessage(token, replyToken, [
+                            {
+                                type: 'text',
+                                text: filterResult.replyText,
+                                quoteToken: event.message?.quoteToken
+                            }
+                        ]);
+                    }
+                    continue;
+                }
+                // PMH Relay: nếu nhóm bật pmhRelay, gửi form sang admintnb.com qua userscript
+                const isPmhForm = isStrictPmhRequestForm(cleanText);
+                if (isPmhForm && allow('pmhRelay')) {
+                    const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                    await enqueuePmhRelay({
+                        ownerUid: uid,
+                        form: cleanText,
+                        groupId: groupId || '',
+                        senderName: userProfile?.displayName || 'Bạn',
+                        quoteToken: event.message?.quoteToken,
+                        replyToken: replyToken,
+                    });
+                    // KHÔNG gọi replyLineMessage câu "⏳ Đang gửi lấy mã..." ở đây,
+                    // vì gọi reply sẽ làm tiêu tốn mất replyToken duy nhất.
+                    // Giữ nguyên replyToken để khi userscript (admintnb.com) lấy xong mã PMH,
+                    // Cloud Function pmhRelayComplete sẽ dùng replyToken này để trả thẳng kết quả về nhóm.
+                    // Cách này hoàn toàn MIỄN PHÍ và KHÔNG BAO GIỜ bị lỗi 429 (You have reached your monthly limit) của LINE!
+                    continue;
+                }
+
+                // 4. Kiểm tra form đăng ký PMH — NGHIÊM: phải đúng cấu trúc form (tiêu đề ở dòng đầu +
+                // Loại PMH + MĐH Áp dụng, xem pmhForm.ts). Chỉ có MĐH + Sản phẩm (vd tin "HỖ TRỢ GIAO
+                // HÀNG") thì KHÔNG phải form xin PMH — bot im lặng tuyệt đối.
+                const isStrictForm = isStrictPmhRequestForm(cleanText);
+                if (!isStrictForm && parsed.orderId && (parsed.couponType || parsed.requestedProduct)) {
+                    console.log('[Form PMH] Tin có MĐH/Sản phẩm nhưng KHÔNG đúng cú pháp form xin PMH. Bot giữ im lặng.');
+                }
+                if (isStrictForm && !allow('issueCoupon')) { denyLog('issueCoupon', 'form xin PMH'); continue; }
+                if (
+                    isStrictForm &&
+                    parsed.orderId &&
+                    (parsed.couponType || parsed.requestedProduct || lower.includes('lấy pmh') || lower.includes('loại pmh') || lower.includes('áp dụng'))
+                ) {
+                    const targetProdKey = (parsed.requestedProduct || parsed.couponType || '').trim();
+
+                    // Nếu không có Loại PMH / Sản phẩm nào được chỉ định, Bot giữ im lặng (không đoán mò)
+                    if (!targetProdKey) {
+                        console.log('[Form PMH] Form không chứa Loại PMH/Sản phẩm cụ thể. Bot giữ im lặng.');
+                        continue;
+                    }
+
+                    // 1. Tự động dọn dẹp các mã UNUSED đã quá hạn khỏi kho
+                    await cleanupExpiredCoupons(uid);
+
+                    // Lấy toàn bộ coupon của kho
+                    const couponsSnap = await db.collection('line_bots').doc(uid).collection('coupons').get();
+                    if (couponsSnap.empty) {
+                        console.log('[Form PMH] Kho chưa có mã nào. Bỏ qua form.');
+                        continue;
+                    }
+
+                    // Lọc các mã UNUSED
+                    const unusedDocs = couponsSnap.docs.filter(d => d.data().status === 'UNUSED');
+
+                    // Tìm mã khả dụng khớp với sản phẩm được yêu cầu
+                    let chosenDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+                    for (const d of unusedDocs) {
+                        if (matchesProductSearch(d.data(), targetProdKey)) {
+                            chosenDoc = d;
+                            break;
+                        }
+                    }
+
+                    // Kiểm tra xem sản phẩm có trong danh mục quản lý của Bot không (kể cả các mã đã từng phát)
+                    const isProductBelongsToBot = couponsSnap.docs.some(d => matchesProductSearch(d.data(), targetProdKey));
+                    const expiredInfo = !chosenDoc ? await findExpiredProduct(uid, targetProdKey) : null;
+
+                    // QUAN TRỌNG: Nếu sản phẩm KHÔNG thuộc danh mục quản lý của Bot này (ví dụ: MM700, ML200, đồ gia dụng của Bot khác...)
+                    // VÀ KHÔNG có trong danh sách sản phẩm hết hạn của Bot:
+                    // BOT BẮT BUỘC PHẢI TUYỆT ĐỐI IM LẶNG để các bot khác hoặc quản lý khác xử lý!
+                    if (!chosenDoc && !isProductBelongsToBot && !expiredInfo) {
+                        console.log(`[Form PMH] Loại PMH/Sản phẩm "${targetProdKey}" không thuộc quản lý của Bot này. Bot giữ im lặng.`);
+                        continue;
+                    }
+
+                    // Lấy profile LINE người gửi để tag tên chính xác
+                    const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                    const displayName = userProfile?.displayName || parsed.managerName || 'Bạn';
+                    const tagString = `@${displayName}`;
+
+                    // Nếu sản phẩm thuộc Bot nhưng đã hết hạn:
+                    if (!chosenDoc && expiredInfo) {
+                        const expDateVN = formatDisplayDate(expiredInfo.expiryDate);
+                        const expiredText = `${tagString}\n⚠️ THÔNG BÁO HẾT HẠN MÃ PMH!\nMã PMH cho sản phẩm [${expiredInfo.productName}] đã HẾT HẠN SỬ DỤNG${expDateVN ? ` (Hạn dùng đến hết ngày ${expDateVN})` : ''}.\nKho đã tự động huỷ bỏ mã này theo quy định!`;
+                        const expPayload: any = {
+                            type: 'text',
+                            text: expiredText,
+                            quoteToken: event.message?.quoteToken
+                        };
+                        if (senderUserId) {
+                            expPayload.mention = {
+                                mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                            };
+                        }
+                        await replyLineMessage(token, replyToken, [expPayload]);
+                        continue;
+                    }
+
+                    // Nếu sản phẩm thuộc Bot nhưng kho đã hết mã khả dụng:
+                    if (!chosenDoc) {
+                        const emptyText = `${tagString}\n❌ HẾT MÃ TRONG KHO!\nSản phẩm [${targetProdKey}] hiện đã hết mã khả dụng. Vui lòng báo Quản lý nạp thêm mã vào Dashboard!`;
+                        const emptyPayload: any = {
+                            type: 'text',
+                            text: emptyText,
+                            quoteToken: event.message?.quoteToken
+                        };
+                        if (senderUserId) {
+                            emptyPayload.mention = {
+                                mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                            };
+                        }
+                        await replyLineMessage(token, replyToken, [emptyPayload]);
+                        continue;
+                    }
+
+                    // Kiểm tra trùng lặp MĐH
+                    const dupSnap = await db.collection('line_bots').doc(uid).collection('coupons')
+                        .where('orderId', '==', parsed.orderId).limit(1).get();
+
+                    if (!dupSnap.empty) {
+                        const existing = dupSnap.docs[0].data();
+                        const prodTag = existing.productName || existing.type || 'PMH';
+                        const dupText = `${tagString}\n⚠️ CẢNH BÁO TRÙNG MÃ ĐƠN HÀNG!\nĐơn hàng [${parsed.orderId}] đã được cấp mã trước đó:\nLoại PMH: ${prodTag}\n➜ PMH: ${existing.code}\n👤 Người nhận: ${existing.recipient || displayName}`;
+                        const dupPayload: any = {
+                            type: 'text',
+                            text: dupText,
+                            quoteToken: event.message?.quoteToken
+                        };
+                        if (senderUserId) {
+                            dupPayload.mention = {
+                                mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                            };
+                        }
+                        await replyLineMessage(token, replyToken, [dupPayload]);
+                        continue;
+                    }
+
+                    // Tự động duyệt hoặc chờ Admin duyệt (Tuỳ thiết lập của admin)
+                    if (config.autoApprove !== false) {
+                        const couponDoc = chosenDoc;
+                        const cData = couponDoc.data();
+                        const now = new Date().toISOString();
+                        const eventChatId = groupId || event.source?.roomId || senderUserId;
+                        // Cùng bộ đếm theo tháng với thẻ "LỌC PMH" — xem pmhSequence.ts
+                        const seqForm = await allocatePmhSequence(uid, 1, new Date(), couponKind(String(cData.type || parsed.couponType || '')));
+
+                        if (!(await reserveCoupon(couponDoc.ref, {
+                            status: 'SENT',
+                            sentAt: now,
+                            chatId: eventChatId,
+                            warehouse: parsed.warehouse || '',
+                            orderId: parsed.orderId,
+                            recipient: displayName,
+                            recipientId: senderUserId,
+                            ...(seqForm > 0 ? { cardIndex: seqForm } : {}),
+                            updatedAt: now
+                        }))) {
+                            await replyLineMessage(token, replyToken, [{ type: 'text', text: COUPON_BUSY_TEXT, quoteToken: event.message?.quoteToken }]);
+                            continue;
+                        }
+
+                        // Đếm số mã còn lại của sản phẩm này sau khi cấp
+                        const targetKey = (cData.productName || cData.type || '').trim();
+                        const remainingCount = unusedDocs.filter(d => {
+                            if (d.id === couponDoc.id) return false;
+                            const c = d.data();
+                            return (c.productName || c.type || '').trim() === targetKey;
+                        }).length;
+
+                        let warningSuffix = '';
+                        if (remainingCount < 3) {
+                            if (remainingCount === 0) {
+                                warningSuffix = `\n\n🚨 CẢNH BÁO: Sản phẩm [${targetKey}] ĐÃ HẾT MÃ! Quản lý vui lòng nạp thêm.`;
+                            } else {
+                                warningSuffix = `\n\n⚠️ CẢNH BÁO: Sản phẩm [${targetKey}] chỉ còn ${remainingCount} mã!`;
+                            }
+                        }
+
+                        const displayTitle = cData.productName || cData.type || parsed.couponType || 'PMH';
+
+                        // Gửi Flex Message Card hỗ trợ chạm tự động copy mã
+                        const flexMsg = createCouponFlexMessage({
+                            displayName,
+                            productName: displayTitle,
+                            categoryLabel: getCouponCategoryMeta(cData).name,
+                            code: cData.code,
+                            orderId: parsed.orderId,
+                            warehouse: parsed.warehouse,
+                            warningSuffix,
+                            cardIndex: seqForm > 0 ? seqForm : undefined,
+                            liffId: (config as any).liffId
+                        });
+                        signLiffUris(flexMsg, uid, config.channelSecret);
+
+                        await replyLineMessage(token, replyToken, [flexMsg]);
+                        continue;
+                    } else {
+                        // CHẾ ĐỘ CHỜ ADMIN DUYỆT
+                        const now = new Date().toISOString();
+                        const eventChatId = groupId || event.source?.roomId || senderUserId;
+                        await db.collection('line_bots').doc(uid).collection('pending_requests').doc(parsed.orderId).set({
+                            orderId: parsed.orderId,
+                            warehouse: parsed.warehouse || '',
+                            couponType: parsed.couponType || parsed.requestedProduct || '',
+                            requestedProduct: parsed.requestedProduct || '',
+                            managerName: displayName,
+                            senderUserId,
+                            groupId: groupId || null,
+                            chatId: eventChatId || null,
+                            quoteToken: event.message?.quoteToken || null,
+                            status: 'PENDING',
+                            createdAt: now,
+                            updatedAt: now
+                        }, { merge: true });
+
+                        const displayTitle = parsed.requestedProduct || parsed.couponType || 'PMH';
+                        const pendingText = `${tagString}\nLoại PMH: ${displayTitle}\nMĐH Áp dụng: ${parsed.orderId}\n⏳ ĐÃ TIẾP NHẬN YÊU CẦU: Đang chờ Admin duyệt lệnh...`;
+
+                        const pendingPayload: any = {
+                            type: 'text',
+                            text: pendingText,
+                            quoteToken: event.message?.quoteToken
+                        };
+                        if (senderUserId) {
+                            pendingPayload.mention = {
+                                mentionees: [{ index: 0, length: tagString.length, userId: senderUserId }]
+                            };
+                        }
+                        await replyLineMessage(token, replyToken, [pendingPayload]);
+                        continue;
+                    }
+                }
+
+                // 5. Kiểm tra Thư viện Từ khoá tự động (Keywords)
+                if (!allow('keywordReply')) { denyLog('keywordReply', 'trả lời theo từ khoá'); continue; }
+                const kwSnap = await db.collection('line_bots').doc(uid).collection('keywords')
+                    .where('active', '==', true).get();
+
+                for (const d of kwSnap.docs) {
+                    const kw = d.data();
+                    const target = (kw.keyword || '').trim().toLowerCase();
+                    if (!target) continue;
+
+                    const isMatch = kw.matchType === 'EXACT' ? lower === target : lower.includes(target);
+                    if (isMatch) {
+                        const replyMsgs: any[] = [];
+                        if (kw.replyText) {
+                            replyMsgs.push({ type: 'text', text: kw.replyText });
+                        }
+                        if (Array.isArray(kw.imageUrls) && kw.imageUrls.length > 0) {
+                            for (const imgUrl of kw.imageUrls.slice(0, 4)) {
+                                replyMsgs.push({
+                                    type: 'image',
+                                    originalContentUrl: imgUrl,
+                                    previewImageUrl: imgUrl
+                                });
+                            }
+                        }
+                        if (replyMsgs.length > 0) {
+                            await replyLineMessage(token, replyToken, replyMsgs);
+                            break;
+                        }
+                    }
+                }
+
+                // 6. Trong chat riêng 1-1: nếu tin nhắn không khớp lệnh nào, nhắc nhở cú pháp thay vì im lặng
+                if (!groupId) {
+                    await replyLineMessage(token, replyToken, [
+                        {
+                            type: 'text',
+                            text: `👋 Em là BOT Quản Lý PMH ICT.\n━━━━━━━━━━━━━━━━━━━━━\n💡 Gõ "tk" để xem tồn kho PMH\n⚡ Chạm trực tiếp vào sản phẩm để nhận mã\n📖 Gõ "hd" để xem hướng dẫn chi tiết nhé!`,
+                            quoteToken: event.message?.quoteToken
+                        }
+                    ]);
+                    continue;
+                }
+            }
+        }
+
+        res.status(200).send('OK');
+    }
+);

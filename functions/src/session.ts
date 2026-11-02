@@ -1,0 +1,288 @@
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { CLIENT_REGIONS } from './region';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { db, auth } from './firebaseAdmin';
+import { notifyAdminsAndManagers } from './notifications';
+import { normalizeSuperAdminDept } from './superAdminDept';
+import { effectiveRootClaims, mergeCustomClaims } from './claims';
+
+// Chỉ tồn tại phía server — không còn hardcode trong bundle client (xem
+// contexts/AuthContext.tsx bản cũ, dòng ~94).
+const SUPER_ADMIN_EMAIL = 'lts.truongson@gmail.com';
+
+type Role = 'admin' | 'manager' | 'employee' | 'pending';
+type Status = 'pending' | 'approved' | 'rejected' | 'new' | 'expired';
+
+export interface SessionProfile {
+  role: Role;
+  status: Status;
+  departmentId: string | null;
+  employeeName: string | null;
+  expiresAt: string | null;
+  /** Giá trị claims THẬT trong token (khác role/departmentId khi chưa duyệt/hết hạn) — client so
+   *  với token đang cache để quyết định có cần force-refresh không. */
+  claimRole: string;
+  claimDepartmentId: string | null;
+}
+
+/**
+ * Lõi của resolveSession — tách ra (2026-10-21) để `pwaHandoffStore` (đăng nhập iPhone qua auth.dashboard.pro.vn) chạy SẴN lúc
+ * trang đăng nhập gửi phiên, trả kèm qua `pwaHandoffClaim` → app khỏi gọi resolveSession sau khi vào (bớt 1 lượt gọi máy chủ
+ * nối tiếp trên đường găng). Claims được đặt TRƯỚC khi app signInWithCredential → ID token mới mang sẵn claims đúng.
+ */
+export async function giaiQuyetPhien(
+  uid: string,
+  token: { email?: string | null; name?: string | null; picture?: string | null; role?: unknown; departmentId?: unknown },
+): Promise<SessionProfile> {
+  const t0 = Date.now();
+  const email = token.email ?? null;
+  const userRef = db.collection('users').doc(uid);
+  // CHỈ đọc 5 trường cần (fieldMask) — tài liệu users/{uid} có thể gần 1 MB vì `settings` còn sót bản sao dữ liệu Kho
+  // (khoDataCache_*) của bản app cũ: đọc nguyên khối mất 2–5 s mỗi lượt đăng nhập và từng làm tràn bộ nhớ (đo 2026-10-21).
+  const [snap] = await db.getAll(userRef, { fieldMask: ['role', 'status', 'departmentId', 'employeeName', 'expiresAt'] });
+  const tDoc = Date.now() - t0;
+
+  let role: Role;
+  let status: Status;
+  let departmentId: string | null;
+  let employeeName: string | null = null;
+  let expiresAt: Timestamp | null = null;
+  let writePromise: Promise<FirebaseFirestore.WriteResult>;
+
+  if (!snap.exists) {
+    const isSuperAdmin = email === SUPER_ADMIN_EMAIL;
+    role = isSuperAdmin ? 'admin' : 'pending';
+    status = isSuperAdmin ? 'approved' : 'new';
+    departmentId = isSuperAdmin ? normalizeSuperAdminDept(null) : null;
+
+    writePromise = userRef.set({
+      uid,
+      email,
+      displayName: token.name ?? null,
+      photoURL: token.picture ?? null,
+      role,
+      status,
+      departmentId: departmentId ?? '',
+      createdAt: FieldValue.serverTimestamp(),
+      lastLogin: FieldValue.serverTimestamp(),
+      loginCount: 1,
+    });
+  } else {
+    const data = snap.data() ?? {};
+    role = (data.role as Role) ?? 'pending';
+    status = (data.status as Status) ?? (role === 'pending' ? 'new' : 'approved');
+    departmentId = (data.departmentId as string) ?? null;
+    employeeName = (data.employeeName as string) ?? null;
+    expiresAt = data.expiresAt instanceof Timestamp ? data.expiresAt : null;
+
+    const updates: Record<string, unknown> = {
+      lastLogin: FieldValue.serverTimestamp(),
+      loginCount: FieldValue.increment(1),
+    };
+
+    if (email === SUPER_ADMIN_EMAIL) {
+      // Tự sửa lại nếu ai đó lỡ hạ quyền — port nguyên vẹn logic cũ. RIÊNG departmentId: KHÔNG
+      // ghi đè cứng thành nhãn nữa mà GIỮ các Kho thật Super Admin đã gắn thêm (vd "910") —
+      // xem superAdminDept.ts. Ghi đè cứng từng khiến Super Admin không bao giờ dùng chung
+      // được dữ liệu Kho với tài khoản khác.
+      role = 'admin';
+      status = 'approved';
+      departmentId = normalizeSuperAdminDept(departmentId);
+      updates.role = role;
+      updates.status = status;
+      updates.departmentId = departmentId;
+    } else if (expiresAt && expiresAt.toDate() < new Date() && role !== 'pending') {
+      role = 'pending';
+      status = 'expired';
+      updates.role = role;
+      updates.status = status;
+    }
+
+    writePromise = userRef.update(updates);
+  }
+
+  // Chạy song song ghi Firestore (lastLogin/loginCount/...) với setCustomUserClaims (Admin
+  // Auth SDK) thay vì tuần tự — 2 thao tác độc lập nhau, gộp lại bớt 1 round-trip trong
+  // đường găng mà CLIENT phải chờ trước khi thấy dashboard (resolveSession chạy trên MỌI
+  // lần mở app, xem implementation_plan.md mục 40).
+  const claims = effectiveRootClaims(role, status, departmentId);
+  // Quyền trong ID token người gọi (vừa ký từ bản ghi Auth) ĐÃ đúng → khỏi getUser + setCustomUserClaims (2 lượt gọi máy chủ
+  // Auth toàn cầu, phần chậm nhất của hàm — đo 2026-10-21). Chỉ bỏ qua khi TRÙNG: bị hạ quyền/hết hạn thì token cũ khác → vẫn ghi.
+  const claimsDaDung = token.role === claims.role && ((token.departmentId as string | null | undefined) ?? null) === claims.departmentId;
+  await Promise.all([writePromise, claimsDaDung ? Promise.resolve() : mergeCustomClaims(uid, claims)]);
+  console.log('[giaiQuyetPhien]', JSON.stringify({ msDoc: tDoc, msTong: Date.now() - t0, boQuaClaims: claimsDaDung }));
+
+  const profile: SessionProfile = {
+    role,
+    status,
+    departmentId,
+    employeeName,
+    expiresAt: expiresAt ? expiresAt.toDate().toISOString() : null,
+    claimRole: claims.role,
+    claimDepartmentId: claims.departmentId,
+  };
+  return profile;
+}
+
+// Thay thế toàn bộ khối đọc/ghi Firestore trực tiếp trong
+// contexts/AuthContext.tsx (onAuthStateChanged). Client gọi hàm này 1 lần
+// sau khi Firebase Auth xác nhận đăng nhập, rồi force-refresh ID token để
+// nhận custom claims mới (user.getIdToken(true)).
+//
+// minInstances: 1 — hàm này chạy trên MỌI lần mở app (chặn màn hình loading cho tới khi
+// xong), nên cold-start (Cloud Functions v2 mặc định scale-to-zero khi không có traffic,
+// có thể mất thêm 1-5s khởi động instance mới) ảnh hưởng trực tiếp tới cảm nhận "lúc nhanh
+// lúc chậm". Giữ 1 instance luôn chạy sẵn để loại bỏ hẳn cold-start cho hàm quan trọng nhất
+// trong đường găng khởi động (implementation_plan.md mục 40) — đánh đổi lấy chi phí Cloud
+// Run chạy liên tục, đã được người dùng đồng ý.
+// memory 512MiB (2026-10-21): 256 MiB bị tràn 2 lần (276/260 MiB) trong đợt gọi dồn 4 phút sáng 21/10 — sập giữa chừng
+// là ai đang đăng nhập lúc đó nhận lỗi. Đây là hàm của MỌI lượt mở app nên đáng giữ dư.
+export const resolveSession = onCall({ region: CLIENT_REGIONS, minInstances: 1, memory: '512MiB' }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'Cần đăng nhập trước khi gọi resolveSession.');
+  }
+  return giaiQuyetPhien(uid, request.auth!.token);
+});
+
+import { getApprovalConfigFromDb } from './approvalSettings';
+
+/** Trạng thái quản lý đã ra quyết định "không" — yêu cầu mới của họ phải qua người duyệt, không tự duyệt. */
+const DA_BI_TU_CHOI = ['rejected', 'expired', 'blocked'];
+
+export function khongDuocTuDuyet(hoSo: { role?: unknown; status?: unknown } | undefined, departmentId: string): boolean {
+  if (hoSo && (DA_BI_TU_CHOI.includes(String(hoSo.status ?? '')) || hoSo.role === 'blocked')) return true;
+  return departmentId.includes(',');
+}
+
+// Thay thế contexts/AuthContext.tsx requestAccess() — hỗ trợ tự động duyệt theo cấu hình Super Admin / Quản lý
+export const requestAccess = onCall({ region: CLIENT_REGIONS }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'Cần đăng nhập trước khi gửi yêu cầu truy cập.');
+  }
+
+  const { requestedRole, departmentId, employeeName } = (request.data ?? {}) as {
+    requestedRole?: 'manager' | 'employee';
+    departmentId?: string;
+    employeeName?: string;
+  };
+
+  if (requestedRole !== 'manager' && requestedRole !== 'employee') {
+    throw new HttpsError('invalid-argument', 'requestedRole phải là "manager" hoặc "employee".');
+  }
+  if (!departmentId) {
+    throw new HttpsError('invalid-argument', 'Thiếu departmentId.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  // Đọc cấu hình tự động duyệt + trạng thái HIỆN TẠI của người gọi (chỉ 2 trường).
+  const [approvalConfig, [hienTai]] = await Promise.all([
+    getApprovalConfigFromDb(),
+    db.getAll(userRef, { fieldMask: ['role', 'status'] }),
+  ]);
+
+  let shouldAutoApprove = false;
+  // Audit 2026-10-30 (AUD-035): người đã bị Từ chối / Thu hồi / Khoá gọi thẳng hàm này (DevTools) từng được TỰ DUYỆT lại ngay
+  // (tự duyệt nhân viên mặc định BẬT) → quyết định của quản lý vô hiệu. Nhóm này vẫn gửi yêu cầu được nhưng phải chờ người duyệt.
+  // Nhiều Kho một lúc ("910,912" — rules tách theo dấu phẩy) cũng không tự duyệt: tự đăng ký chỉ cho MỘT Kho.
+  if (khongDuocTuDuyet(hienTai?.exists ? hienTai.data() : undefined, departmentId)) {
+    shouldAutoApprove = false;
+  } else if (requestedRole === 'manager') {
+    // Super Admin cấu hình tự động duyệt cho Quản lý (mặc định: false)
+    shouldAutoApprove = approvalConfig.autoApproveManagers === true;
+  } else if (requestedRole === 'employee') {
+    // Quản lý cấu hình tự động duyệt cho Nhân viên (mặc định: true)
+    if (
+      approvalConfig.autoApproveEmployeesByDept &&
+      approvalConfig.autoApproveEmployeesByDept[departmentId] !== undefined
+    ) {
+      shouldAutoApprove = approvalConfig.autoApproveEmployeesByDept[departmentId];
+    } else {
+      shouldAutoApprove = approvalConfig.autoApproveEmployees !== false;
+    }
+  }
+
+  if (shouldAutoApprove) {
+    // Tự động duyệt ngay lập tức: cấp quyền và custom claims
+    const claims = effectiveRootClaims(requestedRole, 'approved', departmentId);
+    await Promise.all([
+      userRef.update({
+        role: requestedRole,
+        status: 'approved',
+        requestedRole,
+        departmentId,
+        employeeName: employeeName ?? '',
+        approvedAt: FieldValue.serverTimestamp(),
+        approvedBy: 'system-auto',
+        requestDate: FieldValue.serverTimestamp(),
+      }),
+      mergeCustomClaims(uid, claims),
+    ]);
+
+    return {
+      success: true,
+      autoApproved: true,
+      role: requestedRole,
+      status: 'approved',
+      departmentId,
+      employeeName: employeeName ?? '',
+    };
+  }
+
+  // Trường hợp không tự động duyệt: đưa vào hàng đợi chờ duyệt như cũ
+  await userRef.update({
+    role: 'pending',
+    status: 'pending',
+    requestedRole,
+    departmentId,
+    employeeName: employeeName ?? '',
+    requestDate: FieldValue.serverTimestamp(),
+  });
+
+  // Gán claims pending để an toàn
+  await mergeCustomClaims(uid, effectiveRootClaims('pending', 'pending', departmentId));
+
+  // Bọc timeout 2.5s cho notifyAdminsAndManagers để không giữ client chờ lâu/treo UI
+  const notifyPromise = notifyAdminsAndManagers(departmentId, {
+    title: 'Đăng ký vào Kho mới',
+    message: `${request.auth?.token.name ?? request.auth?.token.email ?? 'Một người dùng'} vừa đăng ký truy cập mã Kho gốc: ${departmentId}.`,
+    type: 'info',
+  }).catch((err) => {
+    console.error('[Session] Lỗi gửi thông báo cho admin/manager:', err);
+  });
+
+  const notifyTimeout = new Promise<void>((resolve) => setTimeout(resolve, 2500));
+  await Promise.race([notifyPromise, notifyTimeout]);
+
+  return {
+    success: true,
+    autoApproved: false,
+    role: 'pending',
+    status: 'pending',
+    departmentId,
+    employeeName: employeeName ?? '',
+  };
+});
+
+// Lưới an toàn bổ sung (mục 5.5 trong implementation_plan.md) — phòng
+// trường hợp user hết hạn không đăng nhập lại qua client để trigger
+// resolveSession. Chạy 1 lần/ngày qua Cloud Scheduler.
+export const demoteExpiredUsers = onSchedule('every 24 hours', async () => {
+  const now = Timestamp.now();
+  const snap = await db.collection('users').where('expiresAt', '<', now).get();
+
+  const batch = db.batch();
+  let count = 0;
+  for (const docSnap of snap.docs) {
+    const role = docSnap.get('role');
+    if (role === 'pending' || role === 'admin') continue;
+    batch.update(docSnap.ref, { role: 'pending', status: 'expired' });
+    await mergeCustomClaims(docSnap.id, { role: 'pending', departmentId: null });
+    count += 1;
+  }
+  if (count > 0) {
+    await batch.commit();
+  }
+});

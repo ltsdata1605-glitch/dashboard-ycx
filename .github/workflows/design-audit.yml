@@ -1,0 +1,75 @@
+# Bài đo icon BÊN TRONG MODAL (tests/e2e/icon-audit-modal.spec.ts) — tự mở từng modal ở 13 tab Chế độ Dùng thử, Phân tích có dữ liệu
+# và Report BI có dữ liệu, trên điện thoại + laptop; đo icon kiểu cũ / lệch tâm / nhỏ hơn chuẩn / vùng chạm < 44px.
+#
+# VÌ SAO TÁCH RIÊNG (GĐ10 bước 1, 2026-10-15): mỗi bài ~6–13 phút (6 bài) — quá nặng để chạy mỗi lần push. Job e2e của check.yml đã
+# có 3 bài đo nhanh (chuan-thiet-ke-b, icon-audit-man-goc, icon-audit-bi). Bài này chạy HẰNG ĐÊM + chạy tay khi cần
+# (Actions → design-audit → Run workflow). Trước đây cả 4 bài không chạy tự động ở đâu cả: icon-audit-bi đỏ từ 14/10 mà không ai biết.
+name: design-audit
+
+on:
+  schedule:
+    - cron: '17 19 * * *' # 02:17 giờ Việt Nam
+  workflow_dispatch:
+
+concurrency:
+  group: design-audit
+  cancel-in-progress: true
+
+jobs:
+  icon-audit-modal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    env:
+      # Server tự dựng ở bước dưới, Playwright bỏ qua khối `webServer`. Chạy trên BẢN BUILD (vite preview), không phải dev server
+      # (2026-10-22): mỗi bài mở lại trang 30+ lần, dev server phục vụ ~330 file mã nguồn rời mỗi lần → đêm 21/10 cả 3 trình duyệt
+      # song song cạn tài nguyên (net::ERR_INSUFFICIENT_RESOURCES → trang trắng, 4/6 bài đỏ) dù cùng bài chạy 1 luồng ở máy dev
+      # vẫn xanh. Bản build ~30 request/lần mở và đúng thứ người dùng nhận.
+      E2E_BASE_URL: http://127.0.0.1:4173
+      BROWSER: none
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Cài dependency
+        run: npm ci
+
+      - name: Cài trình duyệt Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build + khởi động máy chủ bản build
+        id: server
+        run: |
+          npm run build
+          npx vite preview --port 4173 --strictPort --host 127.0.0.1 > "$RUNNER_TEMP/preview-server.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4173 > /dev/null; then
+              echo "máy chủ bản build sẵn sàng sau khoảng $((i * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::máy chủ bản build KHÔNG lên sau 120s"
+          cat "$RUNNER_TEMP/preview-server.log"
+          exit 1
+
+      # 2 luồng song song (3 luồng trên dev server cạn tài nguyên đêm 21/10 — xem env ở trên).
+      - name: 'Icon trong modal (dùng thử, Phân tích, Report BI × điện thoại, laptop)'
+        run: npx playwright test tests/e2e/icon-audit-modal.spec.ts --workers=2 --fully-parallel --output=test-results/icon-audit-modal
+
+      - name: Gom log máy chủ
+        if: failure()
+        run: cp "$RUNNER_TEMP/preview-server.log" test-results/preview-server.log || true
+
+      - name: Lưu báo cáo khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-audit-report
+          path: test-results/
+          retention-days: 7

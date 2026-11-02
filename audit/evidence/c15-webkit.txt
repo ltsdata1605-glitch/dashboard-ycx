@@ -1,0 +1,11 @@
+[WebServer] (node:17831) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/shared-dropdown.spec.ts:6:9 › Dropdown 390 › span icon trigger has a name without nested interactive controls (1.6s)
+  ✓  2 [webkit] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 390 › keyboard selection skips disabled items and restores focus to trigger (526ms)
+  ✓  3 [webkit] › tests/e2e/shared-dropdown.spec.ts:6:9 › Dropdown 1366 › span icon trigger has a name without nested interactive controls (462ms)
+  ✓  4 [webkit] › tests/e2e/shared-dropdown.spec.ts:12:9 › Dropdown 1366 › keyboard selection skips disabled items and restores focus to trigger (563ms)
+
+  4 passed (5.8s)

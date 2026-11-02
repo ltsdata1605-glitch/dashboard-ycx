@@ -1,0 +1,183 @@
+[WebServer] (node:13551) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at top edge stays readable inside viewport (776ms)
+  ✓  2 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at bottom edge stays readable inside viewport (287ms)
+  ✘  3 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at left edge stays readable inside viewport (250ms)
+  ✘  4 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at right edge stays readable inside viewport (287ms)
+  ✓  5 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at top edge stays readable inside viewport (306ms)
+  ✓  6 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at bottom edge stays readable inside viewport (403ms)
+  ✘  7 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at left edge stays readable inside viewport (9.3s)
+  ✘  8 [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at right edge stays readable inside viewport (9.4s)
+
+
+  1) [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at left edge stays readable inside viewport 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "inside": true,
+        "noPageOverflow": true,
+        "noTextOverflow": true,
+    -   "noTriggerOverlap": true,
+    +   "noTriggerOverlap": false,
+        "wraps": true,
+      }
+
+      135 |                         noPageOverflow: document.documentElement.scrollWidth <= innerWidth };
+      136 |                 });
+    > 137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+          |                                          ^
+      138 |                 await page.setViewportSize({width:320, height:568});
+      139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+      140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:137:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at right edge stays readable inside viewport 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "inside": true,
+        "noPageOverflow": true,
+        "noTextOverflow": true,
+    -   "noTriggerOverlap": true,
+    +   "noTriggerOverlap": false,
+        "wraps": true,
+      }
+
+      135 |                         noPageOverflow: document.documentElement.scrollWidth <= innerWidth };
+      136 |                 });
+    > 137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+          |                                          ^
+      138 |                 await page.setViewportSize({width:320, height:568});
+      139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+      140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:137:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at left edge stays readable inside viewport 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "inside": true,
+        "noPageOverflow": true,
+        "noTextOverflow": true,
+    -   "noTriggerOverlap": true,
+    +   "noTriggerOverlap": false,
+        "wraps": true,
+      }
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+      138 |                 await page.setViewportSize({width:320, height:568});
+    > 139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+          |                                             ^
+      140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});
+      141 |                 await page.keyboard.press('Escape');
+      142 |                 await expect(tooltip).toHaveCount(0);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:139:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at right edge stays readable inside viewport 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "inside": true,
+        "noPageOverflow": true,
+        "noTextOverflow": true,
+    -   "noTriggerOverlap": true,
+    +   "noTriggerOverlap": false,
+        "wraps": true,
+      }
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+      138 |                 await page.setViewportSize({width:320, height:568});
+    > 139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});
+          |                                             ^
+      140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});
+      141 |                 await page.keyboard.press('Escape');
+      142 |                 await expect(tooltip).toHaveCount(0);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:139:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at left edge stays readable inside viewport 
+    [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 390 › long content at right edge stays readable inside viewport 
+    [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at left edge stays readable inside viewport 
+    [chromium] › tests/e2e/shared-tooltip.spec.ts:121:13 › Tooltip viewport 1366 › long content at right edge stays readable inside viewport 
+  4 passed (24.3s)

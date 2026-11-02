@@ -1,0 +1,47 @@
+[WebServer] (node:47515) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/bonus-legacy-fallback.spec.ts:3:3 › legacy bonus native IndexedDB fallback store=false (1.2s)
+  ✓  2 [chromium] › tests/e2e/bonus-legacy-fallback.spec.ts:3:3 › legacy bonus native IndexedDB fallback store=true (410ms)
+
+
+  1) [chromium] › tests/e2e/bonus-legacy-fallback.spec.ts:3:3 › legacy bonus native IndexedDB fallback store=false 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.",
+    + ]
+
+      17 |     await expect.poll(()=>page.evaluate(()=> (window as unknown as {auditLegacy:{legacyCloses:number}}).auditLegacy.legacyCloses)).toBeGreaterThanOrEqual(2);
+      18 |     await expect(page.locator('output')).toHaveText(withStore?'AUDIT legacy':'NO_BONUS');
+    > 19 |     expect(errors).toEqual([]);
+         |                    ^
+      20 |   });
+      21 | }
+      22 |
+        at /Users/ltson/dashboardycx/tests/e2e/bonus-legacy-fallback.spec.ts:19:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/bonus-legacy-fallback.spec.ts:3:3 › legacy bonus native IndexedDB fallback store=false 
+  1 passed (4.1s)

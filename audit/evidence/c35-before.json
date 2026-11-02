@@ -1,0 +1,204 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c35-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c35-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c35-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "error-boundary-recovery.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c35-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "error-boundary-recovery.spec.ts",
+      "file": "error-boundary-recovery.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "ordinary render failure can recover through actual retry state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1090,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:24:34.709Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4530c3d3830667c33066-0871276cce66a727abee",
+          "file": "error-boundary-recovery.spec.ts",
+          "line": 2,
+          "column": 1
+        },
+        {
+          "title": "exhausted chunk reload budget shows truthful recovery message and manual reload works",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10257,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true })\u001b[22m\n\n    at /Users/ltson/dashboardycx/tests/e2e/error-boundary-recovery.spec.ts:14:110",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/error-boundary-recovery.spec.ts",
+                      "column": 110,
+                      "line": 14
+                    },
+                    "snippet": "  12 |   await page.addInitScript(()=>sessionStorage.setItem('auditDocumentLoads',String(Number(sessionStorage.getItem('auditDocumentLoads')||0)+1)));\n  13 |   await page.goto('/tests/e2e/helpers/materialHarness.html?error-boundary&chunk');\n> 14 |   await expect(page.getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.',{exact:true})).toBeVisible();\n     |                                                                                                              ^\n  15 |   await expect(page.getByText(/Phiên bản mới đã được cập nhật/)).toHaveCount(0);\n  16 |   const before=await page.evaluate(()=>Number(sessionStorage.getItem('auditDocumentLoads')));\n  17 |   await page.getByRole('button',{name:'Tải lại trang',exact:true}).click();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/error-boundary-recovery.spec.ts",
+                        "column": 110,
+                        "line": 14
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.', { exact: true })\u001b[22m\n\n\n  12 |   await page.addInitScript(()=>sessionStorage.setItem('auditDocumentLoads',String(Number(sessionStorage.getItem('auditDocumentLoads')||0)+1)));\n  13 |   await page.goto('/tests/e2e/helpers/materialHarness.html?error-boundary&chunk');\n> 14 |   await expect(page.getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.',{exact:true})).toBeVisible();\n     |                                                                                                              ^\n  15 |   await expect(page.getByText(/Phiên bản mới đã được cập nhật/)).toHaveCount(0);\n  16 |   const before=await page.evaluate(()=>Number(sessionStorage.getItem('auditDocumentLoads')));\n  17 |   await page.getByRole('button',{name:'Tải lại trang',exact:true}).click();\n    at /Users/ltson/dashboardycx/tests/e2e/error-boundary-recovery.spec.ts:14:110"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:24:36.087Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c35-before/error-boundary-recovery-ex-b51ee-age-and-manual-reload-works-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c35-before/error-boundary-recovery-ex-b51ee-age-and-manual-reload-works-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c35-before/error-boundary-recovery-ex-b51ee-age-and-manual-reload-works-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/error-boundary-recovery.spec.ts",
+                    "column": 110,
+                    "line": 14
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "4530c3d3830667c33066-8d5588812c8b18114eec",
+          "file": "error-boundary-recovery.spec.ts",
+          "line": 11,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T09:24:33.288Z",
+    "duration": 13115.667,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

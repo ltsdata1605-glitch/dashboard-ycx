@@ -1,0 +1,10 @@
+{
+  "features/bi-dashboard/components/dashboard/IndustryView.tsx": "Re-read affected filter/extraction and outside-click effect. On narrow viewport reuse shared Modal bottom sheet; desktop panel and all filterContent reused. Sheet portal no longer dismissed by ancestor mousedown handler; aria expanded/haspopup on trigger.",
+  "tests/e2e/industry-switch-labels.spec.ts": "Full read/authored: existing two label/filter cases retained; added390x844/568 geometry, native Tab/Enter open, search last subgroup, Escape focus restoration, reopen state and closebutton. Wait computed transform settled before screenshot.",
+  "components/shared/ui/Modal.tsx": "Full source re-read: existing bodyportal, visualViewport vars, responsive sheet, internal verticalscroll, shared behavior/presence. No shared code modification.",
+  "components/shared/ui/useModalBehavior.ts": "Full source re-read: modalstack/refcount scrolllock, focusrestore, topmost Escape/Tab handling. No modification.",
+  "components/shared/ui/usePresence.ts": "Full source read: two rAF entry and delayed exit. Screenshot must await settled transform, animation disabled alone not enough.",
+  "components/shared/ui/Dropdown.tsx": "Full source read: items-based single-select; unsuitable for current two independent search/filter groups without API redesign. Existing fixed positioning transform exception retained.",
+  "components/shared/ui/MultiSelectDropdown.tsx": "Full source read: groups but single search and no per-group all/reset; unsuitable drop-in. Portal positioning has edge/height limitations requiring independent regression; no change.",
+  "components/shared/ui/Overlay.tsx": "Full source read: scrim/busy/fullscreen primitive lacks dialog/focus behavior; use existing Modal for mobile filter."
+}

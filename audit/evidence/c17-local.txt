@@ -1,0 +1,30 @@
+[WebServer] (node:25662) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 17 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/bi-chuyen-che-do-khong-sap.spec.ts:9:1 › Report BI: bấm qua lại Realtime/Luỹ kế và Doanh thu/Thi đua không sập, URL theo đúng lựa chọn (9.5s)
+  ✓   2 [chromium] › tests/e2e/bi-chuyen-che-do-khong-sap.spec.ts:28:1 › Report BI: mở link sâu ?mode=cumulative&sub=competition → đúng chế độ (5.8s)
+CỘT MẶC ĐỊNH: ["#","NHÓM THI ĐUA","LUỸ KẾ","TAR V.TRỘI","%HT V.TRỘI","%DKHT V.TRỘI","C.LẠI"]
+(node:25673) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   3 [chromium] › tests/e2e/bi-competition.spec.ts:15:5 › Report BI — bảng Thi đua Luỹ kế › bộ cột mặc định: đủ số cột, có nhóm Vượt trội và cột Còn Lại (10.7s)
+  ✓   4 [chromium] › tests/e2e/bi-competition.spec.ts:39:5 › Report BI — bảng Thi đua Luỹ kế › 2 cột vượt trội có số liệu (không còn "-") (11.2s)
+  ✓   5 [chromium] › tests/e2e/bi-competition.spec.ts:46:5 › Report BI — bảng Thi đua Luỹ kế › mặc định sắp xếp giảm dần theo %DKHT (11.4s)
+SỐ NÚT GẠT: 13
+  ✓   6 [chromium] › tests/e2e/bi-competition.spec.ts:60:5 › Report BI — bảng Thi đua Luỹ kế › popup Bộ lọc thi đua mở được và có nút gạt cột (11.3s)
+  ✓   7 [chromium] › tests/e2e/bi-deep-link-khong-vong-lap.spec.ts:14:1 › Siêu thị: gạt Realtime ↔ Luỹ kế, mở Thi đua — không sập, URL theo đúng chế độ (11.4s)
+  ✓   8 [chromium] › tests/e2e/bi-deep-link-khong-vong-lap.spec.ts:31:1 › Nhân viên: bấm lần lượt 4 tab con → tab đổi thật, URL ?sub= theo, không sập (6.3s)
+  ✓   9 [chromium] › tests/e2e/bi-deep-link-khong-vong-lap.spec.ts:46:1 › deep link: mở thẳng ?tab=employees&view=employee&sub=bonus → đúng mục Nhân viên, tab Thưởng (2.8s)
+  ✓  10 [chromium] › tests/e2e/bi-deep-link-khong-vong-lap.spec.ts:56:1 › deep link: ?tab=employees&view=dashboard&mode=cumulative&sub=competition → Siêu thị, Luỹ kế, Thi đua (3.5s)
+844×390 — khung menu: top 20, cao 351 (màn 390)
+  ✓  11 [chromium] › tests/e2e/menu-khac-xoay-ngang.spec.ts:8:5 › iPhone ngang 844×390: thấy nút đóng, cuộn tới được mục đầu và cuối, Esc đóng (4.5s)
+667×375 — khung menu: top 19, cao 338 (màn 375)
+  ✓  12 [chromium] › tests/e2e/menu-khac-xoay-ngang.spec.ts:8:5 › iPhone ngang 667×375: thấy nút đóng, cuộn tới được mục đầu và cuối, Esc đóng (4.3s)
+  ✓  13 [chromium] › tests/e2e/phan-tich-mat-mang-cau-hinh.spec.ts:17:1 › mất mạng khi tải cấu hình: báo lỗi rõ ràng, không treo ở 95% (2.3s)
+  ✓  14 [chromium] › tests/e2e/sidebar-hover-flyout.spec.ts:3:1 › laptop: hover vào menu Công cụ và rê chuột sang submenu không bị mất (4.2s)
+  ✓  15 [chromium] › tests/e2e/sidebar-hover-flyout.spec.ts:43:1 › laptop: hover vào User Profile avatar và rê chuột sang flyout card không bị mất (3.5s)
+  ✓  16 [chromium] › tests/e2e/sidebar-hover-flyout.spec.ts:72:1 › laptop: bấm vào nút Công cụ chỉ mở menu phụ, không chuyển sang trang trống (3.7s)
+  ✓  17 [chromium] › tests/e2e/xss-header-sanitization.spec.ts:13:1 › dán tên cột chứa HTML/script độc vào dữ liệu Thi đua KHÔNG thực thi trên trang (10.9s)
+
+  17 passed (2.0m)

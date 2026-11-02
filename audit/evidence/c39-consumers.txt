@@ -1,0 +1,32 @@
+App.tsx:44:import { AppToaster } from './components/shared/ui/toast';
+App.tsx:46:import PageActionsBar from './components/layout/PageActionsBar';
+App.tsx:378:                                {/* Màn khai báo bằng usePageActions (phạm vi 'all'/'desktop') — màn cũ vẫn portal vào khe bên cạnh. */}
+App.tsx:379:                                <PageActionsBar variant="desktop" />
+App.tsx:436:                        <AppToaster />
+features/tax-calculator/TaxCalculatorView.tsx:4:import { usePageActions } from '../../components/shared/ui/PageActions';
+features/tax-calculator/TaxCalculatorView.tsx:104:  usePageActions(activeTab === 'tools-tax' ? {
+features/tax-calculator/TaxCalculatorView.tsx:376:          {/* Action buttons — laptop; iPhone/iPad dùng thanh trên (usePageActions ở trên) */}
+features/phan-ca/components/PhanCaToolbar.tsx:6:import { usePageActions } from '../../../components/shared/ui/PageActions';
+features/phan-ca/components/PhanCaToolbar.tsx:31:    usePageActions(activeTab === 'tools-phanca' ? {
+features/line-bot/LineBotView.tsx:9:import { usePageActions } from '../../components/shared/ui/PageActions';
+features/line-bot/LineBotView.tsx:73:    usePageActions(activeTab === 'tools-line-bot' && isManagerOrAdmin ? {
+features/bi-dashboard/components/BiWrapper.tsx:9:import { usePageActions } from '../../../components/shared/ui/PageActions';
+features/bi-dashboard/components/BiWrapper.tsx:312:    usePageActions(isTabActive && isMobile ? {
+components/views/CheckThuongView.tsx:10:import { usePageActions } from '../shared/ui/PageActions';
+components/views/CheckThuongView.tsx:286:    usePageActions(mounted && activeTab === 'check-thuong' && hasData ? {
+components/views/settings/SettingsAccountTab.tsx:11:import { usePageActions } from '../../shared/ui/PageActions';
+components/views/settings/SettingsAccountTab.tsx:30:    usePageActions(activeTab === 'settings'
+components/views/settings/SettingsAccountTab.tsx:415:                iPhone dùng usePageActions ở trên (thanh trên của khung app). */}
+components/layout/MobileNavBar.tsx:6:import { PageActionsBar } from './PageActionsBar';
+components/layout/MobileNavBar.tsx:23: * `usePageActions()` → `PageActionsBar` tự xếp (tối đa 1 nút chính + 1 nút nhanh + "⋯"), hết cảnh 7 nút đè nhau (lỗi #1).
+components/layout/MobileNavBar.tsx:61:                    <PageActionsBar variant="mobile" />
+components/shared/README.md:23:| Nút trên thanh trên | `usePageActions({ scope, primary, quick, items })` | KHÔNG `createPortal` thủ công. `scope: 'mobile'` khi laptop đã có thanh công cụ riêng |
+components/shared/README.md:55:`components/layout/MobileNavBar.tsx` (thanh trên iPhone), `MobileBottomNav.tsx` (thanh tab + sheet "Khác"), `PageActionsBar.tsx`. Lớp
+components/filters/FilterBar.tsx:4:import { usePageActions } from '../shared/ui/PageActions';
+components/filters/FilterBar.tsx:20: * `usePageActions` thay vì portal 5 nút 32px vào `#mobile-topbar-actions` (đè chuông, đẩy trang tràn ngang ở iPhone SE — lỗi #1).
+components/filters/FilterBar.tsx:39:    usePageActions(activeTab === 'analysis' ? {
+components/shared/ui/index.ts:14:export { toast, AppToaster, TOAST_DURATION } from './toast';
+components/shared/ui/index.ts:38:export { PageActionsProvider, usePageActions, useCurrentPageActions } from './PageActions';
+components/shared/ui/toast/index.ts:8:export { AppToaster } from './AppToaster';
+components/shared/ui/toast/toast.ts:9: * trên iPhone toast đè lên thanh tab. Nay mọi nơi import `toast` từ ĐÂY; giao diện do `AppToaster` vẽ (viên nang trên giữa).
+components/shared/ui/toast/toast.ts:90:/** Tách option `icon` thành: tên icon chuẩn (để AppToaster vẽ) hoặc phần tử React (giữ nguyên). */

@@ -1,0 +1,473 @@
+
+import React, { useState, useMemo, forwardRef, useEffect } from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { startExportJob } from '../shared/export';
+import type { DataRow, ProductConfig, Employee, HeadToHeadTableConfig, HeadToHeadConditionalFormatRule } from '../../types';
+import { exportElementAsImage } from '../../services/uiService';
+import { getHeadToHeadCustomTables, saveHeadToHeadCustomTables, getSetting, saveSetting } from '../../services/dbService';
+import { useDashboardContext } from '../../contexts/DashboardContext';
+import { getExportFilenamePrefix, getRowValue, sanitizeFilename } from '../../utils/dataUtils';
+import { COL, DATA_STATUS_COLORS } from '../../constants';
+import { Modal } from '../shared/ui/Modal';
+import { Button } from '../shared/ui/Button';
+import { ActionMenu, type ActionMenuItem } from '../shared/ui/ActionMenu';
+import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { registerYcxAutoExportRunner } from '../../services/autoReportExportService';
+
+// Import refactored components
+import HeadToHeadTable from './head-to-head/HeadToHeadTable';
+import HeadToHeadConfigModal from './head-to-head/HeadToHeadConfigModal';
+
+interface HeadToHeadTabProps {
+    baseFilteredData: DataRow[];
+    productConfig: ProductConfig;
+    employeeData: Employee[];
+    onExport?: () => void;
+    isExporting?: boolean;
+    colorThemes: { header: string; row: string; border: string; activeTab?: string; }[];
+}
+
+
+
+const HeadToHeadTab = React.memo(forwardRef<HTMLDivElement, HeadToHeadTabProps>(({ onExport, isExporting, colorThemes, ...props }, ref) => {
+    const { productConfig } = props;
+    const [tables, setTables] = useState<HeadToHeadTableConfig[]>([]);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [modalState, setModalState] = useState<{ type: 'ADD' | 'EDIT' | 'DELETE' | null, data?: HeadToHeadTableConfig }>({ type: null });
+    const [isBatchExporting, setIsBatchExporting] = useState(false);
+    const [activeTableId, setActiveTableId] = useState<string | null>(null);
+    const [includeToday, setIncludeToday] = useState(true);
+    const { filterState } = useDashboardContext();
+    
+    const tableRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+    useEffect(() => {
+        return registerYcxAutoExportRunner('Phân Tích Nhân Viên - 7 Ngày', async () => {
+            const el = typeof ref === 'function' ? null : ref?.current;
+            if (!el) return null;
+            const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - 7 Ngày.png', {
+                isCompactTable: true,
+                fitAllColumns: true,
+                mode: 'blob-only',
+            });
+            return (res instanceof Blob) ? res : null;
+        });
+    }, [ref]);
+    
+    const allSubgroups = useMemo(() => {
+        const subgroups = new Set<string>();
+        Object.entries(productConfig.subgroups).forEach(([parentKey, parent]) => {
+            if (parentKey !== 'Không tính doanh thu') {
+                Object.keys(parent).forEach(subgroup => {
+                    if (subgroup !== 'Không tính doanh thu') {
+                        subgroups.add(subgroup);
+                    }
+                });
+            }
+        });
+        return Array.from(subgroups).sort();
+    }, [productConfig]);
+
+    const allParentGroups = useMemo(() => {
+        if (!productConfig) return [];
+        return Array.from(new Set(Object.values(productConfig.childToParentMap))).filter(v => v !== 'Không tính doanh thu').sort();
+    }, [productConfig]);
+
+    const allManufacturers = useMemo(() => {
+        const m = new Set<string>();
+        const data = props.baseFilteredData;
+        for (let i = 0, len = data.length; i < len; i++) {
+            const hang = getRowValue(data[i], COL.MANUFACTURER);
+            if (hang) m.add(hang);
+        }
+        return Array.from(m).sort();
+    }, [props.baseFilteredData]);
+
+    useEffect(() => {
+        const loadTables = async () => {
+            let savedTables = await getHeadToHeadCustomTables();
+            const now = Date.now();
+            const belowAvgRule: HeadToHeadConditionalFormatRule = {
+                id: `rule-below-avg-${now}`,
+                criteria: 'column_dept_avg',
+                operator: '<',
+                value: 0,
+                backgroundColor: DATA_STATUS_COLORS.negative.bg,
+                textColor: DATA_STATUS_COLORS.negative.text
+            };
+
+            const top3Rule: HeadToHeadConditionalFormatRule = {
+                id: `rule-top-3-${now}`,
+                criteria: 'top_3',
+                operator: '=',
+                value: 0,
+                backgroundColor: DATA_STATUS_COLORS.positive.bg,
+                textColor: DATA_STATUS_COLORS.positive.text
+            };
+
+            const fullDefaults: HeadToHeadTableConfig[] = [
+                { id: `h2h-default-${now}-1`, tableName: "DT THỰC", icon: "dollar-sign", type: 'data', metricType: 'revenue', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-2`, tableName: "DTQĐ", icon: "circle-dollar-sign", type: 'data', metricType: 'revenueQD', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-3`, tableName: "HQQĐ", icon: "percent", type: 'data', metricType: 'hieuQuaQD', totalCalculationMethod: 'average', filters: { selectedIndustries: [], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-4`, tableName: "SIM", icon: "sim-card", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: ['Sim'], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-5`, tableName: "VIEON", icon: "play-square", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Vieon'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-6`, tableName: "ĐHTT", icon: "watch", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: ['Đồng hồ', 'Wearable'], selectedSubgroups: [], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-7`, tableName: "CAMERA", icon: "camera", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Camera'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-8`, tableName: "SDP", icon: "battery-charging", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Pin SDP'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-9`, tableName: "ĐÈN", icon: "lightbulb", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Đèn NLMT'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-10`, tableName: "TAI NGHE", icon: "headphones", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Tai nghe BLT'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-11`, tableName: "MLN", icon: "droplet", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Máy lọc nước'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-12`, tableName: "QĐH", icon: "wind", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Quạt điều hòa'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-13`, tableName: "QUẠT", icon: "fan", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Quạt điện'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+                { id: `h2h-default-${now}-14`, tableName: "N.CƠM", icon: "chef-hat", type: 'data', metricType: 'quantity', totalCalculationMethod: 'sum', filters: { selectedIndustries: [], selectedSubgroups: ['Nồi cơm'], selectedManufacturers: [], productCodes: [] }, conditionalFormats: [belowAvgRule, top3Rule] },
+            ];
+
+            if (!savedTables || savedTables.length === 0) {
+                savedTables = fullDefaults;
+            } else {
+                if (!(await getSetting('h2h_v2_migrated_1'))) {
+                    savedTables = savedTables.map((t: HeadToHeadTableConfig) => {
+                        if (t.tableName === "7 NGÀY - DOANH THU") return { ...t, tableName: "DT THỰC" };
+                        if (t.tableName === "7 NGÀY - DOANH THU QĐ") return { ...t, tableName: "DTQĐ" };
+                        if (t.tableName === "7 NGÀY - HIỆU QUẢ QĐ") return { ...t, tableName: "HQQĐ" };
+                        return t;
+                    });
+                    
+                    const existingNames = new Set(savedTables.map(t => t.tableName));
+                    const toAppend = fullDefaults.slice(3).filter(t => !existingNames.has(t.tableName));
+                    savedTables = [...savedTables, ...toAppend];
+                    
+                    await saveSetting('h2h_v2_migrated_1', true);
+                }
+                if (!(await getSetting('h2h_v2_migrated_3'))) {
+                    savedTables = savedTables.map((t: HeadToHeadTableConfig) => {
+                        return {
+                            ...t,
+                            conditionalFormats: [belowAvgRule, top3Rule]
+                        };
+                    });
+                    await saveSetting('h2h_v2_migrated_3', true);
+                }
+                if (!(await getSetting('h2h_v2_migrated_5'))) {
+                    savedTables = savedTables.map((t: HeadToHeadTableConfig) => {
+                        if (t.tableName === "N.CƠM" && t.filters) {
+                            return {
+                                ...t,
+                                filters: {
+                                    ...t.filters,
+                                    selectedSubgroups: ['Nồi cơm']
+                                }
+                            };
+                        }
+                        return t;
+                    });
+                    await saveSetting('h2h_v2_migrated_5', true);
+                }
+                if (!(await getSetting('h2h_v2_migrated_6'))) {
+                    savedTables = savedTables.map((t: HeadToHeadTableConfig) => {
+                        let newT = { ...t };
+                        if (newT.selectedParentGroups || newT.selectedSubgroups) {
+                            if (!newT.filters) {
+                                newT.filters = {
+                                    selectedIndustries: newT.selectedParentGroups || [],
+                                    selectedSubgroups: newT.selectedSubgroups || [],
+                                    selectedManufacturers: [],
+                                    productCodes: []
+                                };
+                            } else {
+                                if (newT.selectedParentGroups && newT.selectedParentGroups.length > 0) newT.filters.selectedIndustries = newT.selectedParentGroups;
+                                if (newT.selectedSubgroups && newT.selectedSubgroups.length > 0) newT.filters.selectedSubgroups = newT.selectedSubgroups;
+                            }
+                            delete newT.selectedParentGroups;
+                            delete newT.selectedSubgroups;
+                        }
+                        
+                        if (newT.tableName === "N.CƠM" && newT.filters) {
+                            newT.filters.selectedSubgroups = ['Nồi cơm'];
+                        }
+                        
+                        return newT;
+                    });
+                    await saveSetting('h2h_v2_migrated_6', true);
+                }
+            }
+            
+            setTables(savedTables);
+            if (savedTables.length > 0) setActiveTableId(savedTables[0].id);
+            setIsInitialLoad(false);
+        };
+        loadTables();
+
+        const handleExternalUpdate = (e: Event) => {
+            const detail = (e as CustomEvent)?.detail;
+            if (detail?.key === 'headToHeadTables') {
+                getHeadToHeadCustomTables().then(saved => {
+                    if (saved && saved.length > 0) {
+                        setTables(saved);
+                    }
+                }).catch(console.error);
+            }
+        };
+
+        window.addEventListener('indexeddb-change', handleExternalUpdate as EventListener);
+        return () => {
+            window.removeEventListener('indexeddb-change', handleExternalUpdate as EventListener);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isInitialLoad) {
+            saveHeadToHeadCustomTables(tables);
+        }
+    }, [tables, isInitialLoad]);
+
+    const handleSave = (config: Omit<HeadToHeadTableConfig, 'id'>) => {
+        if (modalState.type === 'EDIT' && modalState.data) {
+            setTables(prev => prev.map(t => t.id === modalState.data!.id ? { ...t, ...config } : t));
+        } else {
+            const newTable: HeadToHeadTableConfig = {
+                id: `h2h-${Date.now()}`, ...config,
+                totalCalculationMethod: config.totalCalculationMethod || 'sum',
+                conditionalFormats: config.conditionalFormats || [],
+                type: config.type || 'data',
+                filters: config.filters,
+                targetValue: config.targetValue,
+                operation: config.operation,
+                operand1_tableId: config.operand1_tableId,
+                operand2_tableId: config.operand2_tableId,
+                displayAs: config.displayAs,
+            };
+            setTables(prev => [...prev, newTable]);
+            setActiveTableId(newTable.id);
+        }
+        setModalState({ type: null });
+    };
+
+    const handleDelete = () => {
+        if (modalState.type === 'DELETE' && modalState.data) {
+            setTables(prev => {
+                const newTables = prev.filter(t => t.id !== modalState.data!.id);
+                if (activeTableId === modalState.data!.id) {
+                    setActiveTableId(newTables.length > 0 ? newTables[0].id : null);
+                }
+                return newTables;
+            });
+        }
+        setModalState({ type: null });
+    };
+
+
+    const handleBatchExport = async () => {
+        const elements = document.querySelectorAll('.h2h-table-container');
+        if (elements.length === 0) return;
+        setIsBatchExporting(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const job = startExportJob({ title: 'Xuất ảnh các bảng 7 ngày', total: tables.length });
+        for (let i = 0; i < tables.length; i++) {
+            if (job.cancelled) break;
+            const tableElement = elements[i] as HTMLElement;
+            const tableConfig = tables[i];
+            const nhan = tableConfig?.tableName || `Bảng ${i + 1}`;
+            job.item(i, nhan);
+            if (tableElement && tableConfig) {
+                const prefix = getExportFilenamePrefix(filterState.kho);
+                const safeTabName = sanitizeFilename(tableConfig.tableName).trim();
+                const blob = await exportElementAsImage(tableElement, `${prefix} - 7 Ngày - ${safeTabName}.png`, {
+                    elementsToHide: ['.hide-on-export'],
+                    isCompactTable: true,
+                    fitAllColumns: true
+                });
+                job.result(nhan, blob ? 'ok' : 'failed', blob ? undefined : 'Không tạo được ảnh');
+                await new Promise(resolve => setTimeout(resolve, 300));
+            } else {
+                job.result(nhan, 'failed', 'Bảng chưa hiển thị');
+            }
+        }
+        job.finish();
+        setIsBatchExporting(false);
+    };
+
+    const suggestionBoxTheme = colorThemes[4] || colorThemes[0]; // Indigo or fallback
+
+    const activeTable = tables.find(t => t.id === activeTableId);
+
+    const crudMenuItems = useMemo<ActionMenuItem[]>(() => [
+        {
+            id: 'add-table',
+            label: 'Thêm Bảng Mới',
+            icon: 'add',
+            onSelect: () => setModalState({ type: 'ADD' }),
+        },
+        ...(activeTable ? [
+            {
+                id: 'edit-table',
+                label: `Sửa Bảng "${activeTable.tableName}"`,
+                icon: 'edit' as const,
+                onSelect: () => setModalState({ type: 'EDIT', data: activeTable }),
+            },
+            {
+                id: 'delete-table',
+                label: `Xóa Bảng "${activeTable.tableName}"`,
+                icon: 'delete' as const,
+                destructive: true,
+                onSelect: () => setModalState({ type: 'DELETE', data: activeTable }),
+            },
+        ] : []),
+    ], [activeTable]);
+
+    return (
+        <div ref={ref}>
+            {/* Merged Header */}
+            <div className="mb-3 sm:mb-4">
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
+                        <div className="min-w-0">
+                            <h3 className="text-sm lg:text-[17px] font-medium text-slate-700 dark:text-slate-200 uppercase tracking-wide truncate leading-tight">
+                                {activeTable ? activeTable.tableName : '7 Ngày'}
+                            </h3>
+                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">7 ngày gần nhất</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-1.5 hide-on-export shrink-0">
+                        {/* Menu thao tác Bảng: Thêm, Sửa, Xoá gom gọn vào nút dấu 3 chấm chuẩn như Topbar */}
+                        <ActionMenu
+                            items={crudMenuItems}
+                            title="Tùy chọn Bảng 7 Ngày"
+                            label="Tùy chọn Bảng"
+                            data-testid="h2h-crud-action-menu"
+                            triggerClassName="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        />
+
+                        {/* Separator */}
+                        <div className="w-px h-4 lg:h-5 bg-slate-200 dark:bg-slate-700 mx-0.5 lg:mx-1" />
+
+                        {/* Group 2 (RIGHT): Calendar → Batch export → Camera */}
+                        <Button
+                            type="button"
+                            variant="toolbar" size="icon"
+                            onClick={() => setIncludeToday(p => !p)}
+                            className="ycx-hit flex items-center justify-center rounded-control transition-colors" aria-pressed={includeToday}
+                            title={includeToday ? 'Đang bao gồm hôm nay — Nhấn để loại bỏ' : 'Không bao gồm hôm nay — Nhấn để thêm'}
+                        >
+                            <AppIcon name={includeToday ? 'calendarCheck' : 'calendarOff'} size="md" />
+                        </Button>
+                        <Button
+                            variant="ghost" size="icon"
+                            onClick={handleBatchExport}
+                            disabled={isBatchExporting || tables.length === 0}
+                            className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors disabled:opacity-40"
+                            title="Xuất hàng loạt ảnh toàn bộ bảng 7 ngày"
+                        >
+                            {isBatchExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportBatch" size="md" className="lg:hidden" />}
+                            {isBatchExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportBatch" size="md" className="hidden lg:block" />}
+                        </Button>
+                        {onExport && (
+                            <Button variant="ghost" size="icon" onClick={onExport} disabled={isExporting} className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors disabled:opacity-40" title="Xuất ảnh bảng hiện tại">
+                                {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                                {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                            </Button>
+                        )}
+                        <AreaAutoExportButton
+                            areaId="Phân Tích Nhân Viên - 7 Ngày"
+                            areaName="Nhân Viên: 7 Ngày"
+                            onTestExport={async () => {
+                                const el = typeof ref === 'function' ? null : ref?.current;
+                                if (!el) return null;
+                                const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - 7 Ngày.png', {
+                                    isCompactTable: true,
+                                    fitAllColumns: true,
+                                    mode: 'blob-only',
+                                });
+                                return (res instanceof Blob) ? res : null;
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* Tabs below title */}
+                {!isBatchExporting && tables.length > 1 && (
+                    <div className="mt-1.5 sm:mt-2 overflow-x-auto no-scrollbar hide-on-export">
+                        <div className="flex gap-0 border-b border-slate-200 dark:border-slate-700/60 w-max sm:w-auto">
+                            {tables.map((t, tabIndex) => {
+                                const isActive = activeTableId === t.id;
+                                const theme = colorThemes[tabIndex % colorThemes.length];
+                                return (
+                                <Button
+                                    variant="tab" size="none"
+                                    key={`tab-${t.id}`}
+                                    onClick={() => setActiveTableId(t.id)}
+                                    className={`relative px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-[11px] uppercase tracking-wider font-bold ${
+                                        isActive
+                                        ? theme.activeTab || 'bg-slate-50 text-slate-800 dark:bg-slate-800 dark:text-white border-b-[2.5px] border-slate-800 dark:border-white'
+                                        : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                                    }`}
+                                    title={t.tableName}
+                                >
+                                    {t.tableName.replace(/7 NGÀY\s*-\s*/i, '')}
+                                </Button>
+                            )})}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+                
+                {tables.map((tableConfig, index) => {
+                    const isVisible = isBatchExporting || tableConfig.id === activeTableId;
+                    const currentTheme = colorThemes[index % colorThemes.length];
+                    return (
+                        <div key={tableConfig.id} className={`h2h-table-container ${!isVisible ? 'hidden' : 'block'}`}>
+                            <div className="overflow-hidden">
+                                <HeadToHeadTable
+                                    config={tableConfig}
+                                    allConfigs={tables}
+                                    {...props}
+                                    onAdd={() => setModalState({ type: 'ADD' })}
+                                    onEdit={() => setModalState({ type: 'EDIT', data: tableConfig })}
+                                    onDelete={() => setModalState({ type: 'DELETE', data: tableConfig })}
+                                    tableColorTheme={currentTheme}
+                                    includeToday={includeToday}
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {(modalState.type === 'ADD' || modalState.type === 'EDIT') && (
+                <HeadToHeadConfigModal 
+                    isOpen={true} 
+                    onClose={() => setModalState({ type: null })}
+                    onSave={handleSave}
+                    allIndustries={allParentGroups}
+                    allSubgroups={allSubgroups}
+                    allManufacturers={allManufacturers}
+                    existingTables={tables}
+                    editingConfig={modalState.type === 'EDIT' ? modalState.data : undefined}
+                />
+            )}
+             {modalState.type === 'DELETE' && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setModalState({ type: null })}
+                    title="Xác nhận Xóa Bảng"
+                    subTitle={`Bạn có chắc muốn xóa bảng "${modalState.data?.tableName}" không?`}
+                    titleColorClass="text-rose-700 dark:text-rose-400"
+                    maxWidth="md"
+                    footer={
+                        <div className="flex justify-end gap-2 sm:gap-3">
+                            <Button type="button" variant="secondary" onClick={() => setModalState({ type: null })}>Hủy</Button>
+                            <Button type="button" variant="danger" onClick={handleDelete}>Xóa</Button>
+                        </div>
+                    }
+                >
+                    <p className="text-xs sm:text-sm">Hành động này không thể hoàn tác.</p>
+                </Modal>
+            )}
+        </div>
+    );
+}));
+
+export default HeadToHeadTab;

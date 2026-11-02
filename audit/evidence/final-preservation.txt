@@ -1,0 +1,45 @@
+2026-10-25T09:09:27.286411+07:00
+{
+  "head": "c4df4d1d5ba30cf3c317cc9c42644d917c557537",
+  "total_files": 137058,
+  "total_directories": 18348,
+  "included_files": 1353,
+  "excluded_files": 135705,
+  "checkpoint_entries": 1346,
+  "checkpoint_status": {
+    "UNCHANGED": 1338,
+    "CHANGED": 8,
+    "OUTSIDE_CHECKPOINT_SCOPE": 135614,
+    "ADDED_SINCE_CHECKPOINT": 98
+  },
+  "paths_missing_from_ledger": [],
+  "paths_added_during_scan": [],
+  "paths_removed_during_scan": [],
+  "directories_changed": [],
+  "errors": [],
+  "included_by_type": {
+    "DOCUMENTATION": 185,
+    "STYLE": 5,
+    "SOURCE": 625,
+    "CONFIG": 51,
+    "SCRIPT": 39,
+    "OTHER": 8,
+    "TEST": 394,
+    "ASSET": 46
+  },
+  "file_reconciliation_pass": true,
+  "checkpoint_unchanged": false
+}
+
+GIT_STATUS:
+ M components/shared/ui/KpiCard.tsx
+ M components/shared/ui/useModalBehavior.ts
+ M features/bi-dashboard/components/nhanvien/CompetitionGroupView.tsx
+ M features/product-config/components/ProductConfigTemplateHub.tsx
+ M tests/e2e/apple-tuong-thich.spec.ts
+ M tests/e2e/helpers/salesFixture.ts
+ M tests/unit/session-ownership-claim.test.ts
+ M violations-baseline.json
+?? AGENTS.md
+?? audit/
+

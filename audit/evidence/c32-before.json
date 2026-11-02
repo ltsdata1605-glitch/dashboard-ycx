@@ -1,0 +1,204 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c32-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c32-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c32-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "bonus-legacy-fallback.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c32-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "bonus-legacy-fallback.spec.ts",
+      "file": "bonus-legacy-fallback.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "legacy bonus native IndexedDB fallback store=false",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1168,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at /Users/ltson/dashboardycx/tests/e2e/bonus-legacy-fallback.spec.ts:19:20",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/bonus-legacy-fallback.spec.ts",
+                      "column": 20,
+                      "line": 19
+                    },
+                    "snippet": "  17 |     await expect.poll(()=>page.evaluate(()=> (window as unknown as {auditLegacy:{legacyCloses:number}}).auditLegacy.legacyCloses)).toBeGreaterThanOrEqual(2);\n  18 |     await expect(page.locator('output')).toHaveText(withStore?'AUDIT legacy':'NO_BONUS');\n> 19 |     expect(errors).toEqual([]);\n     |                    ^\n  20 |   });\n  21 | }\n  22 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/bonus-legacy-fallback.spec.ts",
+                        "column": 20,
+                        "line": 19
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  17 |     await expect.poll(()=>page.evaluate(()=> (window as unknown as {auditLegacy:{legacyCloses:number}}).auditLegacy.legacyCloses)).toBeGreaterThanOrEqual(2);\n  18 |     await expect(page.locator('output')).toHaveText(withStore?'AUDIT legacy':'NO_BONUS');\n> 19 |     expect(errors).toEqual([]);\n     |                    ^\n  20 |   });\n  21 | }\n  22 |\n    at /Users/ltson/dashboardycx/tests/e2e/bonus-legacy-fallback.spec.ts:19:20"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:08:36.246Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c32-before/bonus-legacy-fallback-lega-2552e-exedDB-fallback-store-false-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/bonus-legacy-fallback.spec.ts",
+                    "column": 20,
+                    "line": 19
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f1919b861428093bc9b2-d994436ff34d9b52d5a9",
+          "file": "bonus-legacy-fallback.spec.ts",
+          "line": 3,
+          "column": 3
+        },
+        {
+          "title": "legacy bonus native IndexedDB fallback store=true",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 410,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:08:38.103Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f1919b861428093bc9b2-cdf81b44a038b1b8e745",
+          "file": "bonus-legacy-fallback.spec.ts",
+          "line": 3,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T09:08:34.552Z",
+    "duration": 4105.441000000001,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

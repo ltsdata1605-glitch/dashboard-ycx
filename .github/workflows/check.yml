@@ -1,0 +1,450 @@
+# Cổng kiểm tự động cho mọi lần push và pull request.
+#
+# VÌ SAO CÓ FILE NÀY (thêm 2026-09-18): dự án đã có `npm run check` gộp đủ typecheck/eslint/test/
+# build/ratchet, NHƯNG không có gì chạy nó tự động — không có CI nào cả. Hậu quả đã xảy ra thật:
+# 18 lỗi typecheck và 143 vi phạm màu sắc lọt vào nhánh `main` qua các commit tính năng gần đây mà
+# không ai biết. Có công cụ mà không thực thi thì bằng không.
+#
+# Đủ 5 bước của `npm run check` (typecheck/eslint/test/build/ratchet) + job E2E riêng.
+
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Push liên tiếp lên cùng nhánh thì huỷ lượt chạy cũ, đỡ tốn phút CI.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Khớp Node đang dùng ở máy dev (v22.11.0) để không lệch hành vi build.
+          node-version: '22'
+          cache: npm
+
+      - name: Cài dependency
+        run: npm ci
+
+      # tests/unit/line-bot-group-features.test.ts import thẳng functions/src/groupFeatureHelper.ts →
+      # typecheck ở gốc kéo theo functions/src/firebaseAdmin.ts, cần gói `firebase-admin` chỉ có trong
+      # functions/node_modules. Thiếu bước này Typecheck đỏ "Cannot find module 'firebase-admin/app'"
+      # dù máy dev xanh (máy dev đã cài functions) — đo 2026-09-29, run 36504883600.
+      - name: Cài dependency functions (test đơn vị import functions/src)
+        run: npm ci --prefix functions
+
+      # 4 bước dưới đây ĐANG XANH tại thời điểm thêm file này — chạy riêng từng bước (không gộp
+      # `npm run check`) để log chỉ đúng bước nào đỏ, khỏi phải đọc ngược cả output.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint:eslint
+
+      - name: Test đơn vị
+        run: npm run test:unit
+
+      - name: Build
+        run: npm run build
+
+      # Gói tải đầu (JS + CSS index.html bắt tải trước khi vẽ khung app) ≤ 330 KB gzip — KE_HOACH_GIAO_DIEN_APPLE.md mục 7.
+      # Từng phình lên 345 KB không ai thấy (GĐ9 2026-10-14); cách tìm thủ phạm ở chú thích đầu scripts/kiem-goi-tai-dau.cjs.
+      - name: Ngân sách gói tải đầu
+        run: npm run check:budget
+
+      # Ratchet chỉ cho phép vi phạm GIẢM so với `violations-baseline.json`, không cho tăng.
+      # Bật 2026-09-19 sau khi dọn màu xong: `nonSemanticColor` (purple/teal…) = 0 toàn dự án;
+      # baseline chỉ còn ghi 80 chỗ `indigo` ở 13 file — họ màu CLAUDE.md mục 2 cho phép trong
+      # pattern ramp "6 họ × 2 tầng", nên đó là nợ ĐƯỢC THỪA NHẬN chứ không phải vi phạm đang giấu.
+      # Thêm `indigo` mới hay bất kỳ màu ngoài palette nào là đỏ ở đây.
+      - name: Ratchet quy chuẩn thiết kế
+        # --check-only (audit A37): trên CI chỉ kiểm, không tự ghi/tự tạo baseline.
+        run: npm run lint:ratchet:ci
+
+      # Audit A37: Cloud Functions là project TypeScript riêng — `npm run check` ở gốc KHÔNG typecheck
+      # nó, nên lỗi kiểu trong functions/ trước đây chỉ lộ ra lúc deploy.
+      - name: Typecheck Cloud Functions
+        run: npm run typecheck:functions
+
+  # ───────────────────────────────────────────────────────────────────────────────────────────
+  # Firestore Rules chạy trên emulator thật (audit GĐ6, 2026-10-08). `firestore.rules` là lớp bảo vệ
+  # cuối cùng của dữ liệu siêu thị (khoData, biData, line_bots, stickerUsers, stores…) — trước đây
+  # 71 test của nó chỉ chạy khi có người nhớ gõ `npm run test:rules`. `--project demo-rules`: tiền tố
+  # demo- cho emulator chạy không cần đăng nhập Firebase, không chạm project thật.
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Cài dependency
+        run: npm ci
+      - name: Firestore Rules (emulator)
+        run: npx firebase emulators:exec --project demo-rules --only firestore "node tests/firestore.rules.test.mjs"
+
+  # ───────────────────────────────────────────────────────────────────────────────────────────
+  # Test E2E (Playwright). Tách JOB RIÊNG, chạy song song với `check`, để khi đỏ thì biết ngay
+  # hỏng ở tầng nào mà không phải đọc log chung.
+  #
+  # VÌ SAO CẦN: ngày 2026-09-18 phát hiện `tests/e2e/helpers/seed.ts` dùng selector đã lỗi thời nên
+  # dán dữ liệu vào hư không MÀ KHÔNG BÁO LỖI — `bi-competition.spec.ts` (4 test) và
+  # `xss-header-sanitization.spec.ts` cùng hỏng, mỗi test treo 60 giây. Test chống XSS không hề
+  # kiểm gì suốt thời gian đó. Không có CI chạy E2E thì lớp lỗi này nằm im vô thời hạn.
+  #
+  # ⚠️ MỖI SPEC MỘT BƯỚC RIÊNG (đổi 2026-09-18). Trước đây cả 7 spec chạy trong 1 bước; job đỏ 2
+  # lượt liên tiếp mà KHÔNG đọc được log (GitHub bắt buộc xác thực để tải log Actions, kể cả repo
+  # công khai) nên không biết spec nào hỏng. Tách bước ra thì trang tóm tắt lượt chạy tự chỉ mặt
+  # spec đỏ bằng TÊN BƯỚC, không cần mở log. `if: always()` để một spec đỏ không chặn 6 spec còn
+  # lại — một lượt chạy cho ra đủ bức tranh thay vì phải sửa-đẩy-chờ từng cái một.
+  # ───────────────────────────────────────────────────────────────────────────────────────────
+  e2e:
+    runs-on: ubuntu-latest
+    # 30 → 40 (2026-10-22): thêm 9 bài (~4 phút) — job ~19 → ~23 phút, chừa dư cho runner chậm.
+    timeout-minutes: 40
+
+    env:
+      # Trỏ Playwright vào server tự dựng ở bước dưới → `playwright.config.ts` bỏ qua khối
+      # `webServer`, nhờ vậy 7 bước dùng CHUNG 1 server thay vì khởi động lại Vite 7 lần.
+      E2E_BASE_URL: http://127.0.0.1:5173
+      # `vite.config.ts` đặt `server.open: true` (tiện ở máy dev). Runner Linux không có trình
+      # duyệt lẫn `xdg-open` — biến này bảo Vite đừng cố mở.
+      BROWSER: none
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Cài dependency
+        run: npm ci
+
+      - name: Cài trình duyệt Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Khởi động dev server
+        id: server
+        run: |
+          npm run dev > "$RUNNER_TEMP/dev-server.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5173 > /dev/null; then
+              echo "dev server sẵn sàng sau khoảng $((i * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::dev server KHÔNG lên sau 120s"
+          cat "$RUNNER_TEMP/dev-server.log"
+          exit 1
+
+      # CỐ Ý liệt kê tường minh, KHÔNG chạy cả thư mục. Tiêu chí: chỉ những spec chạy được bằng
+      # Chế độ Dùng Thử + dữ liệu giả, không cần đăng nhập thật hay hồ sơ dữ liệu thật.
+      # Đã đo ngày 2026-09-18 ở máy dev (kể cả bản clone sạch, `CI=true`): 22 test, 2,7 phút, XANH.
+      #
+      # KHÔNG đưa vào (và lý do):
+      #   real-data*.spec.ts, table-rules, ui-baseline  → cần hồ sơ dữ liệu THẬT (tự `test.skip`
+      #                                                   trên CI nhưng chạy vô ích ở máy dev)
+      #   csp-sweep, system-traffic-stats,              → cần mạng/Firebase thật
+      #   pending-approvals-poll-rate,                  → chạy 2,5 phút chỉ để đếm nhịp
+      #   sticker-firestore-write-rate                  → cần đăng nhập In Sticker thật
+      #   perf-audit                                    → đo hiệu năng, số liệu phụ thuộc máy
+      #
+      # Thêm spec mới thì thêm 1 BƯỚC ở đây (đừng gộp vào bước sẵn có — gộp là mất khả năng chỉ
+      # mặt spec đỏ bằng tên bước). `--output` riêng cho từng spec vì Playwright DỌN SẠCH thư mục
+      # output ở đầu mỗi lượt chạy: để chung thì ảnh chụp/trace của spec đỏ bị lượt sau xoá mất.
+      - name: 'E2E: smoke'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/smoke.spec.ts --output=test-results/smoke
+
+      # (2026-10-12) Bỏ bước pivot-table: chủ dự án gỡ hẳn bảng phân tích động (PivotTable) cùng spec ở d1b4294 — bước
+      # còn trỏ vào file đã xoá nên Playwright báo "No tests found" và làm đỏ cả job e2e.
+
+      - name: 'E2E: phan-tich-performance-modal'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/phan-tich-performance-modal.spec.ts --output=test-results/phan-tich-performance-modal
+
+      - name: 'E2E: iframe-tabs-csp'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/iframe-tabs-csp.spec.ts --output=test-results/iframe-tabs-csp
+
+      - name: 'E2E: check-thuong-top-feature'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/check-thuong-top-feature.spec.ts --output=test-results/check-thuong-top-feature
+
+      - name: 'E2E: bi-competition'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-competition.spec.ts --output=test-results/bi-competition
+
+      # Thêm 2026-09-30: ảnh QR (qr.sepay.vn) nay do test tự phục vụ → không phụ thuộc mạng ngoài.
+      - name: 'E2E: tax-qr-and-export'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/tax-qr-and-export.spec.ts --output=test-results/tax-qr-and-export
+
+      - name: 'E2E: bi-sync-realtime-ngay'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-sync-realtime-ngay.spec.ts --output=test-results/bi-sync-realtime-ngay
+
+      - name: 'E2E: bi-auto-sync-modal-tien-trinh'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-auto-sync-modal-tien-trinh.spec.ts --output=test-results/bi-auto-sync-modal-tien-trinh
+
+      - name: 'E2E: bi-sync-kiem-phien-ban'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-sync-kiem-phien-ban.spec.ts --output=test-results/bi-sync-kiem-phien-ban
+
+      - name: 'E2E: bi-auto-sync-xong-dong-modal'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-auto-sync-xong-dong-modal.spec.ts --output=test-results/bi-auto-sync-xong-dong-modal
+
+      - name: 'E2E: bi-sync-cap-nhat-xong-tu-chay-tiep'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-sync-cap-nhat-xong-tu-chay-tiep.spec.ts --output=test-results/bi-sync-cap-nhat-xong-tu-chay-tiep
+
+      - name: 'E2E: bi-sync-luy-ke'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-sync-luy-ke.spec.ts tests/e2e/bi-auto-luy-ke-dashboard.spec.ts --output=test-results/bi-sync-luy-ke
+
+      - name: 'E2E: bi-sync-chi-tab-lam-viec'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-sync-chi-tab-lam-viec.spec.ts --output=test-results/bi-sync-chi-tab-lam-viec
+
+      - name: 'E2E: bi-sync-khong-phat-lai-ket-qua-cu'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-sync-khong-phat-lai-ket-qua-cu.spec.ts --output=test-results/bi-sync-khong-phat-lai-ket-qua-cu
+
+      - name: 'E2E: xuat-anh-chung'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/xuat-anh-chung.spec.ts --output=test-results/xuat-anh-chung
+
+      - name: 'E2E: ycx-tu-dong-report-mwg'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/ycx-tu-dong-report-mwg.spec.ts --output=test-results/ycx-tu-dong-report-mwg
+
+      - name: 'E2E: ycx-tu-dong-phan-tich'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/ycx-tu-dong-phan-tich.spec.ts --output=test-results/ycx-tu-dong-phan-tich
+
+      - name: 'E2E: line-gui-anh-va-hen-gio'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/line-gui-anh-va-hen-gio.spec.ts --output=test-results/line-gui-anh-va-hen-gio
+
+      - name: 'E2E: hen-gio-bi-va-bo-lo'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/hen-gio-bi-va-bo-lo.spec.ts --output=test-results/hen-gio-bi-va-bo-lo
+
+      - name: 'E2E: bi-chuyen-che-do-khong-sap'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-chuyen-che-do-khong-sap.spec.ts --output=test-results/bi-chuyen-che-do-khong-sap
+
+      - name: 'E2E: xss-header-sanitization'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/xss-header-sanitization.spec.ts --output=test-results/xss-header-sanitization
+      # Giao diện chuẩn Apple (KE_HOACH_GIAO_DIEN_APPLE.md GĐ9, 2026-10-13): lưới an toàn của các giai đoạn GĐ0–GĐ8. Quét khung app 6 cỡ
+      # màn (không tràn ngang, không đè nhau, vùng chạm ≥ 44px, chữ ≥ 11px — DA_BIET nay trống: vi phạm MỚI là đỏ), toast một hệ,
+      # thanh trên/thanh tab, component lớp Apple, các màn mini-app đã làm lại, công tắc dùng chung.
+      - name: 'E2E: apple-tuong-thich'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/apple-tuong-thich.spec.ts --output=test-results/apple-tuong-thich
+      - name: 'E2E: toast-thong-nhat'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/toast-thong-nhat.spec.ts --output=test-results/toast-thong-nhat
+      - name: 'E2E: khung-app-gd4'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/khung-app-gd4.spec.ts --output=test-results/khung-app-gd4
+      - name: 'E2E: lop-apple-gd3'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/lop-apple-gd3.spec.ts --output=test-results/lop-apple-gd3
+      - name: 'E2E: gd7-mini-app'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/gd7-mini-app.spec.ts --output=test-results/gd7-mini-app
+      - name: 'E2E: gd8-cong-tac-chung'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/gd8-cong-tac-chung.spec.ts --output=test-results/gd8-cong-tac-chung
+      # Userscript "⚡ Copy All" trên trang BI (2026-10-14): spec này KHÔNG nằm trong CI nên bản 7.24 lỡ xoá `let acpRunning`
+      # (nút nổi đứng im) mà 4 ngày không ai thấy. Nạp NGUYÊN userscript thật trên trang BI giả (page.route) — không cần dev server.
+      - name: 'E2E: click-plus-auto-toggle'
+        if: ${{ !cancelled() }}
+        run: npx playwright test tests/e2e/click-plus-auto-toggle.spec.ts --output=test-results/click-plus-auto-toggle
+      # lazyWithRetry.preload() (2026-10-14): tab đã tải trước phải vẽ ngay, không vòng quay Suspense + màn chờ 300 ms của React.
+      - name: 'E2E: lazy-tai-truoc'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/lazy-tai-truoc.spec.ts --output=test-results/lazy-tai-truoc
+      # 2026-10-15: ô ngành modal chưa xuất/chưa thu có màu (class tường minh) + Dùng thử không gọi bộ đếm lượt truy cập (permission-denied).
+      - name: 'E2E: mau-nganh-modal + dem-luot-truy-cap'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/mau-nganh-modal.spec.ts tests/e2e/dem-luot-truy-cap.spec.ts --output=test-results/mau-nganh-dem-luot
+      # GĐ10 bước 1 (2026-10-15): 3 bài đo chuẩn thiết kế (~1 phút/bài) trước đây KHÔNG nằm trong CI — kiểm toàn dự án 15/10 chạy tay
+      # thì icon-audit-bi đã đỏ từ 14/10 (thanh capsule mới) mà không ai biết. Bài icon trong modal (~12 phút/bài) chạy hằng đêm ở
+      # .github/workflows/design-audit.yml.
+      - name: 'E2E: chuan-thiet-ke-b'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/chuan-thiet-ke-b.spec.ts --output=test-results/chuan-thiet-ke-b
+      - name: 'E2E: icon-audit-man-goc'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/icon-audit-man-goc.spec.ts --output=test-results/icon-audit-man-goc
+      - name: 'E2E: icon-audit-bi'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/icon-audit-bi.spec.ts --output=test-results/icon-audit-bi
+      # Không hộp thoại của trình duyệt (6 window.confirm → ConfirmDialog) + Bot LINE "Coupon đã lọc" là bảng trên điện thoại.
+      - name: 'E2E: gd10-xac-nhan-va-bang'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/gd10-xac-nhan-va-bang.spec.ts --output=test-results/gd10-xac-nhan-va-bang
+
+      # (2026-10-22) Khoá 29 lỗi từ 2 video iPhone gốc (KE_HOACH_GIAO_DIEN_APPLE.md mục 1) — trước đây nằm ngoài CI, không chạy lại sau
+      # GĐ10 (đo 22/10: 21/21 xanh, 2,8 phút) — + bài mở lạnh Phân tích + 3 bài từng cũ đi ngoài CI mà không ai biết.
+      - name: 'E2E: phan-tich-gd5'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/phan-tich-gd5.spec.ts --output=test-results/phan-tich-gd5
+
+      - name: 'E2E: phan-tich-gd5b'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/phan-tich-gd5b.spec.ts --output=test-results/phan-tich-gd5b
+
+      - name: 'E2E: report-bi-gd6'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/report-bi-gd6.spec.ts --output=test-results/report-bi-gd6
+
+      - name: 'E2E: bi-mobile-iphone'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-mobile-iphone.spec.ts --output=test-results/bi-mobile-iphone
+
+      - name: 'E2E: mobile-settings-compact'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/mobile-settings-compact.spec.ts --output=test-results/mobile-settings-compact
+
+      - name: 'E2E: phan-tich-mo-lanh-khong-cho-cau-hinh'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/phan-tich-mo-lanh-khong-cho-cau-hinh.spec.ts --output=test-results/phan-tich-mo-lanh-khong-cho-cau-hinh
+
+      - name: 'E2E: analysis-only-all-in-one'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/analysis-only-all-in-one.spec.ts --output=test-results/analysis-only-all-in-one
+
+      - name: 'E2E: bi-competition-bonus-col'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-competition-bonus-col.spec.ts --output=test-results/bi-competition-bonus-col
+
+      - name: 'E2E: bi-nhan-vien-theo-sieu-thi'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/bi-nhan-vien-theo-sieu-thi.spec.ts --output=test-results/bi-nhan-vien-theo-sieu-thi
+
+      # Đỏ thì phải xem được ảnh chụp + trace, nếu không thì chỉ có dòng lỗi trần, rất khó lần.
+      # Kèm cả log dev server: nếu Vite chết giữa chừng thì mọi spec sau đó đỏ vì lý do CHUNG, và
+      # chỉ log này nói ra điều đó.
+      - name: Gom log dev server
+        if: failure()
+        run: cp "$RUNNER_TEMP/dev-server.log" test-results/dev-server.log || true
+
+      - name: Lưu báo cáo khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
+
+  # ───────────────────────────────────────────────────────────────────────────────────────────
+  # Audit A36 (2026-09-30): chạy các spec liên quan điện thoại trên ENGINE WEBKIT (engine của Safari).
+  # Trước đây mọi test "iPhone" chỉ là Chromium đổi UA/viewport. Vẫn KHÔNG thay được iPhone thật
+  # (share sheet, camera, đăng nhập Google), nhưng bắt được lỗi riêng của WebKit: IndexedDB trong
+  # Worker, module worker, transfer ArrayBuffer, CSS/touch.
+  # Lượt đầu (run 156) đỏ 1 spec do test dùng `new Touch()` (WebKit không cho) — đã sửa test;
+  # run 158 xanh 9/9 → bỏ `continue-on-error`, WebKit đỏ là chặn như các job khác.
+  # ───────────────────────────────────────────────────────────────────────────────────────────
+  e2e-webkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: http://127.0.0.1:5173
+      E2E_WEBKIT: '1'
+      BROWSER: none
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Cài dependency
+        run: npm ci
+      - name: Cài trình duyệt WebKit
+        run: npx playwright install --with-deps webkit
+      - name: Khởi động dev server
+        id: server
+        run: |
+          npm run dev > "$RUNNER_TEMP/dev-server.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5173 > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::dev server KHÔNG lên sau 120s"; cat "$RUNNER_TEMP/dev-server.log"; exit 1
+      - name: 'WebKit: smoke'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/smoke.spec.ts --project=webkit --output=test-results/wk-smoke
+      - name: 'WebKit: lưu dữ liệu ngoài luồng chính (Worker + IndexedDB)'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/luu-du-lieu-ngoai-luong-chinh.spec.ts --project=webkit --output=test-results/wk-luu
+      - name: 'WebKit: xuất hàng loạt điện thoại chia sẻ một lần'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/xuat-hang-loat-dien-thoai-chia-se-mot-lan.spec.ts --project=webkit --output=test-results/wk-chia-se
+      - name: 'WebKit: giao ảnh dùng chung'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/xuat-anh-giao-anh-chung.spec.ts --project=webkit --output=test-results/wk-giao-anh
+      - name: 'WebKit: modal ngăn xếp'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/modal-ngan-xep.spec.ts --project=webkit --output=test-results/wk-modal
+      - name: 'WebKit: kéo tải lại trang'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/keo-tai-lai-trang.spec.ts --project=webkit --output=test-results/wk-keo
+      - name: 'WebKit: nhấn giữ xem chú thích'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/nhan-giu-xem-chu-thich.spec.ts --project=webkit --output=test-results/wk-nhan-giu
+      - name: 'WebKit: ô nhập (A17)'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/o-nhap-a17.spec.ts --project=webkit --output=test-results/wk-o-nhap
+      - name: 'WebKit: So giá điện thoại'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/so-gia-dien-thoai-va-huy.spec.ts --project=webkit --output=test-results/wk-so-gia
+      # Audit GĐ5 (2026-10-08): 2 lỗi chỉ lộ trên điện thoại — in tem PDF (html2canvas + CSP blob:) và menu
+      # "Khác" khi xoay ngang. Chạy cả trên engine của Safari.
+      - name: 'WebKit: in tem PDF trên điện thoại'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/sticker-pdf-dien-thoai.spec.ts --project=webkit --output=test-results/wk-pdf
+      - name: 'WebKit: menu Khác xoay ngang'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/menu-khac-xoay-ngang.spec.ts --project=webkit --output=test-results/wk-menu-khac
+      # GĐ9 giao diện chuẩn Apple (2026-10-13): quét khung app 6 cỡ màn + toast một hệ trên CHÍNH engine của Safari — container của
+      # agent chỉ có Chromium giả lập iPhone; `:has()`, vật liệu mờ, safe-area… phải kiểm ở WebKit thật. Lượt quan sát đầu (run 356)
+      # xanh: 0 vi phạm cả cảm ứng lẫn laptop, toast 4/4 → đã bỏ continue-on-error, nay đỏ là chặn.
+      - name: 'WebKit: apple-tuong-thich'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/apple-tuong-thich.spec.ts --project=webkit --output=test-results/wk-apple-tuong-thich
+      - name: 'WebKit: toast-thong-nhat'
+        if: ${{ !cancelled() && steps.server.outcome == 'success' }}
+        run: npx playwright test tests/e2e/toast-thong-nhat.spec.ts --project=webkit --output=test-results/wk-toast-thong-nhat
+      - name: Lưu báo cáo khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-webkit
+          path: test-results/
+          retention-days: 7

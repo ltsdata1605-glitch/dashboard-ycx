@@ -1,0 +1,849 @@
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { toast } from '../shared/ui/toast';
+import { useDashboardLogic } from '../../hooks/useDashboardLogic';
+import type { VisibilityState } from '../../types';
+import { DashboardContext } from '../../contexts/DashboardContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useSync } from '../../contexts/SyncContext';
+import { usePendingApprovalCount } from '../../hooks/usePendingApprovalCount';
+import { getSetting, saveSetting } from '../../services/dbService';
+import { listenSystemAnnouncement, isAnnouncementExpired } from '../../services/systemAnnouncementService';
+
+import Header from '../layout/Header';
+import LandingPageView from './LandingPageView';
+import StatusDisplay from '../upload/StatusDisplay';
+import FilterSection from '../filters/FilterSection';
+import FilterBar from '../filters/FilterBar';
+import KpiCards from '../kpis/KpiCards';
+
+// Các section nặng (biểu đồ dùng recharts, bảng lớn) — lazy theo từng section
+// (KE_HOACH_TONG_THE.md mục 3.2/Đợt 3) để KpiCards vẽ xong trước, không phải đợi
+// parse xong toàn bộ vendor-charts + các bảng lớn cùng lúc khi mở tab Phân Tích.
+// KpiCards giữ static import vì là nội dung "above the fold" đầu tiên, không dùng recharts.
+import WarehouseSummary from '../summary/WarehouseSummary';
+const TrendChart = React.lazy(() => import('../charts/TrendChart'));
+const IndustryGrid = React.lazy(() => import('../charts/IndustryGrid'));
+const EmployeeAnalysis = React.lazy(() => import('../employees/EmployeeAnalysis'));
+const SummaryTable = React.lazy(() => import('../tables/SummaryTable'));
+
+// Modal/overlay hiếm khi mở — lazy để không kéo vào chunk chính của DashboardView
+// (sau khi tách các section ở trên + các modal này, chunk DashboardView còn ~60kB gzip,
+// giảm từ ~291kB gzip lúc còn static-import tất cả — đo bằng `npm run build`, 2026-09-08).
+const UnshippedOrdersModal = React.lazy(() => import('../modals/UnshippedOrdersModal'));
+const UncollectedOrdersModal = React.lazy(() => import('../modals/UncollectedOrdersModal'));
+const UnconfiguredGroupsModal = React.lazy(() => import('../modals/UnconfiguredGroupsModal'));
+const PerformanceModal = React.lazy(() => import('../modals/PerformanceModal'));
+const ChangelogModal = React.lazy(() => import('../modals/ChangelogModal'));
+const FileHistoryModal = React.lazy(() => import('../modals/FileHistoryModal'));
+const FileNamingModal = React.lazy(() => import('../modals/FileNamingModal'));
+const UploadConflictModal = React.lazy(() => import('../modals/UploadConflictModal'));
+const UploadTypeSelectionModal = React.lazy(() => import('../modals/UploadTypeSelectionModal'));
+const KpiCardConfigModal = React.lazy(() => import('../kpis/modals/KpiCardConfigModal'));
+const ExportOptionsModal = React.lazy(() => import('../shared/export/ExportOptionsModal'));
+const ShiftWarehouseInputModal = React.lazy(() => import('../modals/ShiftWarehouseInputModal'));
+import { registerYcxAutoExportRunner, triggerYcxAutoReportExport } from '../../services/autoReportExportService';
+import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { hasTempRealtimeData } from '../../services/dbService';
+
+import ProcessingLoader from '../common/ProcessingLoader';
+import { BusyBar } from '../shared/ui/BusyBar';
+import ExportLoader from '../common/ExportLoader';
+import { SectionHeader } from '../shared/ui/SectionHeader';
+import { SectionCard } from '../shared/ui/SectionCard';
+import { Button } from '../shared/ui/Button';
+import { Banner } from '../shared/ui/Banner';
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog';
+import { getExportFilenamePrefix, formatCurrency, getRowValue } from '../../utils/dataUtils';
+import { COL } from '../../constants';
+import { KpiCardsSkeleton, ChartSkeleton, TableSkeleton, TabbedTableSkeleton } from '../common/SkeletonLoader';
+import { DebugPanel } from '../common/DebugPanel';
+import type { DebugInfo } from '../common/DebugPanel';
+import { canShareFiles } from '../../services/uiService';
+import { Overlay } from '../shared/ui/Overlay';
+
+const defaultVisibilityState: VisibilityState = {
+    trendChart: true,
+    industryGrid: true,
+    employeeAnalysis: true,
+    summaryTable: true,
+};
+
+const debugInitialData = {
+    Header: { name: "Khu vực Header (Header.tsx)", description: "...", design: "..." },
+    FilterSection: { name: "Slide Menu Bộ lọc (FilterSection.tsx)", description: "...", design: "..." },
+    WarehouseSummary: { name: "Bảng tóm tắt theo kho (WarehouseSummary.tsx)", description: "...", design: "..." },
+    KpiCards: { name: "Các thẻ chỉ số KPI (KpiCards.tsx)", description: "...", design: "..." },
+    TrendChart: { name: "Biểu đồ Xu hướng Doanh thu (TrendChart.tsx)", description: "...", design: "..." },
+    IndustryGrid: { name: "Lưới/Biểu đồ Tỷ trọng Ngành hàng (IndustryGrid.tsx)", description: "...", design: "..." },
+    EmployeeAnalysis: { name: "Phân tích Hiệu suất Nhân viên (EmployeeAnalysis.tsx)", description: "...", design: "..." },
+    SummaryTable: { name: "Bảng Chi tiết Ngành hàng (SummaryTable.tsx)", description: "...", design: "..." },
+};
+
+const DashboardView = React.memo(function DashboardView({ isActive }: { isActive?: boolean }) {
+    const logic = useDashboardLogic();
+    const {
+        status, appState, isProcessing, isFilterProcessing, isClearingDepartments, isExporting, fileInfo,
+        departmentMap, processedData,
+        uniqueFilterOptions,
+        activeModal, setActiveModal, modalData,
+        handleClearDepartments, handleClearData, handleClearAllData, handleShiftFileProcessing, handleFileProcessing,
+        openUnshippedModal, handleExport, handleExportUncollectedSheet,
+        filterState,
+        processingTime,
+        handleFilterChange,
+        baseFilteredData,
+        originalData,
+        pendingCloudSync, setPendingCloudSync, handleAcceptCloudSync,
+        hasRealtimeData, handleClearRealtimeData,
+        pendingNaming, setPendingNaming,
+        pendingConflict, setPendingConflict,
+        unconfiguredGroups,
+        ignoredUnconfiguredGroups,
+        handleIgnoreGroup,
+        handleRestoreGroup
+    } = logic;
+    const { user, userRole, departmentId } = useAuth();
+    const { forceSync } = useSync();
+    const pendingRequestsCount = usePendingApprovalCount();
+
+    const [visibleComponents, setVisibleComponents] = useState<VisibilityState>(defaultVisibilityState);
+    const [isVisibleComponentsLoaded, setIsVisibleComponentsLoaded] = useState(false);
+    const [isFileHistoryModalOpen, setIsFileHistoryModalOpen] = useState(false);
+    const [pendingUploadFiles, setPendingUploadFiles] = useState<File[] | null>(null);
+    const [pendingShiftFiles, setPendingShiftFiles] = useState<File[] | null>(null);
+    const [isUnconfiguredModalOpen, setIsUnconfiguredModalOpen] = useState(false);
+    const [announcement, setAnnouncement] = useState<{ content: string; active: boolean } | null>(null);
+
+    const defaultWarehouseCode = useMemo(() => {
+        if (logic.filterState.kho && logic.filterState.kho.length > 0) {
+            const match = logic.filterState.kho[0].match(/\d+/);
+            if (match) return match[0];
+        }
+        return '';
+    }, [logic.filterState.kho]);
+
+    useEffect(() => {
+        // 1 lượt đọc thay vì 100 (services/systemAnnouncementService.ts — tự quay về cách cũ nếu thiếu chỉ mục)
+        return listenSystemAnnouncement(
+            (found) => setAnnouncement(found as { content: string; active: boolean } | null),
+            (error) => console.error("Lỗi khi lắng nghe thông báo hệ thống:", error),
+        );
+    }, []);
+
+    useEffect(() => {
+        getSetting<VisibilityState>('dashboard_visibleComponents').then(saved => {
+            if (saved) setVisibleComponents(saved);
+            setIsVisibleComponentsLoaded(true);
+        }).catch(() => setIsVisibleComponentsLoaded(true));
+    }, []);
+
+    const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+    const [isDebugPanelVisible, setIsDebugPanelVisible] = useState(false);
+    const [isInspectorActive, setIsInspectorActive] = useState(false);
+    const [isKpiConfigModalOpen, setIsKpiConfigModalOpen] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
+
+    const dashboardContainerRef = useRef<HTMLDivElement>(null);
+    const businessOverviewRef = useRef<HTMLDivElement>(null);
+    const kpiCardsOnlyRef = useRef<HTMLDivElement>(null);
+    const mainFileInputRef = useRef<HTMLInputElement>(null);
+    const shiftFileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleNewFileClick = () => mainFileInputRef.current?.click();
+
+    // Report BI (features/bi-dashboard) không được import hook/service của gốc (CLAUDE.md mục 1)
+    // nên nút "Nhập nhân viên (File YCX)" bên đó chỉ phát sự kiện; phần mở hộp chọn file nằm ở đây.
+    // View này được giữ mount (App.tsx persistentViews) nên input file luôn có sẵn trong DOM.
+    useEffect(() => {
+        const onRequestUpload = () => mainFileInputRef.current?.click();
+        window.addEventListener('ycx-request-upload-ycx', onRequestUpload);
+        // Lần đầu mở app ở tab khác: App.tsx chuyển sang Phân Tích và để lại cờ; view vừa mount
+        // thì tự mở hộp chọn file (trình duyệt có thể chặn vì đã qua 1 nhịp render — khi đó người
+        // dùng vẫn đang đứng ở màn Phân Tích, bấm "File YCX" là xong).
+        let pending = false;
+        try {
+            pending = sessionStorage.getItem('ycx-pending-upload-ycx') === '1';
+            if (pending) sessionStorage.removeItem('ycx-pending-upload-ycx');
+        } catch { /* Private Mode */ }
+        if (pending) setTimeout(() => mainFileInputRef.current?.click(), 300);
+        return () => window.removeEventListener('ycx-request-upload-ycx', onRequestUpload);
+    }, []);
+
+    // Mốc nạp YCX Realtime từ Auto Sync — đợi dữ liệu hiện xong thì tự gửi ảnh LINE (null = không chờ)
+    const choGuiLineRef = useRef<number | null>(null);
+    // Lắng nghe file YCX từ GlobalAutoSyncDock (chức năng Tự động YCX Realtime)
+    useEffect(() => {
+        // mode 'luyke' (YCX Luỹ kế) → nạp như "Lũy kế / Quá khứ" (isHistorical); còn lại → "Tệp Realtime"
+        const pendingFile = (window as any).__pendingYcxAutoSyncFile;
+        if (pendingFile) {
+            const laLuyKe = (window as any).__pendingYcxAutoSyncMode === 'luyke';
+            const autoFilename = (window as any).__pendingYcxAutoFilename;
+            const autoResolveConflict = (window as any).__pendingYcxAutoResolveConflict || 'overwrite_deactivate';
+            delete (window as any).__pendingYcxAutoSyncFile;
+            delete (window as any).__pendingYcxAutoSyncMode;
+            delete (window as any).__pendingYcxAutoFilename;
+            delete (window as any).__pendingYcxAutoResolveConflict;
+            handleFileProcessing([pendingFile], false, laLuyKe, { 
+                autoFilename, 
+                autoResolveConflict, 
+                isAuto: true 
+            });
+        }
+
+        const handleAutoSyncFile = (e: any) => {
+            const file = e.detail?.file;
+            if (file) {
+                const autoFilename = e.detail?.autoFilename || (window as any).__pendingYcxAutoFilename;
+                const autoResolveConflict = e.detail?.autoResolveConflict || (window as any).__pendingYcxAutoResolveConflict || 'overwrite_deactivate';
+                delete (window as any).__pendingYcxAutoSyncFile;
+                delete (window as any).__pendingYcxAutoSyncMode;
+                delete (window as any).__pendingYcxAutoFilename;
+                delete (window as any).__pendingYcxAutoResolveConflict;
+                    handleFileProcessing([file], false, e.detail?.mode === 'luyke', { 
+                    autoFilename, 
+                    autoResolveConflict, 
+                    isAuto: true 
+                });
+            }
+        };
+        window.addEventListener('ycx-auto-sync-file', handleAutoSyncFile);
+        return () => window.removeEventListener('ycx-auto-sync-file', handleAutoSyncFile);
+    }, [handleFileProcessing]);
+
+    const handleShiftFileClick = () => shiftFileInputRef.current?.click();
+
+    const hasSalesData = !!(logic.hasRealtimeData || (logic.fileRegistry && logic.fileRegistry.some(f => f.isActive)));
+
+    // Xoá dữ liệu YCX — GĐ10 (2026-10-15): trước đây 2 hộp `window.confirm` NỐI NHAU ("Huỷ" ở hộp 1 lại dẫn sang câu hỏi xoá TOÀN BỘ —
+    // dễ bấm nhầm), còn 2 nhánh kia xoá NGAY không hỏi: chỉ có tệp lũy kế → một chạm là xoá mọi tệp trên máy, bản trên cloud và (quản
+    // lý) tệp dùng chung của Kho. Nay mọi nhánh qua MỘT ConfirmDialog; có cả hai loại dữ liệu thì một hộp 3 lựa chọn.
+    // `mo` tách khỏi `loai`: đóng hộp chỉ tắt `mo`, nội dung giữ nguyên trong ~200 ms modal mờ dần (không nháy sang câu hỏi khác).
+    const [hoiXoaYcx, setHoiXoaYcx] = useState<{ mo: boolean; loai: 'chon' | 'realtime' | 'tat-ca' }>({ mo: false, loai: 'tat-ca' });
+    const dongHoiXoaYcx = () => setHoiXoaYcx(h => ({ ...h, mo: false }));
+    const handleSalesDataClear = () => setHoiXoaYcx({
+        mo: true,
+        loai: logic.hasRealtimeData && logic.fileRegistry && logic.fileRegistry.some(f => f.isActive) ? 'chon'
+            : logic.hasRealtimeData ? 'realtime' : 'tat-ca',
+    });
+    const phamViXoaTatCa = `mọi tệp báo cáo tích lũy trên máy này và bản trên cloud${userRole === 'manager' ? ', kể cả tệp dùng chung của Kho' : ''}`;
+
+    const salesClearTitle = logic.hasRealtimeData && logic.fileRegistry && logic.fileRegistry.some(f => f.isActive)
+        ? "Xóa dữ liệu YCX (Realtime hoặc Lũy kế)"
+        : logic.hasRealtimeData
+            ? "Xóa dữ liệu YCX Realtime"
+            : "Xóa tất cả dữ liệu báo cáo tích lũy";
+
+    const overdueUnshippedOrders = useMemo(() => {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        return processedData?.unshippedOrders?.filter(row => {
+            let scheduledDateRaw = getRowValue(row, COL.NGAY_HEN_GIAO);
+            if (!scheduledDateRaw) return false;
+            let scheduledDate: Date | null = null;
+            if (scheduledDateRaw instanceof Date) {
+                scheduledDate = scheduledDateRaw;
+            } else {
+                const str = String(scheduledDateRaw).trim();
+                // Fallback check for DD/MM/YYYY
+                if (str.includes('/')) {
+                    const parts = str.split(/[ /:-]/);
+                    if (parts.length >= 3) {
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const year = parseInt(parts[2], 10);
+                        if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+                            scheduledDate = new Date(year, month, day);
+                        }
+                    }
+                }
+                if (!scheduledDate || isNaN(scheduledDate.getTime())) {
+                    scheduledDate = new Date(str);
+                }
+            }
+
+            if (scheduledDate && !isNaN(scheduledDate.getTime())) {
+                const schedTime = new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), scheduledDate.getDate()).getTime();
+                return todayStart > schedTime;
+            }
+            return false;
+        }) || [];
+    }, [processedData?.unshippedOrders]);
+
+    const handleVisibilityChange = (component: keyof VisibilityState, isVisible: boolean) => {
+        setVisibleComponents(prev => {
+            const newState = { ...prev, [component]: isVisible };
+            saveSetting('dashboard_visibleComponents', newState);
+            return newState;
+        });
+    };
+
+    // tuDong: lượt tự gửi LINE sau Auto Sync — lỗi phải ném ra để tổng kết biết ảnh nào hỏng
+    const handleBusinessOverviewExport = async (tuDong = false) => {
+        if (businessOverviewRef.current) {
+            const prefix = getExportFilenamePrefix(filterState.kho);
+            await handleExport(businessOverviewRef.current, `${prefix} - Toàn Bộ Bản Tin.png`, {
+                captureAsDisplayed: true, throwOnLineError: tuDong,
+            });
+        } else if (tuDong) throw new Error('Khối "Toàn bộ bản tin" chưa hiển thị');
+    };
+
+    const handleKpiCardsOnlyExport = async (tuDong = false) => {
+        if (kpiCardsOnlyRef.current) {
+            const prefix = getExportFilenamePrefix(filterState.kho);
+            await handleExport(kpiCardsOnlyRef.current, `${prefix} - Tổng Quan Doanh Thu.png`, {
+                captureAsDisplayed: true, throwOnLineError: tuDong,
+            });
+        } else if (tuDong) throw new Error('Khối "Tổng quan doanh thu" chưa hiển thị');
+    };
+
+    useEffect(() => {
+        const unregister1 = registerYcxAutoExportRunner('Tổng Quan Doanh Thu', async () => {
+            if (!kpiCardsOnlyRef.current) return null;
+            const prefix = getExportFilenamePrefix(filterState.kho);
+            const res = await handleExport(kpiCardsOnlyRef.current, `${prefix} - Tổng Quan Doanh Thu.png`, {
+                captureAsDisplayed: true,
+                mode: 'blob-only',
+            });
+            return (res instanceof Blob) ? res : null;
+        });
+
+        const unregister2 = registerYcxAutoExportRunner('Toàn Bộ Bản Tin', async () => {
+            if (!businessOverviewRef.current) return null;
+            const prefix = getExportFilenamePrefix(filterState.kho);
+            const res = await handleExport(businessOverviewRef.current, `${prefix} - Toàn Bộ Bản Tin.png`, {
+                captureAsDisplayed: true,
+                mode: 'blob-only',
+            });
+            return (res instanceof Blob) ? res : null;
+        });
+
+        return () => {
+            unregister1();
+            unregister2();
+        };
+    }, [handleExport, filterState.kho]);
+
+    // Tự động xuất ảnh báo cáo cho Bot LINE khi nạp dữ liệu thành công (Realtime hoặc Luỹ kế)
+    useEffect(() => {
+        const handleDataUploaded = async () => {
+            try {
+                const hasRt = await hasTempRealtimeData();
+                const mode = hasRt ? 'realtime' : 'luyke';
+                const khoVal = filterState.kho;
+                const isKhoAll = !khoVal || (typeof khoVal === 'string' && khoVal === 'ALL') || (Array.isArray(khoVal) && (khoVal.length === 0 || khoVal.includes('ALL')));
+                const currentKho = !isKhoAll
+                    ? (Array.isArray(khoVal) ? khoVal[0] : khoVal)
+                    : (departmentId || undefined);
+                // Chờ 1500ms cho các bảng vẽ xong DOM hoàn chỉnh
+                setTimeout(() => {
+                    void triggerYcxAutoReportExport(mode, user, currentKho);
+                }, 1500);
+            } catch (err) {
+                console.warn('[DashboardView] Lỗi kích hoạt tự động xuất ảnh:', err);
+            }
+        };
+
+        window.addEventListener('ycx-sales-data-uploaded', handleDataUploaded);
+        return () => {
+            window.removeEventListener('ycx-sales-data-uploaded', handleDataUploaded);
+        };
+    }, [filterState.kho, user, departmentId]);
+
+    useEffect(() => {
+        document.body.classList.remove('is-capturing');
+        document.querySelectorAll('.hide-on-export').forEach((el) => {
+            (el as HTMLElement).style.visibility = '';
+            (el as HTMLElement).style.display = '';
+        });
+    }, [appState]);
+
+    useEffect(() => {
+        const handleInspectClick = (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            let target = e.target as HTMLElement | null;
+            while (target && !target.hasAttribute('data-debug-id')) {
+                target = target.parentElement;
+            }
+
+            if (target) {
+                const infoString = target.getAttribute('data-debug-info');
+                if (infoString) {
+                    try {
+                        const info = JSON.parse(infoString);
+                        setDebugInfo(info);
+                    } catch (err) {
+                        console.error("Failed to parse debug info JSON:", err);
+                        setDebugInfo({ name: "Lỗi", description: "Không thể đọc thông tin gỡ lỗi.", design: "Kiểm tra console để biết chi tiết." });
+                    }
+                }
+            } else {
+                setDebugInfo(null);
+            }
+        };
+
+        if (isInspectorActive) {
+            document.body.classList.add('inspector-active');
+            document.addEventListener('click', handleInspectClick, { capture: true });
+        } else {
+            document.body.classList.remove('inspector-active');
+        }
+
+        return () => {
+            document.body.classList.remove('inspector-active');
+            document.removeEventListener('click', handleInspectClick, { capture: true });
+        };
+    }, [isInspectorActive]);
+
+
+
+    const [localProcessingTime, setLocalProcessingTime] = useState(0);
+    useEffect(() => {
+        if (appState !== 'loading' && appState !== 'processing') {
+            setLocalProcessingTime(0);
+            return;
+        }
+        const start = Date.now();
+        const interval = setInterval(() => {
+            setLocalProcessingTime(Date.now() - start);
+        }, 100);
+        return () => clearInterval(interval);
+    }, [appState]);
+
+    // "Dữ liệu đám mây mới" — toast có nút của hệ toast chung (trước là thẻ nổi tự vẽ ở ĐÁY màn hình, đè lên thanh tab
+    // iPhone). Chỉ hiện khi đang ở tab Phân tích (như thẻ cũ); rời tab thì ẩn, quay lại vẫn còn nếu chưa xử lý.
+    const cloudSyncActionsRef = useRef({ accept: handleAcceptCloudSync, skip: () => setPendingCloudSync(null) });
+    cloudSyncActionsRef.current = { accept: handleAcceptCloudSync, skip: () => setPendingCloudSync(null) };
+    useEffect(() => {
+        const TOAST_ID = 'pending-cloud-sync';
+        if (!pendingCloudSync || isActive === false) {
+            toast.dismiss(TOAST_ID);
+            return;
+        }
+        const { totalRows, filename, savedAt } = pendingCloudSync.meta;
+        const thoiDiem = savedAt ? new Date(savedAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+        toast.action({
+            id: TOAST_ID,
+            icon: 'cloudDownload',
+            title: 'Dữ liệu đám mây mới',
+            description: `${totalRows.toLocaleString('vi-VN')} dòng · ${filename}${thoiDiem ? ` · ${thoiDiem}` : ''}`,
+            onDismiss: () => cloudSyncActionsRef.current.skip(),
+            actions: [
+                { label: 'Nạp dữ liệu', primary: true, onClick: () => cloudSyncActionsRef.current.accept() },
+                { label: 'Bỏ qua', onClick: () => cloudSyncActionsRef.current.skip() },
+            ],
+        });
+    }, [pendingCloudSync, isActive]);
+
+    if (isActive === false) {
+        return <div className="hidden" />;
+    }
+
+    const showDashboard = (appState === 'dashboard' || (appState === 'processing' && processedData)) && processedData;
+    const showProcessingOverlay = appState === 'loading' || (appState === 'processing' && !processedData);
+    const showLanding = appState === 'upload';
+
+    return (
+        <div className="w-full">
+            <div className="w-full mx-auto p-0 sm:p-2 lg:p-3 xl:px-8 xl:py-1">
+                <DashboardContext.Provider value={logic}>
+                    <input type="file" ref={mainFileInputRef} className="hidden" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple onClick={(e) => (e.currentTarget.value = '')} onChange={(e) => e.target.files?.length && setPendingUploadFiles(Array.from(e.target.files))} />
+                    <input type="file" ref={shiftFileInputRef} className="hidden" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple onClick={(e) => (e.currentTarget.value = '')} onChange={(e) => e.target.files?.length && setPendingShiftFiles(Array.from(e.target.files))} />
+
+                    <Header
+                        onNewFile={handleNewFileClick}
+                        onLoadShiftFile={handleShiftFileClick}
+                        onClearDepartments={handleClearDepartments}
+                        isClearingDepartments={isClearingDepartments}
+                        hasDepartmentData={!!departmentMap}
+                        showNewFileButton={appState === 'dashboard'}
+                        fileInfo={fileInfo}
+                        isSyncingCloud={logic.isSyncingCloud}
+                        onToggleFilters={() => setIsFilterSidebarOpen(!isFilterSidebarOpen)}
+                        onSelectHistoryFile={handleFileProcessing}
+                        onOpenHistory={() => setIsFileHistoryModalOpen(true)}
+                        hasSalesData={hasSalesData}
+                        onClearSalesData={handleSalesDataClear}
+                        salesClearTitle={salesClearTitle}
+                    />
+
+                    {/* Thông báo của Super Admin — luôn hiện cho mọi người dùng. Lỗi #18 (video v2:003–012): trước là dải đỏ chữ CHẠY liên
+                        tục (khó đọc, gây phân tâm) → Banner dùng chung: chữ đứng yên, tối đa 2 dòng + "Xem thêm". */}
+                    {announcement && announcement.active && announcement.content && !isAnnouncementExpired(announcement) && (
+                        <div className="max-w-[960px] mx-auto px-0 sm:px-2 lg:px-4 w-full mb-2 no-print z-20">
+                            <Banner tone="danger" title="Thông báo" data-testid="thong-bao-he-thong">{announcement.content}</Banner>
+                        </div>
+                    )}
+
+                    {status.message && status.type === 'error' && <StatusDisplay status={status} />}
+
+                    {logic.kpiCardsConfig && (
+                        <React.Suspense fallback={null}>
+                            <KpiCardConfigModal
+                                isOpen={isKpiConfigModalOpen}
+                                onClose={() => {
+                                    setIsKpiConfigModalOpen(false);
+                                    forceSync().catch(console.error);
+                                }}
+                                configs={logic.kpiCardsConfig}
+                                onSave={logic.updateKpiCardsConfig}
+                            />
+                        </React.Suspense>
+                    )}
+
+                    {showLanding && (
+                        <LandingPageView
+                            onProcessFile={handleFileProcessing}
+                            registry={logic.fileRegistry}
+                            onToggleActive={logic.handleToggleFileActive}
+                            onDelete={logic.handleDeleteFile}
+                            onRename={logic.handleRenameFile}
+                            onViewReport={logic.handleViewReport}
+                        />
+                    )}
+
+                    {showProcessingOverlay && (
+                        <div className="relative w-full">
+                            {/* Banner for Pending Users */}
+                            {userRole === 'pending' && (
+                                <div className="bg-rose-500 text-white px-4 py-3 text-center text-sm font-bold shadow-md shadow-rose-500/20 z-50 sticky top-0 flex items-center justify-center gap-2">
+                                    <AppIcon name="warning" size="lg" />
+                                    Tài khoản của bạn hiện CHƯA ĐƯỢC PHÊ DUYỆT hoặc ĐÃ HẾT HẠN. Bạn đang xem giao diện rút gọn. Vui lòng bật "Dữ liệu Mẫu" ở Menu trái để thử nghiệm tính năng!
+                                </div>
+                            )}
+                            <div className="container mx-auto px-4 py-4 space-y-6 opacity-40 blur-[3px] pointer-events-none select-none transition-all duration-700">
+                                {/* Fake Filter Bar */}
+                                <div className="h-16 w-full bg-slate-200 dark:bg-slate-800 rounded-control animate-pulse mb-6"></div>
+                                <KpiCardsSkeleton />
+                                <div className="space-y-8">
+                                    <ChartSkeleton height="h-[350px]" />
+                                    <TableSkeleton rows={4} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {(appState === 'loading' || appState === 'processing') && (
+                        <ProcessingLoader status={status} processingTime={processingTime || localProcessingTime} />
+                    )}
+
+                    {showDashboard && (
+                        <>
+                            {/* Đổi bộ lọc: tính lại trong Worker — thanh mảnh ở mép trên thay lớp chờ phủ kín màn (lỗi #9). */}
+                            <BusyBar active={isFilterProcessing} label="Đang tính lại theo bộ lọc" />
+                            <FilterBar 
+                                onToggleAdvanced={() => setIsFilterSidebarOpen(true)} 
+                                onNewFile={handleNewFileClick} 
+                                onOpenHistory={() => setIsFileHistoryModalOpen(true)}
+                                hasSalesData={hasSalesData}
+                                onClearSalesData={handleSalesDataClear}
+                                salesClearTitle={salesClearTitle}
+                            />
+                            <main id="dashboard-container" className="pb-0" ref={dashboardContainerRef}>
+                                <div className="max-w-[960px] mx-auto px-0 sm:px-2 lg:px-4 py-0.5 lg:py-1 space-y-3 lg:space-y-4">
+
+                                    {/* Cloud Data Sync Banner — Hiển thị trên 1 dòng nhỏ gọn, nằm ngay dưới thông báo đỏ */}
+
+
+
+                                    <div ref={businessOverviewRef} id="business-overview" className="space-y-3 lg:space-y-6">
+                                        {processedData.warehouseSummary && processedData.warehouseSummary.length > 0 && (
+                                            <div data-debug-id="WarehouseSummary" data-debug-info={JSON.stringify(debugInitialData.WarehouseSummary)}>
+                                                <WarehouseSummary />
+                                            </div>
+                                        )}
+
+                                        <SectionCard ref={kpiCardsOnlyRef} className="relative lg:rounded-none">
+                                            {/* Unconfigured Groups Warning Banner */}
+                                            {(userRole === 'admin' || userRole === 'manager') && unconfiguredGroups && unconfiguredGroups.length > 0 && (
+                                                <div
+                                                    onClick={() => setIsUnconfiguredModalOpen(true)}
+                                                    className="relative bg-amber-50/70 dark:bg-amber-955/20 border-b border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 px-3 sm:px-4 py-1 sm:py-1.5 flex items-center justify-between cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition-colors z-[20] animate-pulse hide-on-export text-[11px] sm:text-xs"
+                                                >
+                                                    <div className="flex items-center gap-1.5 font-bold">
+                                                        <span className="relative flex h-1.5 w-1.5">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                                                        </span>
+                                                        <AppIcon name="warning" size="xs" className="text-amber-600 shrink-0" />
+                                                        <span>PHÁT HIỆN {unconfiguredGroups.length} NHÓM HÀNG MỚI CHƯA CẤU HÌNH (DỮ LIỆU ĐANG BỊ BỎ QUA)</span>
+                                                    </div>
+                                                    <div className="text-[11px] font-semibold underline underline-offset-2 flex items-center gap-0.5 opacity-85 hover:opacity-100">
+                                                        <span>Xem & Cập nhật</span>
+                                                        <AppIcon name="chevronRight" size="xs" />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Overdue Export Warning Banner */}
+                                            {overdueUnshippedOrders.length > 0 && (
+                                                <div
+                                                    onClick={() => setActiveModal('unshipped_overdue')}
+                                                    className="relative bg-rose-50/70 dark:bg-rose-950/20 border-b border-rose-100 dark:border-rose-900/40 text-rose-700 dark:text-rose-400 px-3 sm:px-4 py-1 sm:py-1.5 flex items-center justify-between cursor-pointer hover:bg-rose-100/70 dark:hover:bg-rose-900/40 transition-colors z-[20] hide-on-export text-[11px] sm:text-xs"
+                                                >
+                                                    <div className="flex items-center gap-1.5 font-bold">
+                                                        <span className="relative flex h-1.5 w-1.5">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
+                                                        </span>
+                                                        <span>ĐƠN HÀNG QUÁ HẠN XUẤT ({overdueUnshippedOrders.length})</span>
+                                                    </div>
+                                                    <div className="text-[11px] font-semibold underline underline-offset-2 opacity-85 hover:opacity-100">
+                                                        Xem chi tiết & Cập nhật nhanh
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Uncollected Warning Banner */}
+                                            {processedData.uncollectedOrders && processedData.uncollectedOrders.length > 0 && (
+                                                <div
+                                                    onClick={() => setActiveModal('uncollected')}
+                                                    className="relative bg-amber-50/70 dark:bg-amber-955/20 border-b border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 px-3 sm:px-4 py-1 sm:py-1.5 flex items-center justify-between cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-950/40 transition-colors z-[20] hide-on-export text-[11px] sm:text-xs"
+                                                >
+                                                    <div className="flex items-center gap-1.5 font-bold">
+                                                        <span className="relative flex h-1.5 w-1.5">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                                                        </span>
+                                                        <span>ĐƠN HÀNG CHƯA THU | CHƯA HỦY ({processedData.uncollectedOrders.length})</span>
+                                                    </div>
+                                                    <div className="text-[11px] font-semibold underline underline-offset-2 opacity-85 hover:opacity-100">
+                                                        Xem danh sách
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="relative z-10 pt-1 lg:pt-2">
+                                                <SectionHeader
+                                                    title="TỔNG QUAN DOANH THU"
+                                                    titleClassName="type-headline font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide truncate leading-tight"
+                                                    subtitle={<>
+                                                        <span className="hidden md:inline">{processedData.reportSubTitle}</span>
+                                                        {/* Mobile: truncated subtitle + inline Chờ Xuất */}
+                                                        <span className="md:hidden inline-flex items-center gap-1.5 max-w-full">
+                                                            <span className="truncate shrink min-w-0">{processedData.reportSubTitle}</span>
+                                                            {processedData.kpis && processedData.kpis.doanhThuThucChoXuat > 0 && (
+                                                                <Button
+                                                                    variant="link" size="none"
+                                                                    onClick={(e) => { e.stopPropagation(); openUnshippedModal(); }}
+                                                                    className="ycx-hit shrink-0 text-rose-700 dark:text-rose-400 font-semibold tabular-nums active:opacity-60"
+                                                                >
+                                                                    Chờ xuất {formatCurrency(processedData.kpis.doanhThuThucChoXuat)}
+                                                                </Button>
+                                                            )}
+                                                        </span>
+                                                    </>}
+                                                >
+                                                    <div className="flex items-center gap-2 lg:gap-1.5 hide-on-export">
+                                                        <Button variant="ghost" size="icon" onClick={() => setIsKpiConfigModalOpen(true)} title="Tuỳ chỉnh dãy thẻ KPI" aria-label="Tuỳ chỉnh dãy thẻ KPI" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                                            <AppIcon name="settings" size="md" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleBusinessOverviewExport()} disabled={isExporting} title="Xuất ảnh toàn báo cáo" aria-label="Xuất ảnh toàn báo cáo" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40">
+                                                            <AppIcon name="exportImage" size="md" />
+                                                        </Button>
+                                                        <AreaAutoExportButton
+                                                            areaId="Tổng Quan Doanh Thu"
+                                                            areaName="Tổng Quan Doanh Thu"
+                                                            onTestExport={async () => {
+                                                                if (!kpiCardsOnlyRef.current) return null;
+                                                                const prefix = getExportFilenamePrefix(filterState.kho);
+                                                                const res = await handleExport(kpiCardsOnlyRef.current, `${prefix} - Tổng Quan Doanh Thu.png`, {
+                                                                    captureAsDisplayed: true,
+                                                                    mode: 'blob-only',
+                                                                });
+                                                                return (res instanceof Blob) ? res : null;
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </SectionHeader>
+                                            </div>
+
+                                            <div className={`p-2 lg:px-4 lg:pt-2 lg:pb-4 transition-opacity duration-200 ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                                <div data-debug-id="KpiCards" data-debug-info={JSON.stringify(debugInitialData.KpiCards)}>
+                                                    <KpiCards onUnshippedClick={openUnshippedModal} />
+                                                </div>
+                                            </div>
+                                        </SectionCard>
+
+
+                                        {visibleComponents.trendChart && (
+                                            <div data-debug-id="TrendChart" data-debug-info={JSON.stringify(debugInitialData.TrendChart)} id="trend-chart-section" className={`transition-opacity duration-200 ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                                <React.Suspense fallback={<ChartSkeleton />}>
+                                                    <TrendChart />
+                                                </React.Suspense>
+                                            </div>
+                                        )}
+
+                                        {visibleComponents.industryGrid && (
+                                            <div data-debug-id="IndustryGrid" data-debug-info={JSON.stringify(debugInitialData.IndustryGrid)} id="industry-grid-section" className={`transition-opacity duration-200 ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                                <React.Suspense fallback={<ChartSkeleton />}>
+                                                    <IndustryGrid />
+                                                </React.Suspense>
+                                            </div>
+                                        )}
+
+                                        {visibleComponents.employeeAnalysis && (
+                                            <div data-debug-id="EmployeeAnalysis" data-debug-info={JSON.stringify(debugInitialData.EmployeeAnalysis)} id="employee-analysis-section" className={`transition-opacity duration-200 ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                                <React.Suspense fallback={<TableSkeleton />}>
+                                                    <EmployeeAnalysis />
+                                                </React.Suspense>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {visibleComponents.summaryTable && (
+                                        <div data-debug-id="SummaryTable" data-debug-info={JSON.stringify(debugInitialData.SummaryTable)} id="summary-table-section" className={`transition-opacity duration-200 ${isProcessing ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                            <React.Suspense fallback={<TabbedTableSkeleton />}>
+                                                <SummaryTable />
+                                            </React.Suspense>
+                                        </div>
+                                    )}
+                                </div>
+                            </main>
+
+                            {/* Right Slide Menu Filters */}
+                            <Overlay kind="fullscreen" data-modal-overlay={isFilterSidebarOpen ? '' : undefined} className={`z-[150] transition-opacity duration-300 ${isFilterSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsFilterSidebarOpen(false)}></div>
+                                <div className={`absolute top-0 right-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-500 ease-in-out transform ${isFilterSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                                    <div className="h-full flex flex-col" data-debug-id="FilterSection" data-debug-info={JSON.stringify(debugInitialData.FilterSection)}>
+                                        <FilterSection
+                                            options={uniqueFilterOptions}
+                                            visibility={visibleComponents}
+                                            onVisibilityChange={handleVisibilityChange}
+                                            onClose={() => setIsFilterSidebarOpen(false)}
+                                            onLoadShiftFile={handleShiftFileClick}
+                                            hasDepartmentData={!!departmentMap}
+                                            onClearDepartments={handleClearDepartments}
+                                            isClearingDepartments={isClearingDepartments}
+                                        />
+                                    </div>
+                                </div>
+                            </Overlay>
+                        </>
+                    )}
+                    {activeModal === 'performance' && processedData && modalData && (
+                        <React.Suspense fallback={null}>
+                            <PerformanceModal isOpen={true} onClose={() => setActiveModal(null)} employeeName={modalData.employeeName} onExport={handleExport} />
+                        </React.Suspense>
+                    )}
+                    <React.Suspense fallback={null}>
+                        {activeModal === 'unshipped' && processedData && <UnshippedOrdersModal isOpen={true} onClose={() => setActiveModal(null)} onExport={handleExport} />}
+                        {activeModal === 'unshipped_overdue' && processedData && <UnshippedOrdersModal isOpen={true} onClose={() => setActiveModal(null)} onExport={handleExport} onlyOverdue={true} />}
+                        {activeModal === 'uncollected' && processedData && <UncollectedOrdersModal isOpen={true} onClose={() => setActiveModal(null)} onExport={handleExport} onExportSheet={handleExportUncollectedSheet} />}
+                        <ChangelogModal isOpen={activeModal === 'changelog'} onClose={() => setActiveModal(null)} />
+                        <UnconfiguredGroupsModal
+                            isOpen={isUnconfiguredModalOpen}
+                            onClose={() => setIsUnconfiguredModalOpen(false)}
+                            unconfiguredGroups={unconfiguredGroups}
+                            ignoredUnconfiguredGroups={ignoredUnconfiguredGroups}
+                            onIgnoreGroup={handleIgnoreGroup}
+                            onRestoreGroup={handleRestoreGroup}
+                        />
+                        <FileHistoryModal
+                            isOpen={isFileHistoryModalOpen}
+                            onClose={() => setIsFileHistoryModalOpen(false)}
+                            registry={logic.fileRegistry}
+                            onToggleActive={logic.handleToggleFileActive}
+                            onDelete={logic.handleDeleteFile}
+                            onRename={logic.handleRenameFile}
+                            onDeleteAll={handleClearAllData}
+                            onProcessFile={(files, isCloudSync, isHistorical) => {
+                                setIsFileHistoryModalOpen(false);
+                                handleFileProcessing(files, isCloudSync, isHistorical);
+                            }}
+                            onViewReport={logic.handleViewReport}
+                        />
+                        <ConfirmDialog
+                            isOpen={hoiXoaYcx.mo}
+                            onClose={dongHoiXoaYcx}
+                            variant="danger"
+                            title={hoiXoaYcx.loai === 'chon' ? 'Xoá dữ liệu YCX' : hoiXoaYcx.loai === 'realtime' ? 'Xoá dữ liệu YCX Realtime?' : 'Xoá toàn bộ dữ liệu tích lũy?'}
+                            message={hoiXoaYcx.loai === 'chon'
+                                ? `• Chỉ Realtime: xoá dữ liệu đang xem, các tệp lũy kế giữ nguyên.\n• Toàn bộ: xoá ${phamViXoaTatCa} — không hoàn tác được.`
+                                : hoiXoaYcx.loai === 'realtime'
+                                    ? 'Dữ liệu YCX Realtime đang xem sẽ bị xoá khỏi máy này.'
+                                    : `Sẽ xoá ${phamViXoaTatCa}. Không hoàn tác được.`}
+                            extraAction={hoiXoaYcx.loai === 'chon' ? {
+                                text: 'Chỉ xoá dữ liệu Realtime',
+                                variant: 'destructive',
+                                onClick: () => { dongHoiXoaYcx(); handleClearRealtimeData(); },
+                            } : undefined}
+                            confirmText={hoiXoaYcx.loai === 'realtime' ? 'Xoá' : 'Xoá toàn bộ dữ liệu tích lũy'}
+                            onConfirm={() => {
+                                dongHoiXoaYcx();
+                                if (hoiXoaYcx.loai === 'realtime') handleClearRealtimeData();
+                                else handleClearAllData();
+                            }}
+                        />
+                        <FileNamingModal
+                            isOpen={!!pendingNaming}
+                            defaultName={pendingNaming?.defaultName}
+                            onConfirm={(name) => {
+                                if (pendingNaming) {
+                                    pendingNaming.resolve(name);
+                                    setPendingNaming(null);
+                                }
+                            }}
+                        />
+                        <UploadConflictModal
+                            isOpen={!!pendingConflict}
+                            conflicts={pendingConflict?.conflicts || []}
+                            newFilename={pendingConflict?.newFilename || ''}
+                            newDateRangeStr={pendingConflict?.newDateRangeStr || ''}
+                            onResolve={(action) => {
+                                if (pendingConflict) {
+                                    pendingConflict.resolve(action);
+                                    setPendingConflict(null);
+                                }
+                            }}
+                        />
+                        <UploadTypeSelectionModal
+                            isOpen={!!pendingUploadFiles}
+                            onClose={() => setPendingUploadFiles(null)}
+                            onSelect={(isHistorical) => {
+                                if (pendingUploadFiles) {
+                                    handleFileProcessing(pendingUploadFiles, false, isHistorical);
+                                    setPendingUploadFiles(null);
+                                }
+                            }}
+                            fileCount={pendingUploadFiles?.length || 0}
+                        />
+                        {pendingShiftFiles && pendingShiftFiles.length > 0 && (
+                            <ShiftWarehouseInputModal
+                                isOpen={!!pendingShiftFiles}
+                                files={pendingShiftFiles}
+                                defaultWarehouseCode={defaultWarehouseCode}
+                                onClose={() => setPendingShiftFiles(null)}
+                                onConfirm={(maKho) => {
+                                    handleShiftFileProcessing(pendingShiftFiles, maKho);
+                                    setPendingShiftFiles(null);
+                                }}
+                            />
+                        )}
+                        {/* Export Options Modal - Download or Share */}
+                        <ExportOptionsModal
+                            isOpen={!!logic.pendingExport}
+                            onClose={logic.handlePendingClose}
+                            onDownload={logic.handlePendingDownload}
+                            onShare={logic.handlePendingShare}
+                            canShare={canShareFiles()}
+                            filename={logic.pendingExport?.filename || ''}
+                        />
+                    </React.Suspense>
+                    <DebugPanel
+                        isVisible={isDebugPanelVisible}
+                        isInspectorActive={isInspectorActive}
+                        info={debugInfo}
+                        onClose={() => setIsDebugPanelVisible(false)}
+                        onToggleInspector={() => setIsInspectorActive(p => !p)}
+                    />
+                </DashboardContext.Provider>
+            </div>
+        </div>
+    );
+});
+
+export default DashboardView;

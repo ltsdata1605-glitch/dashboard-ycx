@@ -1,0 +1,6 @@
+{
+  "features/tax-calculator/services/taxSyncService.ts": "f7ea398a4ccf96a8ad42b0a55000f00b92f6b46781f9050f3654b834376c9885",
+  "features/tax-calculator/services/taxIndexedDbService.ts": "2186d368a8becfb1bb65e44eb7de08ed270cd983cd9c0dcf318cab8c85cf50a3",
+  "tests/unit/audit-gd2c-tax-identity.test.ts": "8506f117634976c2a531ad58231372a5e4f26aefbbeb544fc68d156a2442e192",
+  "tests/e2e/navigation-material.spec.ts": "76ff469e9e2bf6e40a9ec8eaf2a174e96e55509d0474c1a183e9f3bb1cdbf1c7"
+}

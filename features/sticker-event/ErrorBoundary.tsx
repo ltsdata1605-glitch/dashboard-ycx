@@ -1,0 +1,61 @@
+import React, { Component } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import { Button } from '../../components/shared/ui/Button';
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  // any: khớp chữ ký gốc của React.Component.getDerivedStateFromError (error có thể là bất kỳ giá trị bị throw)
+  static getDerivedStateFromError(error: any): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      let displayMessage = "Đã xảy ra lỗi không mong muốn.";
+      try {
+        const errObj = JSON.parse(this.state.error?.message ?? '');
+        if (errObj.error) displayMessage = `Lỗi Firestore: ${errObj.error} (${errObj.operationType} at ${errObj.path})`;
+      } catch (e) {
+        displayMessage = this.state.error?.message || displayMessage;
+      }
+
+      return (
+        <div className="min-h-dvh flex items-center justify-center p-4 bg-slate-50">
+          <div className="max-w-md w-full bg-white p-8 rounded-card shadow-xl border border-rose-100">
+            <div className="flex items-center justify-center w-12 h-12 bg-rose-100 rounded-full mb-4 mx-auto">
+              <AppIcon name="warning" size="xl" className="text-rose-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 text-center mb-2">Rất tiếc, đã có lỗi xảy ra</h2>
+            <p className="text-slate-600 text-center mb-6">{displayMessage}</p>
+            <Button
+              variant="primary"
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              Tải lại trang
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}

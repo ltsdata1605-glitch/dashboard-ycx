@@ -1,0 +1,25 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+ ✓ features/bi-dashboard/components/dashboard/SafeHeaderText.test.ts (4 tests) 7ms
+ ✓ tests/unit/analysis-employees-khong-vong-lap.test.ts (2 tests) 11ms
+stderr | tests/unit/report-bi-analysis-employee-only.test.ts
+[2026-10-26T05:47:40.427Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/cau-noi-dto-a29.test.ts (6 tests) 5ms
+stderr | tests/unit/analysis-employees-from-dept-map.test.ts
+[2026-10-26T05:47:40.460Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/analysis-employees-from-dept-map.test.ts (4 tests) 5ms
+ ✓ tests/unit/report-bi-analysis-employee-only.test.ts (3 tests) 7ms
+stderr | tests/unit/target-employee-supermarket-filter.test.ts
+[2026-10-26T05:47:40.558Z]  @firebase/auth: Auth (12.11.0): INTERNAL ASSERTION FAILED: Expected a class definition
+
+ ✓ tests/unit/target-employee-supermarket-filter.test.ts (6 tests) 10ms
+
+ Test Files  6 passed (6)
+      Tests  25 passed (25)
+   Start at  12:47:39
+   Duration  669ms (transform 877ms, setup 0ms, import 1.99s, tests 45ms, environment 2ms)
+
+JSON report written to /Users/ltson/dashboardycx/audit/evidence/c17-unit.json

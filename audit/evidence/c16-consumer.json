@@ -1,0 +1,209 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c16-playwright.config.mjs",
+      "bi-bonus-compare.spec.ts",
+      "-g",
+      "bấm nút chế độ xem|chế độ So sánh cùng kỳ"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c16-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c16-consumer",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "ui-dung-chung-dot-2.spec.ts",
+          "shared-dropdown.spec.ts",
+          "bi-bonus-compare.spec.ts",
+          "shared-tooltip.spec.ts",
+          "shared-form-states.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c16-consumer.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "bi-bonus-compare.spec.ts",
+      "file": "bi-bonus-compare.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Report BI › Thưởng — menu chế độ xem + So sánh cùng kỳ",
+          "file": "bi-bonus-compare.spec.ts",
+          "line": 75,
+          "column": 6,
+          "specs": [
+            {
+              "title": "bấm nút chế độ xem mở MENU liệt kê đủ 4 chế độ, mục đang chọn được tô",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12585,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "DROPDOWN_CLIPPING {\"hits\":[true,true,true,true],\"top\":304.875,\"bottom\":530.875,\"ancestors\":[{\"tag\":\"DIV\",\"classes\":\"bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 overflow-hidden rounded-none lg:rounded-card shadow-sm\",\"overflowX\":\"hidden\",\"overflowY\":\"hidden\",\"transform\":\"none\",\"top\":137.5,\"bottom\":506.625},{\"tag\":\"BODY\",\"classes\":\"bg-slate-50 dark:bg-slate-950 transition-colors duration-500 relative min-h-dvh antialiased text-slate-900 dark:text-slate-100 overflow-x-hidden\",\"overflowX\":\"hidden\",\"overflowY\":\"auto\",\"transform\":\"none\",\"top\":0,\"bottom\":868}]}\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:23054) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:35:51.625Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "dropdown-clipping.json",
+                          "contentType": "application/json",
+                          "body": "ewogICJoaXRzIjogWwogICAgdHJ1ZSwKICAgIHRydWUsCiAgICB0cnVlLAogICAgdHJ1ZQogIF0sCiAgInRvcCI6IDMwNC44NzUsCiAgImJvdHRvbSI6IDUzMC44NzUsCiAgImFuY2VzdG9ycyI6IFsKICAgIHsKICAgICAgInRhZyI6ICJESVYiLAogICAgICAiY2xhc3NlcyI6ICJiZy13aGl0ZSBkYXJrOmJnLXNsYXRlLTgwMCBib3JkZXIgYm9yZGVyLXNsYXRlLTIwMCBkYXJrOmJvcmRlci1zbGF0ZS03MDAvNjAgb3ZlcmZsb3ctaGlkZGVuIHJvdW5kZWQtbm9uZSBsZzpyb3VuZGVkLWNhcmQgc2hhZG93LXNtIiwKICAgICAgIm92ZXJmbG93WCI6ICJoaWRkZW4iLAogICAgICAib3ZlcmZsb3dZIjogImhpZGRlbiIsCiAgICAgICJ0cmFuc2Zvcm0iOiAibm9uZSIsCiAgICAgICJ0b3AiOiAxMzcuNSwKICAgICAgImJvdHRvbSI6IDUwNi42MjUKICAgIH0sCiAgICB7CiAgICAgICJ0YWciOiAiQk9EWSIsCiAgICAgICJjbGFzc2VzIjogImJnLXNsYXRlLTUwIGRhcms6Ymctc2xhdGUtOTUwIHRyYW5zaXRpb24tY29sb3JzIGR1cmF0aW9uLTUwMCByZWxhdGl2ZSBtaW4taC1kdmggYW50aWFsaWFzZWQgdGV4dC1zbGF0ZS05MDAgZGFyazp0ZXh0LXNsYXRlLTEwMCBvdmVyZmxvdy14LWhpZGRlbiIsCiAgICAgICJvdmVyZmxvd1giOiAiaGlkZGVuIiwKICAgICAgIm92ZXJmbG93WSI6ICJhdXRvIiwKICAgICAgInRyYW5zZm9ybSI6ICJub25lIiwKICAgICAgInRvcCI6IDAsCiAgICAgICJib3R0b20iOiA4NjgKICAgIH0KICBdCn0="
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "568a07d42490e81aaa54-5a1edb42dcbbae59b892",
+              "file": "bi-bonus-compare.spec.ts",
+              "line": 97,
+              "column": 5
+            },
+            {
+              "title": "chế độ So sánh cùng kỳ: tiêu đề, 3 nhóm cột, Δ đúng dấu, thiếu kỳ hiện \"—\"",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6893,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "HEADER NHÓM: [\"NHÂN VIÊN\",\"ERP\",\"T.NÓNG\",\"TỔNG\"]\n"
+                        },
+                        {
+                          "text": "CỘT PHỤ: [\"H.TẠI\",\"CK\",\"+/-\",\"H.TẠI\",\"CK\",\"+/-\",\"H.TẠI\",\"CK\",\"+/-\",\"%\"]\n"
+                        },
+                        {
+                          "text": "DÒNG: [\"#1 111395 - C.Tâm 9.745 8.000 +1.745 10.199 9.000 +1.199 19.944 17.000 +2.944 +17%\",\"#2 17952 - M.Hương 8.000 9.636 −1.636 7.000 10.156 −3.156 15.000 19.792 −4.792 −24%\",\"#3 107617 - A.Nhân 9.548 - — 9.485 - — 19.033 - — —\"]\n"
+                        },
+                        {
+                          "text": "CHÂN BẢNG: TỔNG CỘNG 27.293 17.636 +109 26.684 19.156 −1.957 53.977 36.792 −1.848 −5%\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T05:36:04.830Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "568a07d42490e81aaa54-8aa05b4c72b55c156885",
+              "file": "bi-bonus-compare.spec.ts",
+              "line": 135,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T05:35:45.895Z",
+    "duration": 25944.338,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

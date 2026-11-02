@@ -1,0 +1,92 @@
+[WebServer] (node:2640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-form-states.spec.ts:6:9 › shared form states 390 › error linkage, busy state, keyboard focus and dense exceptions (12.3s)
+  ✘  2 [chromium] › tests/e2e/shared-form-states.spec.ts:6:9 › shared form states 1366 › error linkage, busy state, keyboard focus and dense exceptions (10.5s)
+
+
+  1) [chromium] › tests/e2e/shared-form-states.spec.ts:6:9 › shared form states 390 › error linkage, busy state, keyboard focus and dense exceptions 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('combobox', { name: 'Kỳ', exact: true })
+    Expected: "true"
+    Received: "false"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('combobox', { name: 'Kỳ', exact: true }) with timeout 10000ms
+      - waiting for getByRole('combobox', { name: 'Kỳ', exact: true })
+        22 × locator resolved to <select aria-label="Kỳ" aria-invalid="false" aria-describedby="form-help" class="flex h-9 max-sm:min-h-11 pointer-coarse:min-h-11 w-full rounded-control border bg-white px-3 py-2 text-sm font-normal transition-colors appearance-none cursor-pointer text-slate-900 focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-900/50 pr-9 border-rose-500 focus-visible:border-rose-500 focus-…>…</select>
+           - unexpected value "false"
+        - locator resolved to <select aria-label="Kỳ" aria-invalid="false" aria-describedby="form-help" class="flex h-9 max-sm:min-h-11 pointer-coarse:min-h-11 w-full rounded-control border bg-white px-3 py-2 text-sm font-normal transition-colors appearance-none cursor-pointer border-slate-300 text-slate-900 focus-visible:outline-none focus-visible:border-sky-500 focus-visible:ring-1 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-sl…>…</select>
+        - unexpected value "false"
+
+
+      27 |             await page.getByRole('button', { name: 'Kiểm lỗi' }).click();
+      28 |             for (const [control, message] of [[input, 'Thiếu tên'], [select, 'Thiếu kỳ']] as const) {
+    > 29 |                 await expect(control).toHaveAttribute('aria-invalid', 'true');
+         |                                       ^
+      30 |                 const ids = (await control.getAttribute('aria-describedby'))!.split(' ');
+      31 |                 expect(ids).toContain('form-help');
+      32 |                 expect(ids).toHaveLength(2);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-form-states.spec.ts:29:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c9-before/shared-form-states-shared--b1ddc--focus-and-dense-exceptions-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c9-before/shared-form-states-shared--b1ddc--focus-and-dense-exceptions-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c9-before/shared-form-states-shared--b1ddc--focus-and-dense-exceptions-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c9-before/shared-form-states-shared--b1ddc--focus-and-dense-exceptions-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-form-states.spec.ts:6:9 › shared form states 1366 › error linkage, busy state, keyboard focus and dense exceptions 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('combobox', { name: 'Kỳ', exact: true })
+    Expected: "true"
+    Received: "false"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('combobox', { name: 'Kỳ', exact: true }) with timeout 10000ms
+      - waiting for getByRole('combobox', { name: 'Kỳ', exact: true })
+        24 × locator resolved to <select aria-label="Kỳ" aria-invalid="false" aria-describedby="form-help" class="flex h-9 max-sm:min-h-11 pointer-coarse:min-h-11 w-full rounded-control border bg-white px-3 py-2 text-sm font-normal transition-colors appearance-none cursor-pointer text-slate-900 focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-900/50 pr-9 border-rose-500 focus-visible:border-rose-500 focus-…>…</select>
+           - unexpected value "false"
+
+
+      27 |             await page.getByRole('button', { name: 'Kiểm lỗi' }).click();
+      28 |             for (const [control, message] of [[input, 'Thiếu tên'], [select, 'Thiếu kỳ']] as const) {
+    > 29 |                 await expect(control).toHaveAttribute('aria-invalid', 'true');
+         |                                       ^
+      30 |                 const ids = (await control.getAttribute('aria-describedby'))!.split(' ');
+      31 |                 expect(ids).toContain('form-help');
+      32 |                 expect(ids).toHaveLength(2);
+        at /Users/ltson/dashboardycx/tests/e2e/shared-form-states.spec.ts:29:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c9-before/shared-form-states-shared--5b9aa--focus-and-dense-exceptions-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c9-before/shared-form-states-shared--5b9aa--focus-and-dense-exceptions-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c9-before/shared-form-states-shared--5b9aa--focus-and-dense-exceptions-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c9-before/shared-form-states-shared--5b9aa--focus-and-dense-exceptions-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/e2e/shared-form-states.spec.ts:6:9 › shared form states 390 › error linkage, busy state, keyboard focus and dense exceptions 
+    [chromium] › tests/e2e/shared-form-states.spec.ts:6:9 › shared form states 1366 › error linkage, busy state, keyboard focus and dense exceptions 

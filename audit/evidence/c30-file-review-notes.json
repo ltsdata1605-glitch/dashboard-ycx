@@ -1,0 +1,4 @@
+{
+  "features/bi-dashboard/components/dashboard/IndustryView.tsx": "Focused re-review renderCell tree branch: icon-only Button now named by expand/collapse+displayName and aria-expanded. Existing rowKey/toggleRow, stopPropagation and touch handler preserved; touch target and sorting remain pending.",
+  "tests/e2e/industry-switch-labels.spec.ts": "Retained4filter/sheet tests and added native keyboard traversal to named tree button; Enter expands child, Space collapses, state/name change asserted. RealReact fixture, no services or programmatic focus."
+}

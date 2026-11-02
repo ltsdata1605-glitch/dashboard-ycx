@@ -1,0 +1,10 @@
+[WebServer] (node:31309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+  ✓  1 [webkit] › tests/e2e/shared-selection-controls.spec.ts:8:3 › Nhỏ: vùng chạm 44 giữ nguyên kích thước nhìn thấy (6.0s)
+  ✓  2 [webkit] › tests/e2e/shared-selection-controls.spec.ts:8:3 › Vừa: vùng chạm 44 giữ nguyên kích thước nhìn thấy (1.9s)
+  ✓  3 [webkit] › tests/e2e/shared-selection-controls.spec.ts:23:1 › bàn phím, focus visible, disabled và reduced motion (2.1s)
+
+  3 passed (15.8s)

@@ -1,0 +1,158 @@
+[WebServer] (node:51112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:3:3 › searchable select keyboard filter selection and escape 390 (11.0s)
+  ✘  2 [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:25:3 › searchable select custom option 390 (1.0m)
+  ✘  3 [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:3:3 › searchable select keyboard filter selection and escape 1366 (10.3s)
+  ✘  4 [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:25:3 › searchable select custom option 1366 (1.0m)
+
+
+  1) [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:3:3 › searchable select keyboard filter selection and escape 390 
+
+    Error: expect(locator).toHaveAccessibleName(expected) failed
+
+    Locator:  locator('button').filter({ hasText: 'Chọn ngành…' })
+    Expected: "Ngành audit Chọn ngành…"
+    Received: "Chọn ngành…"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAccessibleName" locator('button').filter({ hasText: 'Chọn ngành…' }) with timeout 10000ms
+      - waiting for locator('button').filter({ hasText: 'Chọn ngành…' })
+        24 × locator resolved to <button type="button" class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed w-full h-9 sm:h-11 block rounded-control border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 pl-2.5 sm:pl-3 pr-8 sm:pr-10 text-left shadow-sm focus:border-sky-500 focus:ring-sky-500 text-xs sm:text-sm">…</button>
+           - unexpected value "Chọn ngành…"
+
+
+       5 |     await page.goto('/tests/e2e/helpers/materialHarness.html?searchable-select');
+       6 |     const trigger=page.locator('button').filter({hasText:'Chọn ngành…'});
+    >  7 |     await expect(trigger).toHaveAccessibleName('Ngành audit Chọn ngành…');
+         |                           ^
+       8 |     const tab=process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab';
+       9 |     await page.keyboard.press(tab);await expect(trigger).toBeFocused();
+      10 |     await page.keyboard.press('Enter');
+        at /Users/ltson/dashboardycx/tests/e2e/searchable-select-keyboard.spec.ts:7:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-6b136-er-selection-and-escape-390-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c36-before/searchable-select-keyboard-6b136-er-selection-and-escape-390-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-6b136-er-selection-and-escape-390-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c36-before/searchable-select-keyboard-6b136-er-selection-and-escape-390-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:25:3 › searchable select custom option 390 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Sử dụng "Custom audit"', exact: true })
+
+
+      28 |     await page.locator('button').filter({hasText:'Chọn ngành…'}).click();
+      29 |     await page.getByPlaceholder('Tìm kiếm...').fill('  Custom audit  ');
+    > 30 |     await page.getByRole('button',{name:'Sử dụng "Custom audit"',exact:true}).click();
+         |                                                                               ^
+      31 |     await expect(page.getByLabel('Selected',{exact:true})).toHaveText('Custom audit');
+      32 |   });
+      33 | }
+        at /Users/ltson/dashboardycx/tests/e2e/searchable-select-keyboard.spec.ts:30:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-41fa9-le-select-custom-option-390-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c36-before/searchable-select-keyboard-41fa9-le-select-custom-option-390-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-41fa9-le-select-custom-option-390-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c36-before/searchable-select-keyboard-41fa9-le-select-custom-option-390-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:3:3 › searchable select keyboard filter selection and escape 1366 
+
+    Error: expect(locator).toHaveAccessibleName(expected) failed
+
+    Locator:  locator('button').filter({ hasText: 'Chọn ngành…' })
+    Expected: "Ngành audit Chọn ngành…"
+    Received: "Chọn ngành…"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAccessibleName" locator('button').filter({ hasText: 'Chọn ngành…' }) with timeout 10000ms
+      - waiting for locator('button').filter({ hasText: 'Chọn ngành…' })
+        24 × locator resolved to <button type="button" class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed w-full h-9 sm:h-11 block rounded-control border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 pl-2.5 sm:pl-3 pr-8 sm:pr-10 text-left shadow-sm focus:border-sky-500 focus:ring-sky-500 text-xs sm:text-sm">…</button>
+           - unexpected value "Chọn ngành…"
+
+
+       5 |     await page.goto('/tests/e2e/helpers/materialHarness.html?searchable-select');
+       6 |     const trigger=page.locator('button').filter({hasText:'Chọn ngành…'});
+    >  7 |     await expect(trigger).toHaveAccessibleName('Ngành audit Chọn ngành…');
+         |                           ^
+       8 |     const tab=process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab';
+       9 |     await page.keyboard.press(tab);await expect(trigger).toBeFocused();
+      10 |     await page.keyboard.press('Enter');
+        at /Users/ltson/dashboardycx/tests/e2e/searchable-select-keyboard.spec.ts:7:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-67778-r-selection-and-escape-1366-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c36-before/searchable-select-keyboard-67778-r-selection-and-escape-1366-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-67778-r-selection-and-escape-1366-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c36-before/searchable-select-keyboard-67778-r-selection-and-escape-1366-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:25:3 › searchable select custom option 1366 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Sử dụng "Custom audit"', exact: true })
+
+
+      28 |     await page.locator('button').filter({hasText:'Chọn ngành…'}).click();
+      29 |     await page.getByPlaceholder('Tìm kiếm...').fill('  Custom audit  ');
+    > 30 |     await page.getByRole('button',{name:'Sử dụng "Custom audit"',exact:true}).click();
+         |                                                                               ^
+      31 |     await expect(page.getByLabel('Selected',{exact:true})).toHaveText('Custom audit');
+      32 |   });
+      33 | }
+        at /Users/ltson/dashboardycx/tests/e2e/searchable-select-keyboard.spec.ts:30:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-0a2ae-e-select-custom-option-1366-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c36-before/searchable-select-keyboard-0a2ae-e-select-custom-option-1366-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c36-before/searchable-select-keyboard-0a2ae-e-select-custom-option-1366-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c36-before/searchable-select-keyboard-0a2ae-e-select-custom-option-1366-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:3:3 › searchable select keyboard filter selection and escape 390 
+    [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:25:3 › searchable select custom option 390 
+    [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:3:3 › searchable select keyboard filter selection and escape 1366 
+    [chromium] › tests/e2e/searchable-select-keyboard.spec.ts:25:3 › searchable select custom option 1366 

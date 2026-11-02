@@ -1,0 +1,4 @@
+path,before_sha256,after_sha256,evidence
+features/tax-calculator/services/taxSyncService.ts,68a51f26372260f8c0f127b8cd7223a2dd5a505ca2e77e9bc932ab8246874672,9942ec49fed1efaa4ab1c8bbda558fde5e5e155840cf1558e27a832cb3d7d59c,audit/correction-batch-c6.md
+tests/unit/tax-merge-overwrite.test.ts,NEW,a8b50f24f13219bee7a046d52af15d94ade6b8dd2aa56a2631bab366bacc81cd,audit/correction-batch-c6.md
+tests/e2e/tax-merge-storage.spec.ts,NEW,1bbdff16197a3727a472d54d3a4157349ff17768e428ef0bf4f529cdb54a007d,audit/correction-batch-c6.md

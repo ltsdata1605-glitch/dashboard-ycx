@@ -1,0 +1,525 @@
+import React, { useState, useEffect } from 'react';
+import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
+import { HOURS_CONFIG } from '../constants';
+import * as idb from '../db/idb';
+import { DailyRequirements, SchedulingRules, ShiftDefinitions, StaffInitialData } from '../types';
+import { Modal } from '../../../components/shared/ui/Modal';
+import { Button } from '../../../components/shared/ui/Button';
+import { Input } from '../../../components/shared/ui/Input';
+import { Select } from '../../../components/shared/ui/Select';
+import { Checkbox } from '../../../components/shared/ui/Checkbox';
+import { EmptyState } from '../../../components/shared/ui/EmptyState';
+import AiSuggestPatternModal from './AiSuggestPatternModal';
+
+interface EditPatternModalProps {
+  currentPatterns: { [key: string]: string[] };
+  allDepartments: string[];
+  onClose: () => void;
+  onSave: (newPatterns: { [key: string]: string[] }) => void;
+  staffCountByDept: { [key: string]: number };
+  dailyRequirements: DailyRequirements | null;
+  onRequirementsUpdate: (reqs: DailyRequirements) => void;
+  shiftDefinitions: ShiftDefinitions;
+  onShiftDefinitionsUpdate: (sd: ShiftDefinitions) => void;
+  nams: StaffInitialData[];
+  nus: StaffInitialData[];
+  rules: SchedulingRules;
+}
+
+interface PreviewStats {
+  [key: string]: number; // '1', '2', ..., '6'
+  totalHours: number;
+}
+
+
+const EditPatternModal: React.FC<EditPatternModalProps> = ({ currentPatterns, allDepartments, onClose, onSave, staffCountByDept, dailyRequirements, onRequirementsUpdate, shiftDefinitions, onShiftDefinitionsUpdate, nams, nus, rules }) => {
+  const [patternsByDept, setPatternsByDept] = useState(currentPatterns);
+  const [selectedDept, setSelectedDept] = useState<string>(allDepartments[0] || '');
+  const [previewStats, setPreviewStats] = useState<PreviewStats | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [departmentRequirements, setDepartmentRequirements] = useState<{ [key: string]: DailyRequirements }>({});
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+
+  useEffect(() => {
+    const checkFirstVisit = async () => {
+        try {
+            const hasSeen = await idb.loadData<boolean>('hasSeenPatternHelp');
+            if (!hasSeen) {
+                setShowHelp(true);
+            }
+            const savedReqs = await idb.loadData<{ [key: string]: DailyRequirements }>('departmentPatternRequirements');
+            if (savedReqs) {
+                // Merge thay vì ghi đè toàn bộ: tránh xoá mất giá trị bộ phận đang chọn
+                // nếu nó vừa được khởi tạo từ dailyRequirements trước khi promise này resolve.
+                setDepartmentRequirements(prev => ({ ...savedReqs, ...prev }));
+            }
+        } catch (error) {
+            console.error("Failed to load initial data for pattern modal:", error);
+        }
+    };
+    checkFirstVisit();
+  }, []);
+
+  useEffect(() => {
+    if ((!selectedDept || !allDepartments.includes(selectedDept)) && allDepartments.length > 0) {
+      setSelectedDept(allDepartments[0]);
+    }
+  }, [allDepartments, selectedDept]);
+
+  // Start onboarding guide if the department has no patterns
+  useEffect(() => {
+    if (selectedDept && (!currentPatterns[selectedDept] || currentPatterns[selectedDept].length === 0)) {
+        setOnboardingStep(1);
+    } else {
+        setOnboardingStep(0);
+    }
+  }, [selectedDept, currentPatterns]);
+
+
+  // Khởi tạo (một lần) "Yêu Cầu" của bộ phận đang chọn từ dailyRequirements dùng chung,
+  // nếu bộ phận đó chưa có dữ liệu cục bộ trong modal. Cố ý CHỈ chạy một lần cho mỗi
+  // bộ phận (guard bằng !departmentRequirements[selectedDept]) — không đồng bộ liên tục
+  // theo dailyRequirements nữa, vì trước đây việc này tạo vòng lặp 2 chiều với effect
+  // "đẩy ra ngoài" cũ, khiến số ở ô Yêu Cầu nhảy liên tục khi gõ/đổi bộ phận.
+  useEffect(() => {
+    if (selectedDept && dailyRequirements && !departmentRequirements[selectedDept]) {
+        setDepartmentRequirements(prev => ({
+            ...prev,
+            [selectedDept]: dailyRequirements
+        }));
+    }
+  }, [dailyRequirements, selectedDept, departmentRequirements]);
+
+
+  useEffect(() => {
+    if (!selectedDept) {
+      setPreviewStats(null);
+      return;
+    }
+
+    const pattern = patternsByDept[selectedDept] || [];
+    const numStaff = pattern.length; // Logic mới: Tính toán dựa trên số dòng (chu kỳ) của mẫu ca
+
+    const defaultStats: PreviewStats = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, totalHours: 0 };
+
+    if (numStaff === 0) {
+      setPreviewStats(defaultStats);
+      return;
+    }
+
+    const shiftCounts: { [key: string]: number } = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
+    let totalHoursInPattern = 0;
+
+    pattern.forEach(shiftCode => {
+      // Just check existence of digits for hours calculation
+      const cleanStr = shiftCode.replace(/[^0-9]/g, '');
+      for (const char of cleanStr) {
+        if (shiftCounts[char] !== undefined) {
+          shiftCounts[char]++;
+          totalHoursInPattern += (HOURS_CONFIG[char] || 0);
+        }
+      }
+    });
+
+    const avgStats: PreviewStats = { totalHours: 0 };
+
+    Object.keys(shiftCounts).forEach(slot => {
+      const avg = (shiftCounts[slot] / pattern.length) * numStaff;
+      avgStats[slot] = Math.round(avg);
+    });
+
+    const avgTotalHoursPerDay = (totalHoursInPattern / pattern.length) * numStaff;
+    avgStats.totalHours = Math.round(avgTotalHoursPerDay);
+
+    setPreviewStats(avgStats);
+
+  }, [patternsByDept, selectedDept]);
+
+  const handleCheckboxChange = (patternIndex: number, shiftNumber: number) => {
+    const shiftChar = String(shiftNumber);
+    const currentPattern = patternsByDept[selectedDept]?.[patternIndex] || '';
+
+    let newPatternValue;
+
+    if (currentPattern.includes(shiftChar)) {
+        // Remove strictly that character
+        newPatternValue = currentPattern.replace(shiftChar, '');
+    } else {
+        // Append
+        const digits = currentPattern.match(/\d/g) || [];
+        const nonDigits = currentPattern.match(/[^\d]/g) || [];
+
+        const newDigits = [...digits, shiftChar].sort().join('');
+        // Reconstruct implies potential loss of order for mixed content,
+        // but typically patterns are just digits.
+        // For simplicity with mixed input, we just append if complex, or sort if simple.
+
+        if (nonDigits.length > 0) {
+            newPatternValue = currentPattern + shiftChar;
+        } else {
+            newPatternValue = newDigits;
+        }
+    }
+
+    const updatedPatterns = [...(patternsByDept[selectedDept] || [])];
+    updatedPatterns[patternIndex] = newPatternValue;
+    setPatternsByDept(prev => ({ ...prev, [selectedDept]: updatedPatterns }));
+  };
+
+  const handlePatternTextChange = (patternIndex: number, value: string) => {
+    const updatedPatterns = [...(patternsByDept[selectedDept] || [])];
+    updatedPatterns[patternIndex] = value;
+    setPatternsByDept(prev => ({ ...prev, [selectedDept]: updatedPatterns }));
+  };
+
+  const handleAddPattern = () => {
+    if (onboardingStep === 2) setOnboardingStep(0);
+    if (selectedDept) {
+      const updatedPatterns = [...(patternsByDept[selectedDept] || []), ''];
+      setPatternsByDept(prev => ({ ...prev, [selectedDept]: updatedPatterns }));
+    }
+  };
+
+  const handleRemovePattern = (index: number) => {
+    const updatedPatterns = (patternsByDept[selectedDept] || []).filter((_, i) => i !== index);
+    setPatternsByDept(prev => ({ ...prev, [selectedDept]: updatedPatterns }));
+  };
+
+  const handleRequirementChange = (slot: string, value: string) => {
+    if (onboardingStep === 1) setOnboardingStep(2);
+    const newValue = parseInt(value, 10);
+    const cleanValue = isNaN(newValue) ? 0 : newValue; // Treat invalid/empty as 0
+
+    if (cleanValue >= 0 && selectedDept) {
+        const newDeptReqs = {
+            ...(departmentRequirements[selectedDept] || dailyRequirements || {}),
+            [slot]: cleanValue
+        };
+
+        // Chỉ cập nhật state cục bộ của modal khi gõ. Việc đẩy ra App state (dùng chung
+        // với DailyStatsTable) chỉ xảy ra khi bấm "Lưu Thay Đổi" (xem handleSave) — tránh
+        // ghi đè dailyRequirements liên tục theo từng phím gõ / mỗi lần đổi bộ phận.
+        setDepartmentRequirements(prev => ({
+            ...prev,
+            [selectedDept]: newDeptReqs
+        }));
+    }
+  };
+
+
+  const handleSave = () => {
+    // Đẩy "Yêu Cầu" của bộ phận đang chọn ra App state (dùng chung với DailyStatsTable)
+    // đúng lúc bấm Lưu, thay vì liên tục theo từng phím gõ như trước.
+    if (selectedDept && departmentRequirements[selectedDept]) {
+        onRequirementsUpdate(departmentRequirements[selectedDept]);
+    }
+
+    const validatedPatterns: { [key: string]: string[] } = {};
+    for (const dept in patternsByDept) {
+        const patterns = patternsByDept[dept].map(p => p.trim()).filter(Boolean);
+        if (patterns.length > 0) {
+            validatedPatterns[dept] = patterns;
+        }
+    }
+    // Hành động chính (đóng modal + lưu mẫu ca) phải chạy ngay, không chờ IndexedDB —
+    // trước đây await idb.saveData() không có try/catch khiến nút bấm "im re" nếu ghi lỗi/kẹt.
+    onSave(validatedPatterns);
+
+    if (showHelp) {
+        idb.saveData('hasSeenPatternHelp', true).catch(err => console.error('Lỗi khi lưu hasSeenPatternHelp:', err));
+    }
+    idb.saveData('departmentPatternRequirements', departmentRequirements).catch(err => console.error('Lỗi khi lưu departmentPatternRequirements:', err));
+  };
+
+  const handleClose = () => {
+    if (showHelp) {
+        idb.saveData('hasSeenPatternHelp', true).catch(err => console.error('Lỗi khi lưu hasSeenPatternHelp:', err));
+    }
+    idb.saveData('departmentPatternRequirements', departmentRequirements).catch(err => console.error('Lỗi khi lưu departmentPatternRequirements:', err));
+    onClose();
+  };
+
+
+  const patternsForSelectedDept = patternsByDept[selectedDept] || [];
+  const SHIFTS = [1, 2, 3, 4, 5, 6];
+  const reqsForAi = departmentRequirements[selectedDept] || dailyRequirements;
+
+  return (
+    <>
+    <Modal panelClassName="phanca-root"
+      isOpen
+      onClose={handleClose}
+      zIndex="z-[60]"
+      title="Quản Lý Mẫu Ca Xoay"
+      maxWidth="xl"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={handleClose}>Hủy</Button>
+          <Button onClick={handleSave}>Lưu Thay Đổi</Button>
+        </div>
+      }
+    >
+        {showHelp && (
+            <div className="relative mb-3 p-3 bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 text-sky-800 dark:text-sky-300 text-xs shadow-sm rounded-md">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                        setShowHelp(false);
+                        await idb.saveData('hasSeenPatternHelp', true);
+                    }}
+                    icon="close"
+                    title="Đóng hướng dẫn"
+                    aria-label="Đóng hướng dẫn"
+                    className="absolute top-1 right-1 text-sky-400 hover:text-sky-600 h-6 w-6"
+                />
+                <h4 className="font-black flex items-center gap-1.5 uppercase tracking-wider mb-1.5">
+                    <AppIcon name="quick" size="sm" />
+                    Hướng dẫn nhanh
+                </h4>
+                <ul className="list-disc list-inside space-y-0.5 ml-1 text-[11px]">
+                    <li><strong>Tick vào các ô</strong> để tạo một chuỗi ca (VD: tick Ca 1, 2, 3 sẽ tạo mã ca "123").</li>
+                    <li><strong>Mã Ca</strong> và <strong>GC/Ca</strong> (Giờ công/Ca) sẽ tự động cập nhật.</li>
+                    <li>Bạn cũng có thể <strong>nhập trực tiếp</strong> vào ô Mã Ca (chấp nhận cả chữ và số).</li>
+                    <li>Nhấn <strong>"+ Thêm nhân viên mới"</strong> để thêm một bước vào chu kỳ xoay ca.</li>
+                    <li className="font-bold text-rose-600 dark:text-rose-400">Ca xoay hiệu quả khi số lượng ca xoay bằng 1/2 số lượng nhân sự.</li>
+                </ul>
+            </div>
+        )}
+
+        <div className="mb-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-2 rounded-md">
+            <label htmlFor="pattern-bo-phan" className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Chọn bộ phận:</label>
+            <div className="flex-grow min-w-0">
+                <Select
+                    dense
+                    id="pattern-bo-phan"
+                    value={selectedDept}
+                    onChange={(e) => setSelectedDept(e.target.value)}
+                    className="h-8 font-bold text-slate-700"
+                >
+                    {allDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept} ({staffCountByDept[dept] || 0} NV)</option>
+                    ))}
+                </Select>
+            </div>
+        </div>
+
+        {previewStats && (
+            <div className="mb-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-800/80 p-2 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <h3 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Xem trước số lượng (Trung bình/ngày)</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-center text-xs border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                <th className="p-1.5 text-left w-20 font-black">Chỉ số</th>
+                                <th className="p-1.5 font-black">Ca 1</th>
+                                <th className="p-1.5 font-black">Ca 2</th>
+                                <th className="p-1.5 font-black">Ca 3</th>
+                                <th className="p-1.5 font-black">Ca 4</th>
+                                <th className="p-1.5 font-black">Ca 5</th>
+                                <th className="p-1.5 font-black">Ca 6</th>
+                                <th className="p-1.5 font-black text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/20 border-l border-slate-200 dark:border-slate-700">GC/Ngày</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+                                <td className="p-1.5 font-bold text-sky-600 dark:text-sky-400 text-left text-[11px] uppercase tracking-widest">Khung Giờ</td>
+                                {['1', '2', '3', '4', '5', '6'].map(slot => (
+                                    <td key={slot} className="p-1">
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <Input
+                                                dense
+                                                fullWidth={false}
+                                                type="time"
+                                                aria-label={`Giờ bắt đầu ca ${slot}`}
+                                                value={shiftDefinitions[slot]?.startTime || ''}
+                                                onChange={(e) => onShiftDefinitionsUpdate({ ...shiftDefinitions, [slot]: { ...shiftDefinitions[slot], startTime: e.target.value } })}
+                                                className="w-[60px] px-0.5 text-[11px] font-mono font-bold text-slate-600 text-center"
+                                            />
+                                            <Input
+                                                dense
+                                                fullWidth={false}
+                                                type="time"
+                                                aria-label={`Giờ kết thúc ca ${slot}`}
+                                                value={shiftDefinitions[slot]?.endTime || ''}
+                                                onChange={(e) => onShiftDefinitionsUpdate({ ...shiftDefinitions, [slot]: { ...shiftDefinitions[slot], endTime: e.target.value } })}
+                                                className="w-[60px] px-0.5 text-[11px] font-mono font-bold text-slate-600 text-center"
+                                            />
+                                        </div>
+                                    </td>
+                                ))}
+                                <td className="p-1.5 bg-sky-50 dark:bg-sky-900/20 border-l border-slate-200 dark:border-slate-700"></td>
+                            </tr>
+                            <tr className="relative border-b border-slate-100 dark:border-slate-700">
+                                {onboardingStep === 1 && (
+                                    <td colSpan={8} className="absolute inset-0 ring-2 ring-rose-500 pointer-events-none">
+                                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 w-48 bg-rose-600 text-white text-[11px] font-bold py-1 px-2 shadow-lg z-50 text-center rounded">
+                                            Bước 1: Nhập số lượng yêu cầu.
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -mb-1 w-2 h-2 bg-rose-600 rotate-45"></div>
+                                        </div>
+                                    </td>
+                                )}
+                                <td className="p-1.5 font-bold text-rose-600 dark:text-rose-400 text-left">Yêu Cầu</td>
+                                {['1', '2', '3', '4', '5', '6'].map(slot => (
+                                    <td key={slot} className="p-1">
+                                        <Input
+                                            dense
+                                            aria-label={`Yêu cầu ca ${slot}`}
+                                            id={`pattern-req-input-${slot}`}
+                                            type="number" inputMode="decimal"
+                                            value={departmentRequirements[selectedDept]?.[slot] || ''}
+                                            onChange={(e) => handleRequirementChange(slot, e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const nextSlot = String(parseInt(slot) + 1);
+                                                    const nextInput = document.getElementById(`pattern-req-input-${nextSlot}`);
+                                                    if (nextInput) {
+                                                        (nextInput as HTMLInputElement).focus();
+                                                        (nextInput as HTMLInputElement).select();
+                                                    }
+                                                }
+                                            }}
+                                            className="max-w-[50px] mx-auto px-1 text-center font-bold text-slate-800"
+                                            min="0"
+                                            placeholder="-"
+                                        />
+                                    </td>
+                                ))}
+                                <td className="p-1.5 bg-sky-50 dark:bg-sky-900/20 border-l border-slate-200 dark:border-slate-700"></td>
+                            </tr>
+                            <tr>
+                                <td className="p-1.5 font-bold text-slate-700 dark:text-slate-300 text-left">Đã sắp</td>
+                                {['1', '2', '3', '4', '5', '6'].map(slot => {
+                                    const required = departmentRequirements[selectedDept]?.[slot] || 0;
+                                    const scheduled = previewStats[slot];
+                                    let statusColor = 'text-slate-700 dark:text-slate-300';
+                                    if (required > 0) {
+                                        if (scheduled < required) statusColor = 'text-amber-600 dark:text-amber-400';
+                                        else if (scheduled > required) statusColor = 'text-rose-600 dark:text-rose-400';
+                                        else statusColor = 'text-emerald-600 dark:text-emerald-400';
+                                    }
+                                    return <td key={slot} className={`p-1.5 font-mono font-bold text-sm ${statusColor}`}>{scheduled}</td>
+                                })}
+                                <td className="p-1.5 font-mono font-black text-sm text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/20 border-l border-slate-200 dark:border-slate-700">{previewStats.totalHours}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )}
+
+        <div className="mb-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-xs font-black text-slate-700 dark:text-slate-300">Danh sách ca: <span className="text-sky-600 dark:text-sky-400">{selectedDept}</span></h3>
+            <Button
+                variant="tinted"
+                size="sm"
+                onClick={() => setIsAiModalOpen(true)}
+                disabled={!selectedDept || !reqsForAi}
+                icon="quick"
+                title={!reqsForAi ? 'Cần nhập Yêu Cầu nhân sự tối thiểu/ca trước' : undefined}
+            >
+                Gợi ý AI
+            </Button>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 gap-1 text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 py-2 pr-8">
+                  <div className="col-span-1 text-center">STT</div>
+                  {SHIFTS.map(s => <div key={s} className="col-span-1 text-center">Ca {s}</div>)}
+                  <div className="col-span-2 text-center border-l border-slate-200 dark:border-slate-700">Mã Ca</div>
+                  <div className="col-span-2 text-center border-l border-slate-200 dark:border-slate-700">GC/Ca</div>
+                  <div className="col-span-1 text-center"></div>
+              </div>
+
+              {patternsForSelectedDept.length > 0 ? (
+                patternsForSelectedDept.map((pattern, index) => {
+                  const totalHours = pattern.split('').reduce((sum, char) => sum + (HOURS_CONFIG[char] || 0), 0);
+                  return (
+                    <div key={index} className="grid grid-cols-12 gap-1 items-center border-b border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-700/40 py-1 relative">
+                        <div className="col-span-1 text-center text-slate-400 dark:text-slate-500 font-mono text-xs font-bold">{index + 1}</div>
+                        {SHIFTS.map(shift => (
+                            <div key={shift} className="col-span-1 text-center flex justify-center">
+                                <Checkbox
+                                    checked={pattern.includes(String(shift))}
+                                    onChange={() => handleCheckboxChange(index, shift)}
+                                    aria-label={`Ca ${shift} — dòng ${index + 1}`}
+                                />
+                            </div>
+                        ))}
+                        <div className="col-span-2 px-1 border-l border-slate-100 dark:border-slate-700">
+                            <Input
+                                dense
+                                type="text"
+                                value={pattern}
+                                onChange={(e) => handlePatternTextChange(index, e.target.value)}
+                                aria-label={`Mã ca dòng ${index + 1}`}
+                                className="text-center font-mono font-bold text-sky-700 border-slate-200"
+                                placeholder="-"
+                            />
+                        </div>
+                        <div className="col-span-2 text-center font-mono font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 py-1 text-xs border-l border-slate-100 dark:border-slate-700">
+                            {totalHours > 0 ? totalHours : '-'}
+                        </div>
+                        <div className="col-span-1 text-center absolute right-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemovePattern(index)}
+                                icon="delete"
+                                title="Xóa dòng này"
+                                aria-label="Xóa dòng này"
+                                className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                            />
+                        </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <EmptyState title="Chưa có mẫu ca nào cho bộ phận này." compact />
+              )}
+          </div>
+
+           <div className="relative mt-3">
+                {onboardingStep === 2 && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 w-48 bg-rose-600 text-white text-[11px] font-bold py-1 px-2 shadow-lg z-50 text-center rounded">
+                        Bước 2: Thêm chu kỳ xoay ca.
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 w-2 h-2 bg-rose-600 rotate-45"></div>
+                    </div>
+                )}
+               <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={handleAddPattern}
+                  disabled={!selectedDept}
+                  className={`w-full ${onboardingStep === 2 ? 'ring-2 ring-rose-500' : ''}`}
+               >
+                  + Thêm nhân viên mới
+               </Button>
+           </div>
+        </div>
+    </Modal>
+    {isAiModalOpen && reqsForAi && (
+        <AiSuggestPatternModal
+            onClose={() => setIsAiModalOpen(false)}
+            onApply={(patterns) => {
+                setPatternsByDept(prev => ({ ...prev, [selectedDept]: patterns }));
+                setIsAiModalOpen(false);
+            }}
+            departmentName={selectedDept}
+            nams={nams}
+            nus={nus}
+            dailyRequirements={reqsForAi}
+            rules={rules}
+        />
+    )}
+    </>
+  );
+};
+
+export default EditPatternModal;

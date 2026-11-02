@@ -1,0 +1,59 @@
+
+import React from 'react';
+import type { ProcessedData, FilterState, ProductConfig, DataRow, Employee, EmployeeData, PendingExport, CrossSellingConfig } from '../types';
+import { DepartmentMap } from '../services/dataService';
+import type { ExportImageOptions } from '../hooks/useExportLogic';
+
+
+export interface DashboardContextType {
+    appState: 'upload' | 'processing' | 'dashboard' | 'loading';
+    processedData: ProcessedData | null;
+    filterState: FilterState;
+    handleFilterChange: (newFilters: Partial<FilterState>) => void;
+    productConfig: ProductConfig | null;
+    originalData: DataRow[];
+    baseFilteredData: DataRow[];
+    warehouseFilteredData: DataRow[];
+    departmentMap: DepartmentMap | null;
+    updateDepartmentMap: (newMap: DepartmentMap) => void;
+    employeeAnalysisData: EmployeeData | null;
+    openPerformanceModal: (employeeName: string) => void;
+    handleBatchExport: (employees: Employee[]) => void;
+    handleExport: (element: HTMLElement | null, filename: string, options?: ExportImageOptions) => Promise<Blob | null | void>;
+    isProcessing: boolean;
+    isExporting: boolean;
+    pendingExport: PendingExport | null;
+    handlePendingDownload: () => void;
+    handlePendingShare: () => Promise<void>;
+    handlePendingClose: () => void;
+    uniqueFilterOptions: { kho: string[]; trangThai: string[]; nguoiTao: string[], department: string[], hangSX: string[] };
+    availableWeeks: { value: string; label: string }[];
+    availableMonths: string[];
+    warehouseTargets: Record<string, number>;
+    updateWarehouseTarget: (kho: string, target: number) => void;
+    warehouseDTThucTargets: Record<string, number>;
+    updateWarehouseDTThucTarget: (kho: string, target: number) => void;
+    gtdhTargets: Record<string, number>;
+    updateGtdhTarget: (nhomHang: string, target: number) => void;
+    deleteGtdhTarget: (nhomHang: string) => void;
+    kpiTargets: { hieuQua: number, traGop: number, gtdh?: number, doanhThuThuc?: number };
+    updateKpiTargets: (targets: { hieuQua: number, traGop: number, gtdh?: number, doanhThuThuc?: number }) => void;
+    crossSellingConfig: CrossSellingConfig | null;
+    updateCrossSellingConfig: (config: CrossSellingConfig) => void;
+    kpiCardsConfig: import('../types').KpiCardConfig[];
+    updateKpiCardsConfig: (config: import('../types').KpiCardConfig[]) => void;
+    isLuyKe: boolean;
+    handleLuyKeChange: (enabled: boolean) => void;
+    editingTargetKho: { id: string, name: string, valueDTQD: string, valueDTThuc: string } | null;
+    setEditingTargetKho: React.Dispatch<React.SetStateAction<{ id: string, name: string, valueDTQD: string, valueDTThuc: string } | null>>;
+}
+
+export const DashboardContext = React.createContext<DashboardContextType | undefined>(undefined);
+
+export const useDashboardContext = () => {
+    const context = React.useContext(DashboardContext);
+    if (context === undefined) {
+        throw new Error('useDashboardContext must be used within a DashboardProvider');
+    }
+    return context;
+};

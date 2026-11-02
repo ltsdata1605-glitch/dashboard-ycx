@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /Users/ltson/dashboardycx
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  13:37:56
+   Duration  529ms (transform 108ms, setup 0ms, import 143ms, tests 287ms, environment 0ms)
+

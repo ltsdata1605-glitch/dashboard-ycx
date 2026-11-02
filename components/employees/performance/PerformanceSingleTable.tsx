@@ -1,0 +1,626 @@
+import React, { useMemo, useState } from 'react';
+import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../../shared/ui/icon/AppIcon';
+import { EmptyState } from '../../shared/ui/EmptyState';
+import type { Employee } from '../../../types';
+import { abbreviateName, formatCurrency, formatQuantity, getBorderAccentFromColorClass } from '../../../utils/dataUtils';
+import {
+    GroupType, SortDirection, TAB_THEMES, DEPT_COLORS,
+    getProgressBarColor, getPercentBadge, getTraChamBadge, getHieuQuaBadge, RankBadge, EmployeeWithTarget
+} from './PerformanceTableUtils';
+import { useDashboardContext } from '../../../contexts/DashboardContext';
+import { Button } from '../../shared/ui/Button';
+import { ActionMenu, type ActionMenuItem } from '../../shared/ui/ActionMenu';
+import AreaAutoExportButton from '../../shared/export/AreaAutoExportButton';
+import { exportElementAsImage } from '../../shared/export/captureEngine';
+import { registerYcxAutoExportRunner } from '../../../services/autoReportExportService';
+
+// Khớp object trả về bởi trueGrandTotal (useMemo) trong PerformanceTable.tsx
+interface GrandTotalData {
+    doanhThuThuc: number;
+    doanhThuQD: number;
+    slTiepCan: number;
+    slICT: number;
+    slCE_main: number;
+    slCE_ICT: number;
+    slTraCham_CE_ICT: number;
+    hieuQuaValue: number;
+    traChamPercent_CE_ICT: number;
+    dtTraChamPercent_CE_ICT: number;
+    target: number;
+    percentHT: number;
+    dtVuot: number;
+}
+
+interface RenderSingleTableProps {
+    groupType: GroupType;
+    handleTabChange: (tab: GroupType) => void;
+    sortConfig: { key: string; direction: SortDirection };
+    onSort: (key: string) => void;
+    tableRef: React.Ref<HTMLDivElement>;
+    onSingleExport: () => void;
+    isExporting?: boolean;
+    groupedData: { [key: string]: Employee[] };
+    outstandingData: { [key: string]: EmployeeWithTarget[] };
+    grandTotal: GrandTotalData;
+    targetPerEmployee: number;
+    onEmployeeClick: (name: string) => void;
+    isEditingTarget: boolean;
+    targetInputRef: React.RefObject<HTMLInputElement | null>;
+    setTargetPerEmployee: (v: number) => void;
+    handleSaveTarget: () => void;
+    setIsEditingTarget: (v: boolean) => void;
+    tempTarget: string;
+    setTempTarget: (v: string) => void;
+    fullSellerArrayLength: number;
+    showSortArrow: boolean;
+    onBatchExport: () => void;
+    kpiTargets?: { hieuQua: number, traGop: number };
+}
+
+export const PerformanceSingleTable: React.FC<RenderSingleTableProps> = ({
+    groupType, handleTabChange, sortConfig, onSort, tableRef, onSingleExport,
+    isExporting, groupedData, outstandingData, grandTotal, targetPerEmployee,
+    onEmployeeClick, isEditingTarget, targetInputRef, handleSaveTarget, 
+    setIsEditingTarget, tempTarget, setTempTarget, showSortArrow, onBatchExport, kpiTargets
+}) => {
+    const [copyKey, setCopyKey] = useState<string | null>(null);
+
+    const theme = TAB_THEMES[groupType];
+    const dataToRender = groupType === 'vuotTroi' ? outstandingData : groupedData;
+
+    const [renderLimit, setRenderLimit] = useState(20);
+
+    const areaId = groupType === 'doanhThu'
+        ? 'Phân Tích Nhân Viên - Hiệu Suất (D.Thu)'
+        : groupType === 'khaiThac'
+            ? 'Phân Tích Nhân Viên - Hiệu Suất (T.Chậm)'
+            : 'Phân Tích Nhân Viên - Hiệu Suất (V.Trội)';
+
+    const areaName = groupType === 'doanhThu'
+        ? 'Hiệu Suất: Doanh Thu'
+        : groupType === 'khaiThac'
+            ? 'Hiệu Suất: Trả Chậm'
+            : 'Hiệu Suất: Vượt Trội';
+
+    const getTableElement = () => (typeof tableRef === 'function' ? null : tableRef?.current);
+
+    React.useEffect(() => {
+        const unreg1 = registerYcxAutoExportRunner(areaId, async () => {
+            const el = getTableElement();
+            if (!el) return null;
+            const res = await exportElementAsImage(el, `${areaId}.png`, {
+                isCompactTable: true,
+                fitAllColumns: true,
+                mode: 'blob-only',
+            });
+            return (res instanceof Blob) ? res : null;
+        });
+        const unreg2 = registerYcxAutoExportRunner('Phân Tích Nhân Viên - Hiệu Suất', async () => {
+            const el = getTableElement();
+            if (!el) return null;
+            const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - Hiệu Suất.png', {
+                isCompactTable: true,
+                fitAllColumns: true,
+                mode: 'blob-only',
+            });
+            return (res instanceof Blob) ? res : null;
+        });
+        return () => {
+            unreg1();
+            unreg2();
+        };
+    }, [areaId, tableRef]);
+
+    // Optimize lag by lazy rendering
+    React.useEffect(() => {
+        if (isExporting) {
+            setRenderLimit(99999);
+            return;
+        }
+        setRenderLimit(20);
+        const timer = setTimeout(() => {
+            setRenderLimit(99999);
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [dataToRender, isExporting, groupType]);
+
+    const headers: { label: string; key: string; colorClass: string; textColor: string; align?: 'left' | 'center' | 'right'; sos?: boolean; groupName: string; groupColorClass: string; groupTextColor: string; noSubHeader?: boolean }[] =
+        groupType === 'doanhThu' ? [
+            { label: 'Thực', key: 'doanhThuThuc', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'DOANH THU', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: 'DTQĐ', key: 'doanhThuQD', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'DOANH THU', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: '%QĐ', key: 'hieuQuaValue', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'HIỆU QUẢ', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: '%TC', key: 'dtTraChamPercent_CE_ICT', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'HIỆU QUẢ', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: 'SOS', key: 'weakPointsRevenue', colorClass: 'bg-rose-50 dark:bg-rose-900/20', textColor: 'text-rose-700 dark:text-rose-400', align: 'center', sos: true, groupName: 'CẢNH BÁO', groupColorClass: 'bg-rose-50 dark:bg-rose-900/20', groupTextColor: 'text-rose-700 dark:text-rose-300', noSubHeader: true },
+        ] : groupType === 'khaiThac' ? [
+            { label: 'ICT', key: 'slICT', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'SẢN PHẨM CHÍNH', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: 'CE', key: 'slCE_main', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'SẢN PHẨM CHÍNH', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: 'TỔNG', key: 'slCE_ICT', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'SẢN PHẨM CHÍNH', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: 'SL', key: 'slTraCham_CE_ICT', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'TRẢ CHẬM', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: '%SL/SPC', key: 'traChamPercent_CE_ICT', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'TRẢ CHẬM', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: '%DT', key: 'dtTraChamPercent_CE_ICT', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'TRẢ CHẬM', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: 'SOS', key: 'weakPointsExploitation', colorClass: 'bg-rose-50 dark:bg-rose-900/20', textColor: 'text-rose-700 dark:text-rose-400', align: 'center', sos: true, groupName: 'CẢNH BÁO', groupColorClass: 'bg-rose-50 dark:bg-rose-900/20', groupTextColor: 'text-rose-700 dark:text-rose-300', noSubHeader: true },
+        ] : [
+            { label: 'Thực', key: 'doanhThuThuc', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'DOANH THU', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: 'DTQĐ', key: 'doanhThuQD', colorClass: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-700 dark:text-emerald-400', align: 'center', groupName: 'DOANH THU', groupColorClass: 'bg-emerald-50 dark:bg-emerald-900/20', groupTextColor: 'text-emerald-700 dark:text-emerald-300' },
+            { label: 'Tar', key: 'target', colorClass: 'bg-sky-50 dark:bg-sky-900/20', textColor: 'text-sky-700 dark:text-sky-400', align: 'center', groupName: 'MỤC TIÊU', groupColorClass: 'bg-sky-50 dark:bg-sky-900/20', groupTextColor: 'text-sky-700 dark:text-sky-300' },
+            { label: '%HT', key: 'percentHT', colorClass: 'bg-sky-50 dark:bg-sky-900/20', textColor: 'text-sky-700 dark:text-sky-400', align: 'center', groupName: 'MỤC TIÊU', groupColorClass: 'bg-sky-50 dark:bg-sky-900/20', groupTextColor: 'text-sky-700 dark:text-sky-300' },
+            { label: '%QĐ', key: 'hieuQuaValue', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'HIỆU QUẢ', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: '%TC', key: 'dtTraChamPercent_CE_ICT', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'HIỆU QUẢ', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+            { label: 'Vượt', key: 'dtVuot', colorClass: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-700 dark:text-amber-400', align: 'center', groupName: 'HIỆU QUẢ', groupColorClass: 'bg-amber-50 dark:bg-amber-900/20', groupTextColor: 'text-amber-700 dark:text-amber-300' },
+        ];
+
+    const groupedHeaders = useMemo(() => {
+        const groups: { name: string; colSpan: number; bg: string; text: string; noSubHeader?: boolean }[] = [];
+        if (headers.length === 0) return groups;
+        
+        let currentGroup = { name: headers[0].groupName, colSpan: 1, bg: headers[0].groupColorClass, text: headers[0].groupTextColor, noSubHeader: headers[0].noSubHeader };
+        for (let i = 1; i < headers.length; i++) {
+            if (headers[i].groupName === currentGroup.name) {
+                currentGroup.colSpan++;
+            } else {
+                groups.push(currentGroup);
+                currentGroup = { name: headers[i].groupName, colSpan: 1, bg: headers[i].groupColorClass, text: headers[i].groupTextColor, noSubHeader: headers[i].noSubHeader };
+            }
+        }
+        groups.push(currentGroup);
+        return groups;
+    }, [headers]);
+
+    const handleCopyList = (e: React.MouseEvent, key: string, label: string) => {
+        e.stopPropagation();
+        
+        const getId = (n: string) => {
+            if (!n) return '00000';
+            const match = n.match(/^(\d+)/);
+            return match ? match[1] : n.split(/[-–]/)[0].trim();
+        };
+
+        const result: string[] = [];
+        
+        Object.entries(dataToRender).forEach(([dept, employees]: [string, Employee[]]) => {
+            if (!Array.isArray(employees) || employees.length === 0) return;
+            
+            const sorted = [...employees].sort((a, b) => ((b as unknown as Record<string, number | undefined>)[key] ?? 0) - ((a as unknown as Record<string, number | undefined>)[key] ?? 0));
+            const count = sorted.length;
+            
+            // TOP 20%
+            const topCount = Math.max(1, Math.round(count * 0.2));
+            const topList = sorted.slice(0, topCount);
+            
+            // BOTTOM 30%
+            const bottomCount = Math.max(1, Math.round(count * 0.3));
+            const bottomList = sorted.slice(-bottomCount).reverse(); 
+            
+            if (topList.length > 0 || bottomList.length > 0) {
+                result.push(`🏢 [${dept || 'Không Phân Ca'}] - ${label}`);
+                if (topList.length > 0) {
+                    result.push(`✅ TOP 20%: ${topList.map(e => `@${getId(e.name)}`).join(' ')}`);
+                }
+                if (bottomList.length > 0) {
+                    result.push(`⚠️ BOTTOM 30%: ${bottomList.map(e => `@${getId(e.name)}`).join(' ')}`);
+                }
+                result.push('');
+            }
+        });
+
+        if (result.length === 0) return;
+
+        navigator.clipboard.writeText(result.join('\n')).then(() => {
+            setCopyKey(key);
+            setTimeout(() => setCopyKey(null), 2000);
+        });
+    };
+
+    const showDeptHeaders = dataToRender && (Object.keys(dataToRender).length > 1 ||
+        (Object.keys(dataToRender).length === 1 && Object.keys(dataToRender)[0] !== 'Không Phân Ca'));
+
+    // Hook PHẢI đứng trước mọi lệnh return sớm (rules-of-hooks): trước 2026-10-20 nằm sau nhánh "không có dữ liệu" →
+    // đổi bộ lọc từ rỗng sang có dữ liệu là React báo "Rendered more hooks…" và màn hình sập.
+    const tabMenuItems: ActionMenuItem[] = useMemo(() => [
+        {
+            id: 'doanhThu',
+            label: 'Hiệu quả doanh thu',
+            icon: 'wallet',
+            onSelect: () => handleTabChange('doanhThu'),
+            description: groupType === 'doanhThu' ? 'Đang xem' : undefined,
+        },
+        {
+            id: 'khaiThac',
+            label: 'Hiệu quả trả chậm',
+            icon: 'layers',
+            onSelect: () => handleTabChange('khaiThac'),
+            description: groupType === 'khaiThac' ? 'Đang xem' : undefined,
+        },
+        {
+            id: 'vuotTroi',
+            label: 'Mục tiêu vượt trội',
+            icon: 'trophy',
+            onSelect: () => handleTabChange('vuotTroi'),
+            description: groupType === 'vuotTroi' ? 'Đang xem' : undefined,
+        },
+    ], [handleTabChange, groupType]);
+
+    if (!dataToRender || Object.keys(dataToRender).length === 0) {
+        return (
+            <div ref={tableRef}>
+                <EmptyState icon="empty" title="Không có dữ liệu hiển thị" description="Thử đổi bộ lọc kho, bộ phận hoặc khoảng thời gian." />
+            </div>
+        );
+    }
+
+    const canCopyKeys = new Set(['doanhThuThuc', 'doanhThuQD', 'percentHT', 'dtVuot', 'hieuQuaValue', 'dtTraChamPercent_CE_ICT']);
+
+
+    return (
+        <div ref={tableRef} className="flex flex-col overflow-hidden">
+
+            {/* Header */}
+            <div className="flex justify-between items-center mb-3 sm:mb-6">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 mr-2">
+                    <div className="min-w-0">
+                        <h3 className="text-sm lg:text-[17px] font-medium text-slate-700 dark:text-slate-200 uppercase tracking-wide truncate leading-tight">{theme.title}</h3>
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">{theme.subtitle}</p>
+                    </div>
+                </div>
+
+                {/* Tab switcher + export */}
+                <div className="px-0 sm:px-6 py-0 sm:py-2 sm:border-b sm:border-slate-100 dark:sm:border-slate-800 bg-transparent hide-on-export shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
+                        {/* Mobile: Gôm 3 chức năng thành 1 icon 3 chấm giống thêm thao tác */}
+                        <div className="sm:hidden shrink-0">
+                            <ActionMenu
+                                items={tabMenuItems}
+                                title="Chức năng phân tích"
+                                label="Thêm thao tác"
+                                align="end"
+                                renderTrigger={(triggerProps) => (
+                                    <Button
+                                        {...triggerProps}
+                                        variant="ghost"
+                                        size="icon"
+                                        className="ycx-hit flex items-center justify-center w-[var(--btn-height-icon)] h-[var(--btn-height-icon)] rounded-control text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 active:scale-95 transition-all"
+                                        title="Thêm thao tác"
+                                        aria-label="Thêm thao tác"
+                                    >
+                                        <AppIcon name="more" size="md" />
+                                    </Button>
+                                )}
+                            />
+                        </div>
+
+                        {/* Desktop: Giữ nguyên 3 tab đầy đủ */}
+                        <div className="hidden sm:inline-flex gap-0.5 sm:gap-1 shrink-0">
+                            {(['doanhThu', 'khaiThac', 'vuotTroi'] as GroupType[]).map(tab => {
+                                const tabIcon = TAB_THEMES[tab].icon;
+                                const tabLabel = tab === 'doanhThu' ? 'D.Thu' : tab === 'khaiThac' ? 'T.Chậm' : 'V.Trội';
+                                return (
+                                <Button
+                                    key={tab}
+                                    onClick={() => handleTabChange(tab)}
+                                    variant="toolbar" size="icon"
+                                    aria-pressed={groupType === tab}
+                                    className="w-auto px-2 lg:px-2.5 text-[11px] sm:text-xs font-bold gap-1 sm:gap-1.5"
+                                    title={tabLabel}
+                                >
+                                    <AppIcon name={resolveIconName(tabIcon) ?? 'help'} size="md" />
+                                    <span className="hidden sm:inline">{tabLabel}</span>
+                                </Button>
+                            )})}
+                        </div>
+                        <div className="h-4 lg:h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 lg:mx-1"></div>
+                        <Button
+                            onClick={async (e) => { 
+                                e.stopPropagation(); 
+                                onBatchExport();
+                            }}
+                            disabled={isExporting}
+                            variant="ghost" size="icon"
+                            className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            title="Xuất Ảnh Tất Cả Tab (3 Tab)"
+                        >
+                            <AppIcon name="exportBatch" size="md" />
+                        </Button>
+                        <Button
+                            onClick={e => { e.stopPropagation(); onSingleExport(); }}
+                            disabled={isExporting}
+                            variant="ghost" size="icon"
+                            className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+                            title="Xuất Ảnh Tab Hiện Tại"
+                        >
+                            {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                            {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                        </Button>
+                        <AreaAutoExportButton
+                            areaId={areaId}
+                            areaName={areaName}
+                            onTestExport={async () => {
+                                const el = getTableElement();
+                                if (!el) return null;
+                                const res = await exportElementAsImage(el, `${areaId}.png`, {
+                                    isCompactTable: true,
+                                    fitAllColumns: true,
+                                    mode: 'blob-only',
+                                });
+                                return (res instanceof Blob) ? res : null;
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Table ── */}
+            <div className="overflow-x-auto custom-scrollbar flex-grow border border-slate-200 dark:border-slate-700">
+                <table className="w-full text-left border-collapse">
+
+                    {/* Thead */}
+                    <thead className="sticky top-0 z-20">
+                        {/* Group Headers */}
+                        <tr className="text-[11px] font-bold uppercase tracking-wider">
+                            <th 
+                                colSpan={2} 
+                                rowSpan={2} 
+                                onClick={() => onSort('name')}
+                                className={`px-2 sm:px-4 py-1 sm:py-2 border-b-[3px] !border-b-slate-300 dark:!border-b-slate-600 border-r border-slate-200 dark:border-slate-700 ${isExporting ? '' : 'sticky left-0 z-40'} bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 select-none cursor-pointer h-px hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors group/nhanvien`}
+                            >
+                                <div className="flex items-center justify-center gap-1">
+                                    NHÂN VIÊN
+                                    {(sortConfig.key === 'name' && showSortArrow) && (
+                                        <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+                                    )}
+                                </div>
+                            </th>
+                            {groupedHeaders.map((group, i) => (
+                                <th key={i} colSpan={group.colSpan} rowSpan={group.noSubHeader ? 2 : 1} className={`px-1 sm:px-2 py-1 sm:py-2 ${group.bg} ${group.text} border-r border-slate-200 dark:border-slate-700 text-center h-px relative group/th ${group.noSubHeader ? `border-b-[3px] !${getBorderAccentFromColorClass(group.bg)} dark:!border-b-slate-600` : 'border-b'}`}
+                                    style={{ maxWidth: group.colSpan === 1 ? '60px' : undefined }}
+                                    onClick={() => {
+                                        if (group.noSubHeader) {
+                                            const targetCol = headers.find(h => h.groupName === group.name);
+                                            if (targetCol) onSort(targetCol.key);
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center justify-center gap-1 whitespace-normal leading-tight">
+                                        {group.name}
+                                        {group.noSubHeader && sortConfig.key === headers.find(h => h.groupName === group.name)?.key && showSortArrow && (
+                                            <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+                                        )}
+                                    </div>
+                                </th>
+                            ))}
+                        </tr>
+                        {/* Sub Headers */}
+                        <tr className="bg-white dark:bg-slate-900 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {/* Data cols */}
+                            {headers.map(h => {
+                                if (h.noSubHeader) return null;
+                                const isTarget = h.key === 'target' && groupType === 'vuotTroi';
+                                const canCopy = groupType === 'vuotTroi' && canCopyKeys.has(h.key);
+                                return (
+                                    <th
+                                        key={h.key}
+                                        onClick={() => isTarget
+                                            ? (setTempTarget(new Intl.NumberFormat('vi-VN').format(Math.round(targetPerEmployee / 1_000_000))), setIsEditingTarget(true))
+                                            : onSort(h.key)
+                                        }
+                                        className={`relative px-1.5 sm:px-3 py-1 sm:py-2 whitespace-nowrap border-b-[3px] !${getBorderAccentFromColorClass(h.colorClass)} dark:!border-b-slate-600 border-r border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-80 transition-opacity group/th
+                                            ${h.colorClass} ${h.textColor} ${h.align === 'right' ? 'text-right' : h.align === 'center' ? 'text-center' : 'text-left'} h-px`}
+                                    >
+                                        {isTarget && isEditingTarget ? (
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    ref={targetInputRef}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={tempTarget}
+                                                    onChange={e => {
+                                                        const raw = e.target.value.replace(/[^\d]/g, '');
+                                                        if (raw === '') { setTempTarget(''); return; }
+                                                        const num = parseInt(raw, 10);
+                                                        if (!isNaN(num)) setTempTarget(new Intl.NumberFormat('vi-VN').format(num));
+                                                    }}
+                                                    onBlur={handleSaveTarget}
+                                                    className="w-20 px-2 py-0.5 text-xs text-center border rounded-control bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-sky-400 dark:border-sky-500 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                                                    autoFocus
+                                                    placeholder="VD: 100"
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') handleSaveTarget();
+                                                        if (e.key === 'Escape') setIsEditingTarget(false);
+                                                    }}
+                                                />
+                                                <span className="text-[11px] font-bold text-sky-500 dark:text-sky-400 whitespace-nowrap">Tr</span>
+                                            </div>
+                                        ) : (
+                                            <div className={`flex items-center gap-1 ${h.align === 'center' ? 'justify-center' : h.align === 'right' ? 'justify-end' : 'justify-start'}`}>
+                                                {h.sos ? <AppIcon name="warning" size="xs" /> : null}
+                                                {h.label}
+                                                {isTarget && <AppIcon name="edit" size="xs" className="opacity-60 group-hover/th:opacity-100 ml-0.5 text-sky-500 hide-on-export" />}
+                                                {canCopyKeys.has(h.key) && (
+                                                    <Button variant="ghost" size="icon-inline" onClick={e => handleCopyList(e, h.key, h.label)} className="opacity-100 lg:opacity-0 lg:group-hover/th:opacity-100 ml-1 hover:text-sky-700 dark:hover:text-sky-400 transition-opacity hide-on-export">
+                                                        <AppIcon name="copy" size="xs" />
+                                                    </Button>
+                                                )}
+                                                {(sortConfig.key === h.key && showSortArrow) && (
+                                                    <span className="hide-on-export"><AppIcon name={resolveIconName(sortConfig.direction === 'asc' ? 'arrow-up' : 'arrow-down') ?? 'help'} size="xs" /></span>
+                                                )}
+                                                {copyKey === h.key && (
+                                                    <span className="ml-1 text-emerald-700 animate-pulse absolute -top-1 right-1 hide-on-export" aria-label="Đã sao chép"><AppIcon name="check" size="xs" /></span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </th>
+                                );
+                            })}
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {(Object.entries(dataToRender) as [string, EmployeeWithTarget[]][]).map(([dept, employees], deptIdx) => {
+                            if (!Array.isArray(employees)) return null;
+                            const dc = DEPT_COLORS[deptIdx % DEPT_COLORS.length];
+                            
+                            // Apply render limit to avoid freezing the browser on tab switch
+                            const visibleEmployees = isExporting ? employees : employees.slice(0, renderLimit);
+
+
+                            return (
+                                <React.Fragment key={dept || 'unknown'}>
+                                    {/* Department row */}
+                                    {showDeptHeaders && (
+                                        <tr>
+                                            <td colSpan={2 + headers.length} className={`px-2 sm:px-4 py-1 sm:py-1.5 ${dc.strip} border-y border-slate-200 dark:border-slate-700`}>
+                                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                                    <span className={`w-1 sm:w-2 h-3 sm:h-4 rounded-full ${dc.badge} flex-shrink-0`} />
+                                                    <span className={`text-[11px] font-black uppercase tracking-widest ${dc.text}`}>
+                                                        {dept || 'Không Phân Ca'} — {employees.length} người
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* Employee rows */}
+                                    {visibleEmployees.map((emp, idx: number) => {
+                                        if (!emp) return null;
+
+                                        return (
+                                            <tr
+                                                key={`${dept}-${emp.name}-${idx}`}
+                                                className={`group border-b border-slate-200 dark:border-slate-700 transition-colors duration-100 hover:bg-slate-100 dark:hover:bg-slate-800 ${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800'}`}
+                                            >
+                                                {/* Rank */}
+                                                <td className={`px-2 py-1 text-center border-r border-slate-200 dark:border-slate-700 ${isExporting ? '' : 'sticky left-0 z-10'} bg-inherit outline outline-1 outline-transparent`}>
+                                                    <RankBadge rank={idx} />
+                                                </td>
+
+                                                {/* Name */}
+                                                <td className={`px-1.5 sm:px-3 py-1 border-r border-slate-200 dark:border-slate-700 ${isExporting ? '' : 'sticky left-8 z-10'} bg-inherit outline outline-1 outline-transparent`}>
+                                                    <Button
+                                                        variant="cell" size="none"
+                                                        onClick={() => onEmployeeClick(emp.name)}
+                                                        className="flex items-center gap-1 sm:gap-2 min-w-0 group/name"
+                                                    >
+                                                        <span className={`text-[11px] sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 group-hover/name:text-primary-600 dark:group-hover/name:text-primary-400 transition-colors ${isExporting ? 'whitespace-nowrap max-w-none' : 'truncate max-w-[100px] sm:max-w-[140px]'}`}>
+                                                            {abbreviateName(emp.name)}
+                                                        </span>
+                                                    </Button>
+                                                </td>
+
+                                                {/* Data cells */}
+                                                {headers.map(h => (
+                                                    <td key={h.key} className={`px-1.5 sm:px-2.5 py-1 text-[11px] sm:text-[13px] whitespace-nowrap border-r border-slate-200 dark:border-slate-700 ${h.align === 'right' ? 'text-right' : h.align === 'center' ? 'text-center' : 'text-left'}`}>
+
+                                                        {h.key === 'doanhThuThuc' && (
+                                                            <span className="text-slate-500 dark:text-slate-400 font-medium">{formatCurrency(emp.doanhThuThuc)}</span>
+                                                        )}
+                                                        {h.key === 'doanhThuQD' && (
+                                                            <span className="font-extrabold text-slate-800 dark:text-slate-100">{formatCurrency(emp.doanhThuQD)}</span>
+                                                        )}
+                                                        {h.key === 'hieuQuaValue' && (
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-control text-[11px] font-extrabold ${getHieuQuaBadge(Number(emp.hieuQuaValue || 0), kpiTargets?.hieuQua)}`}>
+                                                                {Number(emp.hieuQuaValue || 0).toFixed(0)}%
+                                                            </span>
+                                                        )}
+                                                        {h.key === 'dtTraChamPercent_CE_ICT' && (
+                                                            <span className={`text-[11px] ${getTraChamBadge(Number(emp.dtTraChamPercent_CE_ICT || 0), kpiTargets?.traGop)}`}>
+                                                                {Number(emp.dtTraChamPercent_CE_ICT || 0).toFixed(0)}%
+                                                            </span>
+                                                        )}
+                                                        {(h.key === 'weakPointsRevenue' || h.key === 'weakPointsExploitation') && (
+                                                            <span className={`inline-flex items-center justify-center min-w-[18px] px-1 py-0.5 rounded-full text-[11px] font-black ${Number(emp[h.key] || 0) > 0
+                                                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'
+                                                                : 'text-slate-300 dark:text-slate-700'}`}>
+                                                                {emp[h.key] || '—'}
+                                                            </span>
+                                                        )}
+                                                        {h.key === 'slICT' && (
+                                                            <span className="font-semibold text-slate-600 dark:text-slate-400">{formatQuantity(emp.slICT)}</span>
+                                                        )}
+                                                        {h.key === 'slCE_main' && (
+                                                            <span className="font-semibold text-slate-600 dark:text-slate-400">{formatQuantity(emp.slCE_main)}</span>
+                                                        )}
+                                                        {h.key === 'slCE_ICT' && (
+                                                            <span className="font-bold text-slate-700 dark:text-slate-300">{formatQuantity(emp.slCE_ICT)}</span>
+                                                        )}
+                                                        {h.key === 'slTraCham_CE_ICT' && (
+                                                            <span className="font-bold text-slate-600 dark:text-slate-400">{formatQuantity(emp.slTraCham_CE_ICT)}</span>
+                                                        )}
+                                                        {h.key === 'traChamPercent_CE_ICT' && (
+                                                            <span className={`text-[11px] ${getTraChamBadge(Number(emp.traChamPercent_CE_ICT || 0))}`}>
+                                                                {Number(emp.traChamPercent_CE_ICT || 0).toFixed(0)}%
+                                                            </span>
+                                                        )}
+                                                        {h.key === 'target' && (
+                                                            <span className="font-bold text-rose-500 dark:text-rose-400">{formatCurrency(emp.target, 0)}</span>
+                                                        )}
+                                                        {h.key === 'percentHT' && (
+                                                            <div className="flex flex-col items-center gap-1 min-w-[64px]">
+                                                                <span className={`text-[11px] font-extrabold px-1.5 py-0.5 rounded ${getPercentBadge(Number(emp.percentHT || 0))}`}>
+                                                                    {Number(emp.percentHT || 0).toFixed(0)}%
+                                                                </span>
+                                                                <div className="w-full h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className={`h-full rounded-full bg-gradient-to-r ${getProgressBarColor(Number(emp.percentHT || 0))} transition-all duration-500`}
+                                                                        style={{ width: `${Math.min(Number(emp.percentHT || 0), 100)}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {h.key === 'dtVuot' && (
+                                                            <span className={`font-extrabold text-[11px] ${Number(emp.dtVuot || 0) > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-700'}`}>
+                                                                {Number(emp.dtVuot || 0) > 0 ? `+${formatCurrency(emp.dtVuot)}` : '—'}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            );
+                        })}
+                    </tbody>
+
+                    {/* ── Footer ── */}
+                    <tfoot className="bg-slate-100 dark:bg-slate-800 font-bold text-[11px] sm:text-[13px] border-t border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">
+                        <tr>
+                            <td colSpan={2} className={`px-2 sm:px-4 py-1 sm:py-1.5 text-center ${isExporting ? '' : 'sticky left-0 z-10'} bg-inherit font-extrabold text-[11px] sm:text-[12px] uppercase tracking-widest text-sky-700 dark:text-sky-300 border-r border-slate-200 dark:border-slate-700 whitespace-nowrap`}>
+                                ∑ Tổng
+                            </td>
+                            {headers.map(h => (
+                                <td key={h.key} className={`px-1.5 sm:px-2.5 py-1 sm:py-1.5 text-center whitespace-nowrap border-r border-slate-200 dark:border-slate-700 ${h.align === 'right' ? 'text-right' : h.align === 'center' ? 'text-center' : 'text-left'}`}>
+                                    <span style={{ color: h.textColor.includes('text') ? undefined : h.textColor }} className={h.textColor}>
+                                        {h.key === 'doanhThuThuc' && formatCurrency(grandTotal?.doanhThuThuc ?? 0)}
+                                        {h.key === 'doanhThuQD' && formatCurrency(grandTotal?.doanhThuQD ?? 0)}
+                                        {h.key === 'hieuQuaValue' && `${Number(grandTotal?.hieuQuaValue ?? 0).toFixed(0)}%`}
+                                        {h.key === 'slICT' && formatQuantity(grandTotal?.slICT ?? 0)}
+                                        {h.key === 'slCE_main' && formatQuantity(grandTotal?.slCE_main ?? 0)}
+                                        {h.key === 'slCE_ICT' && formatQuantity(grandTotal?.slCE_ICT ?? 0)}
+                                        {h.key === 'slTraCham_CE_ICT' && formatQuantity(grandTotal?.slTraCham_CE_ICT ?? 0)}
+                                        {h.key === 'traChamPercent_CE_ICT' && `${Number(grandTotal?.traChamPercent_CE_ICT ?? 0).toFixed(0)}%`}
+                                        {h.key === 'dtTraChamPercent_CE_ICT' && `${Number(grandTotal?.dtTraChamPercent_CE_ICT ?? 0).toFixed(0)}%`}
+                                        {h.key === 'target' && formatCurrency(grandTotal?.target ?? 0, 0)}
+                                        {h.key === 'percentHT' && (
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-[11px] font-bold">{Number(grandTotal?.percentHT ?? 0).toFixed(0)}%</span>
+                                                <div className="w-12 h-1 bg-sky-200/50 dark:bg-sky-800/50 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-sky-500 transition-all duration-500" style={{ width: `${Math.min(Number(grandTotal?.percentHT ?? 0), 100)}%` }} />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {h.key === 'dtVuot' && (
+                                            <span>{formatCurrency(grandTotal?.dtVuot ?? 0)}</span>
+                                        )}
+                                        {h.key === 'weakPointsRevenue' && '—'}
+                                        {h.key === 'weakPointsExploitation' && '—'}
+                                    </span>
+                                </td>
+                            ))}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    );
+};
+PerformanceSingleTable.displayName = 'PerformanceSingleTable';

@@ -1,0 +1,38 @@
+[WebServer] (node:43083) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+
+── 0 vi phạm ──
+
+(node:43124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/apple-tuong-thich.spec.ts:145:5 › cảm ứng (iPhone, iPad) › khung app: không tràn, không đè, vùng chạm ≥ 44px, chữ ≥ 11px (1.5m)
+
+── 0 vi phạm ──
+
+  ✘  2 [chromium] › tests/e2e/apple-tuong-thich.spec.ts:155:5 › laptop › khung app: không tràn, không đè (45.5s)
+
+
+  1) [chromium] › tests/e2e/apple-tuong-thich.spec.ts:155:5 › laptop › khung app: không tràn, không đè 
+
+    Error: browserContext.close: ENOENT: no such file or directory, open '/Users/ltson/dashboardycx/test-results/c3-chromium/.playwright-artifacts-0/traces/cf28760e4718059309b8-b448141bae250fe5cc36-recording2.trace'
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c3-chromium/apple-tuong-thich-laptop-khung-app-không-tràn-không-đè-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c3-chromium/apple-tuong-thich-laptop-khung-app-không-tràn-không-đè-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c3-chromium/apple-tuong-thich-laptop-khung-app-không-tràn-không-đè-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c3-chromium/apple-tuong-thich-laptop-khung-app-không-tràn-không-đè-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/apple-tuong-thich.spec.ts:155:5 › laptop › khung app: không tràn, không đè 
+  1 passed (2.4m)

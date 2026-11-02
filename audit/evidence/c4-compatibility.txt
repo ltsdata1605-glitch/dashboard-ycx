@@ -1,0 +1,17 @@
+[WebServer] (node:47453) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+
+── 0 vi phạm ──
+
+(node:47467) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/apple-tuong-thich.spec.ts:145:5 › cảm ứng (iPhone, iPad) › khung app: không tràn, không đè, vùng chạm ≥ 44px, chữ ≥ 11px (1.5m)
+
+── 0 vi phạm ──
+
+  ✓  2 [chromium] › tests/e2e/apple-tuong-thich.spec.ts:155:5 › laptop › khung app: không tràn, không đè (47.7s)
+
+  2 passed (2.3m)

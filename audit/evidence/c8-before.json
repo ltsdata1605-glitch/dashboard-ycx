@@ -1,0 +1,352 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c8-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c8-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c8-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "userscript-probe-boundary.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c8-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "userscript-probe-boundary.spec.ts",
+      "file": "userscript-probe-boundary.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "unrelated same-origin frame cannot claim an installed version",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1033,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"callbacks\": Array [],\u001b[39m\n\u001b[32m-   \"stored\": null,\u001b[39m\n\u001b[31m+   \"callbacks\": Array [\u001b[39m\n\u001b[31m+     \"2.0.0\",\u001b[39m\n\u001b[31m+   ],\u001b[39m\n\u001b[31m+   \"stored\": \"2.0.0\",\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"callbacks\": Array [],\u001b[39m\n\u001b[32m-   \"stored\": null,\u001b[39m\n\u001b[31m+   \"callbacks\": Array [\u001b[39m\n\u001b[31m+     \"2.0.0\",\u001b[39m\n\u001b[31m+   ],\u001b[39m\n\u001b[31m+   \"stored\": \"2.0.0\",\u001b[39m\n\u001b[2m  }\u001b[22m\n    at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:47:34",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                      "column": 34,
+                      "line": 47
+                    },
+                    "snippet": "  45 |     await frame!.waitForLoadState();\n  46 |     await sendVersion(frame!);\n> 47 |     expect(await versions(page)).toEqual({ callbacks: [], stored: null });\n     |                                  ^\n  48 | });\n  49 |\n  50 | test('opaque-origin message from the owned frame is rejected', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                        "column": 34,
+                        "line": 47
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"callbacks\": Array [],\u001b[39m\n\u001b[32m-   \"stored\": null,\u001b[39m\n\u001b[31m+   \"callbacks\": Array [\u001b[39m\n\u001b[31m+     \"2.0.0\",\u001b[39m\n\u001b[31m+   ],\u001b[39m\n\u001b[31m+   \"stored\": \"2.0.0\",\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  45 |     await frame!.waitForLoadState();\n  46 |     await sendVersion(frame!);\n> 47 |     expect(await versions(page)).toEqual({ callbacks: [], stored: null });\n     |                                  ^\n  48 | });\n  49 |\n  50 | test('opaque-origin message from the owned frame is rejected', async ({ page }) => {\n    at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:47:34"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T00:44:32.366Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--e5cf2--claim-an-installed-version-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                    "column": 34,
+                    "line": 47
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "3feeaf5b1a4daae01ba4-22e25c06f472bc389cb9",
+          "file": "userscript-probe-boundary.spec.ts",
+          "line": 38,
+          "column": 1
+        },
+        {
+          "title": "opaque-origin message from the owned frame is rejected",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 330,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"callbacks\": Array [],\u001b[39m\n\u001b[32m-   \"stored\": null,\u001b[39m\n\u001b[31m+   \"callbacks\": Array [\u001b[39m\n\u001b[31m+     \"2.0.0\",\u001b[39m\n\u001b[31m+   ],\u001b[39m\n\u001b[31m+   \"stored\": \"2.0.0\",\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"callbacks\": Array [],\u001b[39m\n\u001b[32m-   \"stored\": null,\u001b[39m\n\u001b[31m+   \"callbacks\": Array [\u001b[39m\n\u001b[31m+     \"2.0.0\",\u001b[39m\n\u001b[31m+   ],\u001b[39m\n\u001b[31m+   \"stored\": \"2.0.0\",\u001b[39m\n\u001b[2m  }\u001b[22m\n    at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:65:34",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                      "column": 34,
+                      "line": 65
+                    },
+                    "snippet": "  63 |     });\n  64 |     await received;\n> 65 |     expect(await versions(page)).toEqual({ callbacks: [], stored: null });\n     |                                  ^\n  66 | });\n  67 |\n  68 | test('current probe after reload still reports version once', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                        "column": 34,
+                        "line": 65
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"callbacks\": Array [],\u001b[39m\n\u001b[32m-   \"stored\": null,\u001b[39m\n\u001b[31m+   \"callbacks\": Array [\u001b[39m\n\u001b[31m+     \"2.0.0\",\u001b[39m\n\u001b[31m+   ],\u001b[39m\n\u001b[31m+   \"stored\": \"2.0.0\",\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  63 |     });\n  64 |     await received;\n> 65 |     expect(await versions(page)).toEqual({ callbacks: [], stored: null });\n     |                                  ^\n  66 | });\n  67 |\n  68 | test('current probe after reload still reports version once', async ({ page }) => {\n    at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:65:34"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T00:44:33.995Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--63512-the-owned-frame-is-rejected-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                    "column": 34,
+                    "line": 65
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "3feeaf5b1a4daae01ba4-08c1baea89234c896512",
+          "file": "userscript-probe-boundary.spec.ts",
+          "line": 50,
+          "column": 1
+        },
+        {
+          "title": "current probe after reload still reports version once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 294,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T00:44:34.762Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3feeaf5b1a4daae01ba4-8b4cbe782e6430e7c438",
+          "file": "userscript-probe-boundary.spec.ts",
+          "line": 68,
+          "column": 1
+        },
+        {
+          "title": "probe accepts parent ping and rejects a sibling ping",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 301,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\n    at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:108:98",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                      "column": 98,
+                      "line": 108
+                    },
+                    "snippet": "  106 |         });\n  107 |     });\n> 108 |     expect(await probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings)).toBe(before);\n      |                                                                                                  ^\n  109 |     await page.evaluate(() => (document.getElementById('__ycx_userscript_probe_frame__') as HTMLIFrameElement).contentWindow!.postMessage({ type: 'ycx-probe-ping' }, location.origin));\n  110 |     await expect.poll(() => probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings)).toBeGreaterThan(before);\n  111 | });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                        "column": 98,
+                        "line": 108
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\n\n  106 |         });\n  107 |     });\n> 108 |     expect(await probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings)).toBe(before);\n      |                                                                                                  ^\n  109 |     await page.evaluate(() => (document.getElementById('__ycx_userscript_probe_frame__') as HTMLIFrameElement).contentWindow!.postMessage({ type: 'ycx-probe-ping' }, location.origin));\n  110 |     await expect.poll(() => probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings)).toBeGreaterThan(before);\n  111 | });\n    at /Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts:108:98"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T00:44:35.159Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c8-before/userscript-probe-boundary--4ca38--and-rejects-a-sibling-ping-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/userscript-probe-boundary.spec.ts",
+                    "column": 98,
+                    "line": 108
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "3feeaf5b1a4daae01ba4-242ee9e9808c04cecb00",
+          "file": "userscript-probe-boundary.spec.ts",
+          "line": 81,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T00:44:30.467Z",
+    "duration": 5054.457,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

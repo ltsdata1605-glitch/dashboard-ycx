@@ -1,0 +1,81 @@
+/*
+ * CHẾ ĐỘ MẬT ĐỘ GỌN của Report BI trên điện thoại (audit A20, 2026-09-30 — chủ dự án duyệt).
+ *
+ * Trước đây: khối <style> nội tuyến trong BiWrapper.tsx ép `!important` lên các class Tailwind
+ * (cỡ chữ/đệm/khoảng cách) cho MỌI phần tử trong module — kể cả component DÙNG CHUNG (Button, Input…)
+ * nên cùng một class mà ở BI khác kích thước chỗ khác.
+ * Nay:
+ *  - Là CHẾ ĐỘ TƯỜNG MINH: chỉ áp khi gốc module mang `data-density="compact"` (BiWrapper đặt), và chỉ
+ *    trên màn ≤768px như cũ. Tắt chế độ = bỏ thuộc tính, không phải sửa CSS.
+ *  - KHÔNG chạm component dùng chung có kiểu chuẩn: Button (trừ variant 'unstyled' — BI tự tạo kiểu)
+ *    và Input gắn `data-ui="shared"`; mọi quy tắc dưới đây bỏ qua chúng và phần tử con của chúng. Nút chuẩn trong Report BI
+ *    gắn `data-ui="bi"` (2026-10-28) VẪN co theo chế độ gọn như khi còn tự vẽ (unstyled).
+ *  - Bỏ `!important`: tiện ích Tailwind 4 nằm trong `@layer utilities`, CSS không thuộc layer như file
+ *    này luôn thắng — không cần. Chỉ giữ `!important` ở chỗ phải thắng style NỘI TUYẾN.
+ *  - Thang chữ giữ SÀN 11px (CLAUDE.md mục 2) — xem lịch sử ở BiWrapper.tsx.
+ */
+@media (max-width: 768px) {
+    .bi-report-module[data-density="compact"] .text-3xl:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 20px; }
+    .bi-report-module[data-density="compact"] .text-2xl:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 18px; }
+    .bi-report-module[data-density="compact"] .text-xl:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 16px; }
+    .bi-report-module[data-density="compact"] .text-lg:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 14px; }
+    .bi-report-module[data-density="compact"] .text-base:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 13px; }
+    .bi-report-module[data-density="compact"] .text-sm:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 12px; }
+    .bi-report-module[data-density="compact"] .text-xs:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 11px; }
+    .bi-report-module[data-density="compact"] .text-\[14px\]:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 13px; }
+    .bi-report-module[data-density="compact"] .text-\[13px\]:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 12px; }
+    .bi-report-module[data-density="compact"] .text-\[12px\]:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 11px; }
+    .bi-report-module[data-density="compact"] .text-\[11px\]:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 11px; }
+    .bi-report-module[data-density="compact"] .text-\[10px\]:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 11px; }
+    .bi-report-module[data-density="compact"] .text-\[9px\]:not([data-ui="shared"], [data-ui="shared"] *) { font-size: 11px; }
+    .bi-report-module[data-density="compact"] .p-4:not([data-ui="shared"], [data-ui="shared"] *) { padding: 10px; }
+    .bi-report-module[data-density="compact"] .p-3:not([data-ui="shared"], [data-ui="shared"] *) { padding: 8px; }
+    .bi-report-module[data-density="compact"] .p-6:not([data-ui="shared"], [data-ui="shared"] *) { padding: 12px; }
+    .bi-report-module[data-density="compact"] .py-6:not([data-ui="shared"], [data-ui="shared"] *) { padding-top: 12px; padding-bottom: 12px; }
+    .bi-report-module[data-density="compact"] .px-6:not([data-ui="shared"], [data-ui="shared"] *) { padding-left: 12px; padding-right: 12px; }
+    .bi-report-module[data-density="compact"] .gap-6:not([data-ui="shared"], [data-ui="shared"] *) { gap: 12px; }
+    .bi-report-module[data-density="compact"] .gap-4:not([data-ui="shared"], [data-ui="shared"] *) { gap: 8px; }
+    .bi-report-module[data-density="compact"] .gap-3:not([data-ui="shared"], [data-ui="shared"] *) { gap: 6px; }
+    .bi-report-module[data-density="compact"] .gap-2:not([data-ui="shared"], [data-ui="shared"] *) { gap: 4px; }
+    .bi-report-module[data-density="compact"] .mb-6:not([data-ui="shared"], [data-ui="shared"] *) { margin-bottom: 12px; }
+    .bi-report-module[data-density="compact"] .mb-4:not([data-ui="shared"], [data-ui="shared"] *) { margin-bottom: 8px; }
+    .bi-report-module[data-density="compact"] .w-12:not([data-ui="shared"], [data-ui="shared"] *) { width: 32px; }
+    .bi-report-module[data-density="compact"] .h-12:not([data-ui="shared"], [data-ui="shared"] *) { height: 32px; }
+    .bi-report-module[data-density="compact"] .space-y-6:not([data-ui="shared"], [data-ui="shared"] *) > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+    .bi-report-module[data-density="compact"] .space-y-4:not([data-ui="shared"], [data-ui="shared"] *) > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+
+    /* Cỡ chữ viết nội tuyến (style="font-size:…") — phải !important mới thắng style nội tuyến */
+    .bi-report-module[data-density="compact"] span[style*="font-size:13px"] { font-size: 12px !important; }
+    .bi-report-module[data-density="compact"] span[style*="font-size:12px"] { font-size: 11px !important; }
+
+    /* Ẩn scrollbar — TRỪ vùng cuộn thật (bảng 48 cột), để iOS còn chỉ báo cuộn (A20 phần 1) */
+    .bi-report-module[data-density="compact"] *:not(.overflow-x-auto):not(.overflow-auto)::-webkit-scrollbar { display: none; width: 0; height: 0; }
+    .bi-report-module[data-density="compact"] *:not(.overflow-x-auto):not(.overflow-auto) { -ms-overflow-style: none; scrollbar-width: none; }
+    .bi-report-module[data-density="compact"] .overflow-x-auto, .bi-report-module[data-density="compact"] .overflow-auto { scrollbar-width: thin; }
+    .bi-report-module[data-density="compact"] .overflow-x-auto::-webkit-scrollbar, .bi-report-module[data-density="compact"] .overflow-auto::-webkit-scrollbar { height: 4px; width: 4px; }
+}
+
+/*
+ * Khối dài ngoài màn hình: trình duyệt KHÔNG dàn trang/vẽ cho tới khi cuộn tới (đo 2026-10-09: tab Thi đua › Nhóm
+ * 35 thẻ × 70 NV — mở lại tab mất ~1,6 giây CHỈ để dàn trang 2.500 dòng). `auto 1800px` = chiều cao tạm trước lần
+ * vẽ đầu, sau đó trình duyệt nhớ chiều cao thật. Bản sao chụp ảnh tự gỡ (components/shared/export → forceContentVisible).
+ */
+.bi-report-module .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1800px;
+}
+
+/* ── Chuyển từ thẻ <style> trong BiWrapper.tsx (GĐ9 2026-10-14): thẻ đó chèn vào trang MỖI lần gắn Report BI → trình duyệt
+   tính lại style cả tài liệu (kể cả cây Phân tích đang ẩn) ngay lúc chuyển tab. Ở đây nó nạp cùng chunk lúc tải trước. ── */
+/* KHÔNG BO GÓC cho tất cả bảng, viền trong toàn bộ phân hệ Report BI (ngoại trừ thẻ KPI .kpi-overview-card, avatar tròn & floating dock)
+   — và segmented control dùng chung ([data-segmented], GĐ6): vuông thì không còn là segmented kiểu iOS. */
+/* KHÔNG BO GÓC RIÊNG CHO CÁC BẢNG DỮ LIỆU để giữ mật độ số liệu tối đa và hiển thị phẳng chuyên nghiệp */
+.bi-report-module table,
+.bi-report-module thead,
+.bi-report-module tbody,
+.bi-report-module tfoot,
+.bi-report-module tr,
+.bi-report-module th,
+.bi-report-module td {
+    border-radius: 0px !important;
+}

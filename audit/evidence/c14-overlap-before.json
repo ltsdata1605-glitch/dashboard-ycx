@@ -1,0 +1,551 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c14-playwright.config.mjs",
+      "shared-tooltip.spec.ts",
+      "-g",
+      "long content at"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c14-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c14-overlap-before",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "shared-tooltip.spec.ts",
+          "shared-form-states.spec.ts",
+          "glass-controls.spec.ts",
+          "apple-tuong-thich.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c14-overlap-before.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5197 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5197",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "shared-tooltip.spec.ts",
+      "file": "shared-tooltip.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Tooltip viewport 390",
+          "file": "shared-tooltip.spec.ts",
+          "line": 118,
+          "column": 10,
+          "specs": [
+            {
+              "title": "long content at top edge stays readable inside viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 776,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:14.966Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-2484452b236b0cd9f51c",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            },
+            {
+              "title": "long content at bottom edge stays readable inside viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 287,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:15.846Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-9f9cdfceb8a7d9ebec7f",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            },
+            {
+              "title": "long content at left edge stays readable inside viewport",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 250,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:137:42",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 42,
+                          "line": 137
+                        },
+                        "snippet": "  135 |                         noPageOverflow: document.documentElement.scrollWidth <= innerWidth };\n  136 |                 });\n> 137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                          ^\n  138 |                 await page.setViewportSize({width:320, height:568});\n  139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 42,
+                            "line": 137
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\n  135 |                         noPageOverflow: document.documentElement.scrollWidth <= innerWidth };\n  136 |                 });\n> 137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                          ^\n  138 |                 await page.setViewportSize({width:320, height:568});\n  139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:137:42"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:16.138Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-ccc87-ys-readable-inside-viewport-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 42,
+                        "line": 137
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-8a49913576bbd12769aa",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            },
+            {
+              "title": "long content at right edge stays readable inside viewport",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 287,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:137:42",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 42,
+                          "line": 137
+                        },
+                        "snippet": "  135 |                         noPageOverflow: document.documentElement.scrollWidth <= innerWidth };\n  136 |                 });\n> 137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                          ^\n  138 |                 await page.setViewportSize({width:320, height:568});\n  139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 42,
+                            "line": 137
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\n  135 |                         noPageOverflow: document.documentElement.scrollWidth <= innerWidth };\n  136 |                 });\n> 137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                          ^\n  138 |                 await page.setViewportSize({width:320, height:568});\n  139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:137:42"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:16.730Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-4052f-ys-readable-inside-viewport-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 42,
+                        "line": 137
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-49742968edafb1e13c3e",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            }
+          ]
+        },
+        {
+          "title": "Tooltip viewport 1366",
+          "file": "shared-tooltip.spec.ts",
+          "line": 118,
+          "column": 10,
+          "specs": [
+            {
+              "title": "long content at top edge stays readable inside viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 306,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:17.470Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-3e4f6c0d5bd69933f14d",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            },
+            {
+              "title": "long content at bottom edge stays readable inside viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 403,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:17.879Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-a830658f2aa323b4cc9d",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            },
+            {
+              "title": "long content at left edge stays readable inside viewport",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9317,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:139:45",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 45,
+                          "line": 139
+                        },
+                        "snippet": "  137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  138 |                 await page.setViewportSize({width:320, height:568});\n> 139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                             ^\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});\n  141 |                 await page.keyboard.press('Escape');\n  142 |                 await expect(tooltip).toHaveCount(0);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 45,
+                            "line": 139
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n\n  137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  138 |                 await page.setViewportSize({width:320, height:568});\n> 139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                             ^\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});\n  141 |                 await page.keyboard.press('Escape');\n  142 |                 await expect(tooltip).toHaveCount(0);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:139:45"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:18.287Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-171d6-ys-readable-inside-viewport-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 45,
+                        "line": 139
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-a558b1601c134e1faca1",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            },
+            {
+              "title": "long content at right edge stays readable inside viewport",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9354,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:139:45",
+                        "location": {
+                          "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                          "column": 45,
+                          "line": 139
+                        },
+                        "snippet": "  137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  138 |                 await page.setViewportSize({width:320, height:568});\n> 139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                             ^\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});\n  141 |                 await page.keyboard.press('Escape');\n  142 |                 await expect(tooltip).toHaveCount(0);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                            "column": 45,
+                            "line": 139
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[2m    \"inside\": true,\u001b[22m\n\u001b[2m    \"noPageOverflow\": true,\u001b[22m\n\u001b[2m    \"noTextOverflow\": true,\u001b[22m\n\u001b[32m-   \"noTriggerOverlap\": true,\u001b[39m\n\u001b[31m+   \"noTriggerOverlap\": false,\u001b[39m\n\u001b[2m    \"wraps\": true,\u001b[22m\n\u001b[2m  }\u001b[22m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n\n  137 |                 expect(await geometry()).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n  138 |                 await page.setViewportSize({width:320, height:568});\n> 139 |                 await expect.poll(geometry).toEqual({noTriggerOverlap:true, inside:true, wraps:true, noTextOverflow:true, noPageOverflow:true});\n      |                                             ^\n  140 |                 await page.screenshot({path:`audit/evidence/c14-edge-${width}-${side}.png`, animations:'disabled'});\n  141 |                 await page.keyboard.press('Escape');\n  142 |                 await expect(tooltip).toHaveCount(0);\n    at /Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts:139:45"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T02:56:27.951Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/ltson/dashboardycx/test-results/c14-overlap-before/shared-tooltip-Tooltip-vie-d6659-ys-readable-inside-viewport-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/shared-tooltip.spec.ts",
+                        "column": 45,
+                        "line": 139
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "397dd90ac6892a22e312-a72ff894f408a573dadc",
+              "file": "shared-tooltip.spec.ts",
+              "line": 121,
+              "column": 13
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T02:56:13.184Z",
+    "duration": 24290.820000000003,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 4,
+    "flaky": 0
+  }
+}

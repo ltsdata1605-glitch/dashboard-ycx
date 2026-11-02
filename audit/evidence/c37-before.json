@@ -1,0 +1,272 @@
+{
+  "config": {
+    "argv": [
+      "/Users/ltson/.gemini/antigravity-ide/node-v22.11.0-darwin-arm64/bin/node",
+      "/Users/ltson/dashboardycx/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "audit/evidence/c37-playwright.config.mjs"
+    ],
+    "configFile": "/Users/ltson/dashboardycx/audit/evidence/c37-playwright.config.mjs",
+    "rootDir": "/Users/ltson/dashboardycx/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/ltson/dashboardycx/test-results/c37-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ltson/dashboardycx/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "data-table-foundation.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/ltson/dashboardycx/audit/evidence/c37-chromium.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --config audit/evidence/c18-vite.config.mjs --port 5198 --strictPort",
+      "cwd": "/Users/ltson/dashboardycx",
+      "env": {
+        "BROWSER": "none"
+      },
+      "url": "http://127.0.0.1:5198",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "data-table-foundation.spec.ts",
+      "file": "data-table-foundation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "DataTable native sort groups and loading/empty 390",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1278,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:53:35.278Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "92d009c65b26e19152ec-873f42eb1f110f8c1bb9",
+          "file": "data-table-foundation.spec.ts",
+          "line": 3,
+          "column": 3
+        },
+        {
+          "title": "DataTable scroll cue sticky header and column 390",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 9365,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m2\u001b[39m\nReceived:   \u001b[31m44\u001b[39m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m2\u001b[39m\nReceived:   \u001b[31m44\u001b[39m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n    at /Users/ltson/dashboardycx/tests/e2e/data-table-foundation.spec.ts:33:75",
+                    "location": {
+                      "file": "/Users/ltson/dashboardycx/tests/e2e/data-table-foundation.spec.ts",
+                      "column": 75,
+                      "line": 33
+                    },
+                    "snippet": "  31 |     await scroller.evaluate(el=>{el.scrollTop=400;el.scrollLeft=el.scrollWidth;});\n  32 |     await expect.poll(async()=>Math.abs((await head.boundingBox())!.y-y)).toBeLessThan(2);\n> 33 |     await expect.poll(async()=>Math.abs((await cell.boundingBox())!.x-x)).toBeLessThan(2);\n     |                                                                           ^\n  34 |     await expect(scroller).not.toHaveAttribute('data-xcue-right','');\n  35 |     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);\n  36 |     await scroller.evaluate(el=>{el.scrollTop=0;el.scrollLeft=0;});await expect(scroller).toHaveAttribute('data-xcue-right','');"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/ltson/dashboardycx/tests/e2e/data-table-foundation.spec.ts",
+                        "column": 75,
+                        "line": 33
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m2\u001b[39m\nReceived:   \u001b[31m44\u001b[39m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n\n  31 |     await scroller.evaluate(el=>{el.scrollTop=400;el.scrollLeft=el.scrollWidth;});\n  32 |     await expect.poll(async()=>Math.abs((await head.boundingBox())!.y-y)).toBeLessThan(2);\n> 33 |     await expect.poll(async()=>Math.abs((await cell.boundingBox())!.x-x)).toBeLessThan(2);\n     |                                                                           ^\n  34 |     await expect(scroller).not.toHaveAttribute('data-xcue-right','');\n  35 |     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);\n  36 |     await scroller.evaluate(el=>{el.scrollTop=0;el.scrollLeft=0;});await expect(scroller).toHaveAttribute('data-xcue-right','');\n    at /Users/ltson/dashboardycx/tests/e2e/data-table-foundation.spec.ts:33:75"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:53:36.818Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/ltson/dashboardycx/test-results/c37-chromium/data-table-foundation-Data-57ace-ticky-header-and-column-390-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/ltson/dashboardycx/test-results/c37-chromium/data-table-foundation-Data-57ace-ticky-header-and-column-390-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/ltson/dashboardycx/test-results/c37-chromium/data-table-foundation-Data-57ace-ticky-header-and-column-390-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/ltson/dashboardycx/tests/e2e/data-table-foundation.spec.ts",
+                    "column": 75,
+                    "line": 33
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "92d009c65b26e19152ec-3a31498ba50aca87cd9c",
+          "file": "data-table-foundation.spec.ts",
+          "line": 24,
+          "column": 3
+        },
+        {
+          "title": "DataTable native sort groups and loading/empty 1366",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 508,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:53:46.547Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "92d009c65b26e19152ec-1438ddb9cc41c7e8e188",
+          "file": "data-table-foundation.spec.ts",
+          "line": 3,
+          "column": 3
+        },
+        {
+          "title": "DataTable scroll cue sticky header and column 1366",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 319,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T09:53:47.174Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "92d009c65b26e19152ec-b06b2a20d62c343e7455",
+          "file": "data-table-foundation.spec.ts",
+          "line": 24,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T09:53:33.860Z",
+    "duration": 13670.587,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

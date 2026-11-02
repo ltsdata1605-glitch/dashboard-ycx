@@ -1,0 +1,440 @@
+import React, { useState } from 'react';
+import { AppIcon } from '../../components/shared/ui/icon/AppIcon';
+import type { IconName } from '../../components/shared/ui/icon/iconRegistry';
+import { toast } from '../../components/shared/ui/toast';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/shared/ui/Button';
+import { Tabs } from '../../components/shared/ui/Tabs';
+import { Banner } from '../../components/shared/ui/Banner';
+import { usePageActions } from '../../components/shared/ui/PageActions';
+import { useActiveTab } from '../../contexts/LayoutContext';
+import { useBotScope } from './hooks/useBotScope';
+import { useLineBotConfig } from './hooks/useLineBotConfig';
+import { useCouponManager } from './hooks/useCouponManager';
+import { useScheduleManager } from './hooks/useScheduleManager';
+import { useKeywordLibrary } from './hooks/useKeywordLibrary';
+import { useAdminDeclaration } from './hooks/useAdminDeclaration';
+
+import { LineBotSettingsTab } from './components/LineBotSettingsTab';
+import { CouponManagerTab } from './components/CouponManagerTab';
+import { FilteredCouponsTab } from './components/FilteredCouponsTab';
+import { SyntaxConfigTab } from './components/SyntaxConfigTab';
+import { ScheduleManagerTab } from './components/ScheduleManagerTab';
+import { KeywordLibraryTab } from './components/KeywordLibraryTab';
+import { AdminDeclarationTab } from './components/AdminDeclarationTab';
+import { GroupFeaturesTab } from './components/GroupFeaturesTab';
+import { LineBotOnboardingModal } from './components/LineBotOnboardingModal';
+import { botHasToken } from './types/lineBot.types';
+
+type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'keywords' | 'admins' | 'group-features' | 'syntax' | 'settings';
+
+export default function LineBotView() {
+    const { user, userRole, isDemoMode, setDemoMode, loginWithGoogle } = useAuth();
+    const isManagerOrAdmin = isDemoMode || userRole === 'admin' || userRole === 'manager';
+
+    const [activeSubTab, setActiveSubTab] = useState<LineBotTab>('coupons');
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
+    const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+    const { activeTab } = useActiveTab();
+
+    // Quản lý phạm vi Bot: Kế thừa Bot Kho hoặc Dùng Bot cá nhân riêng biệt
+    const botScopeHook = useBotScope();
+    const {
+        effectiveBotId,
+        scopeMode,
+        warehouseBot,
+        hasWarehouseBot,
+        isInheriting,
+        departmentId: currentDept,
+        switchScope
+    } = botScopeHook;
+
+    const handleGoogleAuth = async () => {
+        try {
+            setIsLoggingIn(true);
+            await loginWithGoogle();
+            setDemoMode(false);
+            toast.success('Đăng nhập thành công! Đang đồng bộ Bot LINE theo kho...', { id: 'line-bot-auth' });
+            botScopeHook.refreshScope();
+        } catch (err: unknown) {
+            console.error('[LineBotView] Đăng nhập Google lỗi:', err);
+            const code = (err as { code?: string })?.code;
+            if (code !== 'auth/popup-closed-by-user') {
+                toast.error('Đăng nhập Google không thành công. Vui lòng thử lại.');
+            }
+        } finally {
+            setIsLoggingIn(false);
+        }
+    };
+
+    // iPhone (GĐ7): "Hướng dẫn tạo Bot" + "Đổi tài khoản" lên thanh trên của khung app (thẻ đầu trang chỉ còn tên + trạng thái);
+    // laptop giữ 2 nút trong thẻ. Đăng nhập (dùng thử / chưa đăng nhập) là dải Banner riêng ngay dưới thẻ trên iPhone.
+    const daDangNhap = !!user && !isDemoMode;
+    usePageActions(activeTab === 'tools-line-bot' && isManagerOrAdmin ? {
+        scope: 'mobile',
+        quick: [{ id: 'huong-dan-bot', label: 'Hướng dẫn tạo Bot', icon: 'help', onSelect: () => setIsOnboardingOpen(true) }],
+        items: daDangNhap ? [{ id: 'doi-tai-khoan', label: 'Đổi tài khoản Google', icon: 'login', onSelect: () => { void handleGoogleAuth(); } }] : [],
+    } : null);
+
+    // Hooks - được truyền effectiveBotId (tự động chuyển sang Bot kho hoặc Bot riêng)
+    const botConfigHook = useLineBotConfig(effectiveBotId);
+    const couponHook = useCouponManager(effectiveBotId);
+    const scheduleHook = useScheduleManager(botHasToken(botConfigHook.config), effectiveBotId);
+    const keywordHook = useKeywordLibrary(effectiveBotId);
+    const adminHook = useAdminDeclaration(effectiveBotId);
+
+    // 1. Chặn quyền nếu không phải Quản lý trở lên
+    if (!isManagerOrAdmin) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[65vh] p-6 text-center animate-in fade-in">
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-card mb-4 border border-rose-200 dark:border-rose-900/60 shadow-sm">
+                    <AppIcon name="securityAlert" size="hero" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                    Tính Năng Giới Hạn Quyền Quản Lý
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-5 leading-relaxed">
+                    Phân hệ <strong>BOT LINE Quản lý PMH & Tự động hoá</strong> chỉ áp dụng cho tài khoản từ cấp Quản lý trở lên.
+                    Vui lòng liên hệ Admin hệ thống để được nâng cấp quyền truy cập.
+                </p>
+                <div className="text-xs text-slate-400 font-mono">
+                    Vai trò hiện tại: <span className="font-bold text-slate-600 dark:text-slate-300">{userRole || 'Chưa đăng nhập'}</span>
+                </div>
+            </div>
+        );
+    }
+
+    const tabs: Array<{ id: LineBotTab; label: string; icon: IconName }> = [
+        { id: 'coupons', label: 'Coupon Event', icon: 'coupon' },
+        { id: 'filtered', label: 'Coupon lọc', icon: 'filter' },
+        { id: 'schedules', label: 'Gửi Notify', icon: 'schedule' },
+        { id: 'keywords', label: 'Chat BOT', icon: 'sparkles' },
+        { id: 'admins', label: 'Admin', icon: 'securityOk' },
+        { id: 'group-features', label: 'Cấu hình nhóm', icon: 'users' },
+        { id: 'syntax', label: 'Cú pháp & Lọc', icon: 'command' },
+        { id: 'settings', label: 'Cấu hình Bot', icon: 'settings' }
+    ];
+
+    return (
+        <div className="w-full flex justify-center bg-slate-50/50 dark:bg-slate-900/60 min-h-full">
+            <div className="w-full max-w-[960px] mx-auto p-2 sm:p-4 lg:p-6 space-y-2 sm:space-y-3.5 animate-in fade-in duration-150 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+                {/* Mini Status Bar — Tinh gọn chuẩn Report BI, không chiếm diện tích màn hình iPhone */}
+                <div className="flex flex-row items-center justify-between gap-2.5 bg-white dark:bg-slate-800/90 px-3 py-2 sm:px-4 sm:py-2.5 rounded-popup sm:rounded-card border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        {botConfigHook.botInfo?.pictureUrl ? (
+                            <img
+                                src={botConfigHook.botInfo.pictureUrl}
+                                alt="Bot avatar"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-control sm:rounded-popup shadow-xs object-cover shrink-0 ring-1 ring-slate-200/80 dark:ring-slate-700"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <div className="p-1.5 sm:p-2 bg-sky-600 text-white rounded-control sm:rounded-popup shadow-xs shrink-0">
+                                <AppIcon name="bot" size="md" />
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                                    {botConfigHook.botInfo?.displayName || 'BOT LINE Quản Lý PMH'}
+                                </span>
+                                {botConfigHook.botInfo ? (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Online
+                                    </span>
+                                ) : (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                                        <AppIcon name="error" size="xs" /> Chưa kết nối
+                                    </span>
+                                )}
+
+                                {/* Badge phạm vi Bot */}
+                                {isInheriting ? (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-200/80 dark:border-sky-800/60 flex items-center gap-1 shrink-0 whitespace-nowrap" title="Bạn đang dùng chung Bot và kho mã do quản lý khác trong cùng kho tạo">
+                                        <AppIcon name="department" size="xs" /> Kho {currentDept} (Kế thừa)
+                                    </span>
+                                ) : scopeMode === 'warehouse' && currentDept ? (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-200/80 dark:border-sky-800/60 flex items-center gap-1 shrink-0 whitespace-nowrap" title="Bot đại diện chính của kho này">
+                                        <AppIcon name="department" size="xs" /> Kho {currentDept} (Bot kho)
+                                    </span>
+                                ) : (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/80 text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                                        <AppIcon name="user" size="xs" /> Bot Cá Nhân
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[12px] sm:text-[11px] text-slate-500 dark:text-slate-400 leading-snug line-clamp-1 sm:truncate">
+                                {botConfigHook.botInfo?.basicId
+                                    ? `ID: ${botConfigHook.botInfo.basicId} • Cấp phát mã & Tự động hoá`
+                                    : 'Hệ thống cấp phát mã PMH tự động và trợ lý thông báo qua LINE'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                        {/* Nút Đăng nhập / Chuyển tài khoản Google để thừa kế BOT LINE (iPhone: Banner dưới thẻ + thanh trên) */}
+                        {!user || isDemoMode ? (
+                            <Button
+                                variant="primary"
+                                size="none"
+                                onClick={handleGoogleAuth}
+                                disabled={isLoggingIn}
+                                aria-label="Đăng nhập để thừa kế Bot"
+                                title="Đăng nhập tài khoản Google quản lý để tự động thừa kế Bot Kho"
+                                className="flex items-center justify-center gap-1.5 h-7.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-2.5 sm:px-3 text-[11px] font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-control border border-sky-600 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                            >
+                                <AppIcon name="login" size="md" />
+                                <span>{isLoggingIn ? 'Đang kết nối...' : 'Đăng nhập để thừa kế'}</span>
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="secondary"
+                                size="none"
+                                onClick={handleGoogleAuth}
+                                disabled={isLoggingIn}
+                                aria-label="Đổi tài khoản Google để thừa kế Bot"
+                                title={`Đang đăng nhập: ${user.email || user.displayName || 'Tài khoản'}. Bấm để chuyển sang tài khoản Google quản lý khác.`}
+                                className="flex items-center justify-center gap-1.5 h-7.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-2 sm:px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-control border border-slate-200/80 dark:border-slate-700/80 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                            >
+                                <AppIcon name="login" size="md" className="text-sky-600" />
+                                <span className="hidden md:inline text-slate-500 dark:text-slate-400 max-w-[110px] truncate">{user.displayName || user.email?.split('@')[0]}</span>
+                                <span>{isLoggingIn ? '...' : 'Đổi tài khoản'}</span>
+                            </Button>
+                        )}
+
+                        <Button
+                            variant="ghost"
+                            size="none"
+                            onClick={() => setIsOnboardingOpen(true)}
+                            aria-label="Hướng dẫn tạo Bot"
+                            title="Hướng dẫn tạo Bot"
+                            className="flex items-center justify-center gap-1.5 h-7.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-2.5 text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/40 rounded-control border border-sky-200/80 dark:border-sky-800/80 shadow-2xs transition-all active:scale-95"
+                        >
+                            <AppIcon name="help" size="md" className="text-sky-600" />
+                            <span className="hidden sm:inline">Hướng dẫn tạo Bot</span>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* iPhone: đăng nhập để thừa kế Bot kho — dải riêng thay nút nhét trong thẻ đầu trang */}
+                {!daDangNhap && (
+                    <Banner
+                        tone="info"
+                        title="Đăng nhập để dùng Bot của kho"
+                        action={{ label: isLoggingIn ? 'Đang kết nối…' : 'Đăng nhập Google', onClick: () => { void handleGoogleAuth(); } }}
+                        className="sm:hidden"
+                        data-testid="line-bot-dang-nhap"
+                    >
+                        Tài khoản quản lý cùng mã kho sẽ tự kế thừa Bot và kho mã đã cấu hình.
+                    </Banner>
+                )}
+
+                {/* Warehouse Inheritance Banner / Scope Switcher */}
+                {currentDept && (
+                    <div className={`px-3 py-2 rounded-popup border text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-all ${
+                        isInheriting
+                            ? 'bg-sky-50/90 dark:bg-sky-950/30 border-sky-200/80 dark:border-sky-800/60 text-sky-900 dark:text-sky-200 shadow-2xs'
+                            : scopeMode === 'warehouse' && hasWarehouseBot
+                            ? 'bg-sky-50/80 dark:bg-sky-950/30 border-sky-200/80 dark:border-sky-800/60 text-sky-900 dark:text-sky-200'
+                            : hasWarehouseBot
+                            ? 'bg-amber-50/90 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
+                    }`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                            {isInheriting ? (
+                                <AppIcon name="department" size="md" className="text-sky-600" />
+                            ) : hasWarehouseBot && scopeMode === 'personal' ? (
+                                <AppIcon name="sparkles" size="md" className="text-amber-600 animate-pulse" />
+                            ) : (
+                                <AppIcon name="department" size="md" className="text-sky-600" />
+                            )}
+                            <div className="min-w-0 leading-snug">
+                                {isInheriting ? (
+                                    <p className="font-semibold sm:truncate">
+                                        Đang <strong>kế thừa Bot Kho {currentDept}</strong> (do {warehouseBot?.ownerName || warehouseBot?.ownerEmail || 'Quản lý khác'} tạo). Đang dùng chung kho mã & cấu hình Bot.
+                                    </p>
+                                ) : scopeMode === 'warehouse' ? (
+                                    <p className="font-semibold sm:truncate">
+                                        Bot LINE của <strong>Kho {currentDept}</strong> (Bạn là người khởi tạo). Các tài khoản cùng mã kho này sẽ tự động kế thừa và dùng chung.
+                                    </p>
+                                ) : hasWarehouseBot ? (
+                                    <p className="font-semibold sm:truncate">
+                                        Kho <strong>{currentDept}</strong> đã có sẵn Bot LINE "{warehouseBot?.botName}". Bạn có muốn dùng chung cùng các Quản lý khác không?
+                                    </p>
+                                ) : isDemoMode || !user ? (
+                                    <p className="font-medium text-slate-600 dark:text-slate-300 sm:truncate">
+                                        Đang ở chế độ xem thử Kho <strong>{currentDept}</strong>. Đăng nhập Google để tự động kiểm tra và thừa kế Bot của kho.
+                                    </p>
+                                ) : (
+                                    <p className="font-medium text-slate-500 dark:text-slate-400 sm:truncate">
+                                        Mã kho tài khoản Google: <strong>Kho {currentDept}</strong>. Bot bạn cấu hình tại đây sẽ được chia sẻ cho các quản lý cùng kho.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {hasWarehouseBot && (
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                                {isInheriting ? (
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => switchScope('personal')}
+                                        title="Chuyển sang cấu hình Bot riêng biệt cho tài khoản này"
+                                    >
+                                        Tạo / dùng Bot riêng
+                                    </Button>
+                                ) : scopeMode === 'personal' ? (
+                                    <Button
+                                        variant="primary"
+                                        size="sm"
+                                        onClick={() => switchScope('warehouse')}
+                                        title="Kế thừa và dùng chung Bot của kho"
+                                    >
+                                        Kế thừa Bot kho {currentDept}
+                                    </Button>
+                                ) : null}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* 8 phân hệ — segmented dùng chung (GĐ7): cuộn ngang trên iPhone, mục đang chọn tự nằm giữa dải (useCenterActiveInStrip) */}
+                <Tabs
+                    variant="segment"
+                    size="sm"
+                    activeId={activeSubTab}
+                    onChange={(id) => setActiveSubTab(id as LineBotTab)}
+                    items={tabs}
+                    className="w-full"
+                />
+
+                {/* Tab Contents */}
+                <div className="min-h-[400px]">
+                    {activeSubTab === 'coupons' && (
+                        <CouponManagerTab
+                            coupons={couponHook.coupons}
+                            filteredCoupons={couponHook.filteredCoupons}
+                            isLoading={couponHook.isLoading}
+                            searchQuery={couponHook.searchQuery}
+                            setSearchQuery={couponHook.setSearchQuery}
+                            statusFilter={couponHook.statusFilter}
+                            setStatusFilter={couponHook.setStatusFilter}
+                            typeFilter={couponHook.typeFilter}
+                            setTypeFilter={couponHook.setTypeFilter}
+                            availableTypes={couponHook.availableTypes}
+                            stockSummary={couponHook.stockSummary}
+                            onImportCoupons={couponHook.importCoupons}
+                            onRevokeCoupon={couponHook.revokeCoupon}
+                            onRestoreRevokedCoupons={couponHook.restoreRevokedCoupons}
+                            onReclassifyCoupons={couponHook.reclassifyCoupons}
+                            onDeleteCoupon={couponHook.deleteCoupon}
+                            onDeleteCouponsBatch={couponHook.deleteCouponsBatch}
+                            onUpdateCouponsBatch={couponHook.updateCouponsBatch}
+                            onUpdateCouponsDetailed={couponHook.updateCouponsDetailed}
+                            onDeleteAllCoupons={couponHook.deleteAllCoupons}
+                            onExportExcel={couponHook.exportToExcel}
+                            onRefresh={couponHook.loadCoupons}
+                            onCopyCoupon={couponHook.recordCouponCopied}
+                        />
+                    )}
+
+                {activeSubTab === 'filtered' && (
+                    <FilteredCouponsTab
+                        userId={botConfigHook.config?.userId || ''}
+                    />
+                )}
+
+                {activeSubTab === 'schedules' && (
+                    <ScheduleManagerTab
+                        schedules={scheduleHook.schedules}
+                        groups={scheduleHook.groups}
+                        isLoading={scheduleHook.isLoading}
+                        isTriggering={scheduleHook.isTriggering}
+                        onSaveSchedule={scheduleHook.saveSchedule}
+                        onDeleteSchedule={scheduleHook.deleteSchedule}
+                        onToggleActive={scheduleHook.toggleActive}
+                        onTriggerNow={scheduleHook.triggerNow}
+                        onRefresh={() => {
+                            scheduleHook.loadSchedules();
+                            scheduleHook.loadGroups();
+                        }}
+                        onAddManualGroup={scheduleHook.addManualGroup}
+                        botId={botConfigHook.config?.userId || undefined}
+                    />
+                )}
+
+                {activeSubTab === 'keywords' && (
+                    <KeywordLibraryTab
+                        keywords={keywordHook.keywords}
+                        isLoading={keywordHook.isLoading}
+                        onSaveKeyword={keywordHook.saveKeyword}
+                        onDeleteKeyword={keywordHook.deleteKeyword}
+                        onToggleActive={keywordHook.toggleActive}
+                        onRefresh={keywordHook.loadKeywords}
+                    />
+                )}
+
+                {activeSubTab === 'admins' && (
+                    <AdminDeclarationTab
+                        admins={adminHook.admins}
+                        isLoading={adminHook.isLoading}
+                        hasBotToken={botHasToken(botConfigHook.config)}
+                        botId={effectiveBotId}
+                        onSaveAdmin={adminHook.saveAdmin}
+                        onDeleteAdmin={adminHook.deleteAdmin}
+                        onToggleActive={adminHook.toggleActive}
+                        onRefresh={adminHook.loadAdmins}
+                        interactedUsers={adminHook.interactedUsers}
+                        isInteractedLoading={adminHook.isInteractedLoading}
+                        onRefreshInteracted={adminHook.loadInteractedUsers}
+                        onAddAdminFromInteracted={adminHook.addAdminFromInteracted}
+                    />
+                )}
+
+                {activeSubTab === 'group-features' && (
+                    <GroupFeaturesTab
+                        userId={botConfigHook.config?.userId || ''}
+                        groups={scheduleHook.groups}
+                    />
+                )}
+
+                {activeSubTab === 'syntax' && (
+                    <SyntaxConfigTab
+                        config={botConfigHook.config}
+                        isSaving={botConfigHook.isSaving}
+                        onSaveConfig={botConfigHook.saveConfig}
+                        interactedUsers={adminHook.interactedUsers}
+                        isInteractedLoading={adminHook.isInteractedLoading}
+                        onRefreshInteracted={adminHook.loadInteractedUsers}
+                    />
+                )}
+
+                {activeSubTab === 'settings' && (
+                    <LineBotSettingsTab
+                        config={botConfigHook.config}
+                        botInfo={botConfigHook.botInfo}
+                        groups={scheduleHook.groups}
+                        isSaving={botConfigHook.isSaving}
+                        isVerifying={botConfigHook.isVerifying}
+                        personalWebhookUrl={botConfigHook.personalWebhookUrl}
+                        onVerifyToken={botConfigHook.verifyToken}
+                        onSaveConfig={botConfigHook.saveConfig}
+                        onOpenGuide={() => setIsOnboardingOpen(true)}
+                    />
+                )}
+            </div>
+
+            {/* Onboarding Guide Modal */}
+            <LineBotOnboardingModal
+                isOpen={isOnboardingOpen}
+                onClose={() => setIsOnboardingOpen(false)}
+                webhookUrl={botConfigHook.personalWebhookUrl}
+            />
+            </div>
+        </div>
+    );
+}

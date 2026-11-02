@@ -1,0 +1,226 @@
+import React from 'react';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { Modal } from '../shared/ui/Modal';
+import { Button } from '../shared/ui/Button';
+
+export interface UploadConflictInfo {
+    type: 'exact_duplicate' | 'overlap_dates';
+    targetType: 'historical' | 'realtime';
+    conflictingFileId?: string;
+    conflictingFilename: string;
+    conflictingLastModified?: number;
+    overlappingDates: string[];
+    totalOverlappingOrdersCount?: number;
+}
+
+interface UploadConflictModalProps {
+    isOpen: boolean;
+    conflicts: UploadConflictInfo[];
+    newFilename: string;
+    newDateRangeStr: string;
+    onResolve: (action: 'overwrite_deactivate' | 'merge_all' | 'cancel') => void;
+}
+
+export const UploadConflictModal: React.FC<UploadConflictModalProps> = ({
+    isOpen,
+    conflicts,
+    newFilename,
+    newDateRangeStr,
+    onResolve
+}) => {
+    // Hook đặt TRƯỚC lệnh return sớm (rules-of-hooks — 582cfca đặt sau làm ESLint báo lỗi, `npm run check` đỏ). Đã thử: React 19
+    // không sập ở đúng ca này (return trước MỌI hook → 0 ↔ 1 hook thì React dựng lại state), nhưng thêm một hook phía trên là hỏng.
+    const [rememberChoice, setRememberChoice] = React.useState(true);
+
+    if (!isOpen || conflicts.length === 0) return null;
+
+    const hasExactDuplicate = conflicts.some(c => c.type === 'exact_duplicate');
+    const overlapConflicts = conflicts.filter(c => c.type === 'overlap_dates');
+
+    const handleSelect = (action: 'overwrite_deactivate' | 'merge_all') => {
+        if (rememberChoice && typeof window !== 'undefined') {
+            localStorage.setItem('ycx_auto_overwrite_conflicts', 'true');
+        }
+        onResolve(action);
+    };
+
+    // Format a list of overlapping dates for clean UI display
+    const formatOverlappingDates = (dates: string[]) => {
+        if (dates.length === 0) return '';
+        // Convert YYYY-MM-DD to DD/MM
+        const formatted = dates.map(d => {
+            const parts = d.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}`;
+            }
+            return d;
+        });
+        
+        if (formatted.length <= 6) {
+            return formatted.join(', ');
+        }
+        return `${formatted.slice(0, 6).join(', ')} và ${formatted.length - 6} ngày khác`;
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={() => onResolve('cancel')}
+            maxWidth="lg"
+            zIndex="z-[1100]"
+            hideHeader
+            ariaLabel="Trùng lặp dữ liệu"
+        >
+            <div className="modal-bleed flex flex-col p-6 space-y-5">
+                {/* Header */}
+                <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-popup bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-100/50 dark:border-amber-900/20 shrink-0">
+                        <AppIcon name="warning" size="xl" className="animate-pulse" />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                            {hasExactDuplicate ? 'Phát Hiện Tệp Trùng Lặp!' : 'Trùng Lặp Lịch Sử Dữ Liệu!'}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Tệp mới tải lên có thông tin trùng lắp với dữ liệu hiện có trong hệ thống.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Details Section */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/80 rounded-popup p-4 space-y-3 text-xs">
+                    <div>
+                        <span className="block text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
+                            Tệp mới tải lên
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <AppIcon name="spreadsheet" size="sm" className="text-slate-400" />
+                            <strong className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[280px]" title={newFilename}>
+                                {newFilename}
+                            </strong>
+                            <span className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-[11px] shrink-0">
+                                {newDateRangeStr}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-3">
+                        <span className="block text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
+                            Dữ liệu xung đột phát hiện được
+                        </span>
+                        <div className="space-y-2.5 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin">
+                            {conflicts.map((conflict, idx) => (
+                                <div key={idx} className="flex flex-col gap-1 text-[11px] bg-white dark:bg-slate-900/50 p-2 rounded-control border border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-bold text-slate-700 dark:text-slate-300 max-w-[200px] inline-flex items-center gap-1 min-w-0" title={conflict.conflictingFilename}>
+                                            <AppIcon name="report" size="xs" className="text-slate-500 shrink-0" />
+                                            <span className="truncate">{conflict.conflictingFilename}</span>
+                                        </span>
+                                        <span className={`px-1 rounded text-[11px] font-extrabold uppercase shrink-0 ${
+                                            conflict.targetType === 'realtime' 
+                                            ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400'
+                                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                                        }`}>
+                                            {conflict.targetType === 'realtime' ? 'Bảng ĐK Hiện Tại' : 'Lịch Sử'}
+                                        </span>
+                                    </div>
+                                    {conflict.type === 'exact_duplicate' ? (
+                                        <span className="text-amber-700 dark:text-amber-500 font-medium inline-flex items-center gap-1"><AppIcon name="warning" size="xs" className="text-amber-600" />Trùng lặp hoàn toàn tên tệp & thời gian</span>
+                                    ) : (
+                                        <div className="text-slate-500 dark:text-slate-400 flex flex-col gap-0.5 pl-4">
+                                            <span>
+                                                • {conflict.overlappingDates.length} ngày bị trùng ({formatOverlappingDates(conflict.overlappingDates)})
+                                            </span>
+                                            {conflict.totalOverlappingOrdersCount !== undefined && conflict.totalOverlappingOrdersCount > 0 && (
+                                                <span className="text-amber-700 dark:text-amber-500 font-medium">
+                                                    • {conflict.totalOverlappingOrdersCount} đơn hàng có thể bị lặp
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Resolution Choices */}
+                <div className="space-y-2">
+                    <span className="block text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
+                        Vui lòng chọn cách xử lý dữ liệu trùng
+                    </span>
+
+                    <div className="flex flex-col gap-2">
+                        {/* Option 1: Overwrite / Deactivate old */}
+                        <Button
+                            type="button"
+                            variant="card" size="none"
+                            onClick={() => handleSelect('overwrite_deactivate')}
+                            className="justify-start w-full p-3 bg-slate-50 hover:bg-amber-50/40 dark:bg-slate-800/40 dark:hover:bg-amber-950/10 border border-slate-200 dark:border-slate-800 rounded-popup text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-start gap-3 active:scale-[0.99] group"
+                        >
+                            <div className="w-5 h-5 rounded-full bg-slate-400 dark:bg-slate-600 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold group-hover:bg-amber-500 transition-colors">
+                                1
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-amber-700 dark:group-hover:text-amber-400 text-xs sm:text-[13px]">
+                                    Ghi đè & Tắt tệp cũ bị trùng
+                                </span>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                                    Tắt các tệp cũ có trùng lặp ngày khỏi báo cáo. Chỉ sử dụng dữ liệu mới nạp này để xem doanh thu khoảng trùng.
+                                </p>
+                            </div>
+                        </Button>
+
+                        {/* Option 2: Merge All */}
+                        <Button
+                            type="button"
+                            variant="card" size="none"
+                            onClick={() => handleSelect('merge_all')}
+                            className="justify-start w-full p-3 bg-slate-50 hover:bg-rose-50/20 dark:bg-slate-800/40 dark:hover:bg-rose-950/5 border border-slate-200 dark:border-slate-800 rounded-popup text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-start gap-3 active:scale-[0.99] group"
+                        >
+                            <div className="w-5 h-5 rounded-full bg-slate-400 dark:bg-slate-600 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold group-hover:bg-rose-500 transition-colors">
+                                2
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-rose-500 dark:group-hover:text-rose-400 text-xs sm:text-[13px]">
+                                    Gộp đè toàn bộ (Cộng dồn số liệu)
+                                </span>
+                                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+                                    Không loại bỏ đơn hàng nào. Số liệu của những ngày trùng nhau sẽ bị cộng dồn lên (có thể gây lệch báo cáo thực tế).
+                                </p>
+                            </div>
+                        </Button>
+                    </div>
+
+                    {/* Remember choice checkbox */}
+                    <label className="flex items-center gap-2 pt-2 px-1 cursor-pointer select-none text-xs text-slate-600 dark:text-slate-400">
+                        <input
+                            type="checkbox"
+                            checked={rememberChoice}
+                            onChange={(e) => setRememberChoice(e.target.checked)}
+                            className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span className="font-medium text-[11px] sm:text-xs">
+                            Luôn tự động ghi đè tệp cũ khi trùng lặp mà không cần hỏi lại
+                        </span>
+                    </label>
+                </div>
+
+                {/* Footer / Cancel */}
+                <div className="pt-2 flex items-center justify-end">
+                    <Button
+                        type="button"
+                        variant="secondary" size="sm"
+                        onClick={() => onResolve('cancel')}
+                        className="dark:border-slate-700 dark:hover:bg-slate-800/60 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 uppercase tracking-wider active:scale-[0.97] flex gap-1.5"
+                    >
+                        <AppIcon name="close" size="sm" />
+                        Hủy nạp file
+                    </Button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
+export default UploadConflictModal;

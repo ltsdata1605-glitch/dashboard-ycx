@@ -1,0 +1,10 @@
+{
+  "features/bi-dashboard/components/dashboard/SummaryTableView.tsx": "Full source read in chunks. Filter label onClick and unnamed BI Switch were separate; native htmlFor/id with useId now supplies name and one toggle. Sorting/column panel/export/dates/full token and business acceptance pending.",
+  "features/bi-dashboard/components/dashboard/DashboardWidgets.tsx": "Full source re-read: wrapper forwards id to shared Switch; no API modification needed. Distinct over100 progress behavior retained.",
+  "features/bi-dashboard/hooks/useIndexedDBState.ts": "Full source read: local cache/load/debounce/unmount flush; no remote mutation. Error recovery/races/full lifecycle not verified.",
+  "features/bi-dashboard/store/configStore.ts": "Full source read: immutable cache/loaded flags/subscriber notifications; no modification, runtime concurrency pending.",
+  "features/bi-dashboard/services/summaryTableCalc.test.ts": "Full 400line safety read;22pure unit cases PASS. Test expectations do not independently validate business formulas.",
+  "components/shared/ui/Switch.tsx": "Full source re-read: native button role switch accepts id, stops propagation, one callback; existing shared control retained.",
+  "tests/e2e/helpers/materialHarness.html": "Added actual SummaryTableView React fixture and real local IndexedDB with synthetic AUDIT A/B input; portal mounted before consumer. Other branches unchanged.",
+  "tests/e2e/summary-switch-labels.spec.ts": "Authored/read complete: named switch, native label association, one toggle hides row and switch restores row at390/1366. Screenshot disables CSS animation. No real auth/services."
+}

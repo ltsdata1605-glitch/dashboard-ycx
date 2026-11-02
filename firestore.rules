@@ -1,0 +1,282 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isSelf(uid)   { return isSignedIn() && request.auth.uid == uid; }
+    function role()        { return isSignedIn() ? request.auth.token.role : null; }
+    function isAdmin()     { return role() == 'admin'; }
+    function isManager()   { return role() == 'admin' || role() == 'manager'; }
+    function protectedKeys() {
+      return ['role', 'status', 'departmentId', 'expiresAt', 'requestedRole'];
+    }
+    // Tách chuỗi departmentId (có thể là nhiều mã Kho nối bằng dấu phẩy, vd "58614,12345")
+    // thành danh sách — dùng cho khoData/{maKho} (mục 37 implementation_plan.md). maKho là
+    // path segment (không phải query filter) nên rule "in" ở đây luôn tin cậy, không gặp
+    // vướng mắc kiểu list/query đã gặp với listManagedUsers (mục 29).
+    function myKhos() {
+      return isSignedIn() && request.auth.token.departmentId is string
+        ? request.auth.token.departmentId.replace('\\s+', '').split(',')
+        : [];
+    }
+
+    // Quyền XEM chức năng theo vai trò (2026-10-30) — đồng bộ với shared_configs/system_menu_config.featureRoles
+    // (contexts/MenuConfigContext.tsx). Thiếu khoá = mọi vai trò được; quản trị hệ thống luôn được. Áp cho DỮ LIỆU đám mây
+    // của từng chức năng để không chỉ ẩn giao diện. Dữ liệu chỉ lưu trên máy (IndexedDB: Khai thác, Coupon, So giá, Thuế
+    // không đồng bộ) KHÔNG thể chặn bằng rules.
+    function menuConfigPath() { return /databases/$(database)/documents/shared_configs/system_menu_config; }
+    function featureRolesCfg() {
+      return exists(menuConfigPath()) ? get(menuConfigPath()).data.get('featureRoles', {}) : {};
+    }
+    function coQuyenChucNang(featureId) {
+      return isSignedIn() && (isAdmin() || !(featureId in featureRolesCfg()) || featureRolesCfg()[featureId].hasAny([role()]));
+    }
+
+    match /users/{uid} {
+      // Manager KHÔNG còn quyền get/list trực tiếp ở đây (trước đây isManager() cho manager
+      // đọc TOÀN BỘ collection, không giới hạn Kho — lọc theo Kho chỉ nằm ở client nên không
+      // phải bảo mật thật, 1 manager gọi thẳng query vẫn đọc được hồ sơ Kho khác). Manager giờ
+      // đọc qua Cloud Function listManagedUsers (functions/src/admin.ts, Admin SDK bypass rules,
+      // tự lọc theo Kho ở server). UserManagementView.tsx/usePendingApprovalCount.ts/
+      // NotificationDropdown.tsx đã chuyển sang gọi hàm này thay vì query thẳng.
+      allow get:    if isSelf(uid) || isAdmin();
+      allow list:   if isAdmin();
+      allow create: if isSelf(uid)
+                    && !request.resource.data.keys().hasAny(protectedKeys());
+      allow update: if isSelf(uid)
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedKeys());
+      // Không có allow update cho isAdmin() ở đây — thay đổi role/status/departmentId/
+      // expiresAt/requestedRole chỉ được thực hiện qua Cloud Function reviewAccessRequest /
+      // resolveSession (Admin SDK, tự bypass Rules), không cho phép client SDK ghi thẳng
+      // dù là admin hay không.
+
+      // Lịch sử tính thuế nằm trong setting — chỉ khoá đó bị giới hạn theo quyền xem Tính thuế
+      match /setting/{doc}       { allow read, write: if isSelf(uid) && (doc != 'tax_calculator_history' || coQuyenChucNang('tools-tax')); }
+      // Lịch Phân ca — chỉ khi vai trò được xem Phân ca
+      match /schedules/{doc}     { allow read, write: if isSelf(uid) && coQuyenChucNang('tools-phanca'); }
+      match /salesData/{doc}     { allow read, write: if isSelf(uid); }
+      match /notifications/{id}  { allow read, update: if isSelf(uid); allow create: if isSignedIn(); }
+
+      // configs/{key} — cấu hình "nặng" (services/firestoreService.ts, isHeavySyncKey()).
+      // Khoá nào vượt giới hạn 1MiB/document của Firestore (vd checkthuong_data — bảng so
+      // sánh nhiều Kho/nhiều tháng) được cắt thành nhiều phần ở subcollection chunks/{n}
+      // (assembleChunkedHeavyValue()) — match /configs/{doc} KHÔNG tự áp dụng cho
+      // subcollection con nên phải khai báo riêng, thiếu dòng này sẽ gây permission-denied
+      // im lặng khi ghi/đọc chunk dù doc cha configs/{doc} vẫn đọc/ghi bình thường.
+      // checkthuong_data — chỉ khi vai trò được xem Check thưởng (các khoá khác không bị ảnh hưởng)
+      match /configs/{doc} {
+        allow read, write: if isSelf(uid) && (doc != 'checkthuong_data' || coQuyenChucNang('check-thuong'));
+
+        match /chunks/{n} {
+          allow read, write: if isSelf(uid) && (doc != 'checkthuong_data' || coQuyenChucNang('check-thuong'));
+        }
+      }
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'lts.truongson@gmail.com' ||
+        (role() == 'admin' && request.auth.token.departmentId is string && request.auth.token.departmentId.matches('^ALL \\(Super Admin\\).*'))
+      );
+    }
+
+    // Cấu hình dùng chung (thực đơn, thông báo hệ thống, cấu hình sản phẩm): CHỈ người đã đăng nhập đọc được (2026-10-30).
+    match /shared_configs/{id} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin() || isSuperAdmin();
+    }
+
+    // Dữ liệu doanh số DÙNG CHUNG theo Mã Kho (mục 37 implementation_plan.md) — khác với
+    // users/{uid}/salesData ở trên (theo UID cá nhân, chỉ đồng bộ cho chính người tải qua
+    // nhiều thiết bị của họ). Quản lý/admin tải lên 1 lần, mọi nhân viên/quản lý khác cùng
+    // Kho đăng nhập trên thiết bị riêng đều đọc được — giải quyết đúng yêu cầu "nhân viên
+    // thừa kế dữ liệu từ quản lý" khi mỗi người dùng thiết bị cá nhân riêng.
+    match /khoData/{maKho} {
+      match /salesFiles/{fileId} {
+        allow read:  if isSignedIn() && maKho in myKhos() && coQuyenChucNang('analysis');
+        allow write: if isSignedIn() && isManager() && maKho in myKhos() && coQuyenChucNang('analysis');
+
+        match /chunks/{n} {
+          allow read:  if isSignedIn() && maKho in myKhos() && coQuyenChucNang('analysis');
+          allow write: if isSignedIn() && isManager() && maKho in myKhos() && coQuyenChucNang('analysis');
+        }
+      }
+    }
+
+    // Dữ liệu Report BI (Thi đua/Summary Luỹ kế) DÙNG CHUNG theo siêu thị — implementation_plan.md
+    // mục "Đợt 4". Trong thực tế công ty, 1 Kho = 1 Siêu thị (xác nhận với user 2026-08-31) nên
+    // dùng LẠI đúng maKho/myKhos() ở trên — KHÔNG có custom claim allowedSupermarkets riêng.
+    // Manager/admin dán dữ liệu 1 lần (uploadBiDataIfManager), mọi user cùng Kho đọc được trên
+    // thiết bị riêng của họ — mirror chính xác khoData/{maKho} phía trên, chỉ khác tên collection
+    // và loại dữ liệu bên trong (báo cáo BI đã parse theo siêu thị, không phải DataRow[] doanh số).
+    match /biData/{maKho} {
+      match /{document=**} {
+        allow read:  if isSignedIn() && maKho in myKhos() && coQuyenChucNang('employees');
+        allow write: if isSignedIn() && isManager() && maKho in myKhos() && coQuyenChucNang('employees');
+      }
+    }
+
+    // Bảng map "tên siêu thị trong báo cáo Report BI" → "Mã Kho" — biDataService.ts dùng để
+    // biết dán dữ liệu vào biData/{maKho} nào. KHÔNG dùng shared_configs ở trên (chỗ đó dành
+    // cho chia sẻ cấu hình tuỳ ý giữa user, sai ngữ nghĩa cho 1 bảng tra cứu cố định duy nhất).
+    // 1 document CHO MỖI Mã Kho (field names: string[]) — không còn 1 document duy nhất như
+    // trước, để manager tự cấu hình được ĐÚNG Kho của mình (mirror biData/{maKho} phía trên,
+    // dùng lại myKhos()). Đọc: ai đăng nhập cũng cần (để hiển thị tên đúng). Ghi: admin ghi được
+    // MỌI Mã Kho kể cả Kho không thuộc myKhos() của họ (đây vẫn là bảng tra cứu toàn hệ thống,
+    // admin cần toàn quyền vận hành/sửa hộ) — khác biệt CỐ Ý so với biData/{maKho} phía trên,
+    // nơi admin cũng bị giới hạn myKhos(). Manager chỉ ghi được đúng (các) Kho của mình.
+    match /biSupermarketMap/{maKho} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin() || (isManager() && maKho in myKhos());
+    }
+
+    // Bộ đếm lượt truy cập (hooks/useSystemTraffic.ts).
+    //
+    // SIẾT LẠI 2026-09-09 (KE_HOACH_TONG_THE.md mục 2.6). Trước đây là
+    // `allow read, write: if isSignedIn()` — nghĩa là BẤT KỲ ai đăng nhập cũng
+    // có thể ghi đè hoặc XOÁ TRẮNG document đếm, hoặc set totalVisits thành số
+    // bất kỳ. Phía client chỉ chặn bằng sessionStorage('hasCountedVisit'), tức
+    // không chặn được gì cả. Nay chỉ cho phép đúng 1 thao tác: TĂNG totalVisits
+    // lên đúng 1 đơn vị. Vẫn có thể bơm số nếu gọi lặp lại, nhưng mỗi lần +1 là
+    // 1 request nên chi phí tăng tuyến tính, và quan trọng hơn: không còn khả
+    // năng phá huỷ (ghi đè/xoá/thêm field lạ).
+    // Không chuyển sang Cloud Function vì việc đó cần deploy functions, trong
+    // khi rules đã đủ diễn đạt ràng buộc này.
+    match /_system/{doc} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.keys().hasOnly(['totalVisits'])
+                    && request.resource.data.totalVisits == 1;
+      allow update: if isSignedIn()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalVisits'])
+                    && request.resource.data.totalVisits == resource.data.totalVisits + 1;
+      allow delete: if false;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // PHÂN HỆ IN STICKER (EVENT - TỒN KHO) — Database (default)
+    // ───────────────────────────────────────────────────────────────────────────
+    function stickerRole()        { return isSignedIn() ? request.auth.token.stickerRole : null; }
+    function myStickerStoreId()   { return isSignedIn() ? request.auth.token.stickerStoreId : null; }
+    function isStickerSuperAdmin() { return stickerRole() == 'superadmin'; }
+    function isStickerAdmin()      { return stickerRole() == 'admin' || isStickerSuperAdmin(); }
+    function stickerProtectedKeys() {
+      return ['role', 'storeId', 'username'];
+    }
+
+    match /stickerUsers/{uid} {
+      allow get:    if isSelf(uid) || isStickerSuperAdmin() || (stickerRole() == 'admin' && resource.data.storeId == myStickerStoreId());
+      allow list:   if isStickerSuperAdmin() || (stickerRole() == 'admin' && resource.data.storeId == myStickerStoreId());
+      allow update: if isSelf(uid)
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(stickerProtectedKeys());
+
+      match /state/{doc} { allow read, write: if isSelf(uid); }
+    }
+
+    // Audit 2026-10-07 (S14): trước đây savedLists/itemChunks cho MỌI user đăng nhập đọc/ghi mọi kho,
+    // và kho 'SUPERADMIN' ai cũng GHI được. Giữ nguyên quyền ĐỌC kho 'SUPERADMIN' (danh sách dùng
+    // chung — fetchSavedListsFromFirestore cố ý đọc kho của mình + 'SUPERADMIN'), chỉ siết quyền GHI
+    // về đúng kho của mình. Lưu ý: rules là phép OR giữa các match — match savedLists phải chặt bằng
+    // match wildcard bên dưới, nếu không nó mở lại quyền.
+    // token.departmentId chỉ có ở tài khoản app gốc ĐÃ DUYỆT (functions/src/claims.ts).
+    // Quyền xem chức năng In Sticker (tools-print-sticker) áp cả cho dữ liệu kho.
+    function canUseStickerStore(storeId) {
+      return isSignedIn() && coQuyenChucNang('tools-print-sticker')
+        && (isStickerSuperAdmin() || myStickerStoreId() == storeId || request.auth.token.departmentId == storeId);
+    }
+    function canReadStickerStore(storeId) {
+      return (canUseStickerStore(storeId) || (isSignedIn() && storeId == 'SUPERADMIN' && coQuyenChucNang('tools-print-sticker')));
+    }
+
+    match /stores/{storeId}/savedLists/{listId} {
+      allow read:  if canReadStickerStore(storeId);
+      allow write: if canUseStickerStore(storeId);
+
+      match /itemChunks/{chunkId} {
+        allow read:  if canReadStickerStore(storeId);
+        allow write: if canUseStickerStore(storeId);
+      }
+    }
+
+    match /stores/{storeId}/{document=**} {
+      allow read:  if canReadStickerStore(storeId);
+      allow write: if canUseStickerStore(storeId);
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // PHÂN HỆ BOT LINE QUẢN LÝ PMH (Multi-tenant theo Quản lý & Kế thừa theo Mã Kho)
+    // ───────────────────────────────────────────────────────────────────────────
+    // Audit 2026-10-07 (S13): trước đây MỌI manager (mọi Kho) đọc/ghi được MỌI bot — kể cả Channel
+    // Access Token / Channel Secret của bot người khác. Nay: chủ bot, admin, hoặc manager CÙNG Mã Kho
+    // với bot (tính năng "kế thừa Bot Kho" — features/line-bot/hooks/useBotScope.ts effectiveBotId).
+    // departmentId của bot có thể là nhiều Kho nối dấu phẩy ("910,911").
+    function botKhos(data) {
+      return data.departmentId is string ? data.departmentId.replace('\\s+', '').split(',') : [];
+    }
+    function canUseBot(userId, data) {
+      return isSelf(userId) || isAdmin() || (isManager() && botKhos(data).hasAny(myKhos()));
+    }
+    function botOwnerKeysUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['departmentId', 'userId', 'ownerEmail', 'ownerName', 'isWarehouseShared']);
+    }
+
+    // Bí mật bot KHÔNG được nằm trong line_bots (xem line_bot_secrets): chặn client (kể cả tab cũ chưa tải lại
+    // trang) ghi lại 3 field này — nếu không, bản giao diện cũ sẽ làm lộ lại Token cho mọi manager cùng Kho.
+    function botSecretKeys() { return ['channelAccessToken', 'channelSecret', 'pmhRelayToken']; }
+    function noBotSecretsWritten() {
+      return !request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(botSecretKeys());
+    }
+
+    match /line_bots/{userId} {
+      allow get:    if isSignedIn() && canUseBot(userId, resource.data) && coQuyenChucNang('tools-line-bot');
+      // list (findWarehouseBot): query PHẢI lọc departmentId ==/in các Kho của chính mình.
+      allow list:   if isSignedIn() && (isAdmin() || (isManager() && resource.data.departmentId in myKhos())) && coQuyenChucNang('tools-line-bot');
+      allow create: if (isSelf(userId) || isAdmin()) && noBotSecretsWritten() && coQuyenChucNang('tools-line-bot');
+      allow update: if isSignedIn() && canUseBot(userId, resource.data)
+                    && (isSelf(userId) || isAdmin() || botOwnerKeysUnchanged())
+                    && noBotSecretsWritten() && coQuyenChucNang('tools-line-bot');
+      allow delete: if (isSelf(userId) || isAdmin()) && coQuyenChucNang('tools-line-bot');
+
+      // `/{sub}/{rest=**}` chứ KHÔNG phải `/{sub=**}`: ở rules_version 2, `{x=**}` khớp cả 0 cấp —
+      // tức khớp chính document bot và mở quyền ghi đè cả bot (vượt botOwnerKeysUnchanged ở trên).
+      match /{subcollection}/{rest=**} {
+        allow read, write: if isSignedIn() && coQuyenChucNang('tools-line-bot') && (isSelf(userId) || isAdmin()
+          || (isManager() && botKhos(get(/databases/$(database)/documents/line_bots/$(userId)).data).hasAny(myKhos())));
+      }
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // BỘ NHỚ LƯU TRỮ HÌNH ẢNH BOT LINE (Tải ảnh trực tiếp & Phục vụ webhook)
+    // ───────────────────────────────────────────────────────────────────────────
+    // Audit S07/S13: trước đây ĐỌC công khai (kể cả chưa đăng nhập) và mọi user GHI ĐÈ được ảnh của
+    // người khác. Client chỉ TẠO ảnh mới (ID ngẫu nhiên) — LINE tải ảnh qua Cloud Function
+    // (?mediaId=, Admin SDK), không đọc Firestore trực tiếp. Mỗi document ≤ ~1MB base64.
+    match /bot_media/{mediaId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+                    && (!('base64' in request.resource.data) || request.resource.data.base64.size() <= 1048000);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.get('ownerUid', '') == request.auth.uid;
+    }
+
+    // Audit S13/S14/B3: Channel Access Token / Channel Secret / pmhRelayToken của Bot LINE. KHÔNG client nào
+    // (kể cả admin, chủ bot) đọc/ghi được — chỉ Cloud Functions (Admin SDK bỏ qua rules). Ghi qua
+    // lineBotWebhook?action=saveSecrets; client chỉ thấy cờ hasToken/hasSecret trong line_bots/{uid}.
+    match /line_bot_secrets/{botId} {
+      allow read, write: if false;
+    }
+
+    // Audit S09: bảng lệnh báo cáo TOÀN HỆ THỐNG (không theo bot) từng làm bot này trả ảnh báo cáo
+    // của bot/Kho khác. Lệnh nay chỉ đọc theo bot (line_bots/{uid}/report_commands) — khoá hẳn.
+    match /report_commands/{cmd} {
+      allow read, write: if false;
+    }
+
+    // Chuyển phiên đăng nhập Google vào app Màn hình chính iPhone (functions/src/pwaHandoff.ts):
+    // chứa Google idToken/accessToken sống ≤5 phút — chỉ Cloud Functions đọc/ghi.
+    match /pwaHandoff/{code} {
+      allow read, write: if false;
+    }
+  }
+}
+

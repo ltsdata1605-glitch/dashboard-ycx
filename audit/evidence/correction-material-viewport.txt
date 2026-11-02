@@ -1,0 +1,43 @@
+[WebServer] (node:38470) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/glass-material-foundation.spec.ts:6:1 › Material token và reduced transparency trên action sheet thật (10.1s)
+
+
+  1) [chromium] › tests/e2e/glass-material-foundation.spec.ts:6:1 › Material token và reduced transparency trên action sheet thật 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 844
+    Received:    865
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      32 |         const box = await cancel.boundingBox();
+      33 |         return box ? box.y + box.height : Number.POSITIVE_INFINITY;
+    > 34 |     }).toBeLessThanOrEqual(844);
+         |        ^
+      35 |     await page.screenshot({ path: 'audit/evidence/correction-material-reduced.png', animations: 'disabled' });
+      36 |     await page.getByRole('button', { name: 'Huỷ', exact: true }).click();
+      37 |     await expect(material).toHaveCount(0);
+        at /Users/ltson/dashboardycx/tests/e2e/glass-material-foundation.spec.ts:34:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/phase2-chromium/glass-material-foundation--2d1ae-ency-trên-action-sheet-thật-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/phase2-chromium/glass-material-foundation--2d1ae-ency-trên-action-sheet-thật-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/phase2-chromium/glass-material-foundation--2d1ae-ency-trên-action-sheet-thật-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/phase2-chromium/glass-material-foundation--2d1ae-ency-trên-action-sheet-thật-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/e2e/glass-material-foundation.spec.ts:6:1 › Material token và reduced transparency trên action sheet thật 

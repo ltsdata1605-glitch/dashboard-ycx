@@ -1,0 +1,271 @@
+import React, { useState } from 'react';
+import { resolveIconName } from '../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../shared/ui/icon/AppIcon';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../shared/ui/toast';
+import { Button } from '../shared/ui/Button';
+
+interface PendingApprovalViewProps {
+    forceDeptUpdate?: boolean;
+}
+
+const PendingApprovalView: React.FC<PendingApprovalViewProps> = ({ forceDeptUpdate = false }) => {
+    const { user, logout, status, requestAccess, userRole } = useAuth();
+    const [selectedRole, setSelectedRole] = useState<'manager' | 'employee' | null>(
+        forceDeptUpdate ? (userRole === 'manager' ? 'manager' : 'employee') : null
+    );
+    const [deptId, setDeptId] = useState('');
+    const [empName, setEmpName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedRole || !deptId) {
+            toast.error('Vui lòng nhập đầy đủ thông tin mã kho.');
+            return;
+        }
+        if (!deptId.trim()) {
+            toast.error('Mã kho không được để trống!');
+            return;
+        }
+        if (!empName) {
+            toast.error('Vui lòng nhập User (Mã nhân viên).');
+            return;
+        }
+        if (!/^\d+$/.test(empName.trim())) {
+            toast.error('User chỉ được chứa chữ số! Vui lòng kiểm tra lại.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const res = await requestAccess(selectedRole, deptId, empName);
+            if (res && res.autoApproved) {
+                toast.success('Hệ thống đã tự động duyệt thành công! Đang chuyển vào trang chính...', { duration: 3000 });
+            } else {
+                toast.success(forceDeptUpdate 
+                    ? 'Cập nhật mã kho thành công! Vui lòng chờ duyệt.'
+                    : 'Gửi yêu cầu thành công! Admin/Quản lý sẽ duyệt sớm nhất.');
+            }
+        } catch (error) {
+            toast.error('Có lỗi xảy ra, vui lòng thử lại.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="flex-1 h-full flex items-center justify-center p-6 relative overflow-y-auto">
+            {/* Background effects */}
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 dark:bg-sky-500/5 rounded-full blur-[100px]"></div>
+            </div>
+
+            {/* Vào bằng CSS (GĐ4 — bỏ thư viện motion khỏi app). */}
+            <div
+                className="w-full max-w-md bg-white dark:bg-slate-900 rounded-overlay shadow-xl shadow-slate-200/50 dark:shadow-black/50 overflow-hidden relative z-10 border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-300"
+            >
+                {/* Header Decoration */}
+                <div className="h-32 bg-gradient-to-br from-sky-500 to-sky-700 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                </div>
+
+                <div className="px-8 pb-8 pt-0 relative flex flex-col items-center">
+                    {/* User Avatar */}
+                    <div className="w-24 h-24 rounded-full bg-white dark:bg-slate-800 p-2 shadow-lg -mt-12 mb-6 relative z-10 mx-auto">
+                        {user?.photoURL ? (
+                            <img 
+                                src={user.photoURL} 
+                                alt={user.displayName || 'User'} 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.parentElement?.querySelector('[data-pending-avatar-fallback]') as HTMLElement | null;
+                                    if (fallback) fallback.style.display = 'flex';
+                                }}
+                                className="w-full h-full rounded-full object-cover"
+                            />
+                        ) : null}
+                        <div 
+                            data-pending-avatar-fallback
+                            style={{ display: user?.photoURL ? 'none' : 'flex' }}
+                            className="w-full h-full rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 items-center justify-center text-[28px] font-bold uppercase leading-9"
+                        >
+                            {user?.email ? user.email[0] : '?'}
+                        </div>
+                        <div className={`absolute bottom-0 right-0 w-6 h-6 ${forceDeptUpdate ? 'bg-rose-500' : 'bg-amber-400'} rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center shadow-sm`}>
+                            <AppIcon name={forceDeptUpdate ? 'warning' : status === 'new' ? 'userAdd' : 'clock'} size="sm" className="text-white" />
+                        </div>
+                    </div>
+
+                    <h2 className="text-[25px] font-bold text-slate-800 dark:text-white mb-2 font-display text-center leading-8">
+                        {forceDeptUpdate ? 'Cập Nhật Mã Kho' : status === 'pending' ? 'Đang Chờ Phê Duyệt' : 'Đăng Ký Quyền Truy Cập'}
+                    </h2>
+                    
+                    <div className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-4 text-center">
+                        Xin chào <strong className="text-slate-700 dark:text-slate-200">{user?.displayName || user?.email}</strong>,
+                    </div>
+
+                    {forceDeptUpdate && (
+                        <div className="w-full bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 p-3 rounded-popup border border-rose-200 dark:border-rose-900/40 text-sm text-center leading-relaxed mb-4">
+                            <AppIcon name="alert" size="md" className="inline mr-1" />
+                            Tài khoản của bạn <strong>chưa đăng ký mã kho</strong>. Vui lòng cập nhật để tiếp tục sử dụng hệ thống.
+                        </div>
+                    )}
+
+                    {status === 'pending' && !forceDeptUpdate ? (
+                        <div className="w-full space-y-4 text-center">
+                            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 p-4 rounded-popup border border-amber-200 dark:border-amber-900/40 text-sm text-center leading-relaxed">
+                                Yêu cầu của bạn đã được ghi nhận thành công.<br/>
+                                <span className="font-semibold">Vui lòng liên hệ Admin qua LINE để được duyệt nhanh nhất.</span>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-sky-200 dark:border-sky-800/50 rounded-card bg-white dark:bg-slate-900 mb-4 transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Quét mã QR bằng LINE</p>
+                                <img 
+                                    src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://line.me/ti/p/VOUflskKB0&margin=10" 
+                                    alt="QR Code LINE Admin" 
+                                    className="w-32 h-32 rounded-control shadow-sm border border-slate-100 dark:border-slate-800 mb-4 bg-white"
+                                />
+                                <a 
+                                    href="https://line.me/ti/p/VOUflskKB0" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="w-full py-2.5 px-6 rounded-popup bg-[#06C755] hover:bg-[#05b34c] text-white font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    <AppIcon name="lineBrand" size="md" />
+                                    Bấm vào đây để Nhắn Tin LINE
+                                </a>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="secondary" size="lg"
+                                    onClick={() => window.location.reload()}
+                                    className="flex-1 dark:bg-slate-800 text-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 flex gap-2 text-sm"
+                                >
+                                    <AppIcon name="refresh" size="md" />
+                                    Tải lại
+                                </Button>
+                                <Button
+                                    variant="secondary" size="lg"
+                                    type="button"
+                                    onClick={logout}
+                                    className="flex-1 dark:border-slate-800 dark:bg-slate-900 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex gap-2"
+                                >
+                                    <AppIcon name="logout" size="md" />
+                                    Đăng xuất
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="w-full text-left">
+                            {!forceDeptUpdate && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Vai trò muốn đăng ký:</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Button
+                                        variant="card" size="none"
+                                        type="button"
+                                        onClick={() => setSelectedRole('manager')}
+                                        className={`justify-start p-3 rounded-popup border-2 flex flex-col items-center gap-2 ${selectedRole === 'manager' ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-400' : 'border-slate-200 dark:border-slate-700 hover:border-sky-300 text-slate-500'}`}
+                                    >
+                                        <AppIcon name="briefcase" size="xl" />
+                                        <span className="font-semibold text-sm">Quản lý Kho</span>
+                                    </Button>
+                                    <Button
+                                        variant="card" size="none"
+                                        type="button"
+                                        onClick={() => setSelectedRole('employee')}
+                                        className={`justify-start p-3 rounded-popup border-2 flex flex-col items-center gap-2 ${selectedRole === 'employee' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-700 hover:border-emerald-300 text-slate-500'}`}
+                                    >
+                                        <AppIcon name="users" size="xl" />
+                                        <span className="font-semibold text-sm">Nhân viên</span>
+                                    </Button>
+                                </div>
+                            </div>
+                            )}
+                            
+                            {/* Mở/đóng mượt bằng lưới 0fr ↔ 1fr (CSS) thay cho motion animate height:auto. */}
+                            <div className={`grid transition-[grid-template-rows,opacity] duration-300 motion-reduce:transition-none ${(selectedRole || forceDeptUpdate) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                            <div className="overflow-hidden space-y-4 min-h-0">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Mã Kho (Chi nhánh):</label>
+                                    <input 
+                                        type="text" 
+                                        value={deptId}
+                                        onChange={(e) => setDeptId(e.target.value)}
+                                        placeholder={selectedRole === 'manager' ? "VD: 1022, 58614, 12345" : "VD: 1022"} 
+                                        className="w-full px-4 py-2.5 rounded-control border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                        required
+                                    />
+                                    {selectedRole === 'manager' ? (
+                                        <p className="text-[12px] font-bold text-rose-500 mt-2">
+                                            Hãy nhập 2 mã kho nếu bạn quản lý 2 shop (ngăn cách bằng dấu phẩy).
+                                        </p>
+                                    ) : (
+                                        <p className="text-[11px] text-slate-500 mt-1 italic">
+                                            Nhân viên chỉ được đăng nhập <strong>một kho duy nhất</strong>.
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">User (Chỉ nhập số):</label>
+                                    <input 
+                                        type="text" 
+                                        value={empName}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '' || /^\d+$/.test(val)) {
+                                                setEmpName(val);
+                                            }
+                                        }}
+                                        placeholder="VD: 58614" 
+                                        className="w-full px-4 py-2.5 rounded-control border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                        required
+                                    />
+                                    <p className="text-[11px] text-slate-500 mt-1 italic">Vui lòng nhập <strong className="font-bold text-slate-700 dark:text-slate-300">đúng User ID (mã nhân viên phần số)</strong>. Hệ thống sẽ tự động map dữ liệu.</p>
+                                </div>
+                                {(selectedRole || forceDeptUpdate) && (
+                                    <div className="pt-4 flex gap-3">
+                                        <Button
+                                            variant="secondary" size="lg"
+                                            type="button"
+                                            onClick={logout}
+                                            className="flex-1 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 flex gap-2"
+                                        >
+                                            <AppIcon name="logout" size="md" />
+                                            Đăng xuất
+                                        </Button>
+                                        <Button
+                                            variant="primary" size="none"
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className="flex-1 py-3 px-4 rounded-popup bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-md hover:shadow-lg transition-all focus:ring-4 focus:ring-sky-500/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {isSubmitting ? <AppIcon name="loading" size="lg" spin /> : <AppIcon name="success" size="lg" />}
+                                            {isSubmitting ? 'Đang gửi...' : forceDeptUpdate ? 'Cập nhật Mã Kho' : 'Gửi Đăng Ký'}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                            </div>
+                        </form>
+                    )}
+
+                    <Button
+                        variant="ghost" size="lg"
+                        onClick={() => logout()}
+                        className="w-full mt-4 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex gap-2"
+                    >
+                        <AppIcon name="logout" size="md" />
+                        <span>Đăng xuất tài khoản khác</span>
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default PendingApprovalView;

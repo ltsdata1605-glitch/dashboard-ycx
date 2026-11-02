@@ -1,0 +1,47 @@
+location,utility,role,decision,reason
+components/shared/ui/TopBarActions.tsx:244,backdrop-blur-xl,thanh công cụ laptop nổi (26 nơi dùng),MIGRATED→.ycx-glass,lớp điều khiển nổi — ảnh mẫu 2 (thanh công cụ kính)
+components/shared/ui/CapsuleBar.tsx,backdrop-blur-xl,cụm con nhộng,MIGRATED→GlassSurface (lượt 1),lớp điều khiển nổi
+features/sticker-event/BottomNavigation.tsx:46,backdrop-blur-md,thanh tab dưới In Sticker (full-width),MIGRATED→.ycx-material,thanh điều hướng iPhone — blur Tailwind bị tắt trên điện thoại nên trước đây không có kính
+components/shared/ui/KpiCard.tsx:164,backdrop-blur-xs,thẻ KPI,REMOVED (nền trắng đặc),kính không phủ KPI; nền 95% gần như đặc — blur chỉ tốn GPU
+features/bi-dashboard/components/dashboard/industryKpi/IndustryKpiGrid.tsx:130,backdrop-blur-xs,khung lưới KPI ngành,REMOVED,bề mặt dữ liệu
+features/line-bot/components/FilteredCouponsTab.tsx:268,backdrop-blur-xs,đầu bảng dính,REMOVED (nền đặc),đầu bảng phải đặc để chữ dòng cuộn dưới không lộ
+features/line-bot/components/AdminDeclarationTab.tsx:230,backdrop-blur-xs,đầu bảng dính,REMOVED,idem
+features/line-bot/components/CouponManagerTab.tsx:596,backdrop-blur-xs,đầu bảng dính,REMOVED,idem
+features/bi-dashboard/components/nhanvien/InstallmentTab.tsx:487,backdrop-blur-xs,đầu bảng dính,REMOVED,idem
+features/bi-dashboard/components/nhanvien/RevenueTab.tsx:539,backdrop-blur-xs,đầu bảng dính,REMOVED,idem
+features/tax-calculator/components/TaxHistorySidebar.tsx:214,backdrop-blur-xs,đầu nhóm danh sách dính,REMOVED,idem
+features/tax-calculator/components/TaxHistoryModal.tsx:215,backdrop-blur-xs,đầu nhóm danh sách dính,REMOVED,idem
+components/layout/FontSelector.tsx:161,backdrop-blur-sm,popup chọn phông,REMOVED,nền bg-white đặc 100% — blur vô tác dụng
+components/shared/ui/Modal.tsx:246,backdrop-blur-[2px],lớp nền mờ sau modal,KEEP,scrim — làm mờ nội dung phía sau là đúng vai trò
+components/shared/export/ExportProgressHost.tsx:48,backdrop-blur-[3px],scrim tiến trình xuất,KEEP,scrim
+components/shared/export/ExportProgressHost.tsx:50,backdrop-blur-2xl,hộp tiến trình,REMOVED 2026-10-30,nền 95% trên scrim; có thể bỏ sau
+components/common/ProcessingLoader.tsx:52,backdrop-blur-xl,scrim đang xử lý,KEEP,scrim
+components/common/ProcessingLoader.tsx:59,backdrop-blur-3xl,hộp đang xử lý,REMOVED 2026-10-30,idem
+components/common/ExportLoader.tsx:7,backdrop-blur-sm,scrim,KEEP,scrim
+components/views/DashboardView.tsx:711,backdrop-blur-sm,scrim,KEEP,scrim
+components/tables/SummaryTable.tsx:227,backdrop-blur-[1px],màn chờ trên bảng,KEEP,lớp chờ tạm thời
+features/sticker-event/StickerEventApp.tsx:889,backdrop-blur-md,scrim,KEEP,scrim
+features/sticker-event/Scanner.tsx:406,backdrop-blur-md,scrim máy quét,KEEP,scrim
+features/sticker-event/StickerEventApp.tsx:733,backdrop-blur-md,thanh hành động nổi tối,KEEP (P4),HUD tối trên nền sáng — token kính hiện chỉ có bản sáng
+features/sticker-event/stickerprinter/FloatingFormatToolbar.tsx:483,backdrop-blur-md,thanh định dạng nổi tối trên khung in,KEEP (P4),HUD tối có chủ đích trên canvas nhãn — cần bản kính tối nếu muốn chuyển
+features/sticker-event/StickerEventApp.tsx:511,backdrop-blur-sm,thanh dính đầu (mobile),KEEP (P4),ứng viên .ycx-material
+features/sticker-event/stickerprinter/StickerPrintControls.tsx:460,backdrop-blur-xs,mục mặc định dính,KEEP,nền 95% màu amber
+features/sticker-event/ControlPanel.tsx:67,backdrop-blur-xs,bảng điều khiển laptop,KEEP (P4),nền 95%
+App.tsx:349,backdrop-blur-md,header laptop dính,KEEP,chỉ laptop (blur chạy); ứng viên .ycx-material
+components/charts/TrendChart.tsx:46,backdrop-blur-md,tooltip biểu đồ,KEEP,popover nhỏ 95%
+components/charts/IndustryGrid.tsx:212,backdrop-blur-md,tooltip,KEEP,idem
+components/layout/Sidebar.tsx:196,backdrop-blur-sm,tooltip tối dock,KEEP,tooltip
+components/layout/AppFooter.tsx:21,backdrop-blur-md,viên lượt truy cập chân trang,REMOVED 2026-10-30,không nổi — blur vô ích nhưng vô hại
+components/tables/summary/SummaryTableComparisonBar.tsx:286,backdrop-blur-sm,chip so sánh,REMOVED 2026-10-30,idem
+components/tables/summary/SummaryTableComparisonBar.tsx:291,backdrop-blur-sm,chip so sánh,REMOVED 2026-10-30,idem
+components/views/settings/ApprovalSettingsTab.tsx:200,backdrop-blur-sm,huy hiệu trên nền màu,KEEP,frosted trên nền gradient có chủ đích
+features/check-thuong/components/CheckThuongHeroBanner.tsx:52,backdrop-blur-sm,nút trên banner màu,KEEP,idem
+features/check-thuong/components/CheckThuongHeroBanner.tsx:76,backdrop-blur-md,khối số trên banner màu,KEEP,idem
+features/line-bot/components/KeywordEditModal.tsx:327,backdrop-blur-xs,nhãn trên ảnh,KEEP,nhãn đè ảnh
+features/check-thuong/components/CheckThuongFilterBar.tsx:35,backdrop-blur-md,thanh lọc trong dòng,REMOVED 2026-10-30,không nổi
+features/khai-thac/components/HistoryTab.tsx:81,backdrop-blur-md,ô trống,REMOVED 2026-10-30,không nổi
+features/khai-thac/components/DashboardTab.tsx:92,backdrop-blur-md,ô trống,REMOVED 2026-10-30,không nổi
+components/views/PriceComparisonView.tsx:804,backdrop-blur-xl,ô trống,REMOVED 2026-10-30,không nổi
+features/bi-dashboard/components/nhanvien/InstallmentTab.tsx:414,backdrop-blur-md,thanh công cụ trong thẻ,REMOVED 2026-10-30,không nổi
+features/bi-dashboard/components/nhanvien/RevenueTab.tsx:418,backdrop-blur-md,thanh công cụ trong thẻ,REMOVED 2026-10-30,không nổi
+features/line-bot/components/IPhoneChatPreview.tsx (6 chỗ),backdrop-blur-*,khung mô phỏng app LINE,KEEP,mô phỏng giao diện LINE có chủ đích

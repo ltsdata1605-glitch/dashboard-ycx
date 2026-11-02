@@ -1,0 +1,397 @@
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { demoModeChoPhep } from '../utils/demoMode';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import type { Functions } from 'firebase/functions';
+import type { Firestore } from 'firebase/firestore';
+import { clearAllLocalAppData, ensureLocalDataBelongsTo, setLocalDataOwner } from '../services/localDataOwner';
+import { auth, db, functions, loginWithGoogle as loginProvider, loginWithGoogleRedirect as loginRedirectProvider, checkRedirectLoginResult, hasPendingPwaHandoff, claimPwaHandoff, logoutUser as logoutProvider, nhoTaiKhoan, isAuthTransitionAuthorized } from '../services/firebase';
+import { getSetting, saveSetting, mergeSettings, cleanupGarbageKeys } from '../services/dbService/core';
+import { initSyncListeners, locCaiDatDongBoCu, boMucLucTepNeuMayDaCo, ghiNhanBanCloud, khoaKhoCuTrongCaiDat } from '../services/syncService';
+import { resolveSession, requestAccess as requestAccessApi } from '../services/sessionService';
+
+interface AuthContextType {
+    user: User | null;
+    userRole: 'admin' | 'manager' | 'employee' | 'pending' | null;
+    departmentId?: string;
+    employeeName?: string;
+    expiresAt?: Date | null;
+    status?: 'pending' | 'approved' | 'rejected' | 'new' | 'expired';
+    isLoading: boolean;
+    hasCachedSession: boolean;
+    loginWithGoogle: () => Promise<void>;
+    loginWithGoogleRedirect: () => Promise<void>;
+    logout: () => Promise<void>;
+    isDemoMode: boolean;
+    setDemoMode: (val: boolean) => void;
+    requestAccess: (requestedRole: 'manager' | 'employee', deptId: string, empName?: string) => Promise<{ autoApproved?: boolean; role?: string; status?: string } | void>;
+    functions: Functions;
+    db: Firestore;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [user, setUser] = useState<User | null>(null);
+    const [userRole, setUserRole] = useState<'admin' | 'manager' | 'employee' | 'pending' | null>(null);
+    const [departmentId, setDepartmentId] = useState<string | undefined>(undefined);
+    const [employeeName, setEmployeeName] = useState<string | undefined>(undefined);
+    const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+    const [status, setStatus] = useState<'pending' | 'approved' | 'rejected' | 'new' | 'expired'>('new');
+    const [hasCachedSession, setHasCachedSession] = useState(false);
+    // Ultra-Fast Boot đã mở dashboard bằng cache hợp lệ? Đọc trong callback onAuthStateChanged
+    // (closure cũ, deps []) nên phải là ref chứ không phải state.
+    const bootedFromCacheRef = useRef(false);
+
+    useEffect(() => {
+        cleanupGarbageKeys().catch(console.error);
+        checkRedirectLoginResult().catch(console.error);
+        if (hasPendingPwaHandoff()) {
+            claimPwaHandoff().catch(console.error);
+        }
+        Promise.all([
+            getSetting<'admin' | 'manager' | 'employee' | 'pending'>('cached_user_role'),
+            getSetting<string>('cached_dept_id'),
+            getSetting<string>('cached_emp_name'),
+            getSetting<'pending' | 'approved' | 'rejected' | 'new' | 'expired'>('cached_user_status')
+        ]).then(([r, d, e, s]) => {
+            if (r) setUserRole(r);
+            if (d) setDepartmentId(d);
+            if (e) setEmployeeName(e);
+            if (s) setStatus(s);
+            // Ultra-Fast Boot: Nếu đã có thông tin người dùng được cache ở IndexedDB máy local,
+            // tắt spinner loading NGAY LẬP TỨC để mở giao diện tức thì trong 0.05s mà không chờ mạng!
+            //
+            // QUAN TRỌNG: chỉ được làm vậy khi cache cho biết CHẮC CHẮN sẽ vào thẳng dashboard —
+            // trước đây chỉ cần có r+s (bất kể giá trị gì) là tắt spinner ngay, nên nếu cache còn
+            // lưu status cũ 'pending'/'new'/'expired' (vd còn sót lại từ trước khi tài khoản này
+            // được công nhận admin, hoặc user bị hạ quyền rồi được khôi phục) sẽ render NGAY màn
+            // "Đăng ký/Chờ duyệt" bằng dữ liệu cache cũ, rồi mới tự sửa lại vài trăm ms sau khi
+            // resolveSession() (gọi mạng, luôn ghi đè đúng — vd tự phục hồi quyền Super Admin,
+            // xem functions/src/session.ts) chạy xong — đúng dấu hiệu "nháy màn đăng ký kho rồi
+            // mới vào trang" dù đã đăng nhập đúng quyền. App.tsx chỉ vào thẳng dashboard khi
+            // status==='approved' VÀ (role==='admin' HOẶC có departmentId hợp lệ) — lặp lại đúng
+            // 2 điều kiện đó ở đây để không bao giờ tắt spinner sớm cho 1 state sẽ hiện màn KHÁC.
+            //
+            // hasCachedSession: cache này (IndexedDB riêng của app) và `onAuthStateChanged` (nguồn
+            // của `user`, IndexedDB riêng của Firebase SDK) là 2 round-trip bất đồng bộ ĐỘC LẬP —
+            // cache này thường xong TRƯỚC. Nếu chỉ setIsLoading(false) mà không báo cho App.tsx
+            // biết, App.tsx sẽ thấy `user === null` (Firebase chưa kịp xác nhận) và hiện nhầm màn
+            // Login trong vài chục ms trước khi `user` cập nhật — đúng dấu hiệu "nháy qua màn đăng
+            // nhập rồi mới vào trang" dù máy đã đăng nhập sẵn. hasCachedSession báo App.tsx bỏ qua
+            // màn Login trong lúc chờ, vào thẳng dashboard bằng dữ liệu cache.
+            if (s === 'approved' && (r === 'admin' || (d && d.trim() !== ''))) {
+                bootedFromCacheRef.current = true;
+                setIsLoading(false);
+                setHasCachedSession(true);
+            }
+        }).catch(console.error);
+    }, []);
+    
+    const [isLoading, setIsLoading] = useState(true);
+    // Chế độ Dùng Thử: bật mặc định cho mọi người — ai mở app cũng vào xem được, không cần đăng nhập.
+    // (2026-11-02, chủ dự án yêu cầu tắt đăng nhập.)
+    const choPhepDemo = demoModeChoPhep();
+    const [isDemoMode, setDemoModeRaw] = useState(() => {
+        if (!choPhepDemo) return false;
+        // Mặc định BẬT demo mode — chỉ tắt khi user đã đăng nhập tài khoản thật
+        return true;
+    });
+
+    const setDemoMode = (val: boolean) => {
+        if (!choPhepDemo) return;
+        setDemoModeRaw(val);
+        if (typeof window !== 'undefined') {
+            if (val) {
+                sessionStorage.setItem('ycx_demo_mode', 'true');
+                localStorage.setItem('ycx_demo_mode', 'true');
+            } else {
+                sessionStorage.removeItem('ycx_demo_mode');
+                localStorage.removeItem('ycx_demo_mode');
+            }
+        }
+    };
+    useEffect(() => {
+        if (choPhepDemo) return;
+        try {
+            sessionStorage.removeItem('ycx_demo_mode');
+            localStorage.removeItem('ycx_demo_mode');
+        } catch { /* trình duyệt chặn bộ nhớ: không có gì để xoá */ }
+    }, [choPhepDemo]);
+
+    useEffect(() => {
+        try {
+            sessionStorage.removeItem('ycx_demo_mode');
+            localStorage.removeItem('ycx_demo_mode');
+        } catch { /* trình duyệt chặn bộ nhớ: không có gì để xoá */ }
+    }, []);
+
+    useEffect(() => {
+
+
+
+        // Failsafe timeout: If Firebase Auth takes more than 5 seconds to respond 
+        // (usually due to IDB blockage on iOS/Safari in-app browsers), stop loading.
+        const fallbackTimer = setTimeout(() => {
+            console.warn("Firebase Auth response timeout. Forcing app load.");
+            setIsLoading(false);
+        }, 5000);
+
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            // Mục đích ban đầu của fallbackTimer (Firebase Auth không phản hồi) đã xong ngay
+            // khi callback này chạy — huỷ luôn, nếu không nó vẫn tự bắn sau đúng 5s kể từ lúc
+            // mount và ép isLoading=false NGAY CẢ KHI resolveSession() bên dưới còn đang chạy
+            // (vd: Cloud Function cold-start > 5s ngay sau khi vừa deploy) — tái tạo lại đúng
+            // race nháy màn "Cập Nhật Mã Kho" mà finally bên dưới vừa mới chặn.
+            clearTimeout(fallbackTimer);
+            // KIỂM SOÁT RANH GIỚI AUTH STATE (BOUNDARY GUARD):
+            // Nếu sự kiện đăng nhập này đến từ một phiên PWA handoff cũ đã bị thay thế bởi phiên mới,
+            // TUYỆT ĐỐI KHÔNG nhận user này vào app, không dọn dữ liệu cục bộ và không nạp quyền.
+            if (!isAuthTransitionAuthorized(currentUser)) {
+                console.warn('[Auth] Chặn Auth State từ phiên cũ đã bị thay thế:', currentUser?.uid);
+                return;
+            }
+            setUser(currentUser);
+            if (currentUser) {
+                // Tự động tắt demo mode nếu user đã đăng nhập tài khoản thật
+                setDemoMode(false);
+                // Dữ liệu cục bộ thuộc về TRÌNH DUYỆT chứ không theo tài khoản: tài khoản khác
+                // đăng nhập trên cùng máy sẽ thấy dữ liệu của người trước (chủ dự án gặp thật
+                // 2026-09-23 — tài khoản mới vẫn thấy cụm siêu thị cũ ở Report BI). Dọn trước khi
+                // nạp bất cứ thứ gì.
+                try {
+                    const wiped = await ensureLocalDataBelongsTo(currentUser.uid);
+                    if (wiped) {
+                        console.info('[Auth] Đổi tài khoản — đã dọn dữ liệu cục bộ của tài khoản trước.');
+                    }
+                } catch (err) {
+                    console.warn('[Auth] Không dọn được dữ liệu cục bộ của tài khoản trước:', err);
+                }
+                // Nhớ tài khoản cho lần đăng nhập sau (Google chọn sẵn — services/firebase.ts thamSoGoogle). SAU bước dọn ở trên.
+                nhoTaiKhoan(currentUser.email, currentUser.displayName);
+                // Đăng nhập MỚI ngay trong phiên trang (vừa đăng xuất rồi đăng nhập lại, hoặc mở
+                // app không có cache): isLoading lúc này đã là false (nhánh else bên dưới tắt từ
+                // trước) trong khi role/status/departmentId còn rỗng → App.tsx render NGAY
+                // PendingApprovalView "Cập Nhật Mã Kho" suốt 1-3s chờ resolveSession(), kể cả
+                // với admin (chủ dự án gặp thật 2026-09-22). Bật lại spinner cho tới khi có
+                // profile thật (finally bên dưới tắt). Chỉ bỏ qua khi Ultra-Fast Boot đã xác nhận
+                // cache hợp lệ — lúc đó dashboard đang hiện sẵn, không được che đi bằng spinner.
+                if (!bootedFromCacheRef.current) setIsLoading(true);
+                try {
+                    // Toàn bộ logic phân quyền (role/status/departmentId/expiresAt, cấp Super
+                    // Admin, tự demote khi hết hạn) giờ chạy ở server — functions/src/session.ts.
+                    // Client không còn tự updateDoc() field nhạy cảm (bị firestore.rules chặn).
+                    const profile = await resolveSession(currentUser.uid);
+                    // Chỉ force-refresh ID token khi claims HIỆN TẠI (role/departmentId) khác với
+                    // profile vừa nhận — getIdTokenResult(false) đọc token đã cache cục bộ (KHÔNG
+                    // gọi mạng nếu token còn hạn, thường 1 giờ), rẻ hơn hẳn getIdToken(true) (luôn
+                    // là 1 round-trip mạng tới Firebase Auth). Trường hợp phổ biến nhất — mở lại
+                    // app trong vòng vài giờ, quyền/Kho không đổi gì so với lần đăng nhập trước —
+                    // nhờ vậy bớt được 1 round-trip mạng nữa trong đường găng trước khi thấy
+                    // dashboard (implementation_plan.md mục 40). Vẫn phải force-refresh thật khi
+                    // claims khác (mới đăng nhập lần đầu, hoặc admin/quản lý vừa đổi quyền/Kho) vì
+                    // firestore.rules dùng request.auth.token.role — token cũ sẽ bị permission-denied.
+                    const currentTokenResult = await currentUser.getIdTokenResult(false).catch(() => null);
+                    const expectedRole = profile.claimRole ?? profile.role;
+                    const expectedDept = profile.claimDepartmentId !== undefined ? profile.claimDepartmentId : profile.departmentId;
+                    const claimsMatchProfile = currentTokenResult
+                        && currentTokenResult.claims.role === expectedRole
+                        && (currentTokenResult.claims.departmentId ?? null) === (expectedDept ?? null);
+                    if (!claimsMatchProfile) {
+                        await currentUser.getIdToken(true);
+                    }
+
+                    setUserRole(profile.role);
+                    setStatus(profile.status);
+                    setDepartmentId(profile.departmentId ?? undefined);
+                    setEmployeeName(profile.employeeName ?? undefined);
+                    setExpiresAt(profile.expiresAt ? new Date(profile.expiresAt) : null);
+
+                    // Cache values for next fast-load
+                    saveSetting('cached_user_role', profile.role).catch(() => {});
+                    saveSetting('cached_user_status', profile.status).catch(() => {});
+                    if (profile.departmentId) saveSetting('cached_dept_id', profile.departmentId).catch(() => {});
+                    if (profile.employeeName) saveSetting('cached_emp_name', profile.employeeName).catch(() => {});
+
+                    // Tích hợp đồng bộ cài đặt cá nhân từ mây xuống máy — `settings` không nằm
+                    // trong protectedKeys() của firestore.rules nên vẫn đọc trực tiếp được.
+                    // KHÔNG await ở đây: bước này chỉ ảnh hưởng tuỳ chọn cá nhân (settings),
+                    // không ảnh hưởng role/quyền/hiển thị gì — giữ nó trong đường găng trước
+                    // đây chỉ cộng thêm 1 round-trip Firestore không cần thiết vào thời gian
+                    // tới lúc thấy dashboard (đặc biệt nặng trên mobile mạng yếu). Chạy nền,
+                    // tự merge khi xong, không chặn setIsLoading(false) ở finally bên dưới.
+                    import('firebase/firestore').then(async ({ doc, getDoc, updateDoc, deleteField, FieldPath }) => {
+                        try {
+                            const settingsSnap = await getDoc(doc(db, 'users', currentUser.uid));
+                            const settings = settingsSnap.exists() ? settingsSnap.data().settings : undefined;
+                            // Dọn bản sao dữ liệu Kho bản app CŨ còn sót trong users/{uid}.settings (2026-10-21): không còn ai đọc (lọc
+                            // bỏ ngay dưới đây) nhưng setDoc(merge) giữ chúng mãi → tài liệu gần 1 MB, mọi lượt đăng nhập (máy chủ lẫn
+                            // điện thoại) phải tải nguyên khối. Dữ liệu Kho thật nằm ở IndexedDB + đồng bộ Kho riêng, không ở đây.
+                            const rac = khoaKhoCuTrongCaiDat(settings);
+                            if (rac.length) {
+                                console.info(`[Auth] Dọn ${rac.length} khoá dữ liệu Kho cũ khỏi hồ sơ cloud…`);
+                                const cap: unknown[] = [];
+                                for (const k of rac) cap.push(new FieldPath('settings', k), deleteField());
+                                (updateDoc as (...a: unknown[]) => Promise<void>)(doc(db, 'users', currentUser.uid), ...cap)
+                                    .then(() => console.info(`[Auth] Đã dọn ${rac.length} khoá dữ liệu Kho cũ khỏi hồ sơ cloud.`))
+                                    .catch(e => console.warn('[Auth] Không dọn được khoá dữ liệu Kho cũ:', e));
+                            }
+                            // Chỉ các khoá đường cũ còn quản — cấu hình nhẹ/nặng đã có đường mới so mốc từng khoá;
+                            // ghi đè nguyên bộ ở đây từng làm bản cũ của máy khác đè bản mới (2026-10-14).
+                            const banCloud = settings ? locCaiDatDongBoCu(settings) : {};
+                            ghiNhanBanCloud(currentUser.uid, banCloud);
+                            const conLai = settings
+                                ? boMucLucTepNeuMayDaCo(banCloud, await getSetting('salesFilesRegistry'))
+                                : {};
+                            if (Object.keys(conLai).length) {
+                                mergeSettings(conLai).catch(e => console.warn('Sync merge failed:', e));
+                            }
+                        } catch (e) {
+                            console.warn('Đồng bộ cài đặt cá nhân thất bại (không ảnh hưởng app):', e);
+                        }
+                    });
+                } catch (error) {
+                    console.error("Lỗi lấy thông tin người dùng:", error);
+                    // Không overwrite role/status đã cache khi lỗi mạng — cho phép dùng offline.
+                } finally {
+                    // Chỉ tắt spinner SAU KHI resolveSession() xong (không phải ngay khi Firebase
+                    // Auth vừa xác nhận có user) — nếu tắt sớm, App.tsx render tạm với userRole
+                    // vẫn null/cũ (chưa kịp nhận 'admin'...) và nháy màn "Cập Nhật Mã Kho" trước
+                    // khi tự sửa lại, gây hiểu nhầm là bị mất quyền admin (đã xác nhận qua test
+                    // thật 2026-07-18 — màn hình tự hết sau vài giây/F5, đúng dấu hiệu race này).
+                    setIsLoading(false);
+                }
+            } else {
+                setUserRole(null);
+                setDepartmentId(undefined);
+                setEmployeeName(undefined);
+                setExpiresAt(null);
+                setStatus('new');
+                // Firebase đã xác nhận THẬT SỰ không có phiên đăng nhập — tắt cờ "tin cache" để
+                // App.tsx quay lại hiện đúng màn Login (không còn lý do bỏ qua nữa).
+                setHasCachedSession(false);
+                bootedFromCacheRef.current = false;
+                saveSetting('cached_user_role', null).catch(() => {});
+                saveSetting('cached_user_status', null).catch(() => {});
+                saveSetting('cached_dept_id', null).catch(() => {});
+                saveSetting('cached_emp_name', null).catch(() => {});
+                setIsLoading(false);
+            }
+        });
+
+        // Kích hoạt đồng bộ ngầm khi auth khởi tạo xong (lưu lại cleanup function)
+        const cleanupSyncListeners = initSyncListeners();
+
+        return () => {
+            clearTimeout(fallbackTimer);
+            unsubscribe();
+            cleanupSyncListeners();
+        };
+    }, []);
+
+    const requestAccess = async (requestedRole: 'manager' | 'employee', deptId: string, empName?: string) => {
+        if (!user) return;
+        let res: { success?: boolean; autoApproved?: boolean; role?: any; status?: any } | undefined;
+        try {
+            // Gọi Cloud Function requestAccess (functions/src/session.ts) — hỗ trợ tự động duyệt
+            // theo cấu hình Super Admin / Quản lý
+            res = await requestAccessApi(requestedRole, deptId, empName);
+        } catch (error) {
+            console.warn("[Auth] requestAccessApi gặp cảnh báo/timeout, kiểm tra Firestore trực tiếp:", error);
+            try {
+                const { doc, getDoc } = await import('firebase/firestore');
+                const snap = await getDoc(doc(db, 'users', user.uid));
+                const data = snap.data();
+                if (data && (data.status === 'pending' || data.status === 'approved')) {
+                    console.log("[Auth] Firestore đã ghi nhận trạng thái:", data.status);
+                    res = { success: true, autoApproved: data.status === 'approved', role: data.role, status: data.status };
+                } else {
+                    throw error;
+                }
+            } catch {
+                console.error("Lỗi gửi yêu cầu truy cập:", error);
+                throw error;
+            }
+        }
+
+        const isAuto = Boolean(res?.autoApproved);
+        const finalRole = isAuto ? (res?.role || requestedRole) : 'pending';
+        const finalStatus = isAuto ? (res?.status || 'approved') : 'pending';
+
+        setUserRole(finalRole);
+        setStatus(finalStatus);
+        setDepartmentId(deptId);
+        setEmployeeName(empName);
+        saveSetting('cached_user_role', finalRole).catch(() => {});
+        saveSetting('cached_user_status', finalStatus).catch(() => {});
+        if (deptId) saveSetting('cached_dept_id', deptId).catch(() => {});
+        if (empName) saveSetting('cached_emp_name', empName).catch(() => {});
+
+        // Nếu được tự động duyệt, làm mới ID token ngay để Firestore Rules và claims nhận diện quyền mới
+        if (isAuto) {
+            try {
+                await user.getIdToken(true);
+            } catch (err) {
+                console.warn('[Auth] Không thể làm mới token sau khi tự động duyệt:', err);
+            }
+        }
+
+        return { autoApproved: isAuto, role: finalRole, status: finalStatus };
+    };
+
+    const loginWithGoogle = async () => {
+        await loginProvider();
+    };
+
+    const loginWithGoogleRedirect = async () => {
+        await loginRedirectProvider();
+    };
+
+    const logout = async () => {
+        await logoutProvider();
+        setDemoMode(false); // Xóa trạng thái demo khi dăng xuất
+        // Dọn dữ liệu cục bộ để người đăng nhập tiếp theo trên máy này không thấy dữ liệu của
+        // tài khoản vừa đăng xuất. Dữ liệu thật vẫn nằm trên cloud theo từng tài khoản.
+        try {
+            await clearAllLocalAppData();
+            setLocalDataOwner(null);
+        } catch (err) {
+            console.warn('[Auth] Không dọn được dữ liệu cục bộ khi đăng xuất:', err);
+        }
+    };
+
+    const activeUserRole = isDemoMode ? 'manager' : userRole;
+    const activeStatus = isDemoMode ? 'approved' : status;
+
+    return (
+        <AuthContext.Provider value={{ user, userRole: activeUserRole, departmentId, employeeName, expiresAt, status: activeStatus, isLoading, hasCachedSession, loginWithGoogle, loginWithGoogleRedirect, logout, isDemoMode, setDemoMode, requestAccess, functions, db }}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+// Safe fallback when context is unavailable — prevents entire app crash
+const SAFE_AUTH_FALLBACK: AuthContextType = {
+    user: null,
+    userRole: null,
+    isLoading: true,
+    hasCachedSession: false,
+    loginWithGoogle: async () => { console.warn('[Auth] loginWithGoogle called outside AuthProvider'); },
+    loginWithGoogleRedirect: async () => { console.warn('[Auth] loginWithGoogleRedirect called outside AuthProvider'); },
+    logout: async () => { console.warn('[Auth] logout called outside AuthProvider'); },
+    isDemoMode: false,
+    setDemoMode: () => {},
+    requestAccess: async () => { console.warn('[Auth] requestAccess called outside AuthProvider'); },
+    functions,
+    db,
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        // In production, this can happen due to chunk-loading race conditions or
+        // module duplication. Return a safe loading state instead of crashing.
+        console.error('[Auth] useAuth called outside AuthProvider — returning safe fallback. This is likely a bundle/caching issue.');
+        return SAFE_AUTH_FALLBACK;
+    }
+    return context;
+};

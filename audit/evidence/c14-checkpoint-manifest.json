@@ -1,0 +1,5 @@
+{
+  "components/shared/ui/Tooltip.tsx": "3f8e07a6fa0b1ddf9cfea7d41965270e3453d01095e2f79bff50e16e16bac4e0",
+  "tests/e2e/helpers/materialHarness.html": "6e015b21615bc57d75aecc5b042382710d333ddb32f5d3e92243a8ca51aeadee",
+  "tests/e2e/shared-tooltip.spec.ts": "426f7768a7be8e76f2cb4d8aef9454fa2aea473b51d698473e3b93def39b8f03"
+}

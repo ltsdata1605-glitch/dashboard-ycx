@@ -1,0 +1,17 @@
+{
+  "styles.css": "Full1219lines read. Fixed Switch sm pseudo target38px to adaptive44; md visible44x26/sm36x20 retained. Remaining global token exceptions/mobile overrides require consumer visual review.",
+  "components/shared/ui/Switch.tsx": "Full source: native Button role switch, controlled checked/onChange, stops propagation; labels consumer-owned; compact geometry retained.",
+  "components/shared/ui/Checkbox.tsx": "Full source: native input wrapped label ycx-hit, disabled/native props; callers must provide label. Runtime pending.",
+  "components/shared/ui/Textarea.tsx": "Full source: useId error linkage, merged describedby, native props; caller naming and tokens pending.",
+  "components/shared/ui/utils.ts": "Full source: shared clsx/tailwindMerge semantic radii and Enter/Space activation helper.",
+  "components/shared/ui/cnBoGoc.test.ts": "Full safety/source review;3 radius merge tests executed PASS.",
+  "components/shared/ui/khongCongTacTuVe.test.ts": "Full safety/source review; local components/features/App scan only,1testPASS. Does not establish full file review of scanned sources.",
+  "components/shared/ui/Badge.tsx": "Full source:6tones3sizes static dot/icon/text; component token mapping/contrast pending.",
+  "components/shared/ui/Banner.tsx": "Full source: ResizeObserver clamp, alert/status and dismiss; expand button lacks aria-expanded/controls; dynamic maxLines and interaction tests pending.",
+  "components/shared/ui/ProgressBar.tsx": "Full source: visible percentage clamped but aria raw; zero max can yield NaN; visible label not linked to role. Consumer/input contract and runtime pending.",
+  "components/shared/ui/BusyBar.tsx": "Full source: delay/minvisible timers, progressbar named, reducedmotion CSS; fakeclock lifecycle/performance still pending.",
+  "components/shared/ui/Skeleton.tsx": "Full source incl Card/Table/Chart exports; pulse/variants/multiline; global reducedmotion fallback; consumer/assistive semantics pending.",
+  "components/shared/ui/Button.tsx": "Full current source re-read: native button, shared focus/styles, size none preserves Switch geometry; no new modification.",
+  "tests/e2e/helpers/materialHarness.html": "Full source read and new real React Switch state fixture; no synthetic DOM proof.",
+  "tests/e2e/shared-selection-controls.spec.ts": "New safe local test: actual coordinate input beyond track, native keyboardTab/Space/Enter, disabled/reducedmotion. No service access."
+}

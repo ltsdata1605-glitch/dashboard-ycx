@@ -1,0 +1,188 @@
+import React from 'react';
+import { resolveIconName } from '../../shared/ui/icon/legacyIconNames';
+import { AppIcon } from '../../shared/ui/icon/AppIcon';
+import { HEADER_CONFIG } from './SummaryTableUtils';
+import { Button } from '../../shared/ui/Button';
+import { Switch } from '../../shared/ui/Switch';
+import { onActivateKey } from '../../shared/ui';
+import AreaAutoExportButton from '../../shared/export/AreaAutoExportButton';
+import type { FilterState } from '../../../types';
+
+interface SummaryTableHeaderProps {
+    displayTitle: string;
+    displayDescription?: string;
+    reportSubTitle?: string;
+    filterState: FilterState;
+    tableMode: string;
+    setTableMode: (mode: 'standard' | 'comparison' | 'cross_selling') => void;
+    isCrossSellingMode: boolean;
+    userRole: string | null;
+    setIsBuilderOpen: (open: boolean) => void;
+    isComparisonMode: boolean;
+    compMode: string;
+    handleExport: () => void;
+    onTestExport?: () => Promise<Blob | null>;
+    isExporting: boolean;
+    activeFilterKey: string | null;
+    setActiveFilterKey: React.Dispatch<React.SetStateAction<string | null>>;
+    visibleColumns: string[];
+    setVisibleColumns: React.Dispatch<React.SetStateAction<string[]>>;
+    columnsPopupRef: React.RefObject<HTMLDivElement | null>;
+    isFullScreen?: boolean;
+    setIsFullScreen?: (val: boolean) => void;
+    dateDisplay?: { current: string; prev: string };
+}
+
+export const SummaryTableHeader: React.FC<SummaryTableHeaderProps> = ({
+    displayTitle, displayDescription, reportSubTitle, filterState, tableMode, setTableMode,
+    isCrossSellingMode, userRole, setIsBuilderOpen, isComparisonMode, compMode,
+    handleExport, onTestExport, isExporting, activeFilterKey, setActiveFilterKey, visibleColumns,
+    setVisibleColumns, columnsPopupRef, isFullScreen, setIsFullScreen, dateDisplay
+}) => {
+    return (
+        <header className="px-2 py-1.5 lg:px-4 lg:py-2.5 border-b border-slate-100 dark:border-slate-800" style={{ borderImage: 'linear-gradient(to right, rgba(99,102,241,0.15), rgba(14,165,233,0.1), transparent) 1' }}>
+            <div className="flex flex-col gap-2 sm:gap-3">
+                <div className="flex flex-row justify-between items-center gap-1.5 lg:gap-2">
+                    <div className="flex items-center gap-1.5 lg:gap-3 min-w-0">
+                        <div className="min-w-0">
+                            <h2 className="type-headline font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide truncate leading-tight">
+                                {isComparisonMode ? 'SO SÁNH MỐC THỜI GIAN' : displayTitle}
+                            </h2>
+                            {isComparisonMode && (
+                                <p className="text-[11px] lg:text-[11px] font-medium text-sky-700 dark:text-sky-400 uppercase tracking-wider truncate leading-none mt-0.5">
+                                    {({
+                                        day_adjacent: 'Ngày (Liền kề)',
+                                        day_same_period: 'Ngày (CK tháng trước)',
+                                        week_adjacent: 'Tuần (Liền kề)',
+                                        week_same_period: 'Tuần (CK tháng trước)',
+                                        month_adjacent: 'Tháng (Liền kề)',
+                                        month_same_period_year: 'Tháng (Cùng kỳ năm trước)',
+                                        monthly_trend: 'Tháng (Nhiều tháng Pivot)',
+                                        quarter_adjacent: 'Quý (Liền kề)',
+                                        quarter_same_period_year: 'Quý (Cùng kỳ năm trước)',
+                                        ytd_same_period_year: 'Lũy kế (YTD)',
+                                        custom_range: 'Tùy chỉnh',
+                                    } as Record<string, string>)[compMode] || compMode}
+                                    {dateDisplay && (() => {
+                                        // Extract short prev (strip year if same year as current)
+                                        const yearMatch = dateDisplay.current.match(/\/(\d{4})$/);
+                                        const prevShort = yearMatch && dateDisplay.prev.endsWith(`/${yearMatch[1]}`)
+                                            ? dateDisplay.prev.replace(`/${yearMatch[1]}`, '')
+                                            : dateDisplay.prev;
+                                        return <span className="text-slate-500 dark:text-slate-400"> · {prevShort} - {dateDisplay.current}</span>;
+                                    })()}
+                                </p>
+                            )}
+                            {displayDescription && (
+                                <p className="text-[11px] lg:text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">
+                                    {displayDescription}
+                                </p>
+                            )}
+                            {/* Điện thoại: tối đa 2 dòng — cắt 1 dòng thì mất hẳn khoảng thời gian (2026-09-28). */}
+                            <div className="text-[11px] lg:text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider line-clamp-2 leading-tight lg:truncate lg:leading-none mt-0.5">
+                                {reportSubTitle ? `${reportSubTitle} | ` : ''}{filterState.dateRange !== 'all'
+                                    ? `Từ ${filterState.startDate.split('T')[0].split('-').reverse().join('/')} đến ${filterState.endDate.split('T')[0].split('-').reverse().join('/')}`
+                                    : 'TẤT CẢ THỜI GIAN'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 lg:gap-1.5 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-0.5 sm:gap-1 hide-on-export">
+                            <Button
+                                variant="toolbar" size="icon"
+                                onClick={() => setTableMode('standard')}
+                                className="ycx-hit flex items-center justify-center rounded-control transition-colors" aria-pressed={tableMode === 'standard'}
+                                title="Tiêu chuẩn"
+                            >
+                                <AppIcon name="table" size="md" />
+                            </Button>
+                            <Button
+                                variant="toolbar" size="icon"
+                                onClick={() => setTableMode('comparison')}
+                                className="ycx-hit flex items-center justify-center rounded-control transition-colors" aria-pressed={tableMode === 'comparison'}
+                                title="So sánh"
+                            >
+                                <AppIcon name="columns" size="md" />
+                            </Button>
+                        </div>
+                        
+                        <div className="h-4 lg:h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 lg:mx-1 hide-on-export"></div>
+
+                        <div className="relative z-[100] hide-on-export shrink-0" ref={columnsPopupRef}>
+                            {isCrossSellingMode ? (
+                                <div className="flex items-center gap-1.5">
+                                    <Button
+                                        variant="ghost" size="icon"
+                                        onClick={handleExport}
+                                        disabled={isExporting}
+                                        title="Xuất Ảnh"
+                                        className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+                                    >
+                                        {isExporting ? <AppIcon name="loading" size="md" spin /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                                        {!isExporting && <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                                    </Button>
+                                    <AreaAutoExportButton areaId="Bảng Tổng Hợp" areaName="Bảng Tổng Hợp" onTestExport={onTestExport} />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2 lg:gap-1.5">
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            onClick={() => setActiveFilterKey(prev => prev === 'columns' ? null : 'columns')}
+                                            className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                            title="Tùy chọn hiển thị cột"
+                                        >
+                                            <AppIcon name="settings" size="md" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            onClick={handleExport}
+                                            disabled={isExporting}
+                                            title="Xuất Ảnh"
+                                            className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+                                        >
+                                            {isExporting ? <AppIcon name="loading" size="md" spin /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                                            {!isExporting && <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                                        </Button>
+                                        <AreaAutoExportButton areaId="Bảng Tổng Hợp" areaName="Bảng Tổng Hợp" onTestExport={onTestExport} />
+                                    </div>
+
+                                    {activeFilterKey === 'columns' && (
+                                        <div className="absolute right-0 sm:left-0 sm:right-auto md:right-0 md:left-auto mt-2 w-56 sm:w-72 bg-white dark:bg-slate-800 rounded-popup sm:rounded-card shadow-2xl p-2 sm:p-3 border border-slate-100 dark:border-slate-700 z-[200]">
+                                            <div className="flex justify-between items-center mb-2 sm:mb-3 px-1.5 sm:px-2 pt-0.5 sm:pt-1 border-b border-slate-50 pb-1.5 sm:pb-2 dark:border-slate-700/50">
+                                                <h4 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100">Tùy chọn hiển thị cột</h4>
+                                                <Button variant="ghost" size="icon-inline" onClick={() => setActiveFilterKey(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><AppIcon name="close" size="md" /></Button>
+                                            </div>
+                                            <div className="space-y-1 sm:space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+                                                {HEADER_CONFIG.filter((col) => {
+                                                    const isPivotMode = isComparisonMode && compMode === 'monthly_trend';
+                                                    const PIVOT_EXCLUDED_COLS = ['slPercent', 'dtThucPercent', 'avgQuantity', 'avgRevenue'];
+                                                    if (isPivotMode && PIVOT_EXCLUDED_COLS.includes(col.key)) return false;
+                                                    return true;
+                                                }).map((col) => (
+                                                    <div key={col.key} role="button" tabIndex={0} onClick={() => setVisibleColumns((prev: string[]) => prev.includes(col.key) ? prev.filter(k => k !== col.key) : [...prev, col.key])} onKeyDown={onActivateKey(() => setVisibleColumns((prev: string[]) => prev.includes(col.key) ? prev.filter(k => k !== col.key) : [...prev, col.key]))} className="flex items-center justify-between cursor-pointer p-1.5 sm:p-2 rounded-control sm:rounded-popup hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+                                                        <span className="text-[11px] sm:text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 sm:gap-2 select-none">
+                                                            <div className={`p-1 sm:p-1.5 rounded-md sm:rounded-control ${col.colorClass}`}>
+                                                                <AppIcon name={resolveIconName(col.icon || 'columns') ?? 'help'} size="sm" />
+                                                            </div>
+                                                            {col.label}
+                                                        </span>
+                                                        {/* Chỉ để NHÌN (cả hàng mới là nút bấm) — công tắc dùng chung, bỏ khỏi cây trợ năng */}
+                                                        <span aria-hidden="true" className="pointer-events-none inline-flex">
+                                                            <Switch size="sm" checked={visibleColumns.includes(col.key)} onChange={() => {}} tabIndex={-1} />
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+    );
+};

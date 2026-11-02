@@ -1,0 +1,121 @@
+
+> reportycx_11.2.2026_new@0.0.0 build
+> vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 3308 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) /Users/ltson/dashboardycx/services/firestoreService.ts is dynamically imported by /Users/ltson/dashboardycx/hooks/useDataManagement.ts, /Users/ltson/dashboardycx/hooks/useDataManagement.ts, /Users/ltson/dashboardycx/hooks/useDataManagement.ts, /Users/ltson/dashboardycx/services/localDataOwner.ts but also statically imported by /Users/ltson/dashboardycx/components/views/CheckThuongView.tsx, /Users/ltson/dashboardycx/hooks/useCloudSync.ts, /Users/ltson/dashboardycx/services/syncService.ts, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/assets/scheduleHeartbeat.worker-DY9MOOqR.js        0.08 kB
+dist/assets/salesJsonWriter.worker-iky0iAuj.js          1.14 kB
+dist/index.html                                        16.02 kB │ gzip:   6.05 kB
+dist/assets/analytics.worker-C_xmZIXD.js               40.80 kB
+dist/assets/analytics.worker-CxIdJA8C.js               61.20 kB
+dist/assets/worker-C3Ehuode.js                        375.16 kB
+dist/assets/BiWrapper-DMR52XUc.css                      3.68 kB │ gzip:   0.59 kB
+dist/assets/PhanCaView-CAA0vulx.css                     7.42 kB │ gzip:   1.90 kB
+dist/assets/index-CBsT8M1u.css                        323.04 kB │ gzip:  43.60 kB
+dist/assets/chartConfig-C-f7hsgo.js                     0.07 kB │ gzip:   0.08 kB
+dist/assets/analytics.worker-DxUz-NXp.js                0.12 kB │ gzip:   0.13 kB
+dist/assets/salesJsonWriter.worker-BNAYiZX6.js          0.13 kB │ gzip:   0.13 kB
+dist/assets/configStore-jfv_oEyo.js                     0.34 kB │ gzip:   0.21 kB
+dist/assets/SectionCard-B-drYcSA.js                     0.41 kB │ gzip:   0.30 kB
+dist/assets/ExternalToolView-_ZslFrro.js                0.45 kB │ gzip:   0.30 kB
+dist/assets/moTaBoLoc-B6sNO7U6.js                       0.49 kB │ gzip:   0.34 kB
+dist/assets/Checkbox-erM004yg.js                        0.67 kB │ gzip:   0.42 kB
+dist/assets/EmptyState-Bfvtbhkc.js                      0.92 kB │ gzip:   0.50 kB
+dist/assets/Switch-BX60rUNy.js                          1.01 kB │ gzip:   0.64 kB
+dist/assets/Textarea-DfYp8IZh.js                        1.02 kB │ gzip:   0.59 kB
+dist/assets/systemAnnouncementService-OB8i2Cop.js       1.07 kB │ gzip:   0.66 kB
+dist/assets/Badge-B2WWRDU5.js                           1.24 kB │ gzip:   0.58 kB
+dist/assets/UploadTypeSelectionModal-B1RgJq2U.js        1.58 kB │ gzip:   0.90 kB
+dist/assets/industryColors-NaMQqhES.js                  1.66 kB │ gzip:   0.51 kB
+dist/assets/SectionHeader-4zZUURi8.js                   1.87 kB │ gzip:   0.90 kB
+dist/assets/ConfirmDialog-Pt0AvI6Y.js                   1.96 kB │ gzip:   0.80 kB
+dist/assets/ListGroup-Bled_RpY.js                       2.15 kB │ gzip:   1.01 kB
+dist/assets/TouchTitleHint-pfeoifhw.js                  2.31 kB │ gzip:   1.11 kB
+dist/assets/Banner-zYDgPNeF.js                          2.32 kB │ gzip:   1.09 kB
+dist/assets/checkThuongIframeService-Dk3o_eYb.js        2.63 kB │ gzip:   1.13 kB
+dist/assets/autoNavigationService-AdDkzdZ0.js           2.89 kB │ gzip:   0.97 kB
+dist/assets/googleSheetsService-D0LTBUzq.js             3.09 kB │ gzip:   1.34 kB
+dist/assets/googleSheetsService-BGBmW1BJ.js             3.09 kB │ gzip:   1.34 kB
+dist/assets/MobileMoreSheet-CKgGoU5n.js                 3.24 kB │ gzip:   1.49 kB
+dist/assets/InstallAppHint-CPyE2xjG.js                  3.37 kB │ gzip:   1.66 kB
+dist/assets/AboutView-Di2rZKKG.js                       3.40 kB │ gzip:   1.68 kB
+dist/assets/cloudDataService-DK4mBGHR.js                3.85 kB │ gzip:   1.97 kB
+dist/assets/FileNamingModal-OTsuPqnH.js                 3.87 kB │ gzip:   1.57 kB
+dist/assets/ShiftWarehouseInputModal-uGxzSdEQ.js        4.13 kB │ gzip:   1.88 kB
+dist/assets/khaiThacDb-Bc4CChcW.js                      4.37 kB │ gzip:   1.78 kB
+dist/assets/ycxAutoSyncService--k61RMRm.js              4.84 kB │ gzip:   2.16 kB
+dist/assets/summaryService-Clv1pHi5.js                  5.87 kB │ gzip:   2.02 kB
+dist/assets/Tabs-Ce57SR5y.js                            6.91 kB │ gzip:   2.15 kB
+dist/assets/Modal-EYnS2KUa.js                           7.11 kB │ gzip:   2.94 kB
+dist/assets/khoDataService-DLGcXjQv.js                  7.15 kB │ gzip:   3.20 kB
+dist/assets/ExportOptionsModal-6FXPxymY.js              7.19 kB │ gzip:   2.18 kB
+dist/assets/KpiCard-omivGeJw.js                         7.61 kB │ gzip:   2.16 kB
+dist/assets/StringMultiSelect-D2etqc3L.js               7.79 kB │ gzip:   2.67 kB
+dist/assets/ChangelogModal-D5gWEM82.js                  7.94 kB │ gzip:   2.54 kB
+dist/assets/UploadConflictModal-CYWUDnWU.js             8.03 kB │ gzip:   2.60 kB
+dist/assets/Select-BC6dN6br.js                          8.86 kB │ gzip:   3.01 kB
+dist/assets/LoginView-BsOMPWur.js                       9.45 kB │ gzip:   3.64 kB
+dist/assets/dataService-Dx2H9OSU.js                     9.51 kB │ gzip:   3.49 kB
+dist/assets/FileHistoryModal-Dg_jCgfl.js                9.85 kB │ gzip:   3.75 kB
+dist/assets/TopBarActions-BQdNgAUo.js                   9.87 kB │ gzip:   3.43 kB
+dist/assets/PendingApprovalView-FZSUr_v0.js            11.10 kB │ gzip:   3.70 kB
+dist/assets/UnconfiguredGroupsModal-C72yTRv0.js        11.13 kB │ gzip:   3.18 kB
+dist/assets/CouponConverterView-QjkFlWLf.js            11.88 kB │ gzip:   4.50 kB
+dist/assets/useMultiMonthBonusRun-WMpm2mv4.js          12.49 kB │ gzip:   4.88 kB
+dist/assets/index-CgJtiJsK.js                          13.75 kB │ gzip:   5.41 kB
+dist/assets/autoReportExportService-BVGOPpfi.js        13.92 kB │ gzip:   5.15 kB
+dist/assets/NotificationDropdown-CHf-4ZKk.js           14.05 kB │ gzip:   5.07 kB
+dist/assets/firebaseProductConfigService-WizLEi0n.js   15.34 kB │ gzip:   5.13 kB
+dist/assets/KpiCardConfigModal-B0rm8UOw.js             16.39 kB │ gzip:   5.61 kB
+dist/assets/AreaAutoExportButton-DRRAJQUL.js           16.61 kB │ gzip:   4.60 kB
+dist/assets/SettingsView-B0QrUgy1.js                   17.03 kB │ gzip:   5.73 kB
+dist/assets/dbService-BhewIzB4.js                      18.87 kB │ gzip:   5.78 kB
+dist/assets/MultiSelectDropdown-Bh99FSSN.js            19.22 kB │ gzip:   6.26 kB
+dist/assets/UnshippedOrdersModal-BV1imh4J.js           20.33 kB │ gzip:   7.25 kB
+dist/assets/IndustryGrid-QrFhXWon.js                   20.51 kB │ gzip:   7.00 kB
+dist/assets/UncollectedOrdersModal-CYQbVgkl.js         20.67 kB │ gzip:   7.42 kB
+dist/assets/analysisEmployeeSyncService-Dc7FrgDN.js    21.16 kB │ gzip:   7.37 kB
+dist/assets/PriceComparisonView-Dei39KiE.js            21.72 kB │ gzip:   6.74 kB
+dist/assets/lineBot.types-DXzpcJGs.js                  22.58 kB │ gzip:   7.11 kB
+dist/assets/PerformanceModal-mI8Ddind.js               25.15 kB │ gzip:   7.68 kB
+dist/assets/shared-utils-B_Pb1ZNr.js                   27.71 kB │ gzip:   8.76 kB
+dist/assets/vendor-firebase-analytics-5cGotuqA.js      34.36 kB │ gzip:   7.29 kB
+dist/assets/TrendChart-sWjJIMkM.js                     34.39 kB │ gzip:  10.88 kB
+dist/assets/dataUtils-C9IwIXDY.js                      38.21 kB │ gzip:  11.57 kB
+dist/assets/presetBi-CL-VFxYW.js                       49.17 kB │ gzip:  10.67 kB
+dist/assets/KhaiThacView-DiNcrJwv.js                   55.42 kB │ gzip:  15.13 kB
+dist/assets/captureEngine-B1z1hq-y.js                  59.68 kB │ gzip:  16.18 kB
+dist/assets/GlobalAutoSyncDock-DSgw1Myk.js             80.62 kB │ gzip:  21.32 kB
+dist/assets/vendor-icons-DmTakvj8.js                   96.72 kB │ gzip:  19.00 kB
+dist/assets/useBiAutoSync-B_bSiJ8W.js                  97.10 kB │ gzip:  27.40 kB
+dist/assets/UserManagementView-BtNm1Qr7.js            119.06 kB │ gzip:  26.38 kB
+dist/assets/CheckThuongView-BnVLeQMA.js               120.40 kB │ gzip:  29.02 kB
+dist/assets/DataUpdater-CIPczJF5.js                   137.75 kB │ gzip:  35.46 kB
+dist/assets/TaxCalculatorView-BmsLUeLd.js             140.10 kB │ gzip:  37.54 kB
+dist/assets/SummaryTable-ChMyOFHO.js                  148.72 kB │ gzip:  41.05 kB
+dist/assets/index-CkGzFgVM.js                         150.36 kB │ gzip:  50.79 kB
+dist/assets/index.es--6bL7P9u.js                      159.78 kB │ gzip:  53.61 kB
+dist/assets/PhanCaView-_JkdNY89.js                    161.90 kB │ gzip:  46.30 kB
+dist/assets/vendor-react-spjDHvdB.js                  194.43 kB │ gzip:  60.79 kB
+dist/assets/html2canvas.esm-QH1iLAAe.js               202.38 kB │ gzip:  48.04 kB
+dist/assets/StickerPrinterView-BBsS_-OP.js            207.83 kB │ gzip:  55.09 kB
+dist/assets/BiWrapper-DH2KKhQz.js                     211.11 kB │ gzip:  57.39 kB
+dist/assets/EmployeeAnalysis-B10LWjX4.js              220.61 kB │ gzip:  51.17 kB
+dist/assets/DashboardView-DV0jeoCi.js                 262.58 kB │ gzip:  70.11 kB
+dist/assets/LineBotView-Chqg_MTR.js                   273.93 kB │ gzip:  59.35 kB
+dist/assets/index-DuaGrbqz.js                         288.18 kB │ gzip:  57.08 kB
+dist/assets/index-BIFoWCtc.js                         308.12 kB │ gzip: 101.18 kB
+dist/assets/NhanVien-Bq7ISQus.js                      367.28 kB │ gzip:  86.49 kB
+dist/assets/jspdf.es.min-RpHE6Hv9.js                  391.35 kB │ gzip: 129.21 kB
+dist/assets/vendor-charts-C3TwIp4Y.js                 392.12 kB │ gzip: 115.02 kB
+dist/assets/vendor-excel-BGhuli8m.js                  500.06 kB │ gzip: 163.12 kB
+dist/assets/StickerEventApp-CB1rd4G8.js               562.11 kB │ gzip: 165.72 kB
+dist/assets/vendor-firebase-DVZPizMJ.js               632.74 kB │ gzip: 149.33 kB
+✓ built in 14.44s

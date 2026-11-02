@@ -1,0 +1,172 @@
+[WebServer] (node:31691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+  ✘  1 [chromium] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 390 › progress names and bounded visual/ARIA values (14.0s)
+  ✘  2 [chromium] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 390 › banner disclosure has independent controlled content and keyboard toggle (11.2s)
+  ✘  3 [chromium] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 1366 › progress names and bounded visual/ARIA values (11.3s)
+  ✘  4 [chromium] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 1366 › banner disclosure has independent controlled content and keyboard toggle (11.5s)
+
+
+  1) [chromium] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 390 › progress names and bounded visual/ARIA values 
+
+    Error: expect(locator).toHaveAccessibleName(expected) failed
+
+    Locator:  getByRole('progressbar').first()
+    Expected: "Hoàn thành"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAccessibleName" getByRole('progressbar').first() with timeout 10000ms
+      - waiting for getByRole('progressbar').first()
+        24 × locator resolved to <div aria-valuemin="0" role="progressbar" aria-valuenow="150" aria-valuemax="100" class="h-full rounded-full transition-all duration-500 ease-out relative bg-sky-500"></div>
+           - unexpected value ""
+
+
+      10 |       const bars = page.getByRole('progressbar');
+      11 |       await expect(bars).toHaveCount(3);
+    > 12 |       await expect(bars.nth(0)).toHaveAccessibleName('Hoàn thành');
+         |                                 ^
+      13 |       await expect(bars.nth(0)).toHaveAttribute('aria-valuenow', '100');
+      14 |       await expect(bars.nth(1)).toHaveAccessibleName('Chưa có tổng');
+      15 |       await expect(bars.nth(1)).toHaveAttribute('aria-valuenow', '0');
+        at /Users/ltson/dashboardycx/tests/e2e/shared-feedback-controls.spec.ts:12:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-9cb11--bounded-visual-ARIA-values-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c21-before/shared-feedback-controls-F-9cb11--bounded-visual-ARIA-values-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-9cb11--bounded-visual-ARIA-values-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c21-before/shared-feedback-controls-F-9cb11--bounded-visual-ARIA-values-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 390 › banner disclosure has independent controlled content and keyboard toggle 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('button', { name: 'Xem thêm' }).first()
+    Expected: "false"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Xem thêm' }).first() with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Xem thêm' }).first()
+        24 × locator resolved to <button class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed ycx-hit text-[13px] font-semibold text-sky-700 hover:underline min-h-6">Xem thêm</button>
+           - unexpected value "null"
+
+
+      22 |       const expand = page.getByRole('button', { name: 'Xem thêm' });
+      23 |       await expect(expand).toHaveCount(2);
+    > 24 |       await expect(expand.nth(0)).toHaveAttribute('aria-expanded', 'false');
+         |                                   ^
+      25 |       const firstId = await expand.nth(0).getAttribute('aria-controls');
+      26 |       const secondId = await expand.nth(1).getAttribute('aria-controls');
+      27 |       expect(firstId).toBeTruthy();
+        at /Users/ltson/dashboardycx/tests/e2e/shared-feedback-controls.spec.ts:24:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-56166-content-and-keyboard-toggle-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c21-before/shared-feedback-controls-F-56166-content-and-keyboard-toggle-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-56166-content-and-keyboard-toggle-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c21-before/shared-feedback-controls-F-56166-content-and-keyboard-toggle-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 1366 › progress names and bounded visual/ARIA values 
+
+    Error: expect(locator).toHaveAccessibleName(expected) failed
+
+    Locator:  getByRole('progressbar').first()
+    Expected: "Hoàn thành"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAccessibleName" getByRole('progressbar').first() with timeout 10000ms
+      - waiting for getByRole('progressbar').first()
+        24 × locator resolved to <div aria-valuemin="0" role="progressbar" aria-valuenow="150" aria-valuemax="100" class="h-full rounded-full transition-all duration-500 ease-out relative bg-sky-500"></div>
+           - unexpected value ""
+
+
+      10 |       const bars = page.getByRole('progressbar');
+      11 |       await expect(bars).toHaveCount(3);
+    > 12 |       await expect(bars.nth(0)).toHaveAccessibleName('Hoàn thành');
+         |                                 ^
+      13 |       await expect(bars.nth(0)).toHaveAttribute('aria-valuenow', '100');
+      14 |       await expect(bars.nth(1)).toHaveAccessibleName('Chưa có tổng');
+      15 |       await expect(bars.nth(1)).toHaveAttribute('aria-valuenow', '0');
+        at /Users/ltson/dashboardycx/tests/e2e/shared-feedback-controls.spec.ts:12:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-850b9--bounded-visual-ARIA-values-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c21-before/shared-feedback-controls-F-850b9--bounded-visual-ARIA-values-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-850b9--bounded-visual-ARIA-values-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c21-before/shared-feedback-controls-F-850b9--bounded-visual-ARIA-values-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 1366 › banner disclosure has independent controlled content and keyboard toggle 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  getByRole('button', { name: 'Xem thêm' }).first()
+    Expected: "false"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" getByRole('button', { name: 'Xem thêm' }).first() with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Xem thêm' }).first()
+        24 × locator resolved to <button class="outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:opacity-50 disabled:cursor-not-allowed ycx-hit text-[13px] font-semibold text-sky-700 hover:underline min-h-6">Xem thêm</button>
+           - unexpected value "null"
+
+
+      22 |       const expand = page.getByRole('button', { name: 'Xem thêm' });
+      23 |       await expect(expand).toHaveCount(2);
+    > 24 |       await expect(expand.nth(0)).toHaveAttribute('aria-expanded', 'false');
+         |                                   ^
+      25 |       const firstId = await expand.nth(0).getAttribute('aria-controls');
+      26 |       const secondId = await expand.nth(1).getAttribute('aria-controls');
+      27 |       expect(firstId).toBeTruthy();
+        at /Users/ltson/dashboardycx/tests/e2e/shared-feedback-controls.spec.ts:24:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-c3179-content-and-keyboard-toggle-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/c21-before/shared-feedback-controls-F-c3179-content-and-keyboard-toggle-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/c21-before/shared-feedback-controls-F-c3179-content-and-keyboard-toggle-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/c21-before/shared-feedback-controls-F-c3179-content-and-keyboard-toggle-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 390 › progress names and bounded visual/ARIA values 
+    [chromium] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 390 › banner disclosure has independent controlled content and keyboard toggle 
+    [chromium] › tests/e2e/shared-feedback-controls.spec.ts:9:5 › Feedback 1366 › progress names and bounded visual/ARIA values 
+    [chromium] › tests/e2e/shared-feedback-controls.spec.ts:21:5 › Feedback 1366 › banner disclosure has independent controlled content and keyboard toggle 

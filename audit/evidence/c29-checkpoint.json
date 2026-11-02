@@ -1,0 +1,4 @@
+{
+  "features/bi-dashboard/components/dashboard/IndustryView.tsx": "3ae5e64a721bd1914dbcf22221adcede7be259ec42cabc6f8cf8b476de8dc9e3",
+  "tests/e2e/industry-switch-labels.spec.ts": "027d038a9fd4926e732bc4a40fd44c1c2d60f3b4a07d6d3c8c3acc572fd75fd6"
+}

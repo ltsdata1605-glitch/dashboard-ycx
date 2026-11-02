@@ -1,0 +1,466 @@
+import { useState, useCallback } from 'react';
+import { User } from 'firebase/auth';
+import { getErrorMessage } from '../../../utils/dataUtils';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { Product, InventoryItem, StickerEventUserData } from '../types';
+import { ManualProductWithId } from '../ManualInputModal';
+import { 
+  saveData, 
+  clearData, 
+  saveDisplayedProducts, 
+  saveInventoryData,
+  saveManualProductsCache,
+  clearManualProductsCache,
+  loadManualProductsCache,
+  shouldFetchManualProductsFromCloud
+} from '../services/fileParser';
+import { 
+  fetchProductsFromFirestore, 
+  fetchInventoryFromFirestore, 
+  saveManualProduct, 
+  fetchManualProducts, 
+  deleteManualProduct, 
+  ManualProductDoc,
+  clearStoreDataOnFirestore 
+} from '../services/firebaseService';
+
+interface SyncMetaCacheEntry {
+  timestamp: number;
+  productsLastUpdated: number;
+  inventoryLastUpdated: number;
+  manualProductsLastUpdated: number;
+}
+const syncMetaMemoryCache = new Map<string, SyncMetaCacheEntry>();
+const SYNC_META_TTL_MS = 60 * 1000; // 60 giây TTL chống đọc lặp lại khi chuyển tab
+
+export const invalidateSyncMetaMemoryCache = (storeId?: string) => {
+  if (storeId) syncMetaMemoryCache.delete(storeId);
+  else syncMetaMemoryCache.clear();
+};
+
+interface UseStickerEventDbProps {
+  user: User | null;
+  userData: StickerEventUserData | null;
+  employeeName: string;
+  displayedProducts: Product[];
+  setDisplayedProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  setIsLoading: (val: boolean) => void;
+  setIsInitializing: (val: boolean) => void;
+  setError: (val: string | null) => void;
+  showAlert: (message: string, title?: string) => void;
+  fileName: string | null;
+  setFileName: (val: string | null) => void;
+  fileExportDate: string | null;
+  setFileExportDate: (val: string | null) => void;
+  setUploadTimestamp: (val: Date | null) => void;
+  setInventoryUploadTimestamp: (val: Date | null) => void;
+  allProducts: Product[];
+  setAllProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  inventory: InventoryItem[];
+  setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
+  manualProducts: ManualProductWithId[];
+  setManualProducts: React.Dispatch<React.SetStateAction<ManualProductWithId[]>>;
+}
+
+// Audit D11 (2026-10-08): 3 thao tác sản phẩm nhập tay cập nhật màn hình trước rồi ghi cloud ngầm; lỗi ghi
+// trước đây chỉ console.error → màn hình nói "có", cloud nói "không", lần tải sau sản phẩm biến mất/hiện lại.
+// Mất mạng KHÔNG đi vào đây: Firestore (persistentLocalCache) tự xếp hàng ghi trong IndexedDB và gửi lại khi
+// có mạng — promise chỉ treo chờ. Chỉ lỗi bị TỪ CHỐI hẳn (quyền, hạn mức…) mới reject → trả màn hình về như
+// cũ và báo rõ.
+const cloudWriteFailReason = (err: unknown): string => {
+  const m = err instanceof Error ? err.message : String(err);
+  if (/insufficient permissions|permission-denied/i.test(m)) return 'tài khoản không có quyền ghi vào kho này';
+  if (/Quota|RESOURCE_EXHAUSTED/i.test(m)) return 'đã hết hạn mức Cloud trong ngày';
+  return 'Cloud từ chối lượt ghi';
+};
+
+export function useStickerEventDb({
+  user,
+  userData,
+  employeeName,
+  displayedProducts,
+  setDisplayedProducts,
+  setIsLoading,
+  setIsInitializing,
+  setError,
+  showAlert,
+  fileName,
+  setFileName,
+  fileExportDate,
+  setFileExportDate,
+  setUploadTimestamp,
+  setInventoryUploadTimestamp,
+  allProducts,
+  setAllProducts,
+  inventory,
+  setInventory,
+  manualProducts,
+  setManualProducts,
+}: UseStickerEventDbProps) {
+
+  const loadFirestoreData = useCallback(async (
+    storeId: string, 
+    localProducts: Product[], 
+    localInventory: InventoryItem[],
+    localProdTs: Date | null,
+    localInvTs: Date | null
+  ) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Định nghĩa timeout 8 giây cho các thao tác mạng với Firestore
+      const runWithTimeout = <T>(promise: Promise<T>, ms = 8000): Promise<T> => {
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout kết nối Server (8s)")), ms))
+        ]);
+      };
+
+      // Bọc toàn bộ các hoạt động Firestore bằng timeout
+      await runWithTimeout((async () => {
+        // Verify store has an admin (for Staff users) — TRƯỚC ĐÂY tự query trực tiếp
+        // collection(db, 'users') từ client, nhưng firestore.rules (khi còn database riêng là firestore.stickerevent.rules — đã siết lại
+        // để chặn leo thang quyền) chỉ cho phép admin/superadmin `list` trên users — staff gọi
+        // thẳng LUÔN bị "Missing or insufficient permissions" (bug thật, không phải giả
+        // thuyết). Giờ dùng thẳng `storeHasAdmin` do stickerResolveSession()/stickerRegister()
+        // (Cloud Function, Admin SDK — không qua Rules) tính sẵn và trả về ngay lúc đăng nhập,
+        // không cần tự query Firestore nữa (implementation_plan.md mục 41).
+        if (userData?.role === 'staff' && userData.storeHasAdmin === false) {
+          setError(`Mã kho "${storeId}" hiện không có Quản trị viên quản lý. Bạn không thể xem dữ liệu.`);
+          setAllProducts([]);
+          setInventory([]);
+          setIsLoading(false);
+          setIsInitializing(false);
+          return;
+        }
+
+        let firestoreLatestProducts = 0;
+        let firestoreLatestInv = 0;
+        // QUOTA FIX (2026-09-17, mục 5): lấy luôn mốc của sản phẩm nhập tay từ CHÍNH document
+        // metadata/sync đang đọc — không tốn thêm lượt đọc nào.
+        let firestoreLatestManual = 0;
+
+        const cachedMeta = syncMetaMemoryCache.get(storeId);
+        if (cachedMeta && Date.now() - cachedMeta.timestamp < SYNC_META_TTL_MS) {
+          firestoreLatestProducts = cachedMeta.productsLastUpdated;
+          firestoreLatestInv = cachedMeta.inventoryLastUpdated;
+          firestoreLatestManual = cachedMeta.manualProductsLastUpdated;
+        } else {
+          // Smart Sync: Check single merged metadata doc
+          const syncMetaRef = doc(db, 'stores', storeId, 'metadata', 'sync');
+          let syncMetaSnap;
+          let retries = 3;
+          while (retries > 0) {
+              try {
+                  syncMetaSnap = await getDoc(syncMetaRef);
+                  break;
+              } catch (err: unknown) {
+                  console.warn(`Lỗi tải metadata (còn ${retries - 1} lần thử):`, err);
+                  retries--;
+                  if (retries === 0) throw err;
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+          }
+
+          if (syncMetaSnap!.exists()) {
+            const syncData = syncMetaSnap!.data();
+            firestoreLatestProducts = syncData.productsLastUpdated?.toMillis() || 0;
+            firestoreLatestInv = syncData.inventoryLastUpdated?.toMillis() || 0;
+            firestoreLatestManual = syncData.manualProductsLastUpdated?.toMillis() || 0;
+          } else {
+            const [prodMetaSnap, invMetaSnap] = await Promise.all([
+                getDoc(doc(db, 'stores', storeId, 'metadata', 'products')),
+                getDoc(doc(db, 'stores', storeId, 'metadata', 'inventory'))
+            ]);
+            firestoreLatestProducts = prodMetaSnap.exists() ? prodMetaSnap.data().lastUpdated?.toMillis() || 0 : 0;
+            firestoreLatestInv = invMetaSnap.exists() ? invMetaSnap.data().lastUpdated?.toMillis() || 0 : 0;
+          }
+
+          syncMetaMemoryCache.set(storeId, {
+            timestamp: Date.now(),
+            productsLastUpdated: firestoreLatestProducts,
+            inventoryLastUpdated: firestoreLatestInv,
+            manualProductsLastUpdated: firestoreLatestManual,
+          });
+        }
+
+        const localLatestProducts = localProdTs?.getTime() || 0;
+        const localLatestInv = localInvTs?.getTime() || 0;
+
+        const shouldFetchProducts = firestoreLatestProducts > localLatestProducts || localProducts.length === 0;
+        const shouldFetchInventory = firestoreLatestInv > localLatestInv || localInventory.length === 0;
+
+        if (shouldFetchProducts || shouldFetchInventory) {
+            // strict (2026-09-30): tuple có kiểu thay cho mảng không kiểu (cùng thứ tự, cùng lời gọi)
+            const [firestoreProducts, firestoreInventory] = await Promise.all([
+                shouldFetchProducts ? fetchProductsFromFirestore(storeId) : Promise.resolve(localProducts),
+                shouldFetchInventory ? fetchInventoryFromFirestore(storeId) : Promise.resolve(localInventory),
+            ]);
+            
+            // Audit D07: cloud MỚI HƠN mà rỗng = bảng giá đã bị xoá ở máy khác → áp cả trạng thái rỗng.
+            // (Lỗi tải ném ra ngoài — handleFirestoreError — nên mảng rỗng ở đây là rỗng THẬT.)
+            const productsDeletedOnCloud = firestoreLatestProducts > localLatestProducts && localProducts.length > 0;
+            const inventoryDeletedOnCloud = firestoreLatestInv > localLatestInv && localInventory.length > 0;
+            if (shouldFetchProducts && (firestoreProducts.length > 0 || productsDeletedOnCloud)) {
+                setAllProducts(firestoreProducts);
+                if (firestoreLatestProducts > 0) setUploadTimestamp(new Date(firestoreLatestProducts));
+                saveData(firestoreProducts, {
+                    fileName: fileName || 'Dữ liệu từ server',
+                    uploadTimestamp: new Date(firestoreLatestProducts),
+                    fileExportDate: fileExportDate
+                });
+            }
+
+            if (shouldFetchInventory && (firestoreInventory.length > 0 || inventoryDeletedOnCloud)) {
+                setInventory(firestoreInventory);
+                if (firestoreLatestInv > 0) setInventoryUploadTimestamp(new Date(firestoreLatestInv));
+                saveInventoryData(firestoreInventory, new Date(firestoreLatestInv));
+            }
+        } else {
+            if (firestoreLatestProducts > 0) setUploadTimestamp(new Date(firestoreLatestProducts));
+            if (firestoreLatestInv > 0) setInventoryUploadTimestamp(new Date(firestoreLatestInv));
+        }
+
+        // Load manual products — QUOTA FIX (2026-09-17, mục 5): áp ĐÚNG cơ chế smart-sync mà
+        // products/inventory đã dùng ở trên. Trước đây hàm này luôn gọi fetchManualProducts()
+        // (`limit(200)`) mỗi lần mở app, cho mỗi người, dù dữ liệu không đổi.
+        //
+        // So sánh 2 mốc ĐỀU DO SERVER SINH: `firestoreLatestManual` (đọc từ metadata/sync lượt này)
+        // với `syncedCloudMillis` (giá trị của chính field đó mà lượt tải TRƯỚC đã thấy). Không
+        // dùng Date.now() của máy khách nên đồng hồ lệch cũng không thể làm bỏ sót thay đổi từ
+        // thiết bị khác.
+        try {
+          const manualCache = await loadManualProductsCache();
+          const shouldFetchManual = shouldFetchManualProductsFromCloud(
+            firestoreLatestManual,
+            manualCache.syncedCloudMillis,
+            manualCache.products.length
+          );
+
+          let manualDocs: ManualProductDoc[];
+          if (shouldFetchManual) {
+            manualDocs = await fetchManualProducts(storeId);
+            await saveManualProductsCache(manualDocs, firestoreLatestManual);
+          } else {
+            manualDocs = manualCache.products;
+          }
+
+          const manualProds: ManualProductWithId[] = manualDocs.map(d => ({
+            sanPham: d.sanPham,
+            msp: d.msp,
+            giaGoc: d.giaGoc,
+            giaGiam: d.giaGiam,
+            thuongERP: d.thuongERP,
+            thuongNong: d.thuongNong,
+            tongThuong: d.tongThuong,
+            khuyenMai: d.khuyenMai,
+            ngayIn: d.ngayIn,
+            selected: false,
+            quantity: 1,
+            firebaseId: d.id,
+          }));
+          setManualProducts(manualProds);
+          setAllProducts(prev => {
+            const filtered = prev.filter(p => !(p as ManualProductWithId).firebaseId);
+            return [...filtered, ...manualProds];
+          });
+        } catch (err) {
+          console.error('Error loading manual products:', err);
+        }
+      })());
+
+    } catch (err: unknown) {
+      console.error("Error loading from Firestore:", err);
+      let displayError = "Không thể kết nối đến máy chủ để đồng bộ. Hệ thống đang chạy ở chế độ offline.";
+      const errMessage = getErrorMessage(err);
+      if (errMessage && errMessage.includes("8s")) {
+         displayError = "Không thể kết nối đến máy chủ (Quá thời gian phản hồi 8s). Bạn đang sử dụng dữ liệu offline.";
+      } else if (errMessage) {
+        if (/RESOURCE_EXHAUSTED|Quota limit exceeded|Quota exceeded/i.test(errMessage)) {
+          displayError = "Hệ thống đã dùng hết hạn mức truy cập Cloud miễn phí trong ngày (50.000 lượt đọc Firestore). Bạn vẫn có thể nhập file trực tiếp hoặc sử dụng dữ liệu ngoại tuyến (Offline). Hạn mức sẽ tự động được cấp lại vào khoảng 14:00 - 15:00 hàng ngày.";
+        } else {
+          try {
+            const errObj = JSON.parse(errMessage);
+            if (errObj.error) {
+              displayError = `Lỗi hệ thống: ${errObj.error}`;
+              if (errObj.error.includes('insufficient permissions')) {
+                displayError = "Bạn không có quyền truy cập dữ liệu của kho này. Vui lòng liên hệ Admin để kiểm tra quyền hạn.";
+              } else if (/Quota exceeded|RESOURCE_EXHAUSTED/i.test(errObj.error)) {
+                displayError = "Hệ thống đã dùng hết hạn mức truy cập Cloud miễn phí trong ngày. Bạn vẫn có thể sử dụng dữ liệu offline hoặc nhập file trực tiếp.";
+              }
+            }
+          } catch {
+            displayError = errMessage;
+          }
+        }
+      }
+      setError(displayError);
+    } finally {
+      setIsLoading(false);
+      setIsInitializing(false);
+    }
+  }, [userData, fileName, fileExportDate, setIsLoading, setIsInitializing, setError, setUploadTimestamp, setInventoryUploadTimestamp]);
+
+  const handleManualSave = useCallback(async (product: ManualProductWithId): Promise<string> => {
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const newProd: ManualProductWithId = { ...product, firebaseId: tempId };
+    
+    setManualProducts(prev => [...prev, newProd]);
+    setAllProducts(prev => [...prev, newProd]);
+    
+    setDisplayedProducts(prev => {
+      const updated = [{ ...newProd, selected: false, quantity: newProd.quantity || 1 }, ...prev];
+      saveDisplayedProducts(updated);
+      return updated;
+    });
+
+    if (userData?.storeId) {
+      const docData: Omit<ManualProductDoc, 'id'> = {
+        sanPham: product.sanPham,
+        msp: product.msp,
+        giaGoc: product.giaGoc,
+        giaGiam: product.giaGiam,
+        thuongERP: product.thuongERP,
+        thuongNong: product.thuongNong,
+        tongThuong: product.tongThuong,
+        khuyenMai: product.khuyenMai,
+        ngayIn: product.ngayIn,
+        createdBy: employeeName || user?.uid || 'unknown',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // QUOTA FIX (2026-09-17, mục 5): vô hiệu cache NGAY, không chờ ghi xong — phiên sau sẽ tải
+      // lại đúng 1 lần để lấy `firebaseId` thật thay cho id tạm (xem clearManualProductsCache).
+      clearManualProductsCache().catch(err => console.error('Clear manual cache failed:', err));
+      invalidateSyncMetaMemoryCache(userData.storeId);
+
+      saveManualProduct(userData.storeId, docData).then(docId => {
+        if (docId) {
+          setManualProducts(prev => prev.map(p => p.firebaseId === tempId ? { ...p, firebaseId: docId } : p));
+          setAllProducts(prev => prev.map(p => (p as ManualProductWithId).firebaseId === tempId ? { ...p, firebaseId: docId } as Product : p));
+        }
+      }).catch(err => {
+        console.error('Background Firebase save failed:', err);
+        setManualProducts(prev => prev.filter(p => p.firebaseId !== tempId));
+        setAllProducts(prev => prev.filter(p => (p as ManualProductWithId).firebaseId !== tempId));
+        setDisplayedProducts(prev => {
+          const updated = prev.filter(p => (p as ManualProductWithId).firebaseId !== tempId);
+          saveDisplayedProducts(updated);
+          return updated;
+        });
+        showAlert(`Chưa lưu được sản phẩm "${product.sanPham}" (${cloudWriteFailReason(err)}). Sản phẩm đã được gỡ khỏi danh sách — hãy thử thêm lại sau.`, 'Lưu sản phẩm thất bại');
+      });
+    }
+
+    return tempId;
+  }, [userData, employeeName, user, setDisplayedProducts, showAlert]);
+
+  const handleManualDelete = useCallback(async (docId: string) => {
+    const removed = manualProducts.find(p => p.firebaseId === docId);
+    setManualProducts(prev => prev.filter(p => p.firebaseId !== docId));
+    setAllProducts(prev => prev.filter(p => (p as ManualProductWithId).firebaseId !== docId));
+    setDisplayedProducts(prev => {
+      const updated = prev.filter(p => (p as ManualProductWithId).firebaseId !== docId);
+      saveDisplayedProducts(updated);
+      return updated;
+    });
+
+    if (userData?.storeId && !docId.startsWith('temp_')) {
+      clearManualProductsCache().catch(err => console.error('Clear manual cache failed:', err));
+      invalidateSyncMetaMemoryCache(userData.storeId);
+      deleteManualProduct(userData.storeId, docId).catch(err => {
+        console.error('Background Firebase delete failed:', err);
+        if (removed) {
+          setManualProducts(prev => prev.some(p => p.firebaseId === docId) ? prev : [...prev, removed]);
+          setAllProducts(prev => prev.some(p => (p as ManualProductWithId).firebaseId === docId) ? prev : [...prev, removed]);
+        }
+        showAlert(`Chưa xoá được sản phẩm${removed ? ` "${removed.sanPham}"` : ''} trên Cloud (${cloudWriteFailReason(err)}). Sản phẩm vẫn còn trong kho dữ liệu.`, 'Xoá sản phẩm thất bại');
+      });
+    }
+  }, [userData, setDisplayedProducts, manualProducts, showAlert]);
+
+  const handleManualUpdate = useCallback(async (product: ManualProductWithId) => {
+    if (!product.firebaseId) return;
+    const previous = manualProducts.find(p => p.firebaseId === product.firebaseId);
+    
+    setManualProducts(prev => prev.map(p => p.firebaseId === product.firebaseId ? product : p));
+    setAllProducts(prev => prev.map(p => (p as ManualProductWithId).firebaseId === product.firebaseId ? product : p));
+
+    if (userData?.storeId && !product.firebaseId.startsWith('temp_')) {
+      const docData: Omit<ManualProductDoc, 'id'> = {
+        sanPham: product.sanPham,
+        msp: product.msp,
+        giaGoc: product.giaGoc,
+        giaGiam: product.giaGiam,
+        thuongERP: product.thuongERP,
+        thuongNong: product.thuongNong,
+        tongThuong: product.tongThuong,
+        khuyenMai: product.khuyenMai,
+        ngayIn: product.ngayIn,
+        createdBy: employeeName || user?.uid || 'unknown',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      clearManualProductsCache().catch(err => console.error('Clear manual cache failed:', err));
+      invalidateSyncMetaMemoryCache(userData.storeId);
+      saveManualProduct(userData.storeId, docData, product.firebaseId).catch(err => {
+        console.error('Background Firebase update failed:', err);
+        if (previous) {
+          setManualProducts(prev => prev.map(p => p.firebaseId === previous.firebaseId ? previous : p));
+          setAllProducts(prev => prev.map(p => (p as ManualProductWithId).firebaseId === previous.firebaseId ? previous : p));
+        }
+        showAlert(`Chưa lưu được thay đổi của "${product.sanPham}" (${cloudWriteFailReason(err)}). Đã trả về giá trị cũ.`, 'Sửa sản phẩm thất bại');
+      });
+    }
+  }, [userData, employeeName, user, manualProducts, showAlert]);
+
+  const executeClearAll = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        if (userData && userData.storeId) {
+            // QUOTA FIX + BUG FIX (2026-09-17): trước đây truyền 'products'/'inventory' — 2
+            // collection KHÔNG TỒN TẠI trên Firestore (tên thật có hậu tố `Chunks`), nên nút
+            // "Xóa toàn bộ dữ liệu" báo thành công mà chunk trên cloud còn nguyên: mở app lần
+            // sau local rỗng → smart-sync tải lại đúng bộ dữ liệu vừa "xoá". 100 lệnh xoá mỗi
+            // lượt cũng trừ hạn mức miễn phí mà không dọn được gì.
+            invalidateSyncMetaMemoryCache(userData.storeId);
+            await Promise.all([
+                clearStoreDataOnFirestore(userData.storeId, 'productChunks'),
+                clearStoreDataOnFirestore(userData.storeId, 'inventoryChunks')
+            ]);
+        }
+        setAllProducts([]);
+        setInventory([]);
+        setDisplayedProducts([]);
+        setFileName(null);
+        setUploadTimestamp(null);
+        setInventoryUploadTimestamp(null);
+        setFileExportDate(null);
+        await clearData();
+        showAlert("Đã xóa toàn bộ dữ liệu tồn kho và giá.");
+    } catch (err) {
+        console.error(err);
+        setError("Lỗi khi xóa dữ liệu hệ thống.");
+    } finally {
+        setIsLoading(false);
+    }
+  }, [userData, setDisplayedProducts, setIsLoading, setError, showAlert, setFileName, setUploadTimestamp, setInventoryUploadTimestamp, setFileExportDate]);
+
+  return {
+    allProducts,
+    setAllProducts,
+    inventory,
+    setInventory,
+    manualProducts,
+    setManualProducts,
+    loadFirestoreData,
+    handleManualSave,
+    handleManualDelete,
+    handleManualUpdate,
+    executeClearAll,
+  };
+}
