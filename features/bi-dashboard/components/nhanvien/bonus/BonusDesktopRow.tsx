@@ -25,12 +25,13 @@ interface BonusDesktopRowProps {
     f: Intl.NumberFormat;
     supermarketName: string;
     targetQuyDoi?: number;
+    anDoanhThu?: boolean;
 }
 
 export const BonusDesktopRow = React.memo(({
     item, isHighlighted, isStale, dtqdVal, hqqdVal, erpVal, tnongVal, pnongVal, tongVal, dkienVal,
     pctDkht, hasTarget = true,
-    onEmployeeClick, getCellColor, f, supermarketName, targetQuyDoi = DEFAULT_HQQD_TARGET
+    onEmployeeClick, getCellColor, f, supermarketName, targetQuyDoi = DEFAULT_HQQD_TARGET, anDoanhThu
 }: BonusDesktopRowProps) => {
 
     const bonus = Boolean(erpVal || tnongVal || tongVal || dkienVal);
@@ -60,8 +61,8 @@ export const BonusDesktopRow = React.memo(({
                     </div>
                 </div>
             </td>
-            <td className={`px-1.5 py-1 text-[13px] text-center border-l border-slate-200 dark:border-slate-700 border-r border-slate-100 dark:border-slate-700/50 tabular-nums ${getCellColor(dtqdVal, 'dtqd', rev)}`}>{rev ? f.format(dtqdVal) : '-'}</td>
-            <td className={`px-1.5 py-1 text-[13px] text-center border-r border-slate-100 dark:border-slate-700/50 tabular-nums ${getCellColor(hqqdVal, 'hqqd', rev)}`}>{rev ? hqqdVal.toFixed(0) + '%' : '-'}</td>
+            {!anDoanhThu && <td className={`px-1.5 py-1 text-[13px] text-center border-l border-slate-200 dark:border-slate-700 border-r border-slate-100 dark:border-slate-700/50 tabular-nums ${getCellColor(dtqdVal, 'dtqd', rev)}`}>{rev ? f.format(dtqdVal) : '-'}</td>}
+            {!anDoanhThu && <td className={`px-1.5 py-1 text-[13px] text-center border-r border-slate-100 dark:border-slate-700/50 tabular-nums ${getCellColor(hqqdVal, 'hqqd', rev)}`}>{rev ? hqqdVal.toFixed(0) + '%' : '-'}</td>}
             <td className={`px-1.5 py-1 text-[13px] text-center border-l border-slate-200 dark:border-slate-700 border-r border-slate-100 dark:border-slate-700/50 tabular-nums ${getCellColor(erpVal, 'erp', bonus)}`}>
                 {bonus ? f.format(Math.ceil(erpVal / 1000)) : '-'}
             </td>

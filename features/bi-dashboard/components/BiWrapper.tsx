@@ -480,7 +480,7 @@ const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boole
                         {/* Employee view */}
                         {mountedViews.has('employee') && (
                             <div className={activeView === 'employee' ? 'block relative' : 'absolute left-[-9999px] top-0 opacity-0 pointer-events-none w-full h-full overflow-hidden'}>
-                                <NhanVien isActive={isActive && activeView === 'employee'} />
+                                <NhanVien isActive={isActive && activeView === 'employee'} isThuongTab={isThuongTab} />
                             </div>
                         )}
 

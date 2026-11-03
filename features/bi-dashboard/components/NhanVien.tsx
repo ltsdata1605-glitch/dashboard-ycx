@@ -21,9 +21,12 @@ import { parseBaseTargetQuyDoi, parseEmployeeCompetitionTargets } from '../servi
 import { Tabs } from '../../../components/shared/ui/Tabs';
 import { MultiSelectDropdown } from '../../../components/shared/ui/MultiSelectDropdown';
 import { useActiveTab } from '../../../contexts/LayoutContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Button } from '../../../components/shared/ui/Button';
 import { standardizeEmployeeName, isIgnoredDept } from '../utils/nhanVienHelpers';
 import { MOBILE_GUTTER } from '../utils/mobileUi';
+import { TopBarActions } from '../../../components/shared/ui/TopBarActions';
+import { usePageActions } from '../../../components/shared/ui/PageActions';
 
 const NAV_TABS: { tab: Tab; label: string }[] = [
     { tab: 'revenue', label: 'Doanh thu' },
@@ -34,9 +37,10 @@ const NAV_TABS: { tab: Tab; label: string }[] = [
 
 interface NhanVienProps {
     isActive?: boolean;
+    isThuongTab?: boolean;
 }
 
-export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
+export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => {
     const [activeTab, setActiveTab] = useIndexedDBState<Tab>('nhanvien-active-tab', 'revenue');
     const [visitedTabs, setVisitedTabs] = useState<Set<Tab>>(() => new Set<Tab>(['revenue']));
     const pendingSwitchTabRef = useRef<Tab | null>(null);
@@ -429,16 +433,83 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
         return new Set(allEmployees.map(e => e.originalName));
     }, [hasAnalysisEmployees, allEmployees]);
 
+    // Tab "Thưởng" ở menu chính: nút "Nhập nhân viên (File YCX)" trên thanh trên iPhone.
+    // Phát sự kiện → DashboardView (luôn mount) mở hộp chọn file → xử lý → loadAnalysisEmployees tự nhận.
+    const { userRole } = useAuth();
+    const canManageFiles = userRole === 'admin' || userRole === 'manager';
+    const { activeTab: appActiveTab } = useActiveTab();
+    const nhapFileYcx = useCallback(() => {
+        window.dispatchEvent(new Event('ycx-request-upload-ycx'));
+    }, []);
+    usePageActions(isThuongTab && isActive ? {
+        scope: 'mobile',
+        title: 'Thưởng',
+        primary: canManageFiles ? { id: 'nhap-ycx', label: 'Tải YCX lên', icon: 'upload', onClick: nhapFileYcx } : undefined,
+    } : null);
+
     return (
         <ExportOptionsProvider value={exportOptionsContextValue}>
         <div className="space-y-4 sm:space-y-6 relative">
 
+            {/* Desktop top bar cho tab Thưởng: bộ lọc Kho/BP + nút Nhập nhân viên */}
+            <TopBarActions enabled={!!isThuongTab && !!isActive} showSystemGroup>
+                <TopBarActions.Group>
+                    <div className="flex items-center gap-1.5 px-1">
+                        <MultiSelectDropdown
+                            className="w-auto"
+                            triggerClassName="ycx-hit rounded-full whitespace-nowrap min-h-0 h-7 px-2.5 py-0 text-xs font-semibold"
+                            icon={<AppIcon name="store" size="sm" className="text-sky-500 scale-90" />}
+                            triggerLabel={activeSupermarkets.length === supermarkets.length ? 'All' : Array.from(new Set(activeSupermarkets.map(s => shortenSupermarketName(s)))).join(', ')}
+                            count={Array.from(new Set(activeSupermarkets.map(s => shortenSupermarketName(s)))).length}
+                            allLabel="Chọn tất cả"
+                            allChecked={activeSupermarkets.length === supermarkets.length}
+                            onToggleAll={() => toggleSupermarket('all')}
+                            options={Array.from(new Map(supermarkets.map(sm => [shortenSupermarketName(sm), sm])).values()).map(sm => ({
+                                key: sm,
+                                label: shortenSupermarketName(sm),
+                                checked: activeSupermarkets.some(a => shortenSupermarketName(a) === shortenSupermarketName(sm)),
+                            }))}
+                            onToggleOption={toggleSupermarket}
+                        />
+                        <MultiSelectDropdown
+                            className="w-auto"
+                            triggerClassName="ycx-hit rounded-full whitespace-nowrap min-h-0 h-7 px-2.5 py-0 text-xs font-semibold"
+                            icon={<AppIcon name="restore" size="sm" className="text-sky-500 scale-90" />}
+                            triggerLabel={activeDepartments.includes('all') ? 'All' : activeDepartments.join(', ')}
+                            count={activeDepartments.includes('all') ? departmentOptions.length : activeDepartments.length}
+                            allLabel="All"
+                            allChecked={activeDepartments.includes('all')}
+                            onToggleAll={() => toggleDepartment('all')}
+                            options={departmentOptions.map(dept => ({
+                                key: dept,
+                                label: dept,
+                                checked: activeDepartments.includes(dept) || activeDepartments.includes('all'),
+                            }))}
+                            onToggleOption={toggleDepartment}
+                        />
+                    </div>
+                </TopBarActions.Group>
+                {canManageFiles && (
+                    <TopBarActions.Group>
+                        <Button
+                            variant="tinted" data-ui="bi"
+                            size="sm"
+                            onClick={nhapFileYcx}
+                            className="gap-1.5 h-7 px-3 text-xs rounded-full"
+                            title="Nhập danh sách nhân viên từ file YCX (giống Phân tích)"
+                        >
+                            <AppIcon name="upload" size="sm" />
+                            <span>Tải YCX lên</span>
+                        </Button>
+                    </TopBarActions.Group>
+                )}
+            </TopBarActions>
 
-            {/* Title + Filter Toolbar */}
+            {/* Title + Filter Toolbar — ẩn khi vào từ tab Thưởng menu chính (bộ lọc đã lên top bar) */}
             {/* Khung <main> của Report BI cố ý `p-0` trên điện thoại để BẢNG dùng hết bề ngang
                 (BiWrapper.tsx), nhưng hàng tiêu đề ăn theo thì chữ "NHÂN VIÊN" dính sát mép máy,
                 trên iPhone trông như bị cắt. Hàng này là chữ + nút nên phải có lề riêng. */}
-            <div className={`relative z-50 mb-3 flex flex-row flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5 pt-1 pb-1.5 border-b border-slate-200 dark:border-slate-800 w-full ${MOBILE_GUTTER}`}>
+            <div className={`relative z-50 mb-3 flex flex-row flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5 pt-1 pb-1.5 border-b border-slate-200 dark:border-slate-800 w-full ${MOBILE_GUTTER}${isThuongTab ? ' hidden' : ''}`}>
                 <div className="hidden lg:flex items-center gap-2 sm:gap-3 min-w-0">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -501,19 +572,32 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
                     </div>
                     <div className="max-w-md mx-auto space-y-2">
                         <h3 className="text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-7">
-                            Chưa có danh sách nhân viên từ chức năng Phân Tích
+                            Chưa có danh sách nhân viên
                         </h3>
                         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                            Danh sách nhân viên chuẩn của hệ thống được quản lý tại chức năng <b>Phân Tích</b>. Vui lòng chuyển sang Phân Tích để cập nhật danh sách nhân viên của bạn.
+                            {isThuongTab
+                                ? 'Vui lòng tải file YCX lên để nhập danh sách nhân viên, hoặc chuyển sang Phân Tích để cập nhật.'
+                                : <>Danh sách nhân viên chuẩn của hệ thống được quản lý tại chức năng <b>Phân Tích</b>. Vui lòng chuyển sang Phân Tích để cập nhật danh sách nhân viên của bạn.</>
+                            }
                         </p>
                     </div>
-                    <div className="pt-2">
+                    <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+                        {isThuongTab && canManageFiles && (
+                            <Button
+                                variant="primary"
+                                onClick={nhapFileYcx}
+                                className="ycx-hit font-bold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                            >
+                                <AppIcon name="upload" size="md" />
+                                <span>Tải file YCX lên</span>
+                            </Button>
+                        )}
                         <Button
-                            variant="primary"
+                            variant={isThuongTab ? 'secondary' : 'primary'}
                             onClick={() => setAppActiveTab('analysis')}
-                            className="ycx-hit font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                            className={`ycx-hit font-bold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95 ${!isThuongTab ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`}
                         >
-                            <span>Chuyển đến Phân Tích để cập nhật</span>
+                            <span>Chuyển đến Phân Tích</span>
                             <AppIcon name="next" size="md" />
                         </Button>
                     </div>
@@ -521,6 +605,7 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
             ) : (
                 /* 3. Tab Switcher — MỘT khung viền duy nhất bọc chung tab switcher + nội dung */
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 overflow-hidden rounded-none lg:rounded-card shadow-sm">
+                    {!isThuongTab && (
                     <div className="px-4 sm:px-5 pt-3">
                         <Tabs
                             items={NAV_TABS.map(({ tab, label }) => ({ id: tab, label }))}
@@ -529,6 +614,7 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
                             variant="underline"
                         />
                     </div>
+                    )}
 
                 {visitedTabs.has('revenue') && (
                     <div className={activeTab === 'revenue' ? 'block' : 'hidden'}>
@@ -562,6 +648,7 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
                             highlightedEmployees={highlightedEmployees}
                             activeDepartments={effectiveActiveDepartments}
                             isActive={isActive && activeTab === 'bonus'}
+                            anDoanhThu={isThuongTab}
                         />
                     </div>
                 )}
