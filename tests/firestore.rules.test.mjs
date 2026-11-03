@@ -225,6 +225,24 @@ async function main() {
     await check('Bot: chủ bot tạo bot của chính mình', assertSucceeds(bot(managerOther, 'managerOther').set({ userId: 'managerOther', departmentId: 'OTHERKHO' })));
     await check('Bot: KHÔNG tạo bot dưới uid người khác', assertFails(bot(managerA, 'someoneElse').set({ departmentId: 'TESTKHO' })));
 
+    // Yêu cầu làm việc nhóm (xác nhận / phiếu / xin duyệt — functions/src/lineWorkflows.ts): client CHỈ ĐỌC.
+    // Mọi đổi trạng thái và nhật ký đi qua Cloud Function, nên manager cùng Kho không được tự ghi.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc('line_bots/ownerA/approvals/a1').set({ status: 'pending', requesterId: 'U1' });
+    });
+    await check('Duyệt: manager cùng Kho ĐỌC được yêu cầu duyệt',
+        assertSucceeds(managerA.firestore().doc('line_bots/ownerA/approvals/a1').get()));
+    await check('Duyệt: manager cùng Kho KHÔNG tự đổi trạng thái yêu cầu',
+        assertFails(managerA.firestore().doc('line_bots/ownerA/approvals/a1').update({ status: 'approved' })));
+    await check('Duyệt: manager cùng Kho KHÔNG tự ghi nhật ký giả',
+        assertFails(managerA.firestore().doc('line_bots/ownerA/approvals/a1/events/e9').set({ action: 'approved' })));
+    await check('Duyệt: manager cùng Kho KHÔNG tự tạo/đóng phiếu',
+        assertFails(managerA.firestore().doc('line_bots/ownerA/tickets/YC-0001').set({ status: 'done' })));
+    await check('Duyệt: manager KHÁC Kho KHÔNG đọc được yêu cầu duyệt',
+        assertFails(managerOther.firestore().doc('line_bots/ownerA/approvals/a1').get()));
+    await check('Duyệt: cấu hình khác của bot (coupon) vẫn ghi được — không chặn nhầm',
+        assertSucceeds(botCoupon(managerA).set({ code: 'X1', status: 'UNUSED' })));
+
     // bot_media (S07) + report_commands toàn hệ thống (S09)
     const media = (ctx, id) => ctx.firestore().doc(`bot_media/${id}`);
     await check('Media: chưa đăng nhập KHÔNG đọc được', assertFails(media(anon, 'old1').get()));

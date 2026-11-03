@@ -9293,3 +9293,14 @@ Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (gh
 - `tests/unit/line-workflows.test.ts` — 17 test: phân tích lệnh, chuẩn hoá mã, quy tắc duyệt, dữ liệu nút,
   Flex (nhãn ≤ 20 ký tự, postback ≤ 300 byte), và các luồng chạy trên Firestore giả trong bộ nhớ.
 - Chưa kiểm chứng trên LINE thật và Firestore emulator (cần chữ ký webhook LINE thật).
+
+## Đợt 2 — Kiểm soát yêu cầu duyệt (2026-11-03, nhánh `claude/line-bot-kiem-soat-duyet`)
+- **Nhật ký đầy đủ**: `approvals/{id}/events` ghi MỌI lần tác động (tạo, duyệt, từ chối, và cả lần bị chặn: không quyền,
+  tự duyệt, đã xử lý xong), kèm người thực hiện và nguồn `line` / `web`.
+- **Bắt buộc có người duyệt**: `/xinphep` bị từ chối nếu bot chưa khai báo admin Duyệt đơn / Toàn quyền đang bật.
+  Quyền duyệt trên LINE dùng `isWorkflowApprover` (nghiêm ngặt: KHÔNG còn luật "chưa có admin thì ai cũng duyệt").
+- **Duyệt từ web**: action `approvalDecide` (ID token + `canCallerUseBot`), dùng chung luật `decideApproval`; người duyệt
+  ghi là tài khoản web, nguồn `web`. Tab "Yêu cầu duyệt" trong Bot LINE: lọc trạng thái, xem lịch sử, duyệt/từ chối có hộp xác nhận.
+- **Quy tắc Firestore**: `approvals`, `acks`, `tickets`, `workflow_meta` chỉ ĐỌC từ client; ghi bị chặn (kiểm trên emulator).
+- Kiểm chứng: 20 test đơn vị (`line-workflows`), 6 test quy tắc mới (102/102 emulator), Playwright chỉ đọc trên tài khoản test
+  (tab mở được, không lỗi trang, trạng thái trống đúng). CHƯA kiểm chứng bảng có dữ liệu thật vì tài khoản test chưa có yêu cầu.

@@ -23,10 +23,11 @@ import { ScheduleManagerTab } from './components/ScheduleManagerTab';
 import { KeywordLibraryTab } from './components/KeywordLibraryTab';
 import { AdminDeclarationTab } from './components/AdminDeclarationTab';
 import { GroupFeaturesTab } from './components/GroupFeaturesTab';
+import { ApprovalRequestsTab } from './components/ApprovalRequestsTab';
 import { LineBotOnboardingModal } from './components/LineBotOnboardingModal';
 import { botHasToken } from './types/lineBot.types';
 
-type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'keywords' | 'admins' | 'group-features' | 'syntax' | 'settings';
+type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'keywords' | 'admins' | 'approvals' | 'group-features' | 'syntax' | 'settings';
 
 export default function LineBotView() {
     const { user, userRole, isDemoMode, setDemoMode, loginWithGoogle } = useAuth();
@@ -110,6 +111,7 @@ export default function LineBotView() {
         { id: 'schedules', label: 'Gửi Notify', icon: 'schedule' },
         { id: 'keywords', label: 'Chat BOT', icon: 'sparkles' },
         { id: 'admins', label: 'Admin', icon: 'securityOk' },
+        { id: 'approvals', label: 'Yêu cầu duyệt', icon: 'checklist' },
         { id: 'group-features', label: 'Cấu hình nhóm', icon: 'users' },
         { id: 'syntax', label: 'Cú pháp & Lọc', icon: 'command' },
         { id: 'settings', label: 'Cấu hình Bot', icon: 'settings' }
@@ -393,6 +395,10 @@ export default function LineBotView() {
                         onRefreshInteracted={adminHook.loadInteractedUsers}
                         onAddAdminFromInteracted={adminHook.addAdminFromInteracted}
                     />
+                )}
+
+                {activeSubTab === 'approvals' && (
+                    <ApprovalRequestsTab botId={effectiveBotId} />
                 )}
 
                 {activeSubTab === 'group-features' && (

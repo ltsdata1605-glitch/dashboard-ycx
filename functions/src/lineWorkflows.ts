@@ -210,10 +210,44 @@ export interface WorkflowDeps {
     db: any;
     /** Gửi phản hồi bằng replyToken (không tính hạn mức push). */
     reply: (messages: any[]) => Promise<unknown>;
-    /** Quyền duyệt theo bot (cùng luật canApproveOnBot của webhook). */
+    /** Quyền duyệt trên LINE: CHỈ người có trong danh sách admin đang bật với vai trò Duyệt/Toàn quyền. */
     canApprove: (senderUserId: string) => Promise<boolean>;
-    /** Lấy tên hiển thị người gửi. */
+    /** Bot đã khai báo ít nhất một người duyệt đang bật. Không có thì không cho tạo yêu cầu duyệt. */
+    hasApprover: () => Promise<boolean>;
     nowIso?: () => string;
+}
+
+/**
+ * Nhật ký mọi lần tác động lên một yêu cầu — KỂ CẢ lần bị chặn (không có quyền, tự duyệt, đã xử lý).
+ * Ghi vào `approvals/{id}/events`; client KHÔNG được ghi (firestore.rules khoá collection approvals).
+ */
+export async function logApprovalEvent(db: any, uid: string, approvalId: string, ev: {
+    action: string; actorId: string; actorName: string; source: 'line' | 'web'; at: string; attempted?: 'ok' | 'no';
+}): Promise<void> {
+    await botRef(db, uid).collection('approvals').doc(approvalId).collection('events').add(ev);
+}
+
+/**
+ * Duyệt / từ chối từ giao diện web (Dashboard). Quyền kiểm ở webhook (canCallerUseBot) trước khi gọi hàm này.
+ * Dùng CHUNG luật chuyển trạng thái với nút trên LINE (decideApproval).
+ */
+export async function decideApprovalForWeb(db: any, uid: string, approvalId: string, decision: 'ok' | 'no',
+    actor: { uid: string; name: string }, nowIso: string): Promise<{ ok: true; status: 'approved' | 'rejected' } | { ok: false; reason: 'missing' | 'already' | 'self' }> {
+    const ref = botRef(db, uid).collection('approvals').doc(approvalId);
+    const actorId = `web:${actor.uid}`;
+    const outcome = await db.runTransaction(async (tx: any) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return { ok: false as const, reason: 'missing' as const };
+        const d = decideApproval(snap.data(), actorId, decision);
+        if (!d.ok) return { ok: false as const, reason: d.reason };
+        tx.update(ref, { status: d.status, decidedBy: actorId, decidedByName: actor.name, decidedAt: nowIso, decidedSource: 'web' });
+        return { ok: true as const, status: d.status };
+    });
+    if (outcome.reason !== 'missing') {
+        const action = !outcome.ok ? (outcome.reason === 'already' ? 'already_decided' : 'blocked_self') : outcome.status;
+        await logApprovalEvent(db, uid, approvalId, { action, actorId, actorName: actor.name, source: 'web', at: nowIso, attempted: decision });
+    }
+    return outcome;
 }
 
 export interface WorkflowContext {
@@ -308,12 +342,17 @@ export async function handleWorkflowText(deps: WorkflowDeps, ctx: WorkflowContex
     }
 
     if (cmd.kind === 'approval_create') {
+        if (!(await deps.hasApprover())) {
+            await reply([{ type: 'text', text: '⚠️ Chưa có người duyệt nào trên bot. Vào Dashboard → Bot LINE → Admin, thêm người có vai trò "Duyệt đơn" rồi thử lại.' }]);
+            return true;
+        }
         const id = newShortId();
         const name = await senderName(db, ctx.uid, ctx.senderUserId);
         await botRef(db, ctx.uid).collection('approvals').doc(id).set({
             id, body: clip(cmd.body, 2000), status: 'pending', groupId: ctx.groupId || null,
             requesterId: ctx.senderUserId, requesterName: name, createdAt: nowIso,
         });
+        await logApprovalEvent(db, ctx.uid, id, { action: 'created', actorId: ctx.senderUserId, actorName: name, source: 'line', at: nowIso });
         await reply([buildApprovalFlex({ id, body: cmd.body, requesterName: name })]);
         return true;
     }
@@ -370,12 +409,18 @@ export async function handleWorkflowPostback(deps: WorkflowDeps, ctx: WorkflowCo
     }
 
     // pb.w === 'apr'
+    const ref = botRef(db, ctx.uid).collection('approvals').doc(pb.id);
+    const pre = await ref.get();
+    if (!pre.exists) {
+        await reply([{ type: 'text', text: 'Yêu cầu này không còn tồn tại.' }]);
+        return true;
+    }
+    const deciderName = await senderName(db, ctx.uid, ctx.senderUserId);
     if (!(await deps.canApprove(ctx.senderUserId))) {
+        await logApprovalEvent(db, ctx.uid, pb.id, { action: 'blocked_no_permission', actorId: ctx.senderUserId, actorName: deciderName, source: 'line', at: nowIso, attempted: pb.d });
         await reply([{ type: 'text', text: '⛔ Bạn không có quyền duyệt trên bot này.' }]);
         return true;
     }
-    const ref = botRef(db, ctx.uid).collection('approvals').doc(pb.id);
-    const deciderName = await senderName(db, ctx.uid, ctx.senderUserId);
     const outcome = await db.runTransaction(async (tx: any) => {
         const snap = await tx.get(ref);
         if (!snap.exists) return { ok: false as const, reason: 'missing' as const };
@@ -385,6 +430,10 @@ export async function handleWorkflowPostback(deps: WorkflowDeps, ctx: WorkflowCo
         tx.update(ref, { status: d.status, decidedBy: ctx.senderUserId, decidedByName: deciderName, decidedAt: nowIso });
         return { ok: true as const, status: d.status, a };
     });
+    if (outcome.reason !== 'missing') {
+        const action = !outcome.ok ? (outcome.reason === 'already' ? 'already_decided' : 'blocked_self') : outcome.status;
+        await logApprovalEvent(db, ctx.uid, pb.id, { action, actorId: ctx.senderUserId, actorName: deciderName, source: 'line', at: nowIso, attempted: pb.d });
+    }
     let text: string;
     if (!outcome.ok && outcome.reason === 'missing') text = 'Yêu cầu này không còn tồn tại.';
     else if (!outcome.ok && outcome.reason === 'already') text = 'Yêu cầu này đã được xử lý trước đó.';

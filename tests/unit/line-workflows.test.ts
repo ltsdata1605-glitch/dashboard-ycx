@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     parseWorkflowCommand, normalizeTicketCode, decideApproval, parseWorkflowPostback,
     formatConfirmedNames, buildAckFlex, buildTicketFlex, buildApprovalFlex,
-    handleWorkflowText, handleWorkflowPostback, closeTicket,
+    handleWorkflowText, handleWorkflowPostback, closeTicket, decideApprovalForWeb,
 } from '../../functions/src/lineWorkflows';
 
 // ───────── Firestore giả trong bộ nhớ (đủ cho get/set/update/where/limit/transaction) ─────────
@@ -21,6 +21,11 @@ class FakeDb {
 class ColRef {
     constructor(private db: FakeDb, public path: string) {}
     doc(id: string) { return new DocRef(this.db, `${this.path}/${id}`); }
+    async add(data: any) {
+        const id = 'auto' + Math.random().toString(36).slice(2, 10);
+        await this.doc(id).set(data);
+        return { id };
+    }
     where(field: string, op: string, value: any) { return new Query(this.db, this.path, [[field, op, value]], null); }
     orderBy(_f: string) { return new Query(this.db, this.path, [], null); }
     limit(n: number) { return new Query(this.db, this.path, [], n); }
@@ -69,10 +74,11 @@ function setup() {
     db.store.set(`line_bots/${UID}/interacted_users/U_AN`, { displayName: 'Nguyễn An' });
     db.store.set(`line_bots/${UID}/interacted_users/U_BINH`, { displayName: 'Trần Bình' });
     const sent: any[][] = [];
-    const deps = (approver = true) => ({
+    const deps = (approver = true, hasApprover = true) => ({
         db,
         reply: async (m: any[]) => { sent.push(m); return true; },
         canApprove: async () => approver,
+        hasApprover: async () => hasApprover,
         nowIso: () => NOW,
     });
     const last = () => sent[sent.length - 1];
@@ -253,5 +259,52 @@ describe('luồng xử lý (Firestore giả)', () => {
         expect(await handleWorkflowPostback(deps(), { ...ctx('U_AN', ''), data: 'action=claim_pmh&prod=X' })).toBe(false);
         expect(await handleWorkflowText(deps(), ctx('U_AN', 'csd'))).toBe(false);
         expect(sent).toHaveLength(0);
+    });
+});
+
+async function eventsOf(db: FakeDb, approvalId: string) {
+    const snap = await new ColRef(db, `line_bots/${UID}/approvals/${approvalId}/events`).get();
+    return snap.docs.map((d: any) => d.data()).sort((a: any, b: any) => a.at.localeCompare(b.at));
+}
+
+describe('kiểm soát yêu cầu duyệt: nhật ký, người duyệt bắt buộc, duyệt từ web', () => {
+    it('chưa khai báo người duyệt thì KHÔNG tạo yêu cầu', async () => {
+        const { db, deps, last } = setup();
+        await handleWorkflowText(deps(true, false), ctx('U_BINH', '/xinphep nghỉ phép'));
+        expect(last()[0].text).toMatch(/Chưa có người duyệt/);
+        expect(db.store.size).toBe(2); // chỉ 2 interacted_users đã có sẵn
+    });
+
+    it('mỗi lần tác động đều có nhật ký, KỂ CẢ lần bị chặn', async () => {
+        const { db, deps } = setup();
+        await handleWorkflowText(deps(), ctx('U_BINH', '/xinphep nghỉ 1 ngày'));
+        const id = [...db.store.keys()].find(k => k.includes('/approvals/') && !k.includes('/events/'))!.split('/').pop()!;
+        const approveData = JSON.stringify({ w: 'apr', id, d: 'ok' });
+
+        await handleWorkflowPostback(deps(), { ...ctx('U_BINH', ''), data: approveData });          // tự duyệt
+        await handleWorkflowPostback(deps(false), { ...ctx('U_AN', ''), data: approveData });       // không quyền
+        await handleWorkflowPostback(deps(), { ...ctx('U_AN', ''), data: approveData });            // duyệt thật
+        await handleWorkflowPostback(deps(), { ...ctx('U_BINH', ''), data: JSON.stringify({ w: 'apr', id, d: 'no' }) }); // đã xử lý
+
+        const events = await eventsOf(db, id);
+        expect(events.map((e: any) => e.action)).toEqual(['created', 'blocked_self', 'blocked_no_permission', 'approved', 'already_decided']);
+        expect(events.find((e: any) => e.action === 'blocked_no_permission')).toMatchObject({ actorId: 'U_AN', source: 'line', attempted: 'ok' });
+    });
+
+    it('duyệt từ web: ghi người duyệt là tài khoản web, nguồn "web", và chặn duyệt lặp', async () => {
+        const { db, deps } = setup();
+        await handleWorkflowText(deps(), ctx('U_BINH', '/xinphep đổi ca'));
+        const id = [...db.store.keys()].find(k => k.includes('/approvals/') && !k.includes('/events/'))!.split('/').pop()!;
+        const actor = { uid: 'fb-uid-1', name: 'quanly@example.com' };
+
+        expect(await decideApprovalForWeb(db, UID, id, 'no', actor, NOW)).toEqual({ ok: true, status: 'rejected' });
+        expect(db.store.get(`line_bots/${UID}/approvals/${id}`)).toMatchObject({
+            status: 'rejected', decidedBy: 'web:fb-uid-1', decidedByName: 'quanly@example.com', decidedSource: 'web',
+        });
+        expect(await decideApprovalForWeb(db, UID, id, 'ok', actor, NOW)).toEqual({ ok: false, reason: 'already' });
+        expect(await decideApprovalForWeb(db, UID, 'khongco', 'ok', actor, NOW)).toEqual({ ok: false, reason: 'missing' });
+
+        const events = await eventsOf(db, id);
+        expect(events.map((e: any) => [e.action, e.source])).toEqual([['created', 'line'], ['rejected', 'web'], ['already_decided', 'web']]);
     });
 });

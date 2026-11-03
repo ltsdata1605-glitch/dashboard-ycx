@@ -154,3 +154,22 @@ export const lineMessagingService = {
         }
     },
 };
+
+/**
+ * Duyệt / từ chối một yêu cầu xin phép từ tab "Yêu cầu duyệt" trên web. Server kiểm quyền (chủ bot, admin, hoặc
+ * manager cùng Mã Kho) và ghi nhật ký nguồn "web". Trạng thái trên giao diện tự cập nhật qua onSnapshot.
+ */
+export async function decideApprovalOnBot(botId: string, approvalId: string, decision: 'ok' | 'no'): Promise<{ success: boolean; error?: string }> {
+    if (!botId || !approvalId) return { success: false, error: 'Thiếu Bot hoặc mã yêu cầu' };
+    try {
+        const idToken = await currentIdToken();
+        const res = await fetch(`${CLOUD_PROXY_URL}?action=approvalDecide`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+            body: JSON.stringify({ botId, approvalId, decision })
+        });
+        return await res.json();
+    } catch {
+        return { success: false, error: 'Lỗi mạng khi gửi quyết định duyệt' };
+    }
+}

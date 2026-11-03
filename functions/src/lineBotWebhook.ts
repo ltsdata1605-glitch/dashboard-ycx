@@ -21,7 +21,7 @@ import { moTaLoiLine, laHetHanMuc } from './lineErrors';
 import { layHanMuc, uocTinhNotifyCuaBot } from './lineQuota';
 import { vnNow } from './lineBotScheduleDue';
 import { autoRevokeStaleCouponsForBot } from './couponAutoRevoke';
-import { handleWorkflowText, handleWorkflowPostback } from './lineWorkflows';
+import { handleWorkflowText, handleWorkflowPostback, decideApprovalForWeb } from './lineWorkflows';
 
 const DEFAULT_REGION = 'asia-southeast1';
 
@@ -1873,6 +1873,27 @@ function looksLikeImage(base64: string): boolean {
  * Bot CHƯA khai Admin nào → giữ hành vi cũ (ai cũng duyệt được) để không làm đứng việc cấp mã;
  * khai ít nhất 1 Admin là chế độ chặt tự bật.
  */
+/**
+ * Quyền duyệt yêu cầu xin phép trên LINE — NGHIÊM NGẶT (khác canApproveOnBot): chỉ người có trong danh sách admin
+ * đang bật, vai trò Duyệt đơn hoặc Toàn quyền. Bot chưa khai báo ai thì KHÔNG ai duyệt được.
+ */
+async function isWorkflowApprover(uid: string, senderUserId: string): Promise<boolean> {
+    if (!senderUserId) return false;
+    const snap = await db.collection('line_bots').doc(uid).collection('admins').where('lineUserId', '==', senderUserId).get();
+    return snap.docs.some(d => {
+        const a = d.data();
+        return a.active !== false && (a.role === 'SUPER_ADMIN' || a.role === 'APPROVER');
+    });
+}
+
+async function hasWorkflowApprover(uid: string): Promise<boolean> {
+    const snap = await db.collection('line_bots').doc(uid).collection('admins').get();
+    return snap.docs.some(d => {
+        const a = d.data();
+        return a.active !== false && (a.role === 'SUPER_ADMIN' || a.role === 'APPROVER');
+    });
+}
+
 async function canApproveOnBot(uid: string, senderUserId: string): Promise<boolean> {
     const adminsSnap = await db.collection('line_bots').doc(uid).collection('admins').get();
     const active = adminsSnap.docs.map(d => d.data()).filter(a => a.active !== false);
@@ -2462,6 +2483,40 @@ export const lineBotWebhook = onRequest(
         }
 
         // 2. Action: Gửi tin nhắn kiểm tra push (Proxy cho Frontend)
+        // Duyệt / từ chối yêu cầu xin phép từ tab "Yêu cầu duyệt" trên web. Quyền = luật canCallerUseBot (như mọi
+        // action theo botId). Dùng chung luật chuyển trạng thái với nút trên LINE và ghi nhật ký nguồn "web".
+        if (action === 'approvalDecide') {
+            const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+            const caller = idToken ? await adminAuth.verifyIdToken(idToken).catch(() => null) : null;
+            if (!caller) {
+                res.status(401).json({ success: false, error: 'Cần đăng nhập Dashboard để duyệt yêu cầu.' });
+                return;
+            }
+            const botId = String(req.body?.botId || '').trim();
+            const approvalId = String(req.body?.approvalId || '').trim();
+            const decision = req.body?.decision === 'ok' ? 'ok' : req.body?.decision === 'no' ? 'no' : null;
+            if (!botId || !approvalId || !decision || !laIdDocHopLe(botId)) {
+                res.status(400).json({ success: false, error: 'Thiếu botId, approvalId hoặc decision (ok/no).' });
+                return;
+            }
+            const botSnap = await db.collection('line_bots').doc(botId).get();
+            if (!botSnap.exists || !canCallerUseBot({ uid: caller.uid, role: (caller as any).role, departmentId: (caller as any).departmentId }, botId, botSnap.data())) {
+                res.status(403).json({ success: false, error: 'Bạn không có quyền với Bot LINE này.' });
+                return;
+            }
+            const actorName = String((caller as any).name || (caller as any).email || caller.uid);
+            const result = await decideApprovalForWeb(db, botId, approvalId, decision, { uid: caller.uid, name: actorName }, new Date().toISOString());
+            if (result.ok) {
+                res.status(200).json({ success: true, status: result.status });
+            } else {
+                const msg = result.reason === 'missing' ? 'Yêu cầu không còn tồn tại.'
+                    : result.reason === 'already' ? 'Yêu cầu này đã được xử lý trước đó.'
+                    : 'Không thể tự duyệt yêu cầu của chính mình.';
+                res.status(200).json({ success: false, error: msg });
+            }
+            return;
+        }
+
         if (action === 'sendTestPush') {
             const token = await resolveActionToken(req, res);
             if (token === null) return;
@@ -2744,7 +2799,8 @@ export const lineBotWebhook = onRequest(
                 if (await handleWorkflowPostback({
                     db,
                     reply: (messages: any[]) => replyLineMessage(token, replyToken, messages),
-                    canApprove: (userId: string) => canApproveOnBot(uid, userId),
+                    canApprove: (userId: string) => isWorkflowApprover(uid, userId),
+                    hasApprover: () => hasWorkflowApprover(uid),
                 }, { uid, senderUserId, groupId, text: '', data: postbackData })) continue;
 
                 let pbAction = '';
@@ -2836,7 +2892,8 @@ export const lineBotWebhook = onRequest(
                 if (await handleWorkflowText({
                     db,
                     reply: (messages: any[]) => replyLineMessage(token, replyToken, messages),
-                    canApprove: (userId: string) => canApproveOnBot(uid, userId),
+                    canApprove: (userId: string) => isWorkflowApprover(uid, userId),
+                    hasApprover: () => hasWorkflowApprover(uid),
                 }, { uid, senderUserId, groupId, text: cleanText })) continue;
 
                 // 1.2. Kiểm tra danh sách lệnh báo cáo (dsbc)
