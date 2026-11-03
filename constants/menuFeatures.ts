@@ -53,6 +53,17 @@ export const APP_MENU_FEATURES: AppMenuFeature[] = [
         defaultEnabled: true,
     },
     {
+        id: 'thuong',
+        label: 'Thưởng',
+        shortLabel: 'Thưởng',
+        group: 'main',
+        icon: NAV_TAB_ICONS['thuong'],
+        path: '/thuong',
+        queryTab: 'thuong',
+        description: 'Hiệu suất thưởng nhân viên — doanh thu quy đổi, ERP, thưởng nóng và tổng thưởng dự kiến',
+        defaultEnabled: true,
+    },
+    {
         id: 'tools-line-bot',
         label: 'Bot LINE PMH',
         shortLabel: 'Bot LINE',

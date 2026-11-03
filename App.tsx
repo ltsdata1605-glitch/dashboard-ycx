@@ -144,15 +144,21 @@ const TabContent = React.memo(() => {
         return () => window.removeEventListener('ycx-auto-sync-file', handleAutoSync);
     }, []);
 
-    // Mount tab on first visit
+    // Mount tab on first visit — `thuong` cần mount cả `employees` (dùng chung BiWrapper)
     React.useEffect(() => {
         setMountedTabs(prev => {
-            if (prev.has(activeTab)) return prev;
+            const toMount = [activeTab];
+            if (activeTab === 'thuong') toMount.push('employees');
+            if (toMount.every(t => prev.has(t))) return prev;
             const next = new Set(prev);
-            next.add(activeTab);
+            toMount.forEach(t => next.add(t));
             return next;
         });
     }, [activeTab]);
+
+    // Tab `thuong` dùng chung BiWrapper với `employees` (không mount bản thứ 2).
+    // Khi activeTab = 'thuong', mount BiWrapper sớm và truyền prop để tự chuyển sang employee > bonus.
+    const biIsActive = activeTab === 'employees' || activeTab === 'thuong';
 
     // Persistent views — only mount when first visited, keep alive after
     const persistentViews = React.useMemo(() => [
@@ -162,7 +168,7 @@ const TabContent = React.memo(() => {
         { id: 'pending-approval', className: 'w-full', component: <PendingApprovalView /> },
         { id: 'help', className: 'w-full', component: <AboutView /> },
         { id: 'check-thuong', className: 'w-full', component: <CheckThuongView /> },
-        { id: 'employees', className: 'w-full', component: <BiWrapper /> },
+        { id: 'employees', className: 'w-full', component: <BiWrapper />, alsoVisibleWhen: 'thuong' },
         { id: 'tools-print-sticker', className: 'w-full h-full', component: <StickerPrinterView /> },
         { id: 'tools-phanca', className: 'w-full h-full bg-slate-50', component: <PhanCaView /> },
         // So giá: max-w 1600 nhưng laptop 1280–1440 tràn bề ngang → dock trái đè tiêu đề/ô nhập (tour GĐ9) → chừa lề dock.
@@ -176,19 +182,21 @@ const TabContent = React.memo(() => {
 
     return (
         <>
-            {persistentViews.map(view => (
-                mountedTabs.has(view.id) ? (
-                    <div 
-                        key={view.id} 
-                        className={`${view.className || ''} ${activeTab === view.id ? 'flex-1 relative w-full' : '!absolute left-[-9999px] top-0 opacity-0 pointer-events-none w-full h-full overflow-hidden'}`}
+            {persistentViews.map(view => {
+                const isVisible = activeTab === view.id || (view.alsoVisibleWhen != null && activeTab === view.alsoVisibleWhen);
+                const viewIsActive = view.id === 'employees' ? biIsActive : activeTab === view.id;
+                return mountedTabs.has(view.id) ? (
+                    <div
+                        key={view.id}
+                        className={`${view.className || ''} ${isVisible ? 'flex-1 relative w-full' : '!absolute left-[-9999px] top-0 opacity-0 pointer-events-none w-full h-full overflow-hidden'}`}
                         // Audit A25 (2026-09-29): tab ẩn chỉ bị đẩy ra ngoài màn hình — phím Tab và trình đọc
                         // màn hình vẫn đi vào ô nhập/nút của nó. `inert` chặn cả hai; không đổi giao diện.
-                        inert={activeTab !== view.id || undefined}
+                        inert={!isVisible || undefined}
                     >
-                        {React.cloneElement(view.component, { isActive: activeTab === view.id })}
+                        {React.cloneElement(view.component, { isActive: viewIsActive })}
                     </div>
-                ) : null
-            ))}
+                ) : null;
+            })}
 
             {activeTab === 'tools-coupon' && (
                 <div className="flex-1 relative w-full flex flex-col">
@@ -204,7 +212,7 @@ const TabContent = React.memo(() => {
             )}
 
             {/* Fallback for any tab not handled above */}
-            {!persistentViews.some(v => v.id === activeTab) && !['tools-coupon', 'tools-tax', 'tools-price-compare', 'tools'].includes(activeTab) && (
+            {!persistentViews.some(v => v.id === activeTab || v.alsoVisibleWhen === activeTab) && !['tools-coupon', 'tools-tax', 'tools-price-compare', 'tools'].includes(activeTab) && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400">
                     <p className="text-[17px] font-medium leading-7">Tính năng đang được phát triển</p>
                     <p className="text-sm">Vui lòng quay lại sau</p>
@@ -219,6 +227,7 @@ const TAB_TITLES: Record<string, { main: string, highlight?: string }> = {
     'analysis': { main: 'Phân', highlight: 'Tích' },
     'check-thuong': { main: 'Check', highlight: 'Thưởng' },
     'employees': { main: 'Report', highlight: 'BI' },
+    'thuong': { main: 'Hiệu suất', highlight: 'Thưởng' },
     'tools': { main: 'Công', highlight: 'Cụ' },
     'tools-print-sticker': { main: 'In', highlight: 'Sticker' },
     'tools-coupon': { main: 'Rút gọn', highlight: 'Coupon' },

@@ -45,6 +45,7 @@ const MobileBottomNav: React.FC = React.memo(() => {
         { id: 'analysis', label: 'Phân tích', icon: NAV_TAB_ICONS['analysis'] },
         { id: 'employees', label: 'Report BI', icon: NAV_TAB_ICONS['employees'] },
         { id: 'check-thuong', label: 'Check thưởng', icon: NAV_TAB_ICONS['check-thuong'] },
+        { id: 'thuong', label: 'Thưởng', icon: NAV_TAB_ICONS['thuong'] },
     ];
 
     const toolTabs: TabItem[] = [

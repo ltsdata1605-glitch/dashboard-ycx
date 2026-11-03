@@ -78,7 +78,8 @@ function readSavedBiView(): 'dashboard' | 'employee' | 'updater' {
 
 const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boolean }) {
     const { activeTab } = useActiveTab();
-    const isTabActive = isActive !== undefined ? isActive : activeTab === 'employees';
+    const isThuongTab = activeTab === 'thuong';
+    const isTabActive = isActive !== undefined ? isActive : (activeTab === 'employees' || isThuongTab);
     // Còn lượt "Tự động" dở (vừa tải lại sau khi cập nhật userscript) → mở thẳng mục Cập nhật để DataUpdater chạy tiếp
     // Không có lượt dở → `?view=` trên URL (deep link) nếu có, không thì mục lần trước (localStorage): app cài trên
     // iPhone bị iOS giải phóng khỏi RAM khi ở nền, mở lại luôn chạy từ "/" (Đợt A, kế hoạch iPhone).
@@ -275,6 +276,13 @@ const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boole
         }
     }, [isActive, activeView]);
 
+    // Tab "Thưởng" ở menu chính: tự chuyển sang Nhân viên > Thưởng
+    useEffect(() => {
+        if (!isThuongTab || !isTabActive) return;
+        if (activeView !== 'employee') handleTabChange('employee');
+        window.dispatchEvent(new CustomEvent('nhanvien-switch-tab', { detail: { tab: 'bonus' } }));
+    }, [isThuongTab, isTabActive, activeView, handleTabChange]);
+
     // Lượt hẹn giờ cần tự xuất ảnh mục Siêu thị (khung Auto Sync Pro gửi yêu cầu) → mở mục Siêu thị để Dashboard chụp được
     useEffect(() => {
         const onReq = () => handleTabChange('dashboard');
@@ -317,8 +325,8 @@ const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boole
     return (
         <div data-density="compact" className="flex flex-col w-full min-h-dvh bi-report-module">
             {/* Luật "không bo góc" của phân hệ: features/bi-dashboard/biDensity.css (trước là thẻ <style> chèn lúc gắn — GĐ9 2026-10-14). */}
-            <TopBarActions enabled={isTabActive && !isMobile}>
-                {/* Nhóm chuyển Tab chức năng */}
+            <TopBarActions enabled={isTabActive && !isMobile && !isThuongTab}>
+                {/* Nhóm chuyển Tab chức năng — ẩn khi xem từ tab Thưởng ở menu chính */}
                 <TopBarActions.Group>
                     {navigationLinks.map((tab, idx) => {
                         const isActive = activeView === tab.id;
@@ -443,7 +451,7 @@ const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boole
             {/* Mobile Topbar Capsule Navigation: đưa 3 chức năng lên thanh trên như hình 2 */}
             <CapsuleBar
                 portalTargetId="mobile-topbar-actions"
-                enabled={mounted && isTabActive && isMobile}
+                enabled={mounted && isTabActive && isMobile && !isThuongTab}
                 ariaLabel="Phân hệ Report BI"
                 className="mr-0"
                 items={navigationLinks.map((tab) => ({

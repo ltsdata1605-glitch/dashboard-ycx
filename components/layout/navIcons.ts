@@ -13,6 +13,7 @@ export const NAV_TAB_ICONS: Record<string, IconName> = {
     'tools': 'navTools',
     'tools-print-sticker': 'navStickerPrint',
     'tools-phanca': 'navShiftSchedule',
+    'thuong': 'trophy',
     'tools-line-bot': 'navLineBot',
     'tools-coupon': 'navCoupon',
     'tools-tax': 'navTax',

@@ -209,6 +209,7 @@ export default function Sidebar() {
         { id: 'analysis', label: 'Phân tích YCX', icon: NAV_TAB_ICONS['analysis'], path: '/analysis' },
         { id: 'employees', label: 'Report BI', icon: NAV_TAB_ICONS['employees'], path: '/employees' },
         { id: 'check-thuong', label: 'Check thưởng', icon: NAV_TAB_ICONS['check-thuong'], path: '/' },
+        { id: 'thuong', label: 'Thưởng', icon: NAV_TAB_ICONS['thuong'], path: '/thuong' },
         ...(isDemoMode || userRole === 'admin' || userRole === 'manager' ? [
             { id: 'tools-line-bot', label: 'Bot LINE', icon: NAV_TAB_ICONS['tools-line-bot'], path: '/line-bot' }
         ] : []),
@@ -247,7 +248,7 @@ export default function Sidebar() {
             .filter((item): item is NavMenuItem => item !== null);
 
         // Ô menu chính bị tắt → công cụ đang bật đưa lên thay (chonThayThe, 2026-10-30). Công cụ đã lên không còn trong nhóm "Công cụ".
-        const CHINH_IDS = ['analysis', 'employees', 'check-thuong'];
+        const CHINH_IDS = ['analysis', 'employees', 'check-thuong', 'thuong'];
         const nhomChinh = danhSach.filter(i => CHINH_IDS.includes(i.id));
         const congCu = (danhSach.find(i => i.id === 'tools')?.subItems ?? []).map(s => ({ id: s.id, label: s.label, icon: s.icon }));
         const { chinh: chinhSau, congCu: congCuCon } = chonThayThe<NavMenuItem>(nhomChinh, congCu, SO_O_CHINH);
