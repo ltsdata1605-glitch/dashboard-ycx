@@ -125,8 +125,8 @@ export const BonusView: React.FC<{
 
             {/* 2. Thanh nút gôm gọn lại ngay dưới tiêu đề */}
             <div className="flex flex-wrap justify-between items-center px-3 sm:px-4 py-1 sm:py-1.5 bg-slate-50/70 dark:bg-slate-800/40 no-print border-b border-slate-200 dark:border-slate-700 gap-2">
-                {!anDoanhThu && (
                 <div className="hidden lg:flex gap-1.5 items-center">
+                    {!anDoanhThu && (
                     <Button
                         variant="tinted" data-ui="bi"
                         size="sm"
@@ -136,9 +136,9 @@ export const BonusView: React.FC<{
                         <AppIcon name="upload" size="md" />
                         <span>Thủ công</span>
                     </Button>
+                    )}
                     <AutoBonusPanel autoBridge={autoBridge} multiMonthRun={multiMonthRun} employeeCount={employees.length} onUseManual={onBatchUpdate} onPeriodLabelChange={onSetBonusPeriodLabel} onCompareDone={handleCompareDone} />
                 </div>
-                )}
                 <div className="flex gap-1.5 items-center ml-auto">
                     <Button
                         variant="toolbar" data-ui="bi"
