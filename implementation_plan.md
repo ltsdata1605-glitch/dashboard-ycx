@@ -9255,3 +9255,41 @@ nguồn; sửa lỗi có bằng chứng; dọn code chết đã xác minh; làm 
 
 Kiểm: `npm run check`, `tests/e2e/liquid-glass-khung.spec.ts`, `khung-app-gd4`, `apple-tuong-thich` (Chromium). WebKit: không có trong
 container → chạy ở CI job `e2e-webkit`. Chi tiết: `audit/final-audit-report.md`.
+
+---
+
+# Bot LINE — 3 tính năng làm việc nhóm (2026-11-03)
+
+Nhánh `claude/line-bot-tinh-nang-moi`. Thực hiện theo danh sách 20 đề xuất đã chốt với chủ dự án; chỉ lấy 3 mục
+ưu tiên và BỎ các mục tạo tin tự động (5, 6, 7, 9, 10, 15) theo yêu cầu chủ dự án — không tốn hạn mức tin LINE.
+
+Ghi chú: kế hoạch này được viết SAU khi đã code xong phần lõi (vi phạm thứ tự mục 0.3 CLAUDE.md); ghi lại để
+đối chiếu với thiết kế dưới đây.
+
+## Phạm vi
+| # | Tính năng | Lệnh (nhóm chat) | Nút bấm |
+|---|---|---|---|
+| 2 | Xác nhận "Đã nhận" | `/xacnhan <nội dung>`, `/xacnhan ds <mã>` | "✅ Đã nhận" |
+| 16 | Phiếu yêu cầu | `/yc <việc>`, `/yc ds`, `/yc xong <YC-0001>` | "✔ Hoàn tất" |
+| 17 | Duyệt xin phép bằng nút | `/xinphep <nội dung>` | "Duyệt" / "Từ chối" |
+
+Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (ghi Google Sheet), giao diện web xem phiếu.
+
+## Thiết kế
+- Code lõi: `functions/src/lineWorkflows.ts` (phần thuần + xử lý Firestore nhận `db`/`reply`/`canApprove` qua tham số).
+- Gắn vào `functions/src/lineBotWebhook.ts` đúng 2 chỗ: mục 1.1 của nhánh text (sau khối lệnh hỏi ID) và đầu nhánh
+  postback (trước `claim_pmh`). Trả `true` → webhook `continue`.
+- Dữ liệu (đều dưới `line_bots/{uid}/`, đã được quy tắc wildcard `{subcollection}/{rest=**}` cho phép —
+  KHÔNG cần sửa `firestore.rules`; client không ghi các collection này):
+  - `acks/{id}` + `acks/{id}/confirmations/{userId}`
+  - `tickets/{YC-0001}` (đếm số tăng dần trong `workflow_meta/counters.ticketSeq`, transaction)
+  - `approvals/{id}`
+- Chỉ phản hồi bằng `replyToken` → KHÔNG tạo tin push, KHÔNG tính hạn mức tin LINE.
+- Quyền duyệt: dùng `canApproveOnBot` có sẵn (cùng luật với các lệnh duyệt khác). Không tự duyệt yêu cầu của chính mình.
+- Đóng phiếu: bất kỳ ai trong chat đóng được (đội nhóm dùng chung). Nếu cần giới hạn, làm sau.
+- Transaction Firestore: mọi lượt ĐỌC phải làm trước lượt GHI (đã sửa lỗi này trong `ack` postback).
+
+## Kiểm tra
+- `tests/unit/line-workflows.test.ts` — 17 test: phân tích lệnh, chuẩn hoá mã, quy tắc duyệt, dữ liệu nút,
+  Flex (nhãn ≤ 20 ký tự, postback ≤ 300 byte), và các luồng chạy trên Firestore giả trong bộ nhớ.
+- Chưa kiểm chứng trên LINE thật và Firestore emulator (cần chữ ký webhook LINE thật).

@@ -21,6 +21,7 @@ import { moTaLoiLine, laHetHanMuc } from './lineErrors';
 import { layHanMuc, uocTinhNotifyCuaBot } from './lineQuota';
 import { vnNow } from './lineBotScheduleDue';
 import { autoRevokeStaleCouponsForBot } from './couponAutoRevoke';
+import { handleWorkflowText, handleWorkflowPostback } from './lineWorkflows';
 
 const DEFAULT_REGION = 'asia-southeast1';
 
@@ -2739,6 +2740,13 @@ export const lineBotWebhook = onRequest(
                     console.info(`[Giới hạn tính năng] Nhóm ${groupId} đã TẮT "${key}" — bỏ qua ${what}.`);
                 };
 
+                // Nút của tính năng làm việc nhóm (Đã nhận / Hoàn tất phiếu / Duyệt xin phép).
+                if (await handleWorkflowPostback({
+                    db,
+                    reply: (messages: any[]) => replyLineMessage(token, replyToken, messages),
+                    canApprove: (userId: string) => canApproveOnBot(uid, userId),
+                }, { uid, senderUserId, groupId, text: '', data: postbackData })) continue;
+
                 let pbAction = '';
                 let pbCat = 'EVENT';
                 let pbProd = '';
@@ -2822,6 +2830,14 @@ export const lineBotWebhook = onRequest(
                     }
                     continue;
                 }
+
+                // 1.1. Lệnh làm việc nhóm: /xacnhan (Đã nhận), /yc (phiếu yêu cầu), /xinphep (xin duyệt).
+                // Chỉ phản hồi bằng replyToken — KHÔNG tạo tin push tự động (không tính hạn mức tin).
+                if (await handleWorkflowText({
+                    db,
+                    reply: (messages: any[]) => replyLineMessage(token, replyToken, messages),
+                    canApprove: (userId: string) => canApproveOnBot(uid, userId),
+                }, { uid, senderUserId, groupId, text: cleanText })) continue;
 
                 // 1.2. Kiểm tra danh sách lệnh báo cáo (dsbc)
                 const cleanCmd = lower.replace(/^[./!#\s]+/, '').replace(/\s+/g, '').trim();
