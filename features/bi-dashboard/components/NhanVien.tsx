@@ -444,7 +444,7 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
     usePageActions(isThuongTab && isActive ? {
         scope: 'mobile',
         title: 'Thưởng',
-        primary: canManageFiles ? { id: 'nhap-ycx', label: 'Tải YCX lên', icon: 'upload', onClick: nhapFileYcx } : undefined,
+        primary: canManageFiles ? { id: 'nhap-ycx', label: 'Nhập nhân viên', icon: 'upload', onClick: nhapFileYcx } : undefined,
     } : null);
 
     return (
@@ -496,10 +496,10 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                             size="sm"
                             onClick={nhapFileYcx}
                             className="gap-1.5 h-7 px-3 text-xs rounded-full"
-                            title="Nhập danh sách nhân viên từ file YCX (giống Phân tích)"
+                            title="Nhập danh sách nhân viên (giống Phân tích)"
                         >
                             <AppIcon name="upload" size="sm" />
-                            <span>Tải YCX lên</span>
+                            <span>Nhập nhân viên</span>
                         </Button>
                     </TopBarActions.Group>
                 )}
@@ -589,7 +589,7 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                                 className="ycx-hit font-bold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                             >
                                 <AppIcon name="upload" size="md" />
-                                <span>Tải file YCX lên</span>
+                                <span>Nhập danh sách nhân viên</span>
                             </Button>
                         )}
                         <Button

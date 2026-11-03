@@ -10,7 +10,7 @@ import {
 } from '../../services/autoSyncSchedule';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMenuConfig } from '../../contexts/MenuConfigContext';
-import { coQuyenXem } from '../../services/menuConfigService';
+
 import { useActiveTab } from '../../contexts/LayoutContext';
 import { useIndexedDBState } from '../../features/bi-dashboard/hooks/useIndexedDBState';
 import { useBiAutoSync } from '../../features/bi-dashboard/hooks/useBiAutoSync';
@@ -37,8 +37,8 @@ const TEN_YCX: Record<YcxMode, string> = { realtime: 'YCX Realtime', luyke: 'YCX
 
 export default function GlobalAutoSyncDock() {
     const { userRole } = useAuth();
-    const { featureRoles } = useMenuConfig();
-    const hien = (id: string) => coQuyenXem(featureRoles, id, userRole);
+    const { isFeatureEnabled } = useMenuConfig();
+    const hien = (id: string) => isFeatureEnabled(id);
     const { activeTab, setActiveTab } = useActiveTab();
     const { user, departmentId } = useAuth();
 
