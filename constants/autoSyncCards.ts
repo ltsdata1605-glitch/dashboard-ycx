@@ -6,13 +6,19 @@
 export interface AutoSyncCardMeta {
     id: string;
     label: string;
+    /** Menu features gốc — tắt hết = auto-sync này vô nghĩa, ẩn luôn. */
+    parentFeatures?: string[];
 }
 
 export const AUTO_SYNC_CARDS: AutoSyncCardMeta[] = [
-    { id: 'auto-bi-realtime', label: 'BI Realtime' },
-    { id: 'auto-bi-luyke', label: 'BI Luỹ kế' },
-    { id: 'auto-bonus', label: 'Đổ Thưởng' },
-    { id: 'auto-ycx-realtime', label: 'YCX Realtime' },
-    { id: 'auto-ycx-luyke', label: 'YCX Luỹ kế' },
+    { id: 'auto-bi-realtime', label: 'BI Realtime', parentFeatures: ['employees'] },
+    { id: 'auto-bi-luyke', label: 'BI Luỹ kế', parentFeatures: ['employees'] },
+    { id: 'auto-bonus', label: 'Đổ Thưởng', parentFeatures: ['employees', 'thuong'] },
+    { id: 'auto-ycx-realtime', label: 'YCX Realtime', parentFeatures: ['analysis'] },
+    { id: 'auto-ycx-luyke', label: 'YCX Luỹ kế', parentFeatures: ['analysis'] },
     { id: 'auto-tnb', label: 'TNB Data' },
 ];
+
+const _parentMap: Record<string, string[]> = {};
+for (const c of AUTO_SYNC_CARDS) if (c.parentFeatures?.length) _parentMap[c.id] = c.parentFeatures;
+export const AUTO_SYNC_PARENT_MAP = _parentMap;

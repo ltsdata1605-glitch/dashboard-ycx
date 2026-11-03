@@ -10,6 +10,7 @@ import {
 } from '../../services/autoSyncSchedule';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMenuConfig } from '../../contexts/MenuConfigContext';
+import { AUTO_SYNC_PARENT_MAP } from '../../constants/autoSyncCards';
 
 import { useActiveTab } from '../../contexts/LayoutContext';
 import { useIndexedDBState } from '../../features/bi-dashboard/hooks/useIndexedDBState';
@@ -38,7 +39,12 @@ const TEN_YCX: Record<YcxMode, string> = { realtime: 'YCX Realtime', luyke: 'YCX
 export default function GlobalAutoSyncDock() {
     const { userRole } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
-    const hien = (id: string) => isFeatureEnabled(id);
+    const hien = (id: string) => {
+        if (!isFeatureEnabled(id)) return false;
+        const parents = AUTO_SYNC_PARENT_MAP[id];
+        if (parents) return parents.some(p => isFeatureEnabled(p));
+        return true;
+    };
     const { activeTab, setActiveTab } = useActiveTab();
     const { user, departmentId } = useAuth();
 
