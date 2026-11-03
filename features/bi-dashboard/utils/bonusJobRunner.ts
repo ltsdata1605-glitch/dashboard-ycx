@@ -32,6 +32,9 @@ export function reopenWorkerTab(): Window | null {
             // Bị chặn (lượt hẹn giờ không có cú bấm) → nhờ userscript ≥ 7.16 mở bằng GM_openInTab
             window.dispatchEvent(new CustomEvent('ycx-bi-automation:open-worker', { detail: { source: 'ycx-bi-automation', url: MWG_URL } }));
         }
+        // Quay lại dashboard ngay — tab HRM chạy ngầm, người dùng không cần nhìn thấy
+        try { window.focus(); } catch { /* Safari có thể chặn */ }
+        setTimeout(() => { try { window.focus(); } catch {} }, 120);
         return currentWorkerWindow;
     } catch (e) {
         console.warn('[bonusJobRunner] Không thể mở tab MWG:', e);
