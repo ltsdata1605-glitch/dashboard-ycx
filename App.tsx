@@ -115,46 +115,64 @@ const TabContent = React.memo(() => {
     // Route / Tab Guard: tính năng đã bị Quản trị hệ thống tắt thì đường dẫn tới nó coi như CHƯA TỪNG TỒN TẠI (2026-10-30, chủ dự án):
     // tự chuyển sang Báo cáo Khai thác, không hiện trang 404. Nếu Báo cáo cũng đang tắt thì sang Giới thiệu (tab không bao giờ tắt).
     // Trang 404 (FeatureDisabled404View) chỉ còn dùng để xem thử trong Quản lý Bật/Tắt.
-    const isTabDisabled = !['settings', 'approval', 'pending-approval', 'help'].includes(activeTab) && !isFeatureEnabled(activeTab);
+    const TAB_LUON_BAT = ['settings', 'approval', 'pending-approval', 'help'];
+    const isTabDisabled = !TAB_LUON_BAT.includes(activeTab) && !isFeatureEnabled(activeTab);
     const tabDuPhong = isFeatureEnabled('reports') ? 'reports' : 'help';
     React.useEffect(() => {
         if (isTabDisabled) setActiveTab(tabDuPhong);
     }, [isTabDisabled, tabDuPhong, setActiveTab]);
 
+    // GỠ tab bị tắt khỏi mountedTabs — không để view cũ chạy ngầm tải dữ liệu (31k dòng Phân tích…)
+    React.useEffect(() => {
+        setMountedTabs(prev => {
+            const next = new Set<string>();
+            for (const t of prev) {
+                if (TAB_LUON_BAT.includes(t) || isFeatureEnabled(t)) next.add(t);
+            }
+            return next.size === prev.size ? prev : next;
+        });
+    }, [isFeatureEnabled]);
+
     // Nút "Nhập nhân viên (File YCX)" ở Report BI phát sự kiện này. Hộp chọn file nằm trong
     // DashboardView (tab Phân Tích) — nếu tab đó đã mount thì chính nó mở hộp chọn, người dùng ở
     // yên tại chỗ; chưa mount thì phải chuyển sang Phân Tích cho view đó có mặt rồi tự mở.
+    // Tính năng Phân tích tắt thì không mở được.
     React.useEffect(() => {
         const onRequestUpload = () => {
+            if (!isFeatureEnabled('analysis')) return;
             if (mountedTabs.has('analysis')) return;
             try { sessionStorage.setItem('ycx-pending-upload-ycx', '1'); } catch { /* Private Mode */ }
             setActiveTab('analysis');
         };
         window.addEventListener('ycx-request-upload-ycx', onRequestUpload);
         return () => window.removeEventListener('ycx-request-upload-ycx', onRequestUpload);
-    }, [mountedTabs, setActiveTab]);
+    }, [mountedTabs, setActiveTab, isFeatureEnabled]);
 
     // Khi nhận file YCX từ Auto Sync (Realtime / Luỹ kế), bảo đảm tab 'analysis' được mount ngầm
     // trong DOM để xử lý và lưu dữ liệu mà KHÔNG ép người dùng phải chuyển tab rời khỏi màn hình hiện tại.
+    // Nhưng nếu tính năng Phân tích đã TẮT thì không mount — không cần đồng bộ dữ liệu cho tính năng tắt.
     React.useEffect(() => {
         const handleAutoSync = () => {
+            if (!isFeatureEnabled('analysis')) return;
             setMountedTabs(prev => prev.has('analysis') ? prev : new Set(prev).add('analysis'));
         };
         window.addEventListener('ycx-auto-sync-file', handleAutoSync);
         return () => window.removeEventListener('ycx-auto-sync-file', handleAutoSync);
-    }, []);
+    }, [isFeatureEnabled]);
 
-    // Mount tab on first visit — `thuong` cần mount cả `employees` (dùng chung BiWrapper)
+    // Mount tab on first visit — `thuong` cần mount cả `employees` (dùng chung BiWrapper).
+    // Không mount tab có tính năng đã tắt — tránh tải dữ liệu thừa.
     React.useEffect(() => {
         setMountedTabs(prev => {
             const toMount = [activeTab];
             if (activeTab === 'thuong') toMount.push('employees');
-            if (toMount.every(t => prev.has(t))) return prev;
+            const filtered = toMount.filter(t => TAB_LUON_BAT.includes(t) || isFeatureEnabled(t));
+            if (filtered.length === 0 || filtered.every(t => prev.has(t))) return prev;
             const next = new Set(prev);
-            toMount.forEach(t => next.add(t));
+            filtered.forEach(t => next.add(t));
             return next;
         });
-    }, [activeTab]);
+    }, [activeTab, isFeatureEnabled]);
 
     // Tab `thuong` dùng chung BiWrapper với `employees` (không mount bản thứ 2).
     // Khi activeTab = 'thuong', mount BiWrapper sớm và truyền prop để tự chuyển sang employee > bonus.
