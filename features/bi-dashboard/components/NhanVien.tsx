@@ -451,58 +451,54 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
         <ExportOptionsProvider value={exportOptionsContextValue}>
         <div className="space-y-4 sm:space-y-6 relative">
 
-            {/* Desktop top bar cho tab Thưởng: bộ lọc Kho/BP + nút Nhập nhân viên */}
+            {/* Desktop top bar cho tab Thưởng — MỘT viên nhộng chuẩn giống Check Thưởng */}
             <TopBarActions enabled={!!isThuongTab && !!isActive} showSystemGroup>
                 <TopBarActions.Group>
-                    <div className="flex items-center gap-1.5 px-1">
-                        <MultiSelectDropdown
-                            className="w-auto"
-                            triggerClassName="ycx-hit rounded-full whitespace-nowrap min-h-0 h-7 px-2.5 py-0 text-xs font-semibold"
-                            icon={<AppIcon name="store" size="sm" className="text-sky-500 scale-90" />}
-                            triggerLabel={activeSupermarkets.length === supermarkets.length ? 'All' : Array.from(new Set(activeSupermarkets.map(s => shortenSupermarketName(s)))).join(', ')}
-                            count={Array.from(new Set(activeSupermarkets.map(s => shortenSupermarketName(s)))).length}
-                            allLabel="Chọn tất cả"
-                            allChecked={activeSupermarkets.length === supermarkets.length}
-                            onToggleAll={() => toggleSupermarket('all')}
-                            options={Array.from(new Map(supermarkets.map(sm => [shortenSupermarketName(sm), sm])).values()).map(sm => ({
-                                key: sm,
-                                label: shortenSupermarketName(sm),
-                                checked: activeSupermarkets.some(a => shortenSupermarketName(a) === shortenSupermarketName(sm)),
-                            }))}
-                            onToggleOption={toggleSupermarket}
-                        />
-                        <MultiSelectDropdown
-                            className="w-auto"
-                            triggerClassName="ycx-hit rounded-full whitespace-nowrap min-h-0 h-7 px-2.5 py-0 text-xs font-semibold"
-                            icon={<AppIcon name="restore" size="sm" className="text-sky-500 scale-90" />}
-                            triggerLabel={activeDepartments.includes('all') ? 'All' : activeDepartments.join(', ')}
-                            count={activeDepartments.includes('all') ? departmentOptions.length : activeDepartments.length}
-                            allLabel="All"
-                            allChecked={activeDepartments.includes('all')}
-                            onToggleAll={() => toggleDepartment('all')}
-                            options={departmentOptions.map(dept => ({
-                                key: dept,
-                                label: dept,
-                                checked: activeDepartments.includes(dept) || activeDepartments.includes('all'),
-                            }))}
-                            onToggleOption={toggleDepartment}
-                        />
-                    </div>
-                </TopBarActions.Group>
-                {canManageFiles && (
-                    <TopBarActions.Group>
+                    <MultiSelectDropdown
+                        className="w-auto"
+                        triggerClassName="ycx-hit whitespace-nowrap px-4 sm:px-4 py-2 sm:py-2 min-h-0 sm:min-h-0 text-base sm:text-base font-medium"
+                        icon={<AppIcon name="store" size="md" className="text-sky-500" />}
+                        triggerLabel={activeSupermarkets.length === supermarkets.length ? 'All' : Array.from(new Set(activeSupermarkets.map(s => shortenSupermarketName(s)))).join(', ')}
+                        count={Array.from(new Set(activeSupermarkets.map(s => shortenSupermarketName(s)))).length}
+                        allLabel="Chọn tất cả"
+                        allChecked={activeSupermarkets.length === supermarkets.length}
+                        onToggleAll={() => toggleSupermarket('all')}
+                        options={Array.from(new Map(supermarkets.map(sm => [shortenSupermarketName(sm), sm])).values()).map(sm => ({
+                            key: sm,
+                            label: shortenSupermarketName(sm),
+                            checked: activeSupermarkets.some(a => shortenSupermarketName(a) === shortenSupermarketName(sm)),
+                        }))}
+                        onToggleOption={toggleSupermarket}
+                    />
+                    <MultiSelectDropdown
+                        className="w-auto border-l border-slate-100 dark:border-slate-700"
+                        triggerClassName="ycx-hit whitespace-nowrap px-4 sm:px-4 py-2 sm:py-2 min-h-0 sm:min-h-0 text-base sm:text-base font-medium"
+                        icon={<AppIcon name="restore" size="md" className="text-sky-500" />}
+                        triggerLabel={activeDepartments.includes('all') ? 'All' : activeDepartments.join(', ')}
+                        count={activeDepartments.includes('all') ? departmentOptions.length : activeDepartments.length}
+                        allLabel="All"
+                        allChecked={activeDepartments.includes('all')}
+                        onToggleAll={() => toggleDepartment('all')}
+                        options={departmentOptions.map(dept => ({
+                            key: dept,
+                            label: dept,
+                            checked: activeDepartments.includes(dept) || activeDepartments.includes('all'),
+                        }))}
+                        onToggleOption={toggleDepartment}
+                    />
+                    {canManageFiles && (
                         <Button
-                            variant="tinted" data-ui="bi"
-                            size="sm"
+                            variant="tab"
+                            size="none"
                             onClick={nhapFileYcx}
-                            className="gap-1.5 h-7 px-3 text-xs rounded-full"
+                            className="flex items-center gap-2 px-4 py-2 text-base font-medium shrink-0 border-l border-slate-100 dark:border-slate-700 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50"
                             title="Nhập danh sách nhân viên (giống Phân tích)"
                         >
-                            <AppIcon name="upload" size="sm" />
+                            <AppIcon name="upload" size="md" />
                             <span>Nhập nhân viên</span>
                         </Button>
-                    </TopBarActions.Group>
-                )}
+                    )}
+                </TopBarActions.Group>
             </TopBarActions>
 
             {/* Title + Filter Toolbar — ẩn khi vào từ tab Thưởng menu chính (bộ lọc đã lên top bar) */}
