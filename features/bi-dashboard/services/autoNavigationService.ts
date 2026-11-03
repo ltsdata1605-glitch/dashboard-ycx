@@ -119,6 +119,24 @@ export async function navigateToDoThuong() {
 }
 
 /**
+ * 3b. Đổ thưởng xong → mở tab Thưởng:
+ * Mở tab Thưởng (URL: ?tab=thuong) thay vì Report BI,
+ * để người dùng xem kết quả thưởng ngay.
+ */
+export function navigateToThuong() {
+    updateUrlParams({
+        tab: 'thuong',
+        view: null,
+        mode: null,
+        sub: null,
+    });
+
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app-switch-tab', { detail: { tab: 'thuong' } }));
+    }
+}
+
+/**
  * 4. YCX Realtime / Luỹ kế:
  * Mở tab Phân tích (URL: ?tab=analysis).
  */

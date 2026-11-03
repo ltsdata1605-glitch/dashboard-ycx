@@ -183,9 +183,9 @@ export const GlobalAutoBonusManager: React.FC = () => {
                     onDismissed: () => dismiss(),
                 });
 
-                // Tự động mở: Tab employees > Nhân viên > Doanh thu
+                // Mở tab Thưởng để người dùng xem kết quả ngay
                 import('../../../services/autoNavigationService')
-                    .then(({ navigateToDoThuong }) => navigateToDoThuong())
+                    .then(({ navigateToThuong }) => navigateToThuong())
                     .catch(err => console.error('[AutoBonus] Lỗi tự động chuyển màn hình:', err));
             }
         } else if (status === 'error' && firedRef.current !== 'error') {
@@ -220,9 +220,9 @@ export const GlobalAutoBonusManager: React.FC = () => {
                     onDismissed: () => monthDismiss(),
                 });
 
-                // Tự động mở: Tab employees > Nhân viên > Doanh thu
+                // Mở tab Thưởng để người dùng xem kết quả ngay
                 import('../../../services/autoNavigationService')
-                    .then(({ navigateToDoThuong }) => navigateToDoThuong())
+                    .then(({ navigateToThuong }) => navigateToThuong())
                     .catch(err => console.error('[AutoBonus] Lỗi tự động chuyển màn hình:', err));
             }
         } else if (monthStatus === 'error' && monthFiredRef.current !== 'error') {

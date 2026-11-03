@@ -3,6 +3,7 @@ import {
     navigateToBiRealtime,
     navigateToBiLuyKe,
     navigateToDoThuong,
+    navigateToThuong,
     navigateToYcxAnalysis,
     updateUrlParams
 } from './autoNavigationService';
@@ -143,6 +144,22 @@ describe('autoNavigationService', () => {
         expect(currentUrl.searchParams.get('view')).toBe('employee');
         expect(currentUrl.searchParams.get('sub')).toBe('revenue');
         expect(currentUrl.searchParams.has('mode')).toBe(false);
+    });
+
+    it('navigates to tab Thưởng correctly after auto bonus', () => {
+        const events: { type: string; detail: any }[] = [];
+        const capture = (e: any) => {
+            events.push({ type: e.type, detail: e.detail });
+        };
+        mockWindow.addEventListener('app-switch-tab', capture);
+
+        navigateToThuong();
+
+        expect(events).toContainEqual({ type: 'app-switch-tab', detail: { tab: 'thuong' } });
+        expect(currentUrl.searchParams.get('tab')).toBe('thuong');
+        expect(currentUrl.searchParams.has('view')).toBe(false);
+        expect(currentUrl.searchParams.has('mode')).toBe(false);
+        expect(currentUrl.searchParams.has('sub')).toBe(false);
     });
 
     it('navigates to YCX Analysis correctly', () => {
