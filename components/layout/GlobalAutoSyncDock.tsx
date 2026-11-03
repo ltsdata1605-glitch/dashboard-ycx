@@ -380,13 +380,15 @@ export default function GlobalAutoSyncDock() {
     const ycxStepList = ycxSteps(ycxMode);
     const curYcxStep = ycxStep ? ycxStepList.findIndex((x) => x.id === ycxStep) : -1;
 
+    const coNutNao = ['auto-bi-realtime', 'auto-bi-luyke', 'auto-bonus', 'auto-ycx-realtime', 'auto-ycx-luyke', 'auto-tnb'].some(id => hien(id));
+
     // Trên mobile (< 1024px): Không render dock và các modal tự động
     if (isMobile) return null;
 
     return (
         <>
             {/* Floating Action Dock: 4 nút luôn nổi trên Laptop/Desktop — kính Liquid Glass dùng chung (.ycx-glass, token --glass-*) */}
-            <aside
+            {coNutNao && <aside
                 aria-label="Thao tác tự động Auto Sync Pro"
                 data-testid="ycx-auto-dock"
                 // Trạng thái dò userscript (không hiển thị): chân khung đã bỏ dòng "bản 7.x" ở 41eb025f, test cần chờ
@@ -518,9 +520,9 @@ export default function GlobalAutoSyncDock() {
                             </Button>
                         </div>
 
+                        {hien('auto-bi-realtime') && (
                         <div className="relative">
                         {/* Nút 1: Tự động Realtime (BI) */}
-                        {hien('auto-bi-realtime') && (
                         <Button
                             type="button"
                             variant="row"
@@ -543,15 +545,15 @@ export default function GlobalAutoSyncDock() {
                                 </span>
                             </div>
                         </Button>
-                        )}
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <AutoSyncScheduleButton scheduleKey="bi-realtime" tone="dark" compact />
                             </div>
                         </div>
+                        )}
 
+                        {hien('auto-bi-luyke') && (
                         <div className="relative">
                         {/* Nút 2: Tự động Luỹ kế (BI) */}
-                        {hien('auto-bi-luyke') && (
                         <Button
                             type="button"
                             variant="row"
@@ -574,15 +576,15 @@ export default function GlobalAutoSyncDock() {
                                 </span>
                             </div>
                         </Button>
-                        )}
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <AutoSyncScheduleButton scheduleKey="bi-luyke" tone="dark" compact />
                             </div>
                         </div>
+                        )}
 
+                        {hien('auto-bonus') && (
                         <div className="relative">
                         {/* Nút 3: Tự động Đổ Thưởng (HRM) */}
-                        {hien('auto-bonus') && (
                         <Button
                             type="button"
                             variant="row"
@@ -607,15 +609,15 @@ export default function GlobalAutoSyncDock() {
                                 </span>
                             </div>
                         </Button>
-                        )}
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <AutoSyncScheduleButton scheduleKey="bonus" tone="dark" compact />
                             </div>
                         </div>
+                        )}
 
+                        {hien('auto-ycx-realtime') && (
                         <div className="relative">
                         {/* Nút 4: YCX Realtime (Phân Tích) */}
-                        {hien('auto-ycx-realtime') && (
                         <Button
                             type="button"
                             variant="row"
@@ -640,16 +642,16 @@ export default function GlobalAutoSyncDock() {
                                 </span>
                             </div>
                         </Button>
-                        )}
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <AutoSyncScheduleButton scheduleKey="ycx-realtime" tone="dark" compact />
                             </div>
                         </div>
+                        )}
 
 
+                        {hien('auto-ycx-luyke') && (
                         <div className="relative">
                         {/* Nút 5: YCX Luỹ kế (Phân Tích) — Từ 01 đầu tháng → Đến HÔM QUA; ngày 01 chạy Realtime */}
-                        {hien('auto-ycx-luyke') && (
                         <Button
                             type="button"
                             variant="row"
@@ -674,15 +676,15 @@ export default function GlobalAutoSyncDock() {
                                 </span>
                             </div>
                         </Button>
-                        )}
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <AutoSyncScheduleButton scheduleKey="ycx-luyke" tone="dark" compact />
                             </div>
                         </div>
+                        )}
 
+                        {hien('auto-tnb') && (
                         <div className="relative">
                         {/* Nút 6: TNB Data (Sức Khỏe Siêu Thị) — Tự động nhập mã & bấm XÁC NHẬN trên admintnb.com/data */}
-                        {hien('auto-tnb') && (
                         <Button
                             type="button"
                             variant="row"
@@ -705,7 +707,6 @@ export default function GlobalAutoSyncDock() {
                                 </span>
                             </div>
                         </Button>
-                        )}
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                 <Button
                                     type="button"
@@ -723,6 +724,7 @@ export default function GlobalAutoSyncDock() {
                                 </Button>
                             </div>
                         </div>
+                        )}
 
                         {/* Footer micro-tag: bấm để xem hướng dẫn cài đặt & kiểm tra kết nối */}
                         <Button
@@ -738,7 +740,7 @@ export default function GlobalAutoSyncDock() {
                         </Button>
                     </>
                 )}
-            </aside>
+            </aside>}
 
             {/* Modal tiến trình YCX Realtime */}
             <Modal
