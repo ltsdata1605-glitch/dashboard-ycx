@@ -229,9 +229,9 @@ export const deleteExpiredUsers = onCall({ region: CLIENT_REGIONS, timeoutSecond
     const role = snap.get('role') as string | undefined;
     const status = snap.get('status') as string | undefined;
     const email = snap.get('email') as string | undefined;
-    // Đã hết hạn, hoặc đang chờ duyệt (bấm Xoá hẳn ở hồ sơ chờ duyệt — 2026-10-31).
-    if (status !== 'expired' && status !== 'pending') {
-      boQua.push({ uid, lyDo: 'Chỉ xoá tài khoản đã hết hạn hoặc đang chờ duyệt' });
+    const xoaDuoc: (string | undefined)[] = ['expired', 'pending', 'new', 'rejected'];
+    if (!xoaDuoc.includes(status)) {
+      boQua.push({ uid, lyDo: 'Chỉ xoá tài khoản đã hết hạn, chờ duyệt hoặc bị từ chối' });
       continue;
     }
     if (email === SUPER_ADMIN_EMAIL) {

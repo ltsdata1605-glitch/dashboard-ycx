@@ -194,7 +194,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
             if (daXoa.size > 0) {
                 setRequests(prev => prev.filter(r => !daXoa.has(r.id)));
                 if (allAdminUsersRef.current) allAdminUsersRef.current = allAdminUsersRef.current.filter(u => !daXoa.has(u.id));
-                setTabCounts(prev => ({ ...prev, expired: Math.max(0, (prev.expired ?? daXoa.size) - daXoa.size) }));
+                setTabCounts(prev => ({ ...prev, [listMode]: Math.max(0, ((prev as Record<string, number>)[listMode] ?? daXoa.size) - daXoa.size) }));
                 toast.success(`Đã xoá hẳn ${daXoa.size} tài khoản`);
             }
             if (soBoQua > 0) toast.warning(`Bỏ qua ${soBoQua} tài khoản: ${lyDoBoQua}`);
