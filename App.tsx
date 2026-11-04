@@ -123,15 +123,17 @@ const TabContent = React.memo(() => {
     }, [isTabDisabled, tabDuPhong, setActiveTab]);
 
     // GỠ tab bị tắt khỏi mountedTabs — không để view cũ chạy ngầm tải dữ liệu (31k dòng Phân tích…)
+    // Ngoại lệ: `employees` (BiWrapper) giữ lại khi tab `thuong` đang mở và bật.
     React.useEffect(() => {
+        const giuEmployees = activeTab === 'thuong' && isFeatureEnabled('thuong');
         setMountedTabs(prev => {
             const next = new Set<string>();
             for (const t of prev) {
-                if (TAB_LUON_BAT.includes(t) || isFeatureEnabled(t)) next.add(t);
+                if (TAB_LUON_BAT.includes(t) || isFeatureEnabled(t) || (t === 'employees' && giuEmployees)) next.add(t);
             }
             return next.size === prev.size ? prev : next;
         });
-    }, [isFeatureEnabled]);
+    }, [isFeatureEnabled, activeTab]);
 
     // Nút "Nhập nhân viên (File YCX)" ở Report BI phát sự kiện này. Hộp chọn file nằm trong
     // DashboardView (tab Phân Tích) — nếu tab đó đã mount thì chính nó mở hộp chọn, người dùng ở
@@ -162,11 +164,14 @@ const TabContent = React.memo(() => {
 
     // Mount tab on first visit — `thuong` cần mount cả `employees` (dùng chung BiWrapper).
     // Không mount tab có tính năng đã tắt — tránh tải dữ liệu thừa.
+    // Ngoại lệ: `thuong` bật thì `employees` BẮT BUỘC mount (BiWrapper cung cấp nội dung cho cả hai).
     React.useEffect(() => {
         setMountedTabs(prev => {
             const toMount = [activeTab];
             if (activeTab === 'thuong') toMount.push('employees');
-            const filtered = toMount.filter(t => TAB_LUON_BAT.includes(t) || isFeatureEnabled(t));
+            const thuongBat = isFeatureEnabled('thuong');
+            const filtered = toMount.filter(t =>
+                TAB_LUON_BAT.includes(t) || isFeatureEnabled(t) || (t === 'employees' && thuongBat));
             if (filtered.length === 0 || filtered.every(t => prev.has(t))) return prev;
             const next = new Set(prev);
             filtered.forEach(t => next.add(t));

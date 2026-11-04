@@ -68,7 +68,7 @@ export function AutoSyncScheduleButton({ scheduleKey, tone = 'light', compact = 
 
     const ten = SCHEDULE_LABELS[scheduleKey];
     const mau = tone === 'dark'
-        ? (keTiep ? 'bg-white/90 text-slate-800' : 'bg-black/20 text-white/90 hover:bg-black/30')
+        ? (keTiep ? 'bg-white/20 text-white' : 'bg-black/20 text-white/90 hover:bg-black/30')
         : (keTiep ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-400 hover:bg-slate-100');
 
     return (

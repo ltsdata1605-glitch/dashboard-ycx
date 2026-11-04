@@ -316,7 +316,7 @@ export default function Sidebar() {
                     <div className="w-8 h-[1px] bg-slate-100 dark:bg-slate-800 my-1.5" />
 
                     {/* User Profile / Settings */}
-                    <div className="relative group flex items-center justify-center my-0.5">
+                    <div className="flex items-center justify-center my-0.5">
                         <Button
                             variant="card" size="none"
                             onClick={() => setActiveTab('settings')}
@@ -334,78 +334,6 @@ export default function Sidebar() {
                                 )}
                             </div>
                         </Button>
-
-                        {/* Flyout Card hiển thị thông tin người dùng ngay khi hover với cầu nối hover mượt mà */}
-                        <div className="absolute left-full bottom-0 pl-3 z-[230] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-150 scale-95 group-hover:scale-100 origin-bottom-left">
-                            {/* Invisible bridge covering gap between avatar and card */}
-                            <div className="absolute -left-2 top-0 bottom-0 w-4" />
-                            <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-card shadow-2xl min-w-[210px] flex flex-col gap-2.5">
-                                <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
-                                    <div className="w-9 h-9 rounded-full bg-sky-100 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800 flex items-center justify-center overflow-hidden shrink-0">
-                                        {user?.photoURL ? (
-                                            <img 
-                                                src={user.photoURL} 
-                                                alt={user.displayName || "User"} 
-                                                className="w-full h-full object-cover" 
-                                                referrerPolicy="no-referrer" 
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display = 'none';
-                                                    const fallback = e.currentTarget.parentElement?.querySelector('[data-sidebar-avatar-fallback]') as HTMLElement | null;
-                                                    if (fallback) fallback.style.display = 'flex';
-                                                }}
-                                            />
-                                        ) : null}
-                                        <span 
-                                            data-sidebar-avatar-fallback 
-                                            style={{ display: user?.photoURL ? 'none' : 'flex' }}
-                                            className="font-bold text-xs text-sky-700 dark:text-sky-400 items-center justify-center w-full h-full"
-                                        >
-                                            {user?.email ? user.email.charAt(0).toUpperCase() : (isDemoMode ? "T" : "U")}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                                                {employeeName || formatCleanDisplayName(user?.displayName, isDemoMode ? "Tài khoản Thử nghiệm" : "Khách")}
-                                            </span>
-                                            {userRole && (
-                                                <span className={`text-[11px] font-bold px-1 py-0.2 rounded uppercase tracking-wider shrink-0 ${
-                                                    userRole === 'admin' 
-                                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' 
-                                                        : userRole === 'manager' 
-                                                        ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300' 
-                                                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                                }`}>
-                                                    {userRole === 'admin' ? 'Admin' : userRole === 'manager' ? 'Quản lý' : 'Nhân viên'}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className="text-[11px] text-slate-400 truncate mt-0.5">
-                                            {user?.email || (departmentId ? `Kho: ${departmentId}` : "Chế độ Offline")}
-                                            {departmentId && user?.email ? ` • Kho ${departmentId}` : ''}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between gap-1.5">
-                                    <Button
-                                        variant="tinted" size="sm"
-                                        onClick={() => setActiveTab('settings')}
-                                        className="flex-1 dark:bg-sky-950/40 dark:text-sky-400 dark:hover:bg-sky-900/50 text-center"
-                                    >
-                                        Phân quyền
-                                    </Button>
-                                    <Button
-                                        variant="ghost" size="icon-xs"
-                                        onClick={() => logout()}
-                                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                                        title="Đăng xuất"
-                                        aria-label="Đăng xuất"
-                                    >
-                                        <AppIcon name="logout" size="sm" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </aside>
     );
