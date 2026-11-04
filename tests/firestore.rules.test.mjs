@@ -240,6 +240,10 @@ async function main() {
         assertFails(managerA.firestore().doc('line_bots/ownerA/tickets/YC-0001').set({ status: 'done' })));
     await check('Duyệt: manager KHÁC Kho KHÔNG đọc được yêu cầu duyệt',
         assertFails(managerOther.firestore().doc('line_bots/ownerA/approvals/a1').get()));
+    await check('Tag: manager cùng Kho ĐỌC được nhóm vai trò',
+        assertSucceeds(managerA.firestore().doc('line_bots/ownerA/tag_groups/ca-sang').get()));
+    await check('Tag: manager cùng Kho KHÔNG tự thêm/xoá thành viên nhóm (chỉ qua lệnh /nhom trong chat)',
+        assertFails(managerA.firestore().doc('line_bots/ownerA/tag_groups/ca-sang').set({ members: [{ userId: 'U_X', name: 'X' }] })));
     await check('Duyệt: cấu hình khác của bot (coupon) vẫn ghi được — không chặn nhầm',
         assertSucceeds(botCoupon(managerA).set({ code: 'X1', status: 'UNUSED' })));
 

@@ -288,6 +288,157 @@ export function buildApprovalFlex(a: { id: string; body: string; requesterName: 
     };
 }
 
+// ───────────────────────── TAG THEO NHÓM VAI TRÒ (@ca-sáng, @kho, @thu-ngân) ─────────────────────────
+// Nhóm vai trò lưu ở `line_bots/{uid}/tag_groups/{mã nhóm}` = { name, members: [{userId, name}] }.
+// Thành viên TỰ THAM GIA bằng `/nhom vao <tên nhóm>` (không cần nhập ID tay); `/nhom ra` để rời nhóm.
+// Gõ `@ca-sáng <nội dung>` trong nhóm chat → bot tag tất cả thành viên bằng mention chính thức của LINE.
+// Chỉ phản hồi bằng replyToken → không tính hạn mức tin push.
+
+/** Tối đa số người được tag trong một tin (tránh tin quá dài / quá nhiều mention). */
+export const MAX_TAG_MEMBERS = 50;
+
+/** Mã nhóm không phân biệt hoa-thường, dấu và khoảng trắng: "Ca Sáng" = "ca-sáng" = "ca-sang". */
+export function toTagId(name: string): string {
+    return String(name || '')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
+
+export type TagCommand =
+    | { kind: 'tag'; group: string; body: string }
+    | { kind: 'nhom_vao'; group: string }
+    | { kind: 'nhom_ra'; group: string }
+    | { kind: 'nhom_ds'; group?: string };
+
+/** Nhận diện "@tên-nhóm [nội dung]" và "/nhom vao|ra|ds [tên nhóm]". Trả null nếu không phải. */
+export function parseTagCommand(raw: string): TagCommand | null {
+    const text = String(raw || '').trim().replace(/\s+/g, ' ');
+    const tag = /^@(\S+)(?:\s+([\s\S]*))?$/.exec(text);
+    if (tag) {
+        const group = tag[1].replace(/^[.,:;!?]+|[.,:;!?]+$/g, '');
+        if (!group || toTagId(group) === '') return null;
+        return { kind: 'tag', group, body: (tag[2] || '').trim() };
+    }
+    const nhom = /^[./!#]nhom\s+(vao|ra|ds)(?:\s+(.+))?$/i.exec(text);
+    if (nhom) {
+        const action = nhom[1].toLowerCase();
+        const group = (nhom[2] || '').trim();
+        if (action === 'ds') return { kind: 'nhom_ds', group: group || undefined };
+        if (!group) return null;
+        return action === 'vao' ? { kind: 'nhom_vao', group } : { kind: 'nhom_ra', group };
+    }
+    return null;
+}
+
+/**
+ * Dựng tin tag: "📣 Ca sáng: @An @Bình …" + nội dung. Vị trí mention tính theo UTF-16 (đúng cách LINE đếm).
+ * Trả null nếu nhóm không có thành viên.
+ */
+export function buildTagMessage(displayName: string, members: Array<{ userId: string; name: string }>, body: string): any | null {
+    const list = members.filter(m => m && m.userId).slice(0, MAX_TAG_MEMBERS);
+    if (list.length === 0) return null;
+    let text = `📣 ${clip(displayName, 40)}: `;
+    const mentionees: Array<{ index: number; length: number; userId: string }> = [];
+    list.forEach((m, i) => {
+        if (i > 0) text += ' ';
+        const tag = `@${clip(m.name || 'Thành viên', 40)}`;
+        mentionees.push({ index: text.length, length: tag.length, userId: m.userId });
+        text += tag;
+    });
+    if (body) text += `\n${clip(body, 2000)}`;
+    if (members.length > MAX_TAG_MEMBERS) text += `\n(… còn ${members.length - MAX_TAG_MEMBERS} người chưa được tag trong tin này)`;
+    return { type: 'text', text, mention: { mentionees } };
+}
+
+export interface TagDeps {
+    db: any;
+    reply: (messages: any[]) => Promise<unknown>;
+    nowIso?: () => string;
+}
+
+/** Trả true nếu đã xử lý. "@tên" không khớp nhóm nào thì trả false để webhook xử lý tiếp như cũ. */
+export async function handleTagText(deps: TagDeps, ctx: { uid: string; senderUserId: string; groupId?: string; text: string }): Promise<boolean> {
+    const cmd = parseTagCommand(ctx.text);
+    if (!cmd) return false;
+    const { db, reply } = deps;
+    const nowIso = deps.nowIso ? deps.nowIso() : new Date().toISOString();
+    const groupsCol = botRef(db, ctx.uid).collection('tag_groups');
+
+    if (cmd.kind === 'tag') {
+        if (!ctx.groupId) return false; // tag chỉ có nghĩa trong nhóm chat
+        const snap = await groupsCol.doc(toTagId(cmd.group)).get();
+        if (!snap.exists) return false;
+        const g = snap.data() || {};
+        const msg = buildTagMessage(String(g.name || cmd.group), Array.isArray(g.members) ? g.members : [], cmd.body);
+        if (!msg) {
+            await reply([{ type: 'text', text: `Nhóm ${cmd.group} chưa có thành viên. Gõ /nhom vao ${cmd.group} để tham gia.` }]);
+            return true;
+        }
+        await reply([msg]);
+        return true;
+    }
+
+    if (cmd.kind === 'nhom_vao' || cmd.kind === 'nhom_ra') {
+        const id = toTagId(cmd.group);
+        if (!id) return false;
+        const ref = groupsCol.doc(id);
+        const name = await senderName(db, ctx.uid, ctx.senderUserId);
+        const outcome = await db.runTransaction(async (tx: any) => {
+            const snap = await tx.get(ref);
+            const g = snap.exists ? (snap.data() || {}) : {};
+            const members: Array<{ userId: string; name: string }> = Array.isArray(g.members) ? g.members : [];
+            const has = members.some(m => m.userId === ctx.senderUserId);
+            if (cmd.kind === 'nhom_vao') {
+                if (has) return { changed: false, count: members.length };
+                const next = [...members, { userId: ctx.senderUserId, name }];
+                tx.set(ref, { id, name: g.name || cmd.group, members: next, updatedAt: nowIso }, { merge: true });
+                return { changed: true, count: next.length };
+            }
+            if (!has) return { changed: false, count: members.length, missing: true };
+            const next = members.filter(m => m.userId !== ctx.senderUserId);
+            tx.set(ref, { members: next, updatedAt: nowIso }, { merge: true });
+            return { changed: true, count: next.length };
+        });
+        const display = cmd.group;
+        let text: string;
+        if (cmd.kind === 'nhom_vao') {
+            text = outcome.changed
+                ? `✅ ${name} đã vào nhóm @${display} (${outcome.count} người).`
+                : `${name} đã ở trong nhóm @${display} rồi.`;
+        } else {
+            text = outcome.changed
+                ? `✅ ${name} đã rời nhóm @${display} (còn ${outcome.count} người).`
+                : `${name} chưa ở trong nhóm @${display}.`;
+        }
+        await reply([{ type: 'text', text }]);
+        return true;
+    }
+
+    // nhom_ds
+    if (cmd.group) {
+        const snap = await groupsCol.doc(toTagId(cmd.group)).get();
+        if (!snap.exists) {
+            await reply([{ type: 'text', text: `Chưa có nhóm ${cmd.group}. Gõ /nhom vao ${cmd.group} để tạo và tham gia.` }]);
+            return true;
+        }
+        const g = snap.data() || {};
+        const members: Array<{ name: string }> = Array.isArray(g.members) ? g.members : [];
+        const lines = members.map((m, i) => `${i + 1}. ${clip(m.name, 40)}`);
+        await reply([{ type: 'text', text: `👥 @${g.name || cmd.group} (${members.length} người)\n━━━━━━━━━━━━━━━━━━━━━\n${lines.join('\n') || 'Chưa có thành viên.'}` }]);
+        return true;
+    }
+    const all = await groupsCol.get();
+    const groups = all.docs.map((d: any) => d.data()).filter((g: any) => g && g.name);
+    if (groups.length === 0) {
+        await reply([{ type: 'text', text: 'Chưa có nhóm vai trò nào. Gõ /nhom vao <tên nhóm> để tạo, ví dụ /nhom vao ca-sáng' }]);
+        return true;
+    }
+    const lines = groups.map((g: any) => `• @${g.name} — ${Array.isArray(g.members) ? g.members.length : 0} người`);
+    await reply([{ type: 'text', text: `👥 NHÓM VAI TRÒ\n━━━━━━━━━━━━━━━━━━━━━\n${lines.join('\n')}\n\nGọi nhóm: @tên-nhóm nội dung` }]);
+    return true;
+}
+
 // ───────────────────────── XỬ LÝ (Firestore + reply) ─────────────────────────
 
 export interface WorkflowDeps {

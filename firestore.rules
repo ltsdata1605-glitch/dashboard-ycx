@@ -244,14 +244,14 @@ service cloud.firestore {
 
       // `/{sub}/{rest=**}` chứ KHÔNG phải `/{sub=**}`: ở rules_version 2, `{x=**}` khớp cả 0 cấp —
       // tức khớp chính document bot và mở quyền ghi đè cả bot (vượt botOwnerKeysUnchanged ở trên).
-      // Yêu cầu làm việc nhóm (xác nhận Đã nhận, phiếu, xin duyệt): do Cloud Function quản lý (functions/src/lineWorkflows.ts).
+      // Yêu cầu làm việc nhóm (xác nhận Đã nhận, phiếu, xin duyệt) và nhóm vai trò để tag: do Cloud Function quản lý (functions/src/lineWorkflows.ts).
       // Client CHỈ ĐỌC — mọi đổi trạng thái (duyệt/từ chối/đóng phiếu) đi qua server để giữ đúng luật quyền và nhật ký.
       match /{subcollection}/{rest=**} {
         allow read: if isSignedIn() && coQuyenChucNang('tools-line-bot') && (isSelf(userId) || isAdmin()
           || (isManager() && botKhos(get(/databases/$(database)/documents/line_bots/$(userId)).data).hasAny(myKhos())));
         allow write: if isSignedIn() && coQuyenChucNang('tools-line-bot') && (isSelf(userId) || isAdmin()
           || (isManager() && botKhos(get(/databases/$(database)/documents/line_bots/$(userId)).data).hasAny(myKhos())))
-          && !(subcollection in ['approvals', 'acks', 'tickets', 'workflow_meta']);
+          && !(subcollection in ['approvals', 'acks', 'tickets', 'workflow_meta', 'tag_groups']);
       }
     }
 

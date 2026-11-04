@@ -3,6 +3,7 @@ import {
     parseWorkflowCommand, normalizeTicketCode, decideApproval, parseWorkflowPostback,
     formatConfirmedNames, buildAckFlex, buildTicketFlex, buildApprovalFlex,
     handleWorkflowText, handleWorkflowPostback, closeTicket, decideApprovalForWeb, WORKFLOW_COLORS,
+    parseTagCommand, toTagId, buildTagMessage, handleTagText,
 } from '../../functions/src/lineWorkflows';
 
 // ───────── Firestore giả trong bộ nhớ (đủ cho get/set/update/where/limit/transaction) ─────────
@@ -331,5 +332,98 @@ describe('thiết kế thẻ Flex làm việc nhóm', () => {
         const reject = ap.contents.footer.contents[1];
         expect(reject.backgroundColor).toBe('#E2E8F0');
         expect(reject.contents[0].color).toBe('#334155');
+    });
+});
+
+describe('tag theo nhóm vai trò (@ca-sáng, @kho, @thu-ngân)', () => {
+    it('nhận diện @nhóm có/không có nội dung và lệnh /nhom', () => {
+        expect(parseTagCommand('@ca-sáng')).toEqual({ kind: 'tag', group: 'ca-sáng', body: '' });
+        expect(parseTagCommand('@ca-sáng họp 8h nhé')).toEqual({ kind: 'tag', group: 'ca-sáng', body: 'họp 8h nhé' });
+        expect(parseTagCommand('@thu-ngân kiểm quỹ')).toMatchObject({ kind: 'tag', group: 'thu-ngân' });
+        expect(parseTagCommand('/nhom vao ca-sáng')).toEqual({ kind: 'nhom_vao', group: 'ca-sáng' });
+        expect(parseTagCommand('.nhom ra kho')).toEqual({ kind: 'nhom_ra', group: 'kho' });
+        expect(parseTagCommand('/nhom ds')).toEqual({ kind: 'nhom_ds', group: undefined });
+        expect(parseTagCommand('/nhom ds kho')).toEqual({ kind: 'nhom_ds', group: 'kho' });
+    });
+    it('không nhận nhầm tin thường', () => {
+        for (const t of ['ca-sáng', 'hôm nay ca sáng', '@', '/nhom', '/nhom vao', 'nhom vao kho']) {
+            expect(parseTagCommand(t), t).toBeNull();
+        }
+    });
+    it('mã nhóm không phân biệt hoa-thường, dấu, khoảng trắng', () => {
+        expect(toTagId('Ca Sáng')).toBe('ca-sang');
+        expect(toTagId('ca-sáng')).toBe('ca-sang');
+        expect(toTagId('CA_SANG')).toBe('ca-sang');
+        expect(toTagId('Thu Ngân')).toBe(toTagId('thu-ngan'));
+        expect(toTagId('Đội Kho')).toBe('doi-kho');
+    });
+    it('mention đúng vị trí UTF-16: mỗi đoạn @tên khớp chính xác với tên người được tag', () => {
+        const msg = buildTagMessage('Ca sáng', [
+            { userId: 'U_AN', name: 'Nguyễn An' }, { userId: 'U_BINH', name: 'Trần Bình' },
+        ], 'Họp 8h nhé');
+        for (const m of msg.mention.mentionees) {
+            const seg = msg.text.substr(m.index, m.length);
+            expect(seg.startsWith('@')).toBe(true);
+        }
+        expect(msg.mention.mentionees.map((m: any) => m.userId)).toEqual(['U_AN', 'U_BINH']);
+        expect(msg.mention.mentionees.map((m: any) => msg.text.substr(m.index, m.length))).toEqual(['@Nguyễn An', '@Trần Bình']);
+        expect(msg.text).toContain('Họp 8h nhé');
+    });
+    it('nhóm không có thành viên thì không dựng tin tag', () => {
+        expect(buildTagMessage('Kho', [], '')).toBeNull();
+    });
+    it('giới hạn số người được tag trong một tin', () => {
+        const many = Array.from({ length: 60 }, (_, i) => ({ userId: 'U' + i, name: 'NV' + i }));
+        const msg = buildTagMessage('Kho', many, '');
+        expect(msg.mention.mentionees).toHaveLength(50);
+        expect(msg.text).toContain('còn 10 người chưa được tag');
+    });
+
+    it('vào / rời nhóm bằng chat, không vào lần hai', async () => {
+        const { db, deps, last } = setup();
+        const d = { db, reply: deps().reply };
+        expect(await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom vao ca-sáng' })).toBe(true);
+        expect(last()[0].text).toBe('✅ Nguyễn An đã vào nhóm @ca-sáng (1 người).');
+        await handleTagText(d, { uid: UID, senderUserId: 'U_BINH', groupId: 'G1', text: '/nhom vao Ca Sáng' });
+        expect(last()[0].text).toBe('✅ Trần Bình đã vào nhóm @Ca Sáng (2 người).');
+        await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom vao ca-sáng' });
+        expect(last()[0].text).toBe('Nguyễn An đã ở trong nhóm @ca-sáng rồi.');
+        await handleTagText(d, { uid: UID, senderUserId: 'U_BINH', groupId: 'G1', text: '/nhom ra ca-sáng' });
+        expect(last()[0].text).toBe('✅ Trần Bình đã rời nhóm @ca-sáng (còn 1 người).');
+        expect(db.store.get(`line_bots/${UID}/tag_groups/ca-sang`).members).toEqual([{ userId: 'U_AN', name: 'Nguyễn An' }]);
+    });
+
+    it('@nhóm gửi tin tag có mention, kèm nội dung', async () => {
+        const { db, deps, last } = setup();
+        const d = { db, reply: deps().reply };
+        await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom vao kho' });
+        await handleTagText(d, { uid: UID, senderUserId: 'U_BINH', groupId: 'G1', text: '/nhom vao kho' });
+        expect(await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '@kho kiểm kê 6h' })).toBe(true);
+        const msg = last()[0];
+        expect(msg.type).toBe('text');
+        expect(msg.mention.mentionees.map((m: any) => m.userId)).toEqual(['U_AN', 'U_BINH']);
+        expect(msg.text).toContain('kiểm kê 6h');
+    });
+
+    it('không xử lý: @tên không khớp nhóm, chat riêng, nhóm rỗng → thông báo', async () => {
+        const { deps, sent } = setup();
+        const d = { db: deps().db, reply: deps().reply };
+        expect(await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '@910KH- Đăng hỏi' })).toBe(false);
+        expect(await handleTagText(d, { uid: UID, senderUserId: 'U_AN', text: '/nhom vao kho' })).toBe(true); // chat riêng vẫn được vào nhóm
+        sent.length = 0;
+        expect(await handleTagText(d, { uid: UID, senderUserId: 'U_AN', text: '@kho chào' })).toBe(false); // tag chỉ trong nhóm chat
+        expect(sent).toHaveLength(0);
+    });
+
+    it('liệt kê nhóm và thành viên', async () => {
+        const { deps, last } = setup();
+        const d = { db: deps().db, reply: deps().reply };
+        await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom ds' });
+        expect(last()[0].text).toMatch(/Chưa có nhóm vai trò nào/);
+        await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom vao thu-ngân' });
+        await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom ds' });
+        expect(last()[0].text).toContain('• @thu-ngân — 1 người');
+        await handleTagText(d, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', text: '/nhom ds thu-ngân' });
+        expect(last()[0].text).toContain('1. Nguyễn An');
     });
 });

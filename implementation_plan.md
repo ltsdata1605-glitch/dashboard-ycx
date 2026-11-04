@@ -9310,3 +9310,12 @@ Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (gh
   khối nội dung nền nhạt, nút bo lớn. Bảng màu RIÊNG (tím `#7C3AED`, chàm `#4338CA`, hồng tím `#A21CAF`) để không lẫn với PMH (xanh dương / xanh lá).
 - Test khoá bảng màu không trùng PMH và nút Từ chối đọc được (23 test đơn vị).
 - Chưa xem trực tiếp trên LINE trong phiên này; cần kiểm tra trên điện thoại sau khi deploy.
+
+## Đợt 4 — Tag theo nhóm vai trò (2026-11-04, nhánh `claude/line-bot-tag-nhom`)
+- Nhóm vai trò lưu ở `line_bots/{uid}/tag_groups/{mã}` = `{ name, members: [{userId, name}] }`, mã không phân biệt hoa/thường/dấu.
+- Thành viên tự tham gia bằng chat: `/nhom vao <tên nhóm>`, rời bằng `/nhom ra <tên nhóm>`, xem bằng `/nhom ds [tên nhóm]`.
+- Gõ `@ca-sáng <nội dung>` trong nhóm chat → bot trả tin có mention chính thức của LINE (tối đa 50 người/tin), chỉ dùng replyToken.
+- Chỉ xử lý khi `@tên` khớp một nhóm đã có; nếu không, webhook xử lý tiếp như cũ.
+- `firestore.rules`: `tag_groups` chỉ server ghi (client chỉ đọc).
+- Kiểm chứng: 33 test đơn vị (`line-workflows`), 104/104 test quy tắc trên emulator.
+- Chưa kiểm chứng trên LINE thật: cần xác nhận mention hiện đúng tên và thông báo tới đúng người.

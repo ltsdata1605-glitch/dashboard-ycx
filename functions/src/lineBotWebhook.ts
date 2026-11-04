@@ -21,7 +21,7 @@ import { moTaLoiLine, laHetHanMuc } from './lineErrors';
 import { layHanMuc, uocTinhNotifyCuaBot } from './lineQuota';
 import { vnNow } from './lineBotScheduleDue';
 import { autoRevokeStaleCouponsForBot } from './couponAutoRevoke';
-import { handleWorkflowText, handleWorkflowPostback, decideApprovalForWeb } from './lineWorkflows';
+import { handleWorkflowText, handleWorkflowPostback, decideApprovalForWeb, handleTagText } from './lineWorkflows';
 
 const DEFAULT_REGION = 'asia-southeast1';
 
@@ -2886,6 +2886,12 @@ export const lineBotWebhook = onRequest(
                     }
                     continue;
                 }
+
+                // 0. Tag theo nhóm vai trò: "@ca-sáng nội dung" và /nhom vao|ra|ds. Dùng rawText (còn dấu @).
+                if (await handleTagText({
+                    db,
+                    reply: (messages: any[]) => replyLineMessage(token, replyToken, messages),
+                }, { uid, senderUserId, groupId, text: rawText })) continue;
 
                 // 1.1. Lệnh làm việc nhóm: /xacnhan (Đã nhận), /yc (phiếu yêu cầu), /xinphep (xin duyệt).
                 // Chỉ phản hồi bằng replyToken — KHÔNG tạo tin push tự động (không tính hạn mức tin).
