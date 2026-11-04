@@ -39,14 +39,39 @@ const getTabColorClasses = (color: string, isActive: boolean) => {
     }
 };
 
-const TabSpinner = () => (
-    <div className="flex items-center justify-center min-h-[30vh]">
-        <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs font-medium text-slate-400 animate-pulse">Đang tải module...</p>
+const TAB_SPINNER_TIMEOUT = 8_000;
+const TabSpinner = () => {
+    const [lau, setLau] = useState(false);
+    useEffect(() => {
+        const h = setTimeout(() => setLau(true), TAB_SPINNER_TIMEOUT);
+        return () => clearTimeout(h);
+    }, []);
+    return (
+        <div className="flex items-center justify-center min-h-[30vh]">
+            <div className="flex flex-col items-center gap-3">
+                {!lau && <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin" />}
+                {lau ? (
+                    <>
+                        <p className="text-sm font-medium text-slate-500">Tải lâu hơn thường lệ</p>
+                        <Button variant="secondary" size="sm" onClick={() => {
+                            try {
+                                sessionStorage.removeItem('ycx_chunk_reloads');
+                                sessionStorage.removeItem('last_module_import_reload');
+                                sessionStorage.removeItem('lazy_retry_BiNhanVien');
+                                sessionStorage.removeItem('lazy_retry_BiDataUpdater');
+                            } catch { /* ignore */ }
+                            window.location.reload();
+                        }}>
+                            Tải lại trang
+                        </Button>
+                    </>
+                ) : (
+                    <p className="text-xs font-medium text-slate-400 animate-pulse">Đang tải module...</p>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 /**
  * BiWrapper — Container for the BI module.
