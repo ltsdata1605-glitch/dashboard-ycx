@@ -169,8 +169,8 @@ service cloud.firestore {
     }
 
     match /stickerUsers/{uid} {
-      allow get:    if isSelf(uid) || isStickerSuperAdmin() || (stickerRole() == 'admin' && resource.data.storeId == myStickerStoreId());
-      allow list:   if isStickerSuperAdmin() || (stickerRole() == 'admin' && resource.data.storeId == myStickerStoreId());
+      allow get:    if isSelf(uid) || isAdmin() || isStickerSuperAdmin() || (stickerRole() == 'admin' && resource.data.storeId == myStickerStoreId());
+      allow list:   if isAdmin() || isStickerSuperAdmin() || (stickerRole() == 'admin' && resource.data.storeId == myStickerStoreId());
       allow update: if isSelf(uid)
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(stickerProtectedKeys());
 
@@ -186,7 +186,7 @@ service cloud.firestore {
     // Quyền xem chức năng In Sticker (tools-print-sticker) áp cả cho dữ liệu kho.
     function canUseStickerStore(storeId) {
       return isSignedIn() && coQuyenChucNang('tools-print-sticker')
-        && (isStickerSuperAdmin() || myStickerStoreId() == storeId || request.auth.token.departmentId == storeId);
+        && (isAdmin() || isStickerSuperAdmin() || myStickerStoreId() == storeId || storeId in myKhos());
     }
     function canReadStickerStore(storeId) {
       return (canUseStickerStore(storeId) || (isSignedIn() && storeId == 'SUPERADMIN' && coQuyenChucNang('tools-print-sticker')));
