@@ -111,7 +111,7 @@ export const AutoBonusPanel: React.FC<AutoBonusPanelProps> = ({
                 variant="tinted" data-ui="bi" size="sm"
                 disabled={isBusy}
                 onClick={handleTrigger}
-                className="gap-1.5 sm:h-8 sm:px-3.5 sm:text-xs dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800 dark:hover:bg-sky-900/40 rounded-full active:scale-95 disabled:opacity-60 disabled:active:scale-100 shrink-0"
+                className="gap-1.5 sm:h-8 sm:px-3.5 sm:text-xs border-sky-300 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800 dark:hover:bg-sky-900/40 rounded-full active:scale-95 disabled:opacity-60 disabled:active:scale-100 shrink-0"
             >
                 <AppIcon name="quick" size="md" />
                 <span>Tự động</span>

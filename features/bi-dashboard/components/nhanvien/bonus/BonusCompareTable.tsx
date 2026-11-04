@@ -189,7 +189,7 @@ export const BonusCompareTable: React.FC<BonusCompareTableProps> = ({
 
     const groupTh = 'px-2 h-7 text-center text-[11px] font-bold uppercase tracking-wider border-l border-slate-200 dark:border-slate-700 border-r border-b border-slate-200 dark:border-slate-700';
     const th = (extra = '') => `px-1.5 h-7 text-center text-[11px] font-bold uppercase tracking-wider border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors select-none ${extra}`;
-    const sortMark = (field: SortField) => sortField === field ? (sortDir === 'desc' ? ' ▼' : ' ▲') : '';
+    const sortMark = (_field: SortField) => '';
     const td = 'px-1.5 py-[3px] text-[13px] text-center tabular-nums border-r border-slate-100 dark:border-slate-700/50';
     const tdFoot = 'px-1.5 py-1 text-[13px] text-center tabular-nums font-black border-r border-slate-200 dark:border-slate-700';
 
