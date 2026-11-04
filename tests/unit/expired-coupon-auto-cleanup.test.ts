@@ -14,8 +14,8 @@ describe('PMH Hết Hạn Tự Động Xoá Khỏi Kho', () => {
         expect(isDateExpired(today, today)).toBe(false);
 
         // Tương lai -> Còn hạn
-        expect(isDateExpired('2026-10-31', today)).toBe(false);
-        expect(isDateExpired('2026-11-15', today)).toBe(false);
+        expect(isDateExpired('2027-06-30', today)).toBe(false);
+        expect(isDateExpired('2027-12-15', today)).toBe(false);
 
         // Không có hạn -> Vô thời hạn (không hết hạn)
         expect(isDateExpired(undefined, today)).toBe(false);
@@ -46,7 +46,7 @@ describe('PMH Hết Hạn Tự Động Xoá Khỏi Kho', () => {
                 code: 'VIVO888',
                 type: 'VIVO',
                 status: 'UNUSED',
-                expiryDate: '2026-10-31', // Còn hạn (như Đợt #1 của người dùng)
+                expiryDate: '2027-06-30', // Còn hạn (như Đợt #1 của người dùng)
                 createdAt: '2026-10-15T15:51:39.000Z',
                 updatedAt: '2026-10-15T15:51:39.000Z'
             }
@@ -77,7 +77,7 @@ describe('PMH Hết Hạn Tự Động Xoá Khỏi Kho', () => {
                 code: 'VIVO1',
                 type: 'VIVO',
                 status: 'UNUSED',
-                expiryDate: '2026-10-31',
+                expiryDate: '2027-06-30',
                 importBatchId: 'batch_dot_1',
                 createdAt: '2026-10-15T15:51:39.000Z',
                 updatedAt: '2026-10-15T15:51:39.000Z'

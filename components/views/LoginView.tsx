@@ -374,14 +374,16 @@ const LoginView: React.FC = () => {
     return (
         <div data-testid="login-view" className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-sky-50/40 flex flex-col items-center justify-center px-6 select-none"
             style={{ paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-            <div className="w-full max-w-[380px] flex-1 sm:flex-none flex flex-col justify-center sm:bg-white/80 sm:backdrop-blur-xl sm:border sm:border-slate-200/60 sm:rounded-overlay sm:shadow-2xl sm:shadow-slate-200/50 sm:p-10">
-                <div className="flex flex-col items-center text-center mb-10">
-                    <div className="w-[80px] h-[80px] rounded-[20px] bg-gradient-to-br from-sky-400 via-sky-500 to-sky-700 flex items-center justify-center shadow-xl shadow-sky-500/30 mb-6 ring-1 ring-sky-400/20">
-                        <AppIcon name="dashboard" size="state" className="text-white drop-shadow-sm" />
+            <div className="w-full max-w-[380px] flex-1 sm:flex-none flex flex-col justify-center sm:bg-white sm:border sm:border-slate-200/60 sm:rounded-overlay sm:shadow-2xl sm:shadow-slate-200/50 sm:p-10">
+                {!waitingHandoff && (
+                    <div className="flex flex-col items-center text-center mb-10">
+                        <div className="w-[80px] h-[80px] rounded-card bg-gradient-to-br from-sky-400 via-sky-500 to-sky-700 flex items-center justify-center shadow-xl shadow-sky-500/30 mb-6 ring-1 ring-sky-400/20">
+                            <AppIcon name="dashboard" size="state" className="text-white drop-shadow-sm" />
+                        </div>
+                        <h1 className="type-large-title font-bold text-slate-900 tracking-tight">Dashboard</h1>
+                        <p className="mt-1.5 type-body text-slate-400 font-medium tracking-wide">Công cụ hỗ trợ</p>
                     </div>
-                    <h1 className="type-large-title font-bold text-slate-900 tracking-tight">Dashboard</h1>
-                    <p className="mt-1.5 type-body text-slate-400 font-medium tracking-wide">Công cụ hỗ trợ</p>
-                </div>
+                )}
 
                 {/* Trình duyệt tích hợp Zalo/Facebook chặn đăng nhập Google — bắt buộc báo (không có cách nào khác) */}
                 {isInAppWebView && (
@@ -412,28 +414,24 @@ const LoginView: React.FC = () => {
                     </div>
                 )}
 
-                {/* Đang chờ phiên từ trang Google (2026-10-13): thay hẳn nút — người dùng không phải làm gì thêm. */}
                 {waitingHandoff ? (
-                    <div data-testid="login-handoff-waiting" className="flex flex-col items-center text-center gap-3">
-                        <div className="w-9 h-9 border-[3px] border-sky-600 border-t-transparent rounded-full animate-spin" />
-                        <div>
-                            <p className="type-headline font-bold text-slate-800">Đang hoàn tất đăng nhập…</p>
-                            <p className="mt-1 type-footnote text-slate-500">Đăng nhập Google xong là ứng dụng tự vào.</p>
-                        </div>
-                        <div className="w-full flex flex-col gap-1 pt-2">
+                    <div data-testid="login-handoff-waiting" className="flex flex-col items-center text-center gap-6 py-4">
+                        <div className="w-10 h-10 border-[3px] border-sky-500 border-t-transparent rounded-full animate-spin" />
+                        <p className="type-body text-slate-500">Đang đăng nhập…</p>
+                        <div className="flex items-center gap-4">
                             <Button
                                 data-testid="login-handoff-reopen"
-                                variant="secondary"
-                                size="lg"
-                                icon="refresh"
+                                variant="link"
+                                size="none"
                                 isLoading={isReopening || isPreparingReopen}
                                 onClick={handleReopenPwaLogin}
                                 disabled={isReopening || isPreparingReopen || !preparedRef.current}
-                                className="w-full"
+                                className="ycx-hit type-subhead font-semibold text-sky-700 hover:underline cursor-pointer"
                             >
-                                {isPreparingReopen ? 'Đang chuẩn bị kết nối…' : 'Mở lại trang đăng nhập Google'}
+                                {isPreparingReopen ? 'Đang chuẩn bị…' : 'Thử lại'}
                             </Button>
-                            <Button variant="ghost" size="md" onClick={handleCancelPwaLogin} className="w-full">
+                            <span className="text-slate-300">|</span>
+                            <Button variant="link" size="none" onClick={handleCancelPwaLogin} className="ycx-hit type-subhead text-slate-400 hover:text-slate-600 hover:underline cursor-pointer">
                                 Huỷ
                             </Button>
                         </div>
@@ -446,7 +444,7 @@ const LoginView: React.FC = () => {
                             size="none"
                             onClick={handleLogin}
                             disabled={isLoggingIn || isPreparingPkce}
-                            className="ycx-hit w-full max-w-[300px] h-12 px-5 flex items-center justify-center gap-3 bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 rounded-[10px] shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer select-none"
+                            className="ycx-hit w-full max-w-[300px] h-12 px-5 flex items-center justify-center gap-3 bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 rounded-popup shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer select-none"
                         >
                             {isLoggingIn ? (
                                 <div className="w-4.5 h-4.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
