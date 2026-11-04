@@ -121,82 +121,167 @@ export function formatConfirmedNames(names: string[]): string {
 }
 
 // ───────────────────────── FLEX MESSAGE ─────────────────────────
+// Bố cục theo thẻ PMH (functions/src/pmhFlexCard.ts): header màu + viên nhãn bo tròn bên phải, khối nội dung nền nhạt,
+// nút bấm lớn bo góc. KHÁC thẻ PMH ở BẢNG MÀU (tím / chàm / hồng — PMH là xanh dương / xanh lá) để không lẫn.
+
+export const WORKFLOW_COLORS = {
+    ack: { header: '#7C3AED', soft: '#F5F3FF', ink: '#2E1065', accent: '#6D28D9' },      // tím — xác nhận
+    ticket: { header: '#4338CA', soft: '#EEF2FF', ink: '#1E1B4B', accent: '#3730A3' },   // chàm — phiếu công việc
+    approval: { header: '#A21CAF', soft: '#FDF4FF', ink: '#4A044E', accent: '#86198F' }, // hồng tím — xin duyệt
+} as const;
+
+/** Header màu + tiêu đề bên trái + viên nhãn trắng bên phải (cùng kiểu thẻ PMH). */
+function workflowHeader(title: string, pill: string, color: string): any {
+    return {
+        type: 'box',
+        layout: 'horizontal',
+        backgroundColor: color,
+        paddingAll: '10px',
+        alignItems: 'center',
+        contents: [
+            { type: 'text', text: title, color: '#FFFFFF', weight: 'bold', size: 'sm', flex: 1, wrap: true },
+            {
+                type: 'box',
+                layout: 'vertical',
+                flex: 0,
+                backgroundColor: '#FFFFFF',
+                cornerRadius: '20px',
+                paddingStart: '8px',
+                paddingEnd: '8px',
+                paddingTop: '2px',
+                paddingBottom: '2px',
+                contents: [{ type: 'text', text: clip(pill, 20), color, weight: 'bold', size: 'xs', align: 'center' }],
+            },
+        ],
+    };
+}
+
+/** Dòng "nhãn: giá trị" kiểu thẻ PMH (baseline, nhãn xám, giá trị đậm). */
+function workflowRow(label: string, value: string, color: string): any {
+    return {
+        type: 'box',
+        layout: 'baseline',
+        margin: 'xs',
+        spacing: 'sm',
+        contents: [
+            { type: 'text', text: label, color: '#64748B', size: 'xxs', flex: 4 },
+            { type: 'text', text: clip(value, 60), color, size: 'xs', weight: 'bold', flex: 6, wrap: true },
+        ],
+    };
+}
+
+/** Khối nội dung chính: nền nhạt bo góc, chữ đậm (như ô "PMH ICT100" của thẻ PMH). */
+function workflowSoftBox(text: string, soft: string, ink: string): any {
+    return {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: soft,
+        cornerRadius: 'md',
+        paddingAll: '8px',
+        margin: 'sm',
+        contents: [{ type: 'text', text: clip(text, 500), size: 'sm', weight: 'bold', color: ink, wrap: true }],
+    };
+}
+
+/** Nút lớn bo góc, bấm được (box có action postback) — như nút "Chạm để copy" của thẻ PMH. */
+function workflowButton(label: string, data: string, displayText: string, color: string, textColor = '#FFFFFF'): any {
+    return {
+        type: 'box',
+        layout: 'vertical',
+        backgroundColor: color,
+        cornerRadius: 'lg',
+        paddingTop: '10px',
+        paddingBottom: '10px',
+        paddingStart: '12px',
+        paddingEnd: '12px',
+        action: { type: 'postback', label, data, displayText },
+        contents: [{ type: 'text', text: label, weight: 'bold', size: 'md', color: textColor, align: 'center' }],
+    };
+}
 
 export function buildAckFlex(id: string, body: string, creatorName: string): any {
+    const c = WORKFLOW_COLORS.ack;
     return {
         type: 'flex',
         altText: `Cần xác nhận: ${clip(body, 80)}`,
         contents: {
             type: 'bubble',
+            size: 'mega',
+            header: workflowHeader('📢 CẦN XÁC NHẬN', `#${id}`, c.header),
             body: {
-                type: 'box', layout: 'vertical', spacing: 'md',
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: '12px',
                 contents: [
-                    { type: 'text', text: '📢 CẦN XÁC NHẬN', weight: 'bold', size: 'sm', color: '#0369a1' },
-                    { type: 'text', text: clip(body, 500), wrap: true, size: 'md' },
-                    { type: 'text', text: `Từ: ${clip(creatorName, 40)} · Mã ${id}`, size: 'xs', color: '#64748b', wrap: true },
+                    { type: 'text', text: `@${clip(creatorName, 40)}`, weight: 'bold', size: 'xs', color: c.accent, wrap: true },
+                    workflowSoftBox(body, c.soft, c.ink),
                 ],
             },
             footer: {
-                type: 'box', layout: 'vertical',
-                contents: [{
-                    type: 'button', style: 'primary', color: '#0284c7',
-                    action: { type: 'postback', label: '✅ Đã nhận', data: JSON.stringify({ w: 'ack', id }), displayText: 'Đã nhận' },
-                }],
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: '12px',
+                contents: [workflowButton('✅ Đã nhận', JSON.stringify({ w: 'ack', id }), 'Đã nhận', c.header)],
             },
         },
     };
 }
 
 export function buildTicketFlex(t: { code: string; title: string; requesterName: string; createdLabel: string }): any {
+    const c = WORKFLOW_COLORS.ticket;
     return {
         type: 'flex',
         altText: `Phiếu ${t.code}: ${clip(t.title, 60)}`,
         contents: {
             type: 'bubble',
+            size: 'mega',
+            header: workflowHeader('🎫 PHIẾU CÔNG VIỆC', t.code, c.header),
             body: {
-                type: 'box', layout: 'vertical', spacing: 'md',
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: '12px',
                 contents: [
-                    { type: 'text', text: `🎫 PHIẾU ${t.code}`, weight: 'bold', size: 'sm', color: '#0369a1' },
-                    { type: 'text', text: clip(t.title, 500), wrap: true, size: 'md' },
-                    { type: 'text', text: `Người gửi: ${clip(t.requesterName, 40)} · ${t.createdLabel}`, size: 'xs', color: '#64748b', wrap: true },
+                    workflowSoftBox(t.title, c.soft, c.ink),
+                    workflowRow('Người gửi:', `@${clip(t.requesterName, 40)}`, c.accent),
+                    workflowRow('Gửi lúc:', t.createdLabel, c.ink),
                 ],
             },
             footer: {
-                type: 'box', layout: 'vertical',
-                contents: [{
-                    type: 'button', style: 'secondary',
-                    action: { type: 'postback', label: '✔ Hoàn tất', data: JSON.stringify({ w: 'tdone', c: t.code }), displayText: `Hoàn tất ${t.code}` },
-                }],
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: '12px',
+                contents: [workflowButton('✔ Hoàn tất', JSON.stringify({ w: 'tdone', c: t.code }), `Hoàn tất ${t.code}`, c.header)],
             },
         },
     };
 }
 
 export function buildApprovalFlex(a: { id: string; body: string; requesterName: string }): any {
+    const c = WORKFLOW_COLORS.approval;
     return {
         type: 'flex',
         altText: `Xin duyệt: ${clip(a.body, 80)}`,
         contents: {
             type: 'bubble',
+            size: 'mega',
+            header: workflowHeader('📝 XIN DUYỆT', `#${a.id}`, c.header),
             body: {
-                type: 'box', layout: 'vertical', spacing: 'md',
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: '12px',
                 contents: [
-                    { type: 'text', text: '📝 XIN DUYỆT', weight: 'bold', size: 'sm', color: '#0369a1' },
-                    { type: 'text', text: clip(a.body, 500), wrap: true, size: 'md' },
-                    { type: 'text', text: `Người xin: ${clip(a.requesterName, 40)} · Mã ${a.id}`, size: 'xs', color: '#64748b', wrap: true },
+                    workflowRow('Người xin:', `@${clip(a.requesterName, 40)}`, c.accent),
+                    workflowSoftBox(a.body, c.soft, c.ink),
                 ],
             },
             footer: {
-                type: 'box', layout: 'horizontal', spacing: 'sm',
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                paddingAll: '12px',
                 contents: [
-                    {
-                        type: 'button', style: 'primary', color: '#059669', flex: 1,
-                        action: { type: 'postback', label: 'Duyệt', data: JSON.stringify({ w: 'apr', id: a.id, d: 'ok' }), displayText: 'Duyệt' },
-                    },
-                    {
-                        type: 'button', style: 'secondary', flex: 1,
-                        action: { type: 'postback', label: 'Từ chối', data: JSON.stringify({ w: 'apr', id: a.id, d: 'no' }), displayText: 'Từ chối' },
-                    },
+                    workflowButton('Duyệt', JSON.stringify({ w: 'apr', id: a.id, d: 'ok' }), 'Duyệt', c.header),
+                    workflowButton('Từ chối', JSON.stringify({ w: 'apr', id: a.id, d: 'no' }), 'Từ chối', '#E2E8F0', '#334155'),
                 ],
             },
         },
