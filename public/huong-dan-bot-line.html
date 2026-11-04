@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Hướng dẫn sử dụng Bot LINE</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="/huong-dan.css" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Hướng dẫn sử dụng Bot LINE</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#hướng-dẫn-sử-dụng-bot-line"
+id="toc-hướng-dẫn-sử-dụng-bot-line">Hướng dẫn sử dụng Bot LINE</a>
+<ul>
+<li><a href="#mục-lục" id="toc-mục-lục">Mục lục</a></li>
+<li><a href="#chuẩn-bị" id="toc-chuẩn-bị">1. Chuẩn bị</a></li>
+<li><a href="#lệnh-chung" id="toc-lệnh-chung">2. Lệnh chung</a></li>
+<li><a href="#tồn-kho-và-xin-mã-pmh" id="toc-tồn-kho-và-xin-mã-pmh">3.
+Tồn kho và xin mã PMH</a></li>
+<li><a href="#lọc-mã-riêng-chat-1-1" id="toc-lọc-mã-riêng-chat-1-1">4.
+Lọc mã riêng (chat 1-1)</a></li>
+<li><a href="#ảnh-báo-cáo" id="toc-ảnh-báo-cáo">5. Ảnh báo cáo</a></li>
+<li><a href="#xác-nhận-đã-nhận" id="toc-xác-nhận-đã-nhận">6. Xác nhận
+“Đã nhận”</a></li>
+<li><a href="#phiếu-yêu-cầu" id="toc-phiếu-yêu-cầu">7. Phiếu yêu
+cầu</a></li>
+<li><a href="#xin-duyệt" id="toc-xin-duyệt">8. Xin duyệt</a></li>
+<li><a href="#ghi-nhanh" id="toc-ghi-nhanh">9. Ghi nhanh</a></li>
+<li><a href="#tag-theo-nhóm-vai-trò" id="toc-tag-theo-nhóm-vai-trò">10.
+Tag theo nhóm vai trò</a></li>
+<li><a href="#trên-dashboard" id="toc-trên-dashboard">11. Trên
+Dashboard</a></li>
+<li><a href="#giới-hạn-và-lưu-ý" id="toc-giới-hạn-và-lưu-ý">12. Giới hạn
+và lưu ý</a></li>
+<li><a href="#bảng-tổng-hợp-lệnh" id="toc-bảng-tổng-hợp-lệnh">13. Bảng
+tổng hợp lệnh</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="hướng-dẫn-sử-dụng-bot-line">Hướng dẫn sử dụng Bot LINE</h1>
+<p>Tài liệu này mô tả toàn bộ chức năng của Bot LINE trong Dashboard YCX
+và cách dùng từng chức năng. Dành cho nhân viên dùng bot trong nhóm LINE
+và quản lý cấu hình bot trên Dashboard.</p>
+<p>Bot nhận lệnh gõ trong nhóm LINE hoặc chat riêng. Một số lệnh bắt đầu
+bằng <code>/</code>, <code>.</code>, <code>!</code> hoặc <code>#</code>
+đều được, ví dụ <code>/yc</code> và <code>.yc</code> giống nhau. Chữ
+hoa, chữ thường đều được.</p>
+<hr />
+<h2 id="mục-lục">Mục lục</h2>
+<ol type="1">
+<li><a href="#1-chuẩn-bị">Chuẩn bị</a></li>
+<li><a href="#2-lệnh-chung">Lệnh chung</a></li>
+<li><a href="#3-tồn-kho-và-xin-mã-pmh">Tồn kho và xin mã PMH</a></li>
+<li><a href="#4-lọc-mã-riêng-chat-1-1">Lọc mã riêng (chat 1-1)</a></li>
+<li><a href="#5-ảnh-báo-cáo">Ảnh báo cáo</a></li>
+<li><a href="#6-xác-nhận-đã-nhận">Xác nhận “Đã nhận”</a></li>
+<li><a href="#7-phiếu-yêu-cầu">Phiếu yêu cầu</a></li>
+<li><a href="#8-xin-duyệt">Xin duyệt</a></li>
+<li><a href="#9-ghi-nhanh">Ghi nhanh</a></li>
+<li><a href="#10-tag-theo-nhóm-vai-trò">Tag theo nhóm vai trò</a></li>
+<li><a href="#11-trên-dashboard">Trên Dashboard</a></li>
+<li><a href="#12-giới-hạn-và-lưu-ý">Giới hạn và lưu ý</a></li>
+<li><a href="#13-bảng-tổng-hợp-lệnh">Bảng tổng hợp lệnh</a></li>
+</ol>
+<hr />
+<h2 id="chuẩn-bị">1. Chuẩn bị</h2>
+<ul>
+<li><strong>Thêm bot vào nhóm LINE</strong> như thêm một thành viên bình
+thường. Bot vào nhóm im lặng, không gửi lời chào.</li>
+<li><strong>Lấy mã nhóm hoặc mã người dùng</strong>: gõ <code>id</code>
+trong nhóm (hoặc trong chat riêng). Bot trả về Group ID hoặc LINE User
+ID để dán vào Dashboard khi cần.</li>
+<li><strong>Quyền dùng bot trên Dashboard</strong> do quản lý cấp. Người
+không có quyền không thấy tab Bot LINE.</li>
+</ul>
+<hr />
+<h2 id="lệnh-chung">2. Lệnh chung</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>id</code> (hoặc <code>lineid</code>,
+<code>groupid</code>)</td>
+<td>Trong nhóm: hiện tên nhóm và Group ID. Trong chat riêng: hiện LINE
+User ID của bạn.</td>
+</tr>
+<tr class="even">
+<td><code>hd</code> (hoặc <code>help</code>,
+<code>hướng dẫn</code>)</td>
+<td>Bot gửi hướng dẫn ngắn ngay trong chat.</td>
+</tr>
+<tr class="odd">
+<td><code>cp</code></td>
+<td>Danh sách cú pháp đăng ký mã của tất cả sản phẩm.</td>
+</tr>
+<tr class="even">
+<td><code>dsbc</code></td>
+<td>Danh sách lệnh lấy ảnh báo cáo (xem mục 5).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tồn-kho-và-xin-mã-pmh">3. Tồn kho và xin mã PMH</h2>
+<p>Đây là chức năng chính của bot: cho xem tồn kho mã PMH và lấy mã trực
+tiếp trong chat.</p>
+<h3 id="xem-tồn-kho">3.1. Xem tồn kho</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>tk</code></td>
+<td>Tồn kho toàn bộ, kèm danh sách loại và cách xem riêng.</td>
+</tr>
+<tr class="even">
+<td><code>tk event</code> hoặc <code>tk e</code></td>
+<td>Tồn kho PMH Event.</td>
+</tr>
+<tr class="odd">
+<td><code>tk gvgs</code> hoặc <code>tk gv</code></td>
+<td>Tồn kho PMH Giờ Vàng.</td>
+</tr>
+<tr class="even">
+<td><code>tk [tên loại]</code></td>
+<td>Xem riêng một loại, ví dụ <code>tk honor</code>,
+<code>tk vivo</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="xin-nhận-mã">3.2. Xin nhận mã</h3>
+<ul>
+<li>Gõ <code>tk</code> để xem danh sách, rồi <strong>chạm trực tiếp vào
+sản phẩm</strong> cần lấy trên thẻ bot gửi. Bot cấp mã và gửi thẻ
+mã.</li>
+<li>Trên thẻ mã có nút <strong>“Chạm để copy”</strong> để mở trang sao
+chép mã nhanh.</li>
+</ul>
+<h3 id="hủy-trả-mã-về-kho">3.3. Hủy / trả mã về kho</h3>
+<ul>
+<li>Soạn <code>huy [mã coupon]</code> (hoặc
+<code>huy [mã đơn hàng]</code>). Mã đã hủy được trả về kho.</li>
+<li>Dùng khi đã xin mã nhưng không dùng đến.</li>
+</ul>
+<h3 id="tra-cứu-trạng-thái-mã">3.4. Tra cứu trạng thái mã</h3>
+<ul>
+<li>Dán <strong>một mã coupon</strong> vào chat. Bot báo mã đã được ai
+dùng và dùng lúc nào, hoặc còn chưa dùng.</li>
+</ul>
+<hr />
+<h2 id="lọc-mã-riêng-chat-1-1">4. Lọc mã riêng (chat 1-1)</h2>
+<p>Dùng khi bạn cần lấy riêng các mã đứng tên mình từ một tin nhắn
+gộp.</p>
+<ul>
+<li><strong>Chuyển tiếp</strong> tin nhắn gộp cho bot trong chat riêng.
+Bot tự lọc các mã có tên bạn và gửi thẻ lọc.</li>
+<li>Thẻ lọc có nút copy như thẻ tồn kho.</li>
+<li><strong><code>csd</code></strong>: hiện lại mọi thẻ đã lọc nhưng
+<strong>chưa sử dụng</strong> trong tháng này.</li>
+<li>Cú pháp nhận diện được cấu hình trên Dashboard, tab <strong>Cú pháp
+&amp; Lọc</strong>.</li>
+</ul>
+<blockquote>
+<p>Lưu ý: chức năng lọc chỉ dùng trong chat 1-1. Trong nhóm, bot không
+lọc.</p>
+</blockquote>
+<hr />
+<h2 id="ảnh-báo-cáo">5. Ảnh báo cáo</h2>
+<p>Bot gửi ảnh báo cáo mới nhất ngay trong nhóm, miễn phí.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>bc</code></td>
+<td>Ảnh báo cáo tổng quan mới nhất.</td>
+</tr>
+<tr class="even">
+<td><code>bclk</code></td>
+<td>Ảnh báo cáo lũy kế mới nhất.</td>
+</tr>
+<tr class="odd">
+<td><code>bcrt</code></td>
+<td>Ảnh báo cáo realtime mới nhất.</td>
+</tr>
+<tr class="even">
+<td><code>dsbc</code></td>
+<td>Danh sách tất cả lệnh báo cáo đang có.</td>
+</tr>
+</tbody>
+</table>
+<p>Ngoài việc gõ lệnh, báo cáo còn được gửi tự động theo lịch quản lý đã
+cài trong tab <strong>Gửi Notify</strong> trên Dashboard. Gõ lệnh khi
+cần bản mới nhất ngay.</p>
+<hr />
+<h2 id="xác-nhận-đã-nhận">6. Xác nhận “Đã nhận”</h2>
+<p>Dùng khi cần biết ai đã đọc một thông báo quan trọng.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/xacnhan &lt;nội dung&gt;</code></td>
+<td>Bot gửi thông báo kèm nút <strong>✅ Đã nhận</strong>. Thông báo có
+mã riêng, ví dụ <code>Ab12Cd3F</code>.</td>
+</tr>
+<tr class="even">
+<td><code>/xacnhan ds &lt;mã&gt;</code></td>
+<td>Xem danh sách người đã bấm “Đã nhận”.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cách dùng:</strong> 1. Gõ
+<code>/xacnhan Họp 8h sáng mai</code>. 2. Mọi người bấm nút <strong>Đã
+nhận</strong>. Mỗi người chỉ được tính một lần. 3. Người gửi gõ
+<code>/xacnhan ds &lt;mã&gt;</code> để xem ai đã nhận.</p>
+<hr />
+<h2 id="phiếu-yêu-cầu">7. Phiếu yêu cầu</h2>
+<p>Dùng để giao việc và theo dõi đến khi xong.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/yc &lt;việc cần làm&gt;</code></td>
+<td>Tạo phiếu mới, số tăng dần: YC-0001, YC-0002…</td>
+</tr>
+<tr class="even">
+<td><code>/yc ds</code></td>
+<td>Xem các phiếu đang mở.</td>
+</tr>
+<tr class="odd">
+<td><code>/yc xong &lt;mã&gt;</code></td>
+<td>Đóng phiếu. Ví dụ <code>/yc xong 1</code> hoặc
+<code>/yc xong YC-0001</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cách dùng:</strong> 1. Gõ
+<code>/yc Sửa máy lạnh kho 2</code>. Bot trả về phiếu có mã YC-000x và
+nút <strong>✔ Hoàn tất</strong>. 2. Khi xong, bấm <strong>Hoàn
+tất</strong> hoặc gõ <code>/yc xong &lt;mã&gt;</code>. 3. Gõ
+<code>/yc ds</code> để xem phiếu còn mở.</p>
+<blockquote>
+<p>Ai trong nhóm cũng đóng được phiếu.</p>
+</blockquote>
+<hr />
+<h2 id="xin-duyệt">8. Xin duyệt</h2>
+<p>Dùng cho đề nghị cần người có quyền đồng ý, ví dụ nghỉ phép hoặc đổi
+ca.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/xinphep &lt;nội dung&gt;</code></td>
+<td>Gửi yêu cầu có hai nút <strong>Duyệt</strong> và <strong>Từ
+chối</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cách dùng:</strong> 1. Gõ
+<code>/xinphep nghỉ 1 ngày 5/11</code>. 2. Người có quyền duyệt bấm
+<strong>Duyệt</strong> hoặc <strong>Từ chối</strong>.</p>
+<p><strong>Quy tắc:</strong> - Chỉ người được quản lý thêm vào danh sách
+<strong>Admin</strong> của bot với vai trò <strong>Duyệt đơn</strong>
+hoặc <strong>Toàn quyền</strong> mới duyệt được. - Bot phải có ít nhất
+một người duyệt. Nếu chưa có, <code>/xinphep</code> sẽ báo chưa có người
+duyệt và không tạo yêu cầu. - Không ai tự duyệt yêu cầu của chính mình.
+- Mỗi yêu cầu chỉ quyết định một lần. - Mọi lần bấm (kể cả lần bị từ
+chối vì không có quyền) đều được ghi nhật ký. - Quản lý xem và duyệt
+được trên Dashboard, tab <strong>Yêu cầu duyệt</strong>.</p>
+<hr />
+<h2 id="ghi-nhanh">9. Ghi nhanh</h2>
+<p>Dùng để ghi lại một việc nhanh, không cần tạo phiếu.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/ghi &lt;nội dung&gt;</code></td>
+<td>Lưu ghi chú kèm người ghi, nhóm và thời gian. Bot trả về mã ghi
+chú.</td>
+</tr>
+<tr class="even">
+<td><code>/ghi ds</code></td>
+<td>Xem 10 ghi chú gần nhất ngay trong chat.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ví dụ:</strong> <code>/ghi Hết pin máy quét</code> (bot trả
+“📝 Đã ghi nhanh (mã …)”).</p>
+<p>Ghi chú xem và xoá được trên Dashboard, tab <strong>Ghi
+nhanh</strong>.</p>
+<blockquote>
+<p>Ghi chú không gửi tin ra nhóm nên không ảnh hưởng hạn mức tin
+LINE.</p>
+</blockquote>
+<hr />
+<h2 id="tag-theo-nhóm-vai-trò">10. Tag theo nhóm vai trò</h2>
+<p>Dùng để gọi cả nhóm người cùng vai trò (ví dụ ca sáng, kho, thu ngân)
+trong một tin.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Lệnh</th>
+<th>Tác dụng</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/nhom vao &lt;tên nhóm&gt;</code></td>
+<td>Bạn tự tham gia nhóm. Nhóm được tạo khi có người vào đầu tiên.</td>
+</tr>
+<tr class="even">
+<td><code>/nhom ra &lt;tên nhóm&gt;</code></td>
+<td>Bạn rời nhóm.</td>
+</tr>
+<tr class="odd">
+<td><code>/nhom ds</code></td>
+<td>Xem tất cả nhóm và số người.</td>
+</tr>
+<tr class="even">
+<td><code>/nhom ds &lt;tên nhóm&gt;</code></td>
+<td>Xem danh sách người trong nhóm.</td>
+</tr>
+<tr class="odd">
+<td><code>@&lt;tên nhóm&gt; &lt;nội dung&gt;</code></td>
+<td>Tag tất cả thành viên nhóm trong một tin, kèm nội dung.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ví dụ:</strong> 1. Mỗi người trong ca sáng gõ
+<code>/nhom vao ca-sáng</code> một lần. 2. Ai đó gõ
+<code>@ca-sáng họp 8h nhé</code>. Bot gửi một tin tag mọi người trong
+nhóm.</p>
+<p><strong>Quy tắc:</strong> - Tên nhóm không phân biệt hoa thường và
+dấu: <code>@Ca Sáng</code>, <code>@ca-sang</code> là một nhóm. - Chỉ tag
+được trong nhóm chat, không tag được trong chat riêng. - Một tin tag tối
+đa 50 người. - Nếu <code>@tên</code> không khớp nhóm nào, bot không trả
+lời (không ảnh hưởng các lệnh khác).</p>
+<hr />
+<h2 id="trên-dashboard">11. Trên Dashboard</h2>
+<p>Mở <strong>Bot LINE</strong> trong menu bên trái (trên điện thoại:
+thanh menu dưới). Các tab:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Tab</th>
+<th>Dùng để</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Coupon Event</strong></td>
+<td>Quản lý mã coupon sự kiện: nhập, sửa, xem trạng thái.</td>
+</tr>
+<tr class="even">
+<td><strong>Coupon lọc</strong></td>
+<td>Xem các mã đã lọc và trạng thái sử dụng.</td>
+</tr>
+<tr class="odd">
+<td><strong>Gửi Notify</strong></td>
+<td>Lên lịch gửi thông báo tự động vào nhóm.</td>
+</tr>
+<tr class="even">
+<td><strong>Chat BOT</strong></td>
+<td>Thư viện từ khoá và câu trả lời tự động của bot.</td>
+</tr>
+<tr class="odd">
+<td><strong>Admin</strong></td>
+<td>Thêm người quản trị bot và chọn vai trò: <em>Toàn quyền</em>,
+<em>Duyệt đơn</em>, <em>Chỉ xem báo cáo</em>.</td>
+</tr>
+<tr class="even">
+<td><strong>Yêu cầu duyệt</strong></td>
+<td>Xem và duyệt/từ chối yêu cầu <code>/xinphep</code>, kèm nhật ký từng
+lần tác động.</td>
+</tr>
+<tr class="odd">
+<td><strong>Ghi nhanh</strong></td>
+<td>Xem, tìm và xoá các ghi chú <code>/ghi</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Cấu hình nhóm</strong></td>
+<td>Bật/tắt từng tính năng theo nhóm LINE.</td>
+</tr>
+<tr class="odd">
+<td><strong>Cú pháp &amp; Lọc</strong></td>
+<td>Cấu hình cú pháp nhận diện mã và lọc.</td>
+</tr>
+<tr class="even">
+<td><strong>Cấu hình Bot</strong></td>
+<td>Thông tin kết nối bot với LINE. Token và Secret được lưu an toàn ở
+máy chủ, không hiển thị lại trên giao diện.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Một số thao tác trên Dashboard (duyệt, xoá, sửa) cần đúng quyền.
+Người không có quyền sẽ nhận thông báo từ chối.</p>
+</blockquote>
+<hr />
+<h2 id="giới-hạn-và-lưu-ý">12. Giới hạn và lưu ý</h2>
+<ul>
+<li><strong>Hạn mức tin LINE</strong>: tin gửi theo lịch (Gửi Notify,
+báo cáo tự động) và tin broadcast được tính vào hạn mức tin LINE. Các
+lệnh làm việc (<code>/xacnhan</code>, <code>/yc</code>,
+<code>/xinphep</code>, <code>/ghi</code>, <code>/nhom</code>) chỉ trả
+lời trực tiếp bằng thẻ phản hồi của lệnh nên không tốn hạn mức tin
+push.</li>
+<li><strong>Mention và tag</strong>: LINE chỉ tag được người đang ở
+trong nhóm chat.</li>
+<li><strong>Cấu hình nhóm</strong>: tab “Cấu hình nhóm” bật/tắt theo
+từng nhóm các tính năng: lọc coupon, xin mã, tra tồn kho
+(<code>tk</code>), huỷ mã, tra cứu mã, trả lời theo từ khoá, tự động trả
+lời, và chuyển tiếp PMH. Các lệnh làm việc mới (<code>/xacnhan</code>,
+<code>/yc</code>, <code>/xinphep</code>, <code>/ghi</code>,
+<code>/nhom</code>) <strong>chưa</strong> bị tắt theo nhóm.</li>
+<li><strong>Dữ liệu</strong>: ghi chú, phiếu, yêu cầu duyệt và nhóm vai
+trò được lưu trên hệ thống. Không lưu ở máy cá nhân.</li>
+<li><strong>Tài khoản đăng nhập Dashboard</strong>: đăng xuất khi dùng
+máy chung.</li>
+</ul>
+<p><strong>Khi bot không trả lời:</strong> 1. Kiểm tra bot còn trong
+nhóm không (gõ <code>id</code> thử). 2. Kiểm tra lệnh đúng cú pháp (xem
+mục 13). 3. Nếu lệnh đúng mà vẫn không có phản hồi, báo quản lý kiểm tra
+cấu hình bot trên Dashboard.</p>
+<hr />
+<h2 id="bảng-tổng-hợp-lệnh">13. Bảng tổng hợp lệnh</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Nhóm</th>
+<th>Lệnh</th>
+<th>Mục</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Chung</td>
+<td><code>id</code>, <code>hd</code>, <code>cp</code>,
+<code>dsbc</code></td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td>Tồn kho</td>
+<td><code>tk</code>, <code>tk event</code>, <code>tk gvgs</code>,
+<code>tk [loại]</code></td>
+<td>3.1</td>
+</tr>
+<tr class="odd">
+<td>Xin mã</td>
+<td>chạm sản phẩm trong thẻ <code>tk</code></td>
+<td>3.2</td>
+</tr>
+<tr class="even">
+<td>Hủy mã</td>
+<td><code>huy [mã]</code></td>
+<td>3.3</td>
+</tr>
+<tr class="odd">
+<td>Tra mã</td>
+<td>dán mã coupon vào chat</td>
+<td>3.4</td>
+</tr>
+<tr class="even">
+<td>Lọc riêng</td>
+<td>chuyển tiếp tin gộp (chat 1-1), <code>csd</code></td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<td>Báo cáo</td>
+<td><code>bc</code>, <code>bclk</code>, <code>bcrt</code>,
+<code>dsbc</code></td>
+<td>5</td>
+</tr>
+<tr class="even">
+<td>Đã nhận</td>
+<td><code>/xacnhan &lt;nội dung&gt;</code>,
+<code>/xacnhan ds &lt;mã&gt;</code></td>
+<td>6</td>
+</tr>
+<tr class="odd">
+<td>Phiếu</td>
+<td><code>/yc &lt;việc&gt;</code>, <code>/yc ds</code>,
+<code>/yc xong &lt;mã&gt;</code></td>
+<td>7</td>
+</tr>
+<tr class="even">
+<td>Xin duyệt</td>
+<td><code>/xinphep &lt;nội dung&gt;</code></td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td>Ghi nhanh</td>
+<td><code>/ghi &lt;nội dung&gt;</code>, <code>/ghi ds</code></td>
+<td>9</td>
+</tr>
+<tr class="even">
+<td>Tag nhóm</td>
+<td><code>/nhom vao|ra|ds [tên]</code>,
+<code>@&lt;tên nhóm&gt; &lt;nội dung&gt;</code></td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>Tài liệu cập nhật theo các chức năng đã triển khai đến ngày
+2026-11-04.</em></p>
+</body>
+</html>

@@ -316,6 +316,19 @@ export default function LineBotView() {
                     className="w-full"
                 />
 
+                {/* Hướng dẫn sử dụng Bot LINE — trang tĩnh trong public/, mở tab mới */}
+                <div className="flex justify-end">
+                    <a
+                        href="/huong-dan-bot-line.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 dark:text-sky-400 hover:underline"
+                    >
+                        <AppIcon name="guide" size="sm" />
+                        Hướng dẫn sử dụng Bot LINE
+                    </a>
+                </div>
+
                 {/* Tab Contents */}
                 <div className="min-h-[400px]">
                     {activeSubTab === 'coupons' && (

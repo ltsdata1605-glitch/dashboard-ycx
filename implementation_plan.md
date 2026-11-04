@@ -9326,3 +9326,9 @@ Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (gh
 - Tab "Ghi nhanh" trên web: bảng có tìm kiếm, xoá có hộp xác nhận (chủ bot / admin / manager cùng Kho), giống tab PMH.
 - `notes` không bị khoá ghi từ client (manager được xoá trên web). Ghi chú không gửi tin ra nhóm nên không tốn hạn mức.
 - Kiểm chứng: 37 test đơn vị; Playwright chỉ đọc trên tài khoản test (tab mở được, không lỗi, trạng thái trống đúng).
+
+## Đợt 6 — Liên kết hướng dẫn Bot LINE trên web (2026-11-04, nhánh `claude/line-bot-huong-dan-web`)
+- `public/huong-dan-bot-line.html` (tạo từ `docs/huong-dan-bot-line.md` bằng pandoc) và `public/huong-dan.css`.
+- Tab Bot LINE có liên kết "Hướng dẫn sử dụng Bot LINE" (icon `guide`) mở file ở tab mới.
+- Test chỉ đọc `tests/e2e/huong-dan-bot-line.spec.ts`: liên kết hiện đúng, trang mở được.
+- Khi sửa hướng dẫn: sửa `docs/huong-dan-bot-line.md`, rồi chạy lại pandoc (xem mục đầu file này) để cập nhật bản HTML.
