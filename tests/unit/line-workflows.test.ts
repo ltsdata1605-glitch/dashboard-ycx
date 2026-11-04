@@ -427,3 +427,39 @@ describe('tag theo nhóm vai trò (@ca-sáng, @kho, @thu-ngân)', () => {
         expect(last()[0].text).toContain('1. Nguyễn An');
     });
 });
+
+describe('/ghi — ghi nhanh vào Firebase', () => {
+    it('nhận diện /ghi <nội dung> và /ghi ds; không nhận /ghi trơ trọi', () => {
+        expect(parseWorkflowCommand('/ghi Nhập 20 thùng nước ngọt')).toEqual({ kind: 'note_create', body: 'Nhập 20 thùng nước ngọt' });
+        expect(parseWorkflowCommand('.ghi hết pin máy quét')).toEqual({ kind: 'note_create', body: 'hết pin máy quét' });
+        expect(parseWorkflowCommand('/ghi ds')).toEqual({ kind: 'note_list' });
+        expect(parseWorkflowCommand('/ghi')).toBeNull();
+        expect(parseWorkflowCommand('ghi nhớ mai họp')).toBeNull();
+    });
+    it('lưu ghi chú kèm người ghi, nhóm, thời gian và trả mã', async () => {
+        const { db, deps, last } = setup();
+        expect(await handleWorkflowText({ ...deps(), reply: deps().reply }, { uid: UID, senderUserId: 'U_AN', groupId: 'G1', groupName: 'Kho 910', text: '/ghi Hết pin máy quét' })).toBe(true);
+        const notes = [...db.store.entries()].filter(([k]) => k.includes('/notes/'));
+        expect(notes).toHaveLength(1);
+        const [, data] = notes[0];
+        expect(data).toMatchObject({ body: 'Hết pin máy quét', authorId: 'U_AN', authorName: 'Nguyễn An', groupId: 'G1', groupName: 'Kho 910', createdAt: NOW });
+        expect(last()[0].text).toContain('Đã ghi nhanh (mã ' + data.id + ')');
+    });
+    it('ghi từ chat riêng: không có tên nhóm', async () => {
+        const { db, deps } = setup();
+        await handleWorkflowText(deps(), { uid: UID, senderUserId: 'U_BINH', text: '/ghi nhắc đổi ca' });
+        const [, data] = [...db.store.entries()].find(([k]) => k.includes('/notes/'))!;
+        expect(data.groupId).toBeNull();
+        expect(data.groupName).toBeNull();
+    });
+    it('/ghi ds liệt kê ghi nhanh gần nhất', async () => {
+        const { deps, last } = setup();
+        await handleWorkflowText(deps(), { uid: UID, senderUserId: 'U_AN', text: '/ghi ds' });
+        expect(last()[0].text).toMatch(/Chưa có ghi nhanh nào/);
+        await handleWorkflowText(deps(), { uid: UID, senderUserId: 'U_AN', text: '/ghi Việc một' });
+        await handleWorkflowText(deps(), { uid: UID, senderUserId: 'U_BINH', text: '/ghi Việc hai' });
+        await handleWorkflowText(deps(), { uid: UID, senderUserId: 'U_AN', text: '/ghi ds' });
+        expect(last()[0].text).toContain('GHI NHANH GẦN NHẤT (2)');
+        expect(last()[0].text).toContain('Việc hai');
+    });
+});

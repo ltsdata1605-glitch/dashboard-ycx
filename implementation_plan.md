@@ -9319,3 +9319,10 @@ Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (gh
 - `firestore.rules`: `tag_groups` chỉ server ghi (client chỉ đọc).
 - Kiểm chứng: 33 test đơn vị (`line-workflows`), 104/104 test quy tắc trên emulator.
 - Chưa kiểm chứng trên LINE thật: cần xác nhận mention hiện đúng tên và thông báo tới đúng người.
+
+## Đợt 5 — /ghi: ghi nhanh vào Firebase, xem trên tab Bot LINE (2026-11-04, nhánh `claude/line-bot-ghi-nhanh`)
+- Không dùng Google Sheet. `/ghi <nội dung>` lưu vào `line_bots/{uid}/notes/{mã}` (người ghi, nhóm, thời gian) và trả mã qua replyToken.
+- `/ghi ds`: 10 mục gần nhất trong chat.
+- Tab "Ghi nhanh" trên web: bảng có tìm kiếm, xoá có hộp xác nhận (chủ bot / admin / manager cùng Kho), giống tab PMH.
+- `notes` không bị khoá ghi từ client (manager được xoá trên web). Ghi chú không gửi tin ra nhóm nên không tốn hạn mức.
+- Kiểm chứng: 37 test đơn vị; Playwright chỉ đọc trên tài khoản test (tab mở được, không lỗi, trạng thái trống đúng).

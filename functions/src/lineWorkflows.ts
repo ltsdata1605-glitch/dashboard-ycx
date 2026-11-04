@@ -20,7 +20,9 @@ export type WorkflowCommand =
     | { kind: 'ticket_create'; title: string }
     | { kind: 'ticket_list' }
     | { kind: 'ticket_done'; code: string }
-    | { kind: 'approval_create'; body: string };
+    | { kind: 'approval_create'; body: string }
+    | { kind: 'note_create'; body: string }
+    | { kind: 'note_list' };
 
 const PREFIX = /^[./!#]\s*/;
 
@@ -56,6 +58,14 @@ export function parseWorkflowCommand(raw: string): WorkflowCommand | null {
         const rest = body.replace(/^xinphep\s*/i, '').trim();
         if (!rest) return null;
         return { kind: 'approval_create', body: rest };
+    }
+
+    // /ghi <nội dung> — ghi nhanh vào Firebase (xem trên tab Bot LINE trong Dashboard). /ghi ds: 10 mục gần nhất.
+    if (/^ghi(?:\s|$)/i.test(body)) {
+        const rest = body.replace(/^ghi\s*/i, '').trim();
+        if (/^ds$/i.test(rest)) return { kind: 'note_list' };
+        if (!rest) return null;
+        return { kind: 'note_create', body: rest };
     }
 
     return null;
@@ -490,6 +500,8 @@ export interface WorkflowContext {
     uid: string;
     senderUserId: string;
     groupId?: string;
+    /** Tên nhóm LINE (để ghi nhanh biết ghi từ đâu). */
+    groupName?: string;
     text: string;
 }
 
@@ -590,6 +602,30 @@ export async function handleWorkflowText(deps: WorkflowDeps, ctx: WorkflowContex
         });
         await logApprovalEvent(db, ctx.uid, id, { action: 'created', actorId: ctx.senderUserId, actorName: name, source: 'line', at: nowIso });
         await reply([buildApprovalFlex({ id, body: cmd.body, requesterName: name })]);
+        return true;
+    }
+
+    if (cmd.kind === 'note_create') {
+        const id = newShortId();
+        const name = await senderName(db, ctx.uid, ctx.senderUserId);
+        await botRef(db, ctx.uid).collection('notes').doc(id).set({
+            id, body: clip(cmd.body, 2000), authorId: ctx.senderUserId, authorName: name,
+            groupId: ctx.groupId || null, groupName: ctx.groupId ? clip(ctx.groupName || 'Nhóm LINE', 60) : null,
+            createdAt: nowIso,
+        });
+        await reply([{ type: 'text', text: `📝 Đã ghi nhanh (mã ${id}):\n${clip(cmd.body, 300)}` }]);
+        return true;
+    }
+
+    if (cmd.kind === 'note_list') {
+        const snap = await botRef(db, ctx.uid).collection('notes').orderBy('createdAt', 'desc').limit(10).get();
+        const rows = snap.docs.map((d: any) => d.data());
+        if (rows.length === 0) {
+            await reply([{ type: 'text', text: '📝 Chưa có ghi nhanh nào. Gõ /ghi <nội dung> để ghi.' }]);
+            return true;
+        }
+        const lines = rows.map((n: any) => `• ${vnLabel(n.createdAt)} · ${clip(n.authorName, 20)}: ${clip(n.body, 120)}`);
+        await reply([{ type: 'text', text: `📝 GHI NHANH GẦN NHẤT (${rows.length})\n━━━━━━━━━━━━━━━━━━━━━\n${lines.join('\n')}` }]);
         return true;
     }
 

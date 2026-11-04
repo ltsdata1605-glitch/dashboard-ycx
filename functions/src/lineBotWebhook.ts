@@ -2900,7 +2900,7 @@ export const lineBotWebhook = onRequest(
                     reply: (messages: any[]) => replyLineMessage(token, replyToken, messages),
                     canApprove: (userId: string) => isWorkflowApprover(uid, userId),
                     hasApprover: () => hasWorkflowApprover(uid),
-                }, { uid, senderUserId, groupId, text: cleanText })) continue;
+                }, { uid, senderUserId, groupId, groupName: currentGroupName, text: cleanText })) continue;
 
                 // 1.2. Kiểm tra danh sách lệnh báo cáo (dsbc)
                 const cleanCmd = lower.replace(/^[./!#\s]+/, '').replace(/\s+/g, '').trim();
