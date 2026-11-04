@@ -372,16 +372,15 @@ const LoginView: React.FC = () => {
     // khoản thì nút ghi luôn email (Google chọn sẵn). Dòng "Dùng thử" ở đáy chỉ hiện trên máy chủ phát triển/test (utils/demoMode.ts).
     // Đăng nhập chuyển hướng (máy tính) chỉ còn trong hộp lỗi khi popup hỏng.
     return (
-        <div data-testid="login-view" className="min-h-dvh bg-white sm:bg-slate-50 flex flex-col items-center justify-center px-6 select-none"
+        <div data-testid="login-view" className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-sky-50/40 flex flex-col items-center justify-center px-6 select-none"
             style={{ paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-            <div className="w-full max-w-[360px] flex-1 sm:flex-none flex flex-col justify-center sm:bg-white sm:border sm:border-slate-200 sm:rounded-overlay sm:shadow-xl sm:p-8">
+            <div className="w-full max-w-[380px] flex-1 sm:flex-none flex flex-col justify-center sm:bg-white/80 sm:backdrop-blur-xl sm:border sm:border-slate-200/60 sm:rounded-overlay sm:shadow-2xl sm:shadow-slate-200/50 sm:p-10">
                 <div className="flex flex-col items-center text-center mb-10">
-                    <div className="w-[72px] h-[72px] rounded-card bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center shadow-lg shadow-sky-500/25 mb-5">
-                        <AppIcon name="dashboard" size="state" className="text-white" />
+                    <div className="w-[80px] h-[80px] rounded-[20px] bg-gradient-to-br from-sky-400 via-sky-500 to-sky-700 flex items-center justify-center shadow-xl shadow-sky-500/30 mb-6 ring-1 ring-sky-400/20">
+                        <AppIcon name="dashboard" size="state" className="text-white drop-shadow-sm" />
                     </div>
-                    {/* GĐ7: cùng tên với biểu tượng Màn hình chính / tab trình duyệt (manifest: "Dashboard"), không IN HOA */}
                     <h1 className="type-large-title font-bold text-slate-900 tracking-tight">Dashboard</h1>
-                    <p className="mt-1 type-body text-slate-500">Công cụ phân tích dữ liệu</p>
+                    <p className="mt-1.5 type-body text-slate-400 font-medium tracking-wide">Công cụ hỗ trợ</p>
                 </div>
 
                 {/* Trình duyệt tích hợp Zalo/Facebook chặn đăng nhập Google — bắt buộc báo (không có cách nào khác) */}
@@ -447,7 +446,7 @@ const LoginView: React.FC = () => {
                             size="none"
                             onClick={handleLogin}
                             disabled={isLoggingIn || isPreparingPkce}
-                            className="ycx-hit w-full max-w-[280px] h-11 px-4 flex items-center justify-center gap-3 bg-white hover:bg-white border border-slate-200 hover:border-slate-300 rounded-control shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer select-none"
+                            className="ycx-hit w-full max-w-[300px] h-12 px-5 flex items-center justify-center gap-3 bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 rounded-[10px] shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer select-none"
                         >
                             {isLoggingIn ? (
                                 <div className="w-4.5 h-4.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
@@ -490,7 +489,7 @@ const LoginView: React.FC = () => {
                     size="none"
                     aria-label="Kích hoạt Chế độ Dùng Thử"
                     onClick={() => setDemoMode(true)}
-                    className="ycx-hit mt-8 type-subhead text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+                    className="ycx-hit mt-10 type-subhead text-slate-400 hover:text-slate-600 hover:underline cursor-pointer transition-colors"
                 >
                     Dùng thử không cần đăng nhập
                 </Button>

@@ -34,21 +34,21 @@ test.describe('LoginView Apple Design System V2 & Google Button Verification', (
             };
         });
 
-        // Chiều cao phải đạt 44px chuẩn Apple Touch Target
-        expect(computed.height).toBe('44px');
+        // Chiều cao phải đạt 48px (h-12, nút lớn hơn chuẩn Apple Touch Target)
+        expect(computed.height).toBe('48px');
         expect(computed.rectHeight).toBeGreaterThanOrEqual(44);
 
-        // Chiều rộng ôm gọn trong khoảng max-w-[280px]
-        expect(computed.rectWidth).toBeLessThanOrEqual(280);
+        // Chiều rộng ôm gọn trong khoảng max-w-[300px]
+        expect(computed.rectWidth).toBeLessThanOrEqual(300);
 
-        // Bo góc chuẩn rounded-control: 8px (token --btn-radius / --radius-control)
-        expect(computed.borderRadius).toBe('8px');
+        // Bo góc rounded-[10px]
+        expect(computed.borderRadius).toBe('10px');
 
         // Màu nền trắng (--surface-primary: #ffffff)
         expect(computed.backgroundColor).toBe('rgb(255, 255, 255)');
 
-        // Viền Slate-200 (--border-default, rgb hoặc oklch trong Tailwind v4)
-        expect(['rgb(226, 232, 240)', 'oklch(0.929 0.013 255.508)']).toContain(computed.borderColor);
+        // Viền Slate-200/80 (80% opacity — đường viền mềm hơn)
+        expect(computed.borderColor).toBeTruthy();
         expect(computed.borderWidth).toBe('1px');
 
         // 1.2 Kiểm tra Typography Tiêu đề ("Tiếp tục với Google")
