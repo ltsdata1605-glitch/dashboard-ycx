@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     parseWorkflowCommand, normalizeTicketCode, decideApproval, parseWorkflowPostback,
     formatConfirmedNames, buildAckFlex, buildTicketFlex, buildApprovalFlex,
-    handleWorkflowText, handleWorkflowPostback, closeTicket, decideApprovalForWeb,
+    handleWorkflowText, handleWorkflowPostback, closeTicket, decideApprovalForWeb, WORKFLOW_COLORS,
 } from '../../functions/src/lineWorkflows';
 
 // ───────── Firestore giả trong bộ nhớ (đủ cho get/set/update/where/limit/transaction) ─────────
@@ -306,5 +306,30 @@ describe('kiểm soát yêu cầu duyệt: nhật ký, người duyệt bắt bu
 
         const events = await eventsOf(db, id);
         expect(events.map((e: any) => [e.action, e.source])).toEqual([['created', 'line'], ['rejected', 'web'], ['already_decided', 'web']]);
+    });
+});
+
+describe('thiết kế thẻ Flex làm việc nhóm', () => {
+    // Thẻ PMH dùng xanh dương (#0EA5E9) và xanh lá (#06C755). Thẻ làm việc phải KHÁC bảng màu đó.
+    const PMH_COLORS = ['#0EA5E9', '#06C755', '#2563EB', '#4F46E5', '#475569', '#10B981', '#EA580C', '#BE123C'];
+    it('màu header và nút không trùng màu thẻ PMH', () => {
+        const dungChung = [
+            ...Object.values(WORKFLOW_COLORS).map(c => c.header),
+        ];
+        for (const m of dungChung) expect(PMH_COLORS, m).not.toContain(m);
+    });
+    it('thẻ có header kiểu PMH (viên nhãn bo tròn) và nút bo lớn', () => {
+        const tk = buildTicketFlex({ code: 'YC-0002', title: 'Sửa đèn', requesterName: 'An', createdLabel: '04/11 08:00' });
+        expect(tk.contents.size).toBe('mega');
+        expect(tk.contents.header.contents[1].cornerRadius).toBe('20px');
+        expect(tk.contents.header.contents[1].contents[0].text).toBe('YC-0002');
+        expect(tk.contents.footer.contents[0].cornerRadius).toBe('lg');
+        expect(tk.contents.footer.contents[0].action.type).toBe('postback');
+    });
+    it('nút Từ chối có chữ tối trên nền sáng (đọc được)', () => {
+        const ap = buildApprovalFlex({ id: 'a1', body: 'nghỉ', requesterName: 'An' });
+        const reject = ap.contents.footer.contents[1];
+        expect(reject.backgroundColor).toBe('#E2E8F0');
+        expect(reject.contents[0].color).toBe('#334155');
     });
 });

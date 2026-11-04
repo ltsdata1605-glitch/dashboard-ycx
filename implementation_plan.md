@@ -9304,3 +9304,9 @@ Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (gh
 - **Quy tắc Firestore**: `approvals`, `acks`, `tickets`, `workflow_meta` chỉ ĐỌC từ client; ghi bị chặn (kiểm trên emulator).
 - Kiểm chứng: 20 test đơn vị (`line-workflows`), 6 test quy tắc mới (102/102 emulator), Playwright chỉ đọc trên tài khoản test
   (tab mở được, không lỗi trang, trạng thái trống đúng). CHƯA kiểm chứng bảng có dữ liệu thật vì tài khoản test chưa có yêu cầu.
+
+## Đợt 3 — Thẻ Flex làm việc nhóm theo phong cách thẻ PMH (2026-11-04, nhánh `claude/line-bot-the-cong-viec`)
+- Ba thẻ Xác nhận / Phiếu / Xin duyệt dùng bố cục như thẻ PMH (`functions/src/pmhFlexCard.ts`): header màu + viên nhãn bo tròn,
+  khối nội dung nền nhạt, nút bo lớn. Bảng màu RIÊNG (tím `#7C3AED`, chàm `#4338CA`, hồng tím `#A21CAF`) để không lẫn với PMH (xanh dương / xanh lá).
+- Test khoá bảng màu không trùng PMH và nút Từ chối đọc được (23 test đơn vị).
+- Chưa xem trực tiếp trên LINE trong phiên này; cần kiểm tra trên điện thoại sau khi deploy.
