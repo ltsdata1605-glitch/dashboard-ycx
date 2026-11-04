@@ -3537,7 +3537,11 @@ export const lineBotWebhook = onRequest(
                 }
 
                 // 3.5. Kiểm tra lệnh DUYỆT từ Admin (ví dụ: DUYỆT 12345678 hoặc DUYỆT / OK / ALL)
-                const isApprovalAll = /^(?:duyệt|duyet|ok|all|approve)$/i.test(cleanText);
+                // Trong NHÓM: "ok"/"all" quá phổ biến → chỉ nhận "duyệt"/"duyet"/"approve".
+                // Chat 1-1: vẫn nhận "ok"/"all" như cũ.
+                const isApprovalAll = groupId
+                    ? /^(?:duyệt|duyet|approve)$/i.test(cleanText)
+                    : /^(?:duyệt|duyet|ok|all|approve)$/i.test(cleanText);
                 const approvalMatch = cleanText.match(/^(?:duyệt|duyet|approve)\s+([A-Za-z0-9_-]{4,25})/i);
                 const senderCanApprove = (isApprovalAll || approvalMatch) ? await canApproveOnBot(uid, senderUserId) : false;
                 if ((isApprovalAll || approvalMatch) && !senderCanApprove && /^(?:duyệt|duyet|approve)/i.test(cleanText)) {
