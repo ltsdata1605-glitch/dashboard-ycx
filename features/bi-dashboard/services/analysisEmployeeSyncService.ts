@@ -401,3 +401,12 @@ export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload |
     return null;
 }
 
+/**
+ * Xoá danh sách nhân viên Phân tích khỏi IndexedDB (cả bản gốc lẫn bản bi_).
+ * `saveSetting(key, null)` dispatch `indexeddb-change` → useNhanVienData tự reload và thấy rỗng.
+ */
+export async function clearAnalysisEmployees(): Promise<void> {
+    await saveSetting(ANALYSIS_EMPLOYEES_KEY, null);
+    await saveSetting(`bi_${ANALYSIS_EMPLOYEES_KEY}`, null);
+}
+

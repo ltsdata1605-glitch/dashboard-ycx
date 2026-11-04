@@ -27,6 +27,8 @@ import { standardizeEmployeeName, isIgnoredDept } from '../utils/nhanVienHelpers
 import { MOBILE_GUTTER } from '../utils/mobileUi';
 import { TopBarActions } from '../../../components/shared/ui/TopBarActions';
 import { usePageActions } from '../../../components/shared/ui/PageActions';
+import { clearAnalysisEmployees } from '../services/analysisEmployeeSyncService';
+import { toast } from '../../../components/shared/ui/toast';
 
 const NAV_TABS: { tab: Tab; label: string }[] = [
     { tab: 'revenue', label: 'Doanh thu' },
@@ -441,10 +443,23 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
     const nhapFileYcx = useCallback(() => {
         window.dispatchEvent(new Event('ycx-request-upload-ycx'));
     }, []);
+    const [xoaNVConfirm, setXoaNVConfirm] = useState(false);
+    const handleXoaDanhSach = useCallback(async () => {
+        setXoaNVConfirm(false);
+        await clearAnalysisEmployees();
+        toast.success('Đã xoá danh sách nhân viên');
+    }, []);
     usePageActions(isThuongTab && isActive ? {
         scope: 'mobile',
         title: 'Thưởng',
         primary: canManageFiles ? { id: 'nhap-ycx', label: 'Nhập nhân viên', icon: 'upload', onClick: nhapFileYcx } : undefined,
+        items: canManageFiles ? [
+            { id: 'lay-ds-nv', label: 'Lấy danh sách NV từ hệ thống', icon: 'externalLink', section: 'Nhân viên', onSelect: () => { window.open('https://office.thegioididong.com/quan-ly-phan-ca', '_blank', 'noopener,noreferrer'); } },
+            { id: 'den-phan-tich', label: 'Chuyển đến Phân tích', icon: 'next', section: 'Nhân viên', onSelect: () => setAppActiveTab('analysis') },
+            { id: 'xoa-ds-nv', label: 'Xoá danh sách nhân viên', icon: 'delete', destructive: true, onSelect: () => setXoaNVConfirm(true) },
+        ] : [
+            { id: 'den-phan-tich', label: 'Chuyển đến Phân tích', icon: 'next', section: 'Nhân viên', onSelect: () => setAppActiveTab('analysis') },
+        ],
     } : null);
 
     return (
@@ -497,6 +512,31 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                             <AppIcon name="upload" size="md" />
                             <span>Nhập nhân viên</span>
                         </Button>
+                    )}
+                </TopBarActions.Group>
+                <TopBarActions.Group>
+                    {canManageFiles && (
+                        <TopBarActions.Link
+                            href="https://office.thegioididong.com/quan-ly-phan-ca"
+                            icon="externalLink"
+                            title="Lấy danh sách nhân viên từ hệ thống"
+                        />
+                    )}
+                    <TopBarActions.Button
+                        onClick={() => setAppActiveTab('analysis')}
+                        icon="next"
+                        label="Phân tích"
+                        title="Chuyển đến chức năng Phân tích để cập nhật dữ liệu"
+                    />
+                    {canManageFiles && (
+                        <TopBarActions.Button
+                            onClick={() => setXoaNVConfirm(true)}
+                            icon="delete"
+                            variant="rose"
+                            title="Xoá danh sách nhân viên"
+                            ariaLabel="Xoá danh sách"
+                            borderLeft
+                        />
                     )}
                 </TopBarActions.Group>
             </TopBarActions>
@@ -679,6 +719,15 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                 title="Xóa phiên bản?"
                 message={`Bạn có chắc chắn muốn xoá phiên bản "${versionToDelete}"?`}
                 confirmText="Xóa"
+                variant="danger"
+            />
+            <ConfirmDialog
+                isOpen={xoaNVConfirm}
+                onClose={() => setXoaNVConfirm(false)}
+                onConfirm={handleXoaDanhSach}
+                title="Xoá danh sách nhân viên?"
+                message="Danh sách nhân viên sẽ bị xoá khỏi máy này. Bạn có thể nhập lại bằng file YCX hoặc đồng bộ lại từ thiết bị khác."
+                confirmText="Xoá"
                 variant="danger"
             />
         </div>
