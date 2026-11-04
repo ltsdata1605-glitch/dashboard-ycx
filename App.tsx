@@ -136,19 +136,18 @@ const TabContent = React.memo(() => {
     }, [isFeatureEnabled, activeTab]);
 
     // Nút "Nhập nhân viên (File YCX)" ở Report BI phát sự kiện này. Hộp chọn file nằm trong
-    // DashboardView (tab Phân Tích) — nếu tab đó đã mount thì chính nó mở hộp chọn, người dùng ở
-    // yên tại chỗ; chưa mount thì phải chuyển sang Phân Tích cho view đó có mặt rồi tự mở.
-    // Tính năng Phân tích tắt thì không mở được.
+    // DashboardView (tab Phân Tích). Khi tab đó ĐANG HIỆN (activeTab === 'analysis') thì DashboardView
+    // tự xử lý; ngược lại phải chuyển sang Phân Tích — kể cả khi tab đã mount nhưng ẩn (inert chặn click).
     React.useEffect(() => {
         const onRequestUpload = () => {
             if (!isFeatureEnabled('analysis')) return;
-            if (mountedTabs.has('analysis')) return;
+            if (activeTab === 'analysis') return;
             try { sessionStorage.setItem('ycx-pending-upload-ycx', '1'); } catch { /* Private Mode */ }
             setActiveTab('analysis');
         };
         window.addEventListener('ycx-request-upload-ycx', onRequestUpload);
         return () => window.removeEventListener('ycx-request-upload-ycx', onRequestUpload);
-    }, [mountedTabs, setActiveTab, isFeatureEnabled]);
+    }, [activeTab, setActiveTab, isFeatureEnabled]);
 
     // Khi nhận file YCX từ Auto Sync (Realtime / Luỹ kế), bảo đảm tab 'analysis' được mount ngầm
     // trong DOM để xử lý và lưu dữ liệu mà KHÔNG ép người dùng phải chuyển tab rời khỏi màn hình hiện tại.
