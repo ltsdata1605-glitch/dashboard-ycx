@@ -455,11 +455,8 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
         primary: canManageFiles ? { id: 'nhap-ycx', label: 'Nhập nhân viên', icon: 'upload', onClick: nhapFileYcx } : undefined,
         items: canManageFiles ? [
             { id: 'lay-ds-nv', label: 'Lấy danh sách NV từ hệ thống', icon: 'externalLink', section: 'Nhân viên', onSelect: () => { window.open('https://office.thegioididong.com/quan-ly-phan-ca', '_blank', 'noopener,noreferrer'); } },
-            { id: 'den-phan-tich', label: 'Chuyển đến Phân tích', icon: 'next', section: 'Nhân viên', onSelect: () => setAppActiveTab('analysis') },
             { id: 'xoa-ds-nv', label: 'Xoá danh sách nhân viên', icon: 'delete', destructive: true, onSelect: () => setXoaNVConfirm(true) },
-        ] : [
-            { id: 'den-phan-tich', label: 'Chuyển đến Phân tích', icon: 'next', section: 'Nhân viên', onSelect: () => setAppActiveTab('analysis') },
-        ],
+        ] : undefined,
     } : null);
 
     return (
@@ -501,44 +498,30 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                         }))}
                         onToggleOption={toggleDepartment}
                     />
-                    {canManageFiles && (
-                        <Button
-                            variant="tab"
-                            size="none"
-                            onClick={nhapFileYcx}
-                            className="flex items-center gap-2 px-4 py-2 text-base font-medium shrink-0 border-l border-slate-100 dark:border-slate-700 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50"
-                            title="Nhập danh sách nhân viên (giống Phân tích)"
-                        >
-                            <AppIcon name="upload" size="md" />
-                            <span>Nhập nhân viên</span>
-                        </Button>
-                    )}
                 </TopBarActions.Group>
+                {canManageFiles && (
                 <TopBarActions.Group>
-                    {canManageFiles && (
-                        <TopBarActions.Link
-                            href="https://office.thegioididong.com/quan-ly-phan-ca"
-                            icon="externalLink"
-                            title="Lấy danh sách nhân viên từ hệ thống"
-                        />
-                    )}
                     <TopBarActions.Button
-                        onClick={() => setAppActiveTab('analysis')}
-                        icon="next"
-                        label="Phân tích"
-                        title="Chuyển đến chức năng Phân tích để cập nhật dữ liệu"
+                        onClick={nhapFileYcx}
+                        icon="upload"
+                        title="Nhập danh sách nhân viên"
+                        ariaLabel="Nhập nhân viên"
                     />
-                    {canManageFiles && (
-                        <TopBarActions.Button
-                            onClick={() => setXoaNVConfirm(true)}
-                            icon="delete"
-                            variant="rose"
-                            title="Xoá danh sách nhân viên"
-                            ariaLabel="Xoá danh sách"
-                            borderLeft
-                        />
-                    )}
+                    <TopBarActions.Link
+                        href="https://office.thegioididong.com/quan-ly-phan-ca"
+                        icon="externalLink"
+                        title="Lấy danh sách nhân viên từ hệ thống"
+                    />
+                    <TopBarActions.Button
+                        onClick={() => setXoaNVConfirm(true)}
+                        icon="delete"
+                        variant="rose"
+                        title="Xoá danh sách nhân viên"
+                        ariaLabel="Xoá danh sách"
+                        borderLeft
+                    />
                 </TopBarActions.Group>
+                )}
             </TopBarActions>
 
             {/* Title + Filter Toolbar — ẩn khi vào từ tab Thưởng menu chính (bộ lọc đã lên top bar) */}
