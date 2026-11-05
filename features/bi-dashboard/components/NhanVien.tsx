@@ -593,15 +593,9 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                         <h3 className="text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-7">
                             Chưa có danh sách nhân viên
                         </h3>
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                            {isThuongTab
-                                ? 'Vui lòng tải file YCX lên để nhập danh sách nhân viên, hoặc chuyển sang Phân Tích để cập nhật.'
-                                : <>Danh sách nhân viên chuẩn của hệ thống được quản lý tại chức năng <b>Phân Tích</b>. Vui lòng chuyển sang Phân Tích để cập nhật danh sách nhân viên của bạn.</>
-                            }
-                        </p>
                     </div>
+                    {isThuongTab && canManageFiles && (
                     <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
-                        {isThuongTab && canManageFiles && (
                             <Button
                                 variant="primary"
                                 onClick={nhapFileYcx}
@@ -610,16 +604,8 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                                 <AppIcon name="upload" size="md" />
                                 <span>Nhập danh sách nhân viên</span>
                             </Button>
-                        )}
-                        <Button
-                            variant={isThuongTab ? 'secondary' : 'primary'}
-                            onClick={() => setAppActiveTab('analysis')}
-                            className={`ycx-hit font-bold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-2xs inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95 ${!isThuongTab ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`}
-                        >
-                            <span>Chuyển đến Phân Tích</span>
-                            <AppIcon name="next" size="md" />
-                        </Button>
                     </div>
+                    )}
                 </div>
             ) : (
                 /* 3. Tab Switcher — MỘT khung viền duy nhất bọc chung tab switcher + nội dung */
