@@ -33,7 +33,7 @@ export function useBonusViewData({
     const [sortField, setSortField] = useState<string>('dKien');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-    const [viewMode, setViewMode] = useIndexedDBState<'group' | 'list'>('bonus-view-mode-multi-v2', 'group');
+    const [viewMode, setViewMode] = useIndexedDBState<'group' | 'list' | 'tier'>('bonus-view-mode-multi-v2', 'group');
     const [periodMode, setPeriodMode] = useIndexedDBState<BonusPeriodMode>('bonus-view-period-mode-v3', 'summary');
     const isDaily = periodMode === 'daily';
     const isMonthly = periodMode === 'monthly';
@@ -268,7 +268,7 @@ export function useBonusViewData({
         const allUniqueDepts = Array.from(new Set(employees.map(e => e.department))).sort();
         const depts = isFiltering ? activeDepartments : allUniqueDepts;
 
-        if (viewMode === 'list') {
+        if (viewMode === 'list' || viewMode === 'tier') {
             const list = employees.filter(e => isFiltering ? activeDepartments.includes(e.department) : true);
             list.sort((a, b) => {
                 const bA = bonusData[a.originalName], bB = bonusData[b.originalName];

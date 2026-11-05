@@ -20,6 +20,7 @@ import { setHrmWindowRef } from './bonus/hrmWindow';
 import { useBonusViewData, BonusPeriodMode } from './bonus/useBonusViewData';
 import { BonusDailyTable } from './bonus/BonusDailyTable';
 import { BonusGroupListTable } from './bonus/BonusGroupListTable';
+import { BonusTierTable } from './bonus/BonusTierTable';
 import { BonusCompareTable } from './bonus/BonusCompareTable';
 import { formatShortRange } from '../../utils/bonusDateRange';
 import { TieuDeBaoCao } from './shared/TieuDeBaoCao';
@@ -143,11 +144,11 @@ export const BonusView: React.FC<{
                     <Button
                         variant="toolbar" data-ui="bi"
                         size="icon"
-                        onClick={() => setViewMode(viewMode === 'group' ? 'list' : 'group')}
-                        title={viewMode === 'group' ? 'Đang xem theo Bộ phận (Bấm để xem Danh sách)' : 'Đang xem Danh sách (Bấm để xem theo Bộ phận)'}
-                        className="ycx-hit rounded-control preserve-rounded transition-all duration-150 active:scale-[0.94] flex items-center justify-center shrink-0" aria-pressed={viewMode === 'group'}
+                        onClick={() => setViewMode(viewMode === 'list' ? 'group' : viewMode === 'group' ? 'tier' : 'list')}
+                        title={viewMode === 'list' ? 'Danh sách (bấm để xem theo Bộ phận)' : viewMode === 'group' ? 'Theo Bộ phận (bấm để xem theo Nhóm thưởng)' : 'Theo Nhóm thưởng (bấm để xem Danh sách)'}
+                        className="ycx-hit rounded-control preserve-rounded transition-all duration-150 active:scale-[0.94] flex items-center justify-center shrink-0" aria-pressed={viewMode !== 'list'}
                     >
-                        {viewMode === 'group' ? <AppIcon name="viewGrid" size="md" /> : <AppIcon name="viewList" size="md" />}
+                        {viewMode === 'group' ? <AppIcon name="viewGrid" size="md" /> : viewMode === 'tier' ? <AppIcon name="layers" size="md" /> : <AppIcon name="viewList" size="md" />}
                     </Button>
                     <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
                     <Dropdown
@@ -192,7 +193,7 @@ export const BonusView: React.FC<{
                                 highlightedEmployees={highlightedEmployees}
                                 onEmployeeClick={onEmployeeClick}
                                 f={f}
-                                viewMode={viewMode}
+                                viewMode={viewMode === 'tier' ? 'list' : viewMode}
                             />
                         ) : isMonthly ? (
                             <MonthlyBonusTable
@@ -204,7 +205,7 @@ export const BonusView: React.FC<{
                                 selectedYear={monthlyArchive.selectedYear}
                                 onSelectYear={monthlyArchive.setSelectedYear}
                                 availableYears={monthlyArchive.availableYears}
-                                viewMode={viewMode}
+                                viewMode={viewMode === 'tier' ? 'list' : viewMode}
                             />
                         ) : isDaily ? (
                             <BonusDailyTable
@@ -233,6 +234,21 @@ export const BonusView: React.FC<{
                                 onEmployeeClick={onEmployeeClick}
                                 supermarketName={supermarketName}
                                 f={f}
+                            />
+                        ) : viewMode === 'tier' ? (
+                            <BonusTierTable
+                                displayList={displayList}
+                                sortField={sortField}
+                                sortDir={sortDir}
+                                setSortField={setSortField}
+                                setSortDir={setSortDir}
+                                highlightedEmployees={highlightedEmployees}
+                                bonusData={bonusData}
+                                revenueMap={revenueMap}
+                                onEmployeeClick={onEmployeeClick}
+                                f={f}
+                                supermarketName={supermarketName}
+                                anDoanhThu={anDoanhThu}
                             />
                         ) : (
                             <BonusGroupListTable
