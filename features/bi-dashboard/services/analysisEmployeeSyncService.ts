@@ -4,11 +4,12 @@
  */
 
 import { db, auth } from '../../../services/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { getSetting, saveSetting, saveSettingFromCloud } from '../../../services/dbService';
 import { standardizeEmployeeName, formatEmployeeName } from '../utils/nhanVienHelpers';
 
 export const ANALYSIS_EMPLOYEES_KEY = 'analysis-employees-list';
+const ANALYSIS_CLEARED_KEY = 'analysis-employees-cleared';
 
 export interface AnalysisEmployeeItem {
     id: string;              // Mã nhân viên (ví dụ: '195025')
@@ -253,6 +254,7 @@ export async function saveAnalysisEmployees(
     /** Nút "Đồng bộ Report BI" bấm tay: luôn ghi + đẩy lên, kể cả khi danh sách không đổi. */
     batBuoc = false
 ): Promise<AnalysisEmployeesPayload> {
+    await saveSetting(ANALYSIS_CLEARED_KEY, null);
     const cleanList = normalizeAnalysisEmployees(rawEmployees, supermarket);
 
     // Danh sách KHÔNG đổi so với bản đang lưu → không ghi gì. Hàm này chạy sau MỖI lần xử lý dữ liệu
@@ -337,6 +339,10 @@ export function convertDepartmentMapToEmployees(map: Record<string, string>): Ar
  * Đọc danh sách nhân viên phân tích từ IndexedDB (ưu tiên tối cao từ departmentMap của Phân Tích, fallback Firebase nếu trên thiết bị mới)
  */
 export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload | null> {
+    // 0. Người dùng đã bấm "Xoá danh sách" → trả rỗng cho đến khi có dữ liệu mới
+    const cleared = await getSetting<number>(ANALYSIS_CLEARED_KEY);
+    if (cleared) return null;
+
     // 1. Đọc trực tiếp từ departmentMap của Phân Tích (nguồn chuẩn gốc duy nhất)
     try {
         const deptMap = await getSetting<Record<string, string>>('departmentMap');
@@ -402,11 +408,20 @@ export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload |
 }
 
 /**
- * Xoá danh sách nhân viên Phân tích khỏi IndexedDB (cả bản gốc lẫn bản bi_).
- * `saveSetting(key, null)` dispatch `indexeddb-change` → useNhanVienData tự reload và thấy rỗng.
+ * Xoá danh sách nhân viên Phân tích khỏi IndexedDB VÀ Cloud Firestore.
+ * Đặt cờ ANALYSIS_CLEARED_KEY để `getAnalysisEmployees()` trả null ngay lập tức — không
+ * rebuild từ departmentMap (bước 1) hay kéo lại từ cloud (bước 3). Cờ tự gỡ khi
+ * `saveAnalysisEmployees()` lưu dữ liệu mới.
  */
 export async function clearAnalysisEmployees(): Promise<void> {
+    await saveSetting(ANALYSIS_CLEARED_KEY, Date.now());
     await saveSetting(ANALYSIS_EMPLOYEES_KEY, null);
     await saveSetting(`bi_${ANALYSIS_EMPLOYEES_KEY}`, null);
+    try {
+        const user = auth.currentUser;
+        if (user) {
+            await deleteDoc(doc(db, 'users', user.uid, 'configs', ANALYSIS_EMPLOYEES_KEY));
+        }
+    } catch (_) { /* cloud lỗi không chặn xoá local */ }
 }
 
