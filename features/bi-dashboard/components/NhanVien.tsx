@@ -441,8 +441,9 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
     const canManageFiles = userRole === 'admin' || userRole === 'manager';
     const { activeTab: appActiveTab } = useActiveTab();
     const nhapFileYcx = useCallback(() => {
-        window.dispatchEvent(new Event('ycx-request-upload-ycx'));
-    }, []);
+        try { sessionStorage.setItem('ycx-pending-upload-ycx', '1'); } catch { /* Private Mode */ }
+        setAppActiveTab('analysis');
+    }, [setAppActiveTab]);
     const [xoaNVConfirm, setXoaNVConfirm] = useState(false);
     const handleXoaDanhSach = useCallback(async () => {
         setXoaNVConfirm(false);
