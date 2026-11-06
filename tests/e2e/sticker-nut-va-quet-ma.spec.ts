@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { E2E_LAUNCH } from '../../playwright.config';
+import { chanGhiCloud } from './helpers/customTokenLogin';
 
 /**
  * In Sticker — hệ thống nút + tiện ích quét mã vạch (chủ dự án yêu cầu 2026-09-25).
@@ -8,7 +9,11 @@ import { E2E_LAUNCH } from '../../playwright.config';
  * `admin_test_claude_qa2` đã mất sau đợt di trú database 19/09), nên stub `useStickerEventAuth`:
  * hook thay thế KHÔNG gọi hook React nào bên trong nên không phá thứ tự hook, và không cần import
  * React (dev server của Vite không phục vụ /deps/react.js). Dữ liệu gieo thẳng vào IndexedDB
- * `ProductSearchDB` → không chạm Firestore thật, không tốn hạn mức đọc.
+ * `ProductSearchDB`, không cần dữ liệu trên Firestore.
+ *
+ * Sửa 2026-11-06: bản cũ ghi "không chạm Firestore thật" là SAI. Stub đưa ra `user` giả nên app vẫn
+ * đọc và gọi saveUserState lên project thật: trace đo được lượt ghi `stickerUsers/u-audit/state/current`.
+ * Trình duyệt test không có phiên đăng nhập nên rules từ chối; `chanGhiCloud` chặn luôn từ trình duyệt.
  */
 test.use({ launchOptions: { ...E2E_LAUNCH, args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] } });
 
@@ -31,19 +36,17 @@ const PRODUCTS = [
 ];
 
 async function moInSticker(page: Page) {
+    await chanGhiCloud(page);
     await page.route('**/features/sticker-event/hooks/useStickerEventAuth.ts*', r =>
         r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_HOOK_STUB }));
 
     await page.goto('/?tab=tools-print-sticker&sub=event');
-    await page.waitForTimeout(1500);
+    // Dev server mở lần đầu có thể mất nhiều giây: chờ màn đăng nhập hiện hẳn, không đoán bằng thời gian.
     const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demo.isVisible().catch(() => false)) {
-        await demo.click();
-        await page.waitForTimeout(2500);
-        await page.goto('/?tab=tools-print-sticker&sub=event');
-    }
-    await page.waitForTimeout(3000);
+    await demo.waitFor({ state: 'visible', timeout: 60_000 });
 
+    // Gieo TRƯỚC khi bấm Dùng Thử: AuthContext xoá cờ Dùng Thử sau mỗi lần nạp trang, nên tải lại trang
+    // sau khi đã vào app là quay về màn đăng nhập.
     await page.evaluate(async (products) => {
         const db = await new Promise<IDBDatabase>((res, rej) => {
             const r = indexedDB.open('ProductSearchDB', 1);
@@ -53,12 +56,15 @@ async function moInSticker(page: Page) {
         await new Promise<void>((res, rej) => {
             const tx = db.transaction(['appData'], 'readwrite');
             tx.objectStore('appData').put(products, 'products');
+            tx.objectStore('appData').put(products, 'displayedProducts');
             tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
         });
         db.close();
     }, PRODUCTS);
-    await page.reload();
-    await page.waitForTimeout(3500);
+
+    await demo.click();
+    // Danh sách hiện ra nghĩa là app đã đọc xong IndexedDB, có sản phẩm để tra mã.
+    await expect(page.getByText(PRODUCTS[0].sanPham, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
 test('máy quét có đèn pin, nhập mã tay và nằm TRÊN thanh điều hướng dưới', async ({ page, context }) => {

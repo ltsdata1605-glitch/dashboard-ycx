@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { E2E_LAUNCH } from '../../playwright.config';
+import { chanGhiCloud } from './helpers/customTokenLogin';
 
 // Dự án chạy ESM (package.json "type": "module") nên không có __dirname
 const THU_MUC_TEST = path.dirname(fileURLToPath(import.meta.url));
@@ -50,17 +51,17 @@ const PRODUCTS = [{
 }];
 
 async function moInSticker(page: Page) {
+    // Stub đưa ra `user` giả nên app vẫn gọi saveUserState lên project thật (đo bằng trace 2026-11-06).
+    await chanGhiCloud(page);
     await page.route('**/features/sticker-event/hooks/useStickerEventAuth.ts*', r =>
         r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_HOOK_STUB }));
     await page.goto('/?tab=tools-print-sticker&sub=event');
-    await page.waitForTimeout(1200);
+    // Dev server mở lần đầu có thể mất nhiều giây: chờ màn đăng nhập hiện hẳn, không đoán bằng thời gian.
     const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demo.isVisible().catch(() => false)) {
-        await demo.click();
-        await page.waitForTimeout(2200);
-        await page.goto('/?tab=tools-print-sticker&sub=event');
-    }
-    await page.waitForTimeout(2500);
+    await demo.waitFor({ state: 'visible', timeout: 60_000 });
+
+    // Gieo TRƯỚC khi bấm Dùng Thử: AuthContext xoá cờ Dùng Thử sau mỗi lần nạp trang, nên tải lại trang
+    // sau khi đã vào app là quay về màn đăng nhập.
     await page.evaluate(async (products) => {
         const db = await new Promise<IDBDatabase>((res, rej) => {
             const r = indexedDB.open('ProductSearchDB', 1);
@@ -70,12 +71,15 @@ async function moInSticker(page: Page) {
         await new Promise<void>((res, rej) => {
             const tx = db.transaction(['appData'], 'readwrite');
             tx.objectStore('appData').put(products, 'products');
+            tx.objectStore('appData').put(products, 'displayedProducts');
             tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
         });
         db.close();
     }, PRODUCTS);
-    await page.reload();
-    await page.waitForTimeout(3000);
+
+    await demo.click();
+    // Danh sách hiện ra nghĩa là app đã đọc xong IndexedDB, có sản phẩm để tra mã.
+    await expect(page.getByText(PRODUCTS[0].sanPham, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }
 
 test('mã vạch nhỏ được nhận trong vòng 5 giây', async ({ page, context }) => {

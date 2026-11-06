@@ -1,9 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Download, type Page } from '@playwright/test';
+import { chanGhiCloud } from './helpers/customTokenLogin';
 
 /**
  * Stub đăng nhập + gieo dữ liệu thẳng vào IndexedDB: cùng cách với `sticker-nut-va-quet-ma.spec.ts`
- * (không có tài khoản In Sticker thật trong Playwright, không chạm Firestore).
+ * (không có tài khoản In Sticker thật trong Playwright).
+ *
+ * Stub đưa ra `user` giả nên app vẫn gửi lượt đọc lên Firestore thật và bị rules từ chối, vì trình
+ * duyệt test không có phiên đăng nhập. `chanGhiCloud` chặn mọi lượt ghi (đo 2026-11-06: 0 lượt ghi).
  */
 const AUTH_HOOK_STUB = `
 const FAKE_USER = { uid: 'u-audit', email: 'audit@test.local' };
@@ -31,6 +35,7 @@ const PRODUCTS_55 = Array.from({ length: 55 }, (_, i) => ({
 }));
 
 async function moInStickerCoSanPham(page: Page) {
+    await chanGhiCloud(page);
     await page.route('**/features/sticker-event/hooks/useStickerEventAuth.ts*', r =>
         r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_HOOK_STUB }));
 
