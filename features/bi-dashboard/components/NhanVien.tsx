@@ -440,10 +440,14 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
     const { userRole } = useAuth();
     const canManageFiles = userRole === 'admin' || userRole === 'manager';
     const { activeTab: appActiveTab } = useActiveTab();
-    const nhapFileYcx = useCallback(() => {
-        try { sessionStorage.setItem('ycx-pending-upload-ycx', '1'); } catch { /* Private Mode */ }
-        setAppActiveTab('analysis');
-    }, [setAppActiveTab]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const nhapFileYcx = useCallback(() => fileInputRef.current?.click(), []);
+    const handleFileChosen = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        e.target.value = '';
+        window.dispatchEvent(new CustomEvent('ycx-auto-sync-file', { detail: { file, autoResolveConflict: 'overwrite_deactivate' } }));
+    }, []);
     const [xoaNVConfirm, setXoaNVConfirm] = useState(false);
     const handleXoaDanhSach = useCallback(async () => {
         setXoaNVConfirm(false);
@@ -583,6 +587,8 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                     </div>
                 </div>
             </div>
+
+            <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onClick={e => { e.currentTarget.value = ''; }} onChange={handleFileChosen} />
 
             {/* Khi chưa có danh sách nhân viên từ Phân Tích: Yêu cầu người dùng cập nhật */}
             {!hasAnalysisEmployees ? (
