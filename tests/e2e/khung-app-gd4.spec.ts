@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createSalesXlsx } from './helpers/salesFixture';
+import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
 
 /**
  * GĐ4 — Khung ứng dụng (KE_HOACH_GIAO_DIEN_APPLE.md mục 3.2–3.5, 2026-10-12). Kiểm HÀNH VI + số đo thật của khung app mới:
@@ -19,6 +19,8 @@ async function vaoDungThu(page: Page, tab = 'analysis') {
 
 async function napDuLieuMau(page: Page) {
     await vaoDungThu(page);
+    // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
+    await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     // Bấm ĐÚNG trong hộp chọn loại tệp: màn tải lên phía sau cũng có dòng chữ này (UploadSection) nên `.last()` từng bấm nhầm
     // phần tử nằm DƯỚI modal (2026-10-20).

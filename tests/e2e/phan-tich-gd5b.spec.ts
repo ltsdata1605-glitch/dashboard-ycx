@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createSalesXlsx } from './helpers/salesFixture';
+import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
 
 /**
  * GĐ5 loạt B — Phân tích YCX (KE_HOACH_GIAO_DIEN_APPLE.md mục 1). Khoá các lỗi sếp thấy trong video:
@@ -12,6 +12,8 @@ import { createSalesXlsx } from './helpers/salesFixture';
 async function napDuLieu(page: Page, chuaXuat: string[] = []) {
     await page.goto('/?tab=analysis');
     await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
+    await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx({ chuaXuat }));
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
     await expect(page.getByText(/chi tiết theo kho/i).first()).toBeVisible({ timeout: 90_000 });

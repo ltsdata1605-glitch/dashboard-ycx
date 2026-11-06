@@ -49,6 +49,12 @@ async function bam(page: Page, name: RegExp) {
     await page.waitForTimeout(2000);
 }
 
+/** Tab con của Nhân viên, tìm trong <main>: menu chính cũng có nút "Thưởng" (tab mới 2f4eade, 2026-11-03), bấm nhầm là rời Report BI. */
+async function bamTabCon(page: Page, name: RegExp) {
+    await page.locator('main').getByRole('button', { name }).first().click();
+    await page.waitForTimeout(2000);
+}
+
 for (const [label, width] of [['điện thoại 390', 390], ['laptop 1366', 1366]] as const) {
     test(`audit icon Report BI — ${label}`, async ({ page }) => {
         test.setTimeout(180_000);
@@ -63,7 +69,7 @@ for (const [label, width] of [['điện thoại 390', 390], ['laptop 1366', 1366
         await chup('sieu-thi');
         await bam(page, /^Nhân viên$/i);
         for (const [key, tab] of [['doanh-thu', /^Doanh thu$/], ['tra-cham', /^Trả chậm$/], ['thi-dua', /^Thi đua$/], ['thuong', /^Thưởng$/]] as const) {
-            await bam(page, tab);
+            await bamTabCon(page, tab);
             await chup(key);
         }
         await bam(page, /^Cập nhật$/i);

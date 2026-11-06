@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as XLSX from 'xlsx';
+import { seedProductConfigFixture } from './helpers/salesFixture';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -65,6 +66,8 @@ async function moPhanTichCoUserscript(page: Page, homNay?: string) {
     });
     await page.goto('/?tab=analysis');
     await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
+    await seedProductConfigFixture(page);
     await page.addScriptTag({ content: USERSCRIPT });
     await page.evaluate(() => window.dispatchEvent(new Event('focus'))); // khung dò lại userscript
 }

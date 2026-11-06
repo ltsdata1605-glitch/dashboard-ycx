@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
+import { chanGhiCloud } from './helpers/customTokenLogin';
 
 const AUTH_STUB = `
 const noop = () => {};
@@ -31,6 +32,8 @@ test.use({
 
 test('Xác thực giao diện mobile gọn gàng và resize chuẩn trên tab Phân quyền / Cài đặt', async ({ page }) => {
     test.setTimeout(60000);
+    // User giả làm app gọi lưu dữ liệu: chặn mọi lượt ghi tới Firestore thật.
+    await chanGhiCloud(page);
     await page.route('**/node_modules/.vite/deps/firebase_auth.js*', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_STUB }));
     await page.route('**/services/sessionService.ts*', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: SESSION_STUB }));
     

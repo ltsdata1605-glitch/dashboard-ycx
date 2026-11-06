@@ -53,27 +53,15 @@ test.describe('Tab dùng iframe không bị CSP chặn', () => {
 
 
     /**
-     * Check Thưởng là app vanilla độc lập, nạp thư viện qua CDN nên KHÔNG đi qua npm —
-     * vì thế nó bị bỏ sót khi Đợt 1 vá lỗ hổng xlsx cho cả dự án, và vẫn dùng bản 0.18.5
-     * dính CVE-2023-30533 (Prototype Pollution) + CVE-2024-22363 (ReDoS) trong khi chính
-     * nó parse file Excel người dùng tải lên. Test này khoá phiên bản đã vá để không ai
-     * vô tình hạ ngược.
+     * Check Thưởng parse file Excel người dùng tải lên, mà xlsx 0.18.5 dính CVE-2023-30533 (Prototype Pollution)
+     * + CVE-2024-22363 (ReDoS). Test này khoá phiên bản đã vá để không ai vô tình hạ ngược.
+     * 2026-11-06: bản cũ đọc thư viện CDN ở /check-thuong.html nên đỏ từ khi trang đó chuyển về app (2026-10-30).
+     * Bản React nạp bằng `import('xlsx')` (checkThuongParser.ts) nên đo đúng gói đó, lấy từ dev server.
      */
-    test('check-thuong.html dùng xlsx đã vá lỗ hổng (>= 0.20.3), không phải bản 0.18.5', async ({ page }) => {
-        await page.goto('/check-thuong.html');
-        // Từ 2026-10-11 xlsx nạp THEO NHU CẦU (napThuVien) thay vì thẻ <script> chặn hiển thị → gọi đúng hàm trang dùng khi
-        // người dùng nạp file Excel, để kiểm chính bản thư viện mà luồng thật sẽ chạy.
-        await page.evaluate(() => (window as unknown as { napThuVien?: (t: string) => Promise<unknown> }).napThuVien?.('xlsx')?.catch(() => undefined));
-        // Chờ thư viện nạp xong thay vì ngủ cố định — script tải từ CDN, thời gian phụ thuộc mạng.
-        await page.waitForFunction(
-            () => Boolean((window as unknown as { XLSX?: { version?: string } }).XLSX?.version),
-            undefined,
-            { timeout: 30_000 },
-        ).catch(() => { /* để phần expect bên dưới báo lỗi cho rõ nghĩa */ });
-        const version = await page.evaluate(
-            () => (window as unknown as { XLSX?: { version?: string } }).XLSX?.version
-        );
-        expect(version, 'không nạp được thư viện XLSX trong check-thuong.html').toBeTruthy();
+    test('Check Thưởng dùng xlsx đã vá lỗ hổng (>= 0.20.3), không phải bản 0.18.5', async ({ page }) => {
+        await page.goto('/?tab=check-thuong');
+        const version = await page.evaluate(async () => (await import('/@id/xlsx' as string) as { version?: string }).version);
+        expect(version, 'không nạp được thư viện xlsx mà Check Thưởng dùng').toBeTruthy();
         expect(version, `xlsx ${version} vẫn dính CVE — phải dùng >= 0.20.3 từ cdn.sheetjs.com`).not.toBe('0.18.5');
         const [maj, min] = String(version).split('.').map(Number);
         expect(maj > 0 || min >= 20, `phiên bản xlsx quá cũ: ${version}`).toBe(true);

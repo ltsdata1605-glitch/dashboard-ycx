@@ -9355,3 +9355,16 @@ Cả 5 test đều lỗi thời so với thay đổi đăng nhập ngày 2026-10
 - Giới hạn: WebKit trên máy tính không có hành vi tự phóng to của iPhone, nên `o-nhap-a17` chỉ khoá thẻ viewport.
 
 **Job `e2e` bị huỷ không do WebKit:** chạm `timeout-minutes: 40` trong khi job `e2e-webkit` đã xong từ trước. Nhiều spec Chromium chờ hết giờ vì cùng thiếu cấu hình ngành hàng, chưa sửa trong đợt này.
+
+# Sửa các spec Chromium đỏ trên job e2e (2026-11-06)
+
+Đợt này sửa 13 spec. Code app chỉ đổi một dòng icon ở Bot LINE, do bài đo đã sửa phát hiện (cuối mục), commit riêng.
+
+- **Thiếu cấu hình ngành hàng** (cùng nguyên nhân với đợt WebKit ở trên): thêm `seedProductConfigFixture` vào `phan-tich-performance-modal`, `khung-app-gd4`, `ycx-tu-dong-phan-tich`, `gd8-cong-tac-chung`, `chuan-thiet-ke-b`, `phan-tich-gd5`, `phan-tich-gd5b`, `gd10-xac-nhan-va-bang`.
+- `phan-tich-mo-lanh-khong-cho-cau-hinh`: bước "mạng lành lại" từng đọc cấu hình thật. Nay thay đúng hàm `getGlobalProductConfig` bằng bản treo rồi trả cấu hình mẫu, effect tự tải lại vẫn chạy thật. Thêm kiểm: hàm này được gọi ít nhất 2 lần. Đổi lại, bài không còn đi qua `getDoc` của Firestore.
+- `iframe-tabs-csp` (bài xlsx): `/check-thuong.html` nay chuyển về app nên không còn `window.XLSX`. Đo gói `xlsx` mà `checkThuongParser.ts` nạp, qua dev server. Không còn kiểm link CDN trong trang cũ, vì trang đó không còn chạy.
+- `icon-audit-man-goc`: AuthContext xoá cờ Dùng Thử sau mỗi lần nạp trang, nên từ tab thứ 2 bài chỉ đo màn đăng nhập và báo nhầm logo Google. Nay đặt cờ trước mỗi lần nạp và kiểm không đứng ở màn đăng nhập.
+- `icon-audit-bi`: `/^Thưởng$/` bấm nhầm nút "Thưởng" của menu chính (tab mới 2f4eade), rời Report BI. Nay tìm tab con trong `<main>`.
+- `mobile-settings-compact` dùng user giả nên thêm `chanGhiCloud`.
+
+**Vi phạm thật ở Bot LINE:** sau khi `icon-audit-man-goc` đo đúng màn, bài báo liên kết "Hướng dẫn sử dụng Bot LINE" (`features/line-bot/LineBotView.tsx`, từ 5cbbb96) dùng `AppIcon size="sm"` trong khi bài đo đòi `md`. Chủ dự án duyệt đổi đúng dòng đó thành `size="md"`.

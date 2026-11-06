@@ -15,10 +15,12 @@ const TABS = ['analysis', 'check-thuong', 'reports', 'settings', 'tools-tax', 't
     // Giai đoạn 5 (2026-10-07)
     'tools-phanca', 'tools-print-sticker', 'tools-line-bot'];
 
+/**
+ * Bật Dùng Thử cho MỌI lần nạp trang: AuthContext đọc cờ này rồi xoá ngay, nên chỉ bấm nút một lần thì từ lần `goto` thứ 2 app về màn
+ * đăng nhập. 2026-11-06: bản cũ mắc đúng lỗi đó nên từ tab thứ 2 chỉ đo màn đăng nhập (báo nhầm logo Google) thay vì tab cần đo.
+ */
 async function vaoDungThu(page: Page) {
-    await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
-    await page.waitForTimeout(2500);
+    await page.addInitScript(() => { localStorage.setItem('ycx_demo_mode', 'true'); });
 }
 
 
@@ -31,6 +33,7 @@ for (const [label, width] of [['điện thoại 390', 390], ['laptop 1366', 1366
         for (const tab of TABS) {
             await page.goto(`/?tab=${tab}`);
             await page.waitForTimeout(2500);
+            await expect(page.getByTestId('login-view'), `${tab}: đang đứng ở màn đăng nhập, không đo được`).toHaveCount(0);
             ketQua[tab] = await auditIcons(page, width < 1024);
             await page.screenshot({ path: `test-results/icon-audit-${tab}-${width}.png` });
         }

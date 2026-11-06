@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { createSalesXlsx } from './helpers/salesFixture';
+import { createSalesXlsx, DEFAULT_TEST_PRODUCT_CONFIG } from './helpers/salesFixture';
 
 /**
  * Lần mở ĐẦU trên máy mới (IndexedDB chưa có cấu hình ngành hàng) và chưa có dữ liệu: màn tải tệp của Phân tích phải hiện NGAY,
  * không chờ tải cấu hình (2026-10-22, chủ dự án duyệt). Trước: `loadInitialData` chờ Firestore tới 5 s (+ Google Sheet — nguồn đã
  * bỏ cùng ngày) mới hiện màn — đo bản build giả lập iPhone 4G: ~4,4 s.
  * Ở đây Firestore TREO (không trả lời) để chứng minh màn không còn phụ thuộc nó. Bước 2: tải tệp lúc cấu hình còn treo → "mạng
- * lành lại" (request đi tiếp tới Firestore thật như mọi bài Phân tích khác) → effect xử lý tự tải lại cấu hình rồi ra bảng.
+ * lành lại" → effect xử lý tự tải lại cấu hình rồi ra bảng.
+ * 2026-11-06: Dùng Thử không còn đọc được cấu hình thật (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập), nên thay đúng
+ * hàm `getGlobalProductConfig` bằng bản treo tới khi "mạng lành lại" rồi trả cấu hình mẫu. Effect tự tải lại trong app vẫn chạy thật.
  */
 test.use({
     viewport: { width: 440, height: 956 }, isMobile: true, hasTouch: true,
@@ -17,6 +19,7 @@ test('máy mới, chưa có dữ liệu: màn tải tệp hiện ngay dù cấu 
     test.setTimeout(120_000);
     await context.addInitScript(() => {
         try { localStorage.setItem('ycx_demo_mode', 'true'); } catch { /* */ }
+        (window as unknown as { __cauHinhTreo?: boolean }).__cauHinhTreo = true;
         // Ghi lại nếu lớp chờ từng hiện "Đang tải cấu hình ngành hàng…" (code cũ hiện suốt lúc chờ Firestore tới 5 s).
         const w = window as unknown as { __choCauHinh?: boolean };
         new MutationObserver(() => {
@@ -27,6 +30,19 @@ test('máy mới, chưa có dữ liệu: màn tải tệp hiện ngay dù cấu 
     await page.route('**://firestore.googleapis.com/**', async (route) => {
         while (treo) await new Promise((r) => setTimeout(r, 200));
         await route.fallback().catch(() => {});
+    });
+    await page.route('**/features/product-config/services/firebaseProductConfigService.ts*', async (route) => {
+        const res = await route.fetch();
+        const goc = await res.text();
+        const khaiBao = 'export async function getGlobalProductConfig()';
+        expect(goc, 'hàm đọc cấu hình đã đổi tên: sửa lại bài test').toContain(khaiBao);
+        const banTreo = `
+export async function getGlobalProductConfig() {
+  window.__soLanDocCauHinh = (window.__soLanDocCauHinh || 0) + 1;
+  while (window.__cauHinhTreo) await new Promise((r) => setTimeout(r, 200));
+  return { config: fromCloudProductConfig(${JSON.stringify(DEFAULT_TEST_PRODUCT_CONFIG)}), updatedAt: new Date().toISOString(), updatedBy: 'test', version: 1 };
+}`;
+        await route.fulfill({ response: res, body: goc.replace(khaiBao, 'async function getGlobalProductConfigGoc()') + banTreo });
     });
 
     const t0 = Date.now();
@@ -41,7 +57,11 @@ test('máy mới, chưa có dữ liệu: màn tải tệp hiện ngay dù cấu 
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').first().tap();
     await page.waitForTimeout(1500);
     treo = false;
+    await page.evaluate(() => { (window as unknown as { __cauHinhTreo?: boolean }).__cauHinhTreo = false; });
     await expect(page.getByText(/Doanh Thu/i).first()).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/Không tải được cấu hình ngành hàng/)).toHaveCount(0);
+    // Lượt 1 là lúc mở màn, lượt 2 là effect xử lý tự tải lại khi có tệp mà chưa có cấu hình.
+    const soLan = await page.evaluate(() => (window as unknown as { __soLanDocCauHinh?: number }).__soLanDocCauHinh);
+    expect(soLan, 'effect xử lý phải tự tải lại cấu hình').toBeGreaterThanOrEqual(2);
     await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
