@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { chanGhiCloud } from './helpers/customTokenLogin';
 
 /**
  * Audit 2026-10-07 (GĐ5, IOS-02): đóng máy quét khi camera ĐANG khởi động (iPhone: đang chờ bấm "Cho phép")
@@ -37,6 +38,8 @@ test('đóng máy quét lúc camera đang khởi động: không còn luồng ca
             return s;
         };
     });
+    // Stub đưa ra `user` giả nên app vẫn gọi lên Firestore thật: chặn mọi lượt ghi từ trình duyệt.
+    await chanGhiCloud(page);
     await page.route('**/features/sticker-event/hooks/useStickerEventAuth.ts*', r =>
         r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_HOOK_STUB }));
     await page.setViewportSize({ width: 390, height: 844 });

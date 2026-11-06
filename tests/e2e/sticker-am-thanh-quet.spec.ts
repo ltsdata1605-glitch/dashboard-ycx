@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { chanGhiCloud } from './helpers/customTokenLogin';
 
 /**
  * Audit 2026-10-07 (GĐ3): máy quét In Sticker DÙNG LẠI 1 AudioContext cho cả phiên quét.
@@ -22,6 +23,8 @@ async function moInSticker(page: Page) {
         const Orig = w.AudioContext;
         w.AudioContext = class extends Orig { constructor(...a: ConstructorParameters<typeof AudioContext>) { super(...a); w.__audioCtxCount++; } } as typeof AudioContext;
     });
+    // Stub đưa ra `user` giả nên app vẫn gọi lên Firestore thật: chặn mọi lượt ghi từ trình duyệt.
+    await chanGhiCloud(page);
     await page.route('**/features/sticker-event/hooks/useStickerEventAuth.ts*', r =>
         r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_HOOK_STUB }));
     await page.goto('/?tab=tools-print-sticker&sub=event');
