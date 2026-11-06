@@ -44,12 +44,17 @@ export function createBatchExportElement(
     container.style.cssText = `
         width: 960px;
         background-color: #ffffff;
-        padding: 24px;
         border-radius: 16px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: #0f172a;
         box-sizing: border-box;
     `;
+
+    // Bộ chụp ảnh bỏ padding của phần tử gốc rồi thêm lề 4px bên trái, nội dung lệch sang phải và bị cắt mép.
+    // Đặt lề ở lớp trong và bù lệch để hai bên ảnh đều còn 24px.
+    const content = document.createElement('div');
+    content.style.cssText = 'padding: 24px 28px 24px 20px; box-sizing: border-box;';
+    container.appendChild(content);
 
     // 1. Header
     const now = new Date();
@@ -89,7 +94,7 @@ export function createBatchExportElement(
             </div>
         </div>
     `;
-    container.appendChild(header);
+    content.appendChild(header);
 
     // 2. Product List (tối đa 50 items)
     const list = document.createElement('div');
@@ -185,7 +190,7 @@ export function createBatchExportElement(
         list.appendChild(card);
     });
 
-    container.appendChild(list);
+    content.appendChild(list);
 
     // 3. Footer
     const footer = document.createElement('div');
@@ -203,7 +208,7 @@ export function createBatchExportElement(
         <span>Hệ thống Quản lý Bán lẻ & In Sticker — dashboard.pro.vn</span>
         <span style="font-family: ui-monospace, SFMono-Regular, monospace;">Trang ${batchIndex + 1}/${totalBatches} • Đợt 50 sản phẩm</span>
     `;
-    container.appendChild(footer);
+    content.appendChild(footer);
 
     return container;
 }
@@ -404,12 +409,12 @@ export async function exportProductsInBatches(
                     options.storeId
                 );
 
-                // Gắn vào DOM tạm thời ngoài màn hình
-                container.style.position = 'fixed';
-                container.style.left = '-9999px';
-                container.style.top = '0';
-                container.style.zIndex = '-9999';
-                document.body.appendChild(container);
+                // Đẩy ra ngoài màn hình bằng khung bọc, KHÔNG đặt vị trí trên phần tử được chụp: bản sao để chụp
+                // mang theo vị trí đó, nội dung nằm ngoài khung và ảnh xuất ra trắng tinh (lỗi 2026-11-04).
+                const offscreenHost = document.createElement('div');
+                offscreenHost.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-9999;';
+                offscreenHost.appendChild(container);
+                document.body.appendChild(offscreenHost);
                 try {
                     // Chờ ổn định layout và phông chữ
                     await new Promise(r => setTimeout(r, 120));
@@ -419,10 +424,12 @@ export async function exportProductsInBatches(
                         captureAsDisplayed: true,
                         mode: 'blob-only',
                         forcedWidth: 960,
+                        // Ảnh đã có dòng "Xuất lúc" và chân trang riêng; chân ảnh chung lại bị xén ở mép dưới.
+                        footer: false,
                     });
                 } finally {
                     // Gỡ khỏi DOM kể cả khi chụp lỗi
-                    container.remove();
+                    offscreenHost.remove();
                 }
             },
             deliver: (blob, filename) => downloadBlob(blob, filename, true),

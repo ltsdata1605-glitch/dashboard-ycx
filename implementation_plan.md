@@ -9332,3 +9332,14 @@ Không làm: mục 18 (ảnh chứng từ), mục 19 (giọng nói), mục 4 (gh
 - Tab Bot LINE có liên kết "Hướng dẫn sử dụng Bot LINE" (icon `guide`) mở file ở tab mới.
 - Test chỉ đọc `tests/e2e/huong-dan-bot-line.spec.ts`: liên kết hiện đúng, trang mở được.
 - Khi sửa hướng dẫn: sửa `docs/huong-dan-bot-line.md`, rồi chạy lại pandoc (xem mục đầu file này) để cập nhật bản HTML.
+
+# Sửa lỗi nút Xuất ảnh (In Sticker) ra ảnh trắng (2026-11-04)
+
+Phát hiện khi làm app offline In Sticker: nút Xuất ảnh ở tab In Sticker > Sticker ra ảnh trắng tinh dù file vẫn nặng và bảng tiến trình báo xong. Đo qua nút thật: 3388×15239, 0 điểm ảnh khác nền.
+
+**Tệp sửa:** `features/sticker-event/services/batchImageExportService.ts`, `tests/e2e/xuat-anh-hang-loat-ket-qua.spec.ts`. Không sửa `components/shared/export/*` (dùng chung cho nơi khác).
+
+- Nguyên nhân chính: `exportProductsInBatches` đặt `position: fixed; left: -9999px` ngay trên phần tử được chụp, bản sao mang theo vị trí đó nên nội dung nằm ngoài khung ảnh. Sửa: đẩy ra ngoài màn hình bằng `div` bọc ngoài, gỡ trong `finally`.
+- `captureEngine` đặt `padding: 0` cho phần tử gốc rồi thêm lề 4px khi chụp: chuyển lề của ảnh vào một lớp trong (`padding: 24px 28px 24px 20px`).
+- Chân ảnh chung bị xén và ảnh đã có chân trang riêng: truyền `footer: false`.
+- Test: bấm đúng nút trên giao diện, lấy file tải về thật, giải mã và đo điểm ảnh (có nội dung, lề hai bên cân, không sát mép dưới). Spec cũ chỉ đếm số ảnh nên không thấy lỗi này.
