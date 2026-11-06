@@ -9343,3 +9343,15 @@ Phát hiện khi làm app offline In Sticker: nút Xuất ảnh ở tab In Stick
 - `captureEngine` đặt `padding: 0` cho phần tử gốc rồi thêm lề 4px khi chụp: chuyển lề của ảnh vào một lớp trong (`padding: 24px 28px 24px 20px`).
 - Chân ảnh chung bị xén và ảnh đã có chân trang riêng: truyền `footer: false`.
 - Test: bấm đúng nút trên giao diện, lấy file tải về thật, giải mã và đo điểm ảnh (có nội dung, lề hai bên cân, không sát mép dưới). Spec cũ chỉ đếm số ảnh nên không thấy lỗi này.
+
+# Sửa 5 test đỏ trên job e2e-webkit (2026-11-06)
+
+Cả 5 test đều lỗi thời so với thay đổi đăng nhập ngày 2026-10-30, không phải lỗi app trên Safari. Chỉ sửa test, không sửa code app.
+
+**Tệp sửa:** `tests/e2e/luu-du-lieu-ngoai-luong-chinh.spec.ts`, `tests/e2e/xuat-hang-loat-dien-thoai-chia-se-mot-lan.spec.ts`, `tests/e2e/o-nhap-a17.spec.ts`.
+
+- 4 test nạp tệp Phân tích: `firestore.rules` chỉ cho người đã đăng nhập đọc `shared_configs`, nên Dùng Thử nhận `permission-denied` khi đọc `global_product_config`, báo "Không tải được cấu hình ngành hàng" và quay về màn tải tệp (không có `#business-overview`). Sửa: gọi `seedProductConfigFixture` sau khi bấm Dùng Thử, như `apple-tuong-thich` và `navigation-material`. Dùng Thử không có trên bản build cho người dùng.
+- `o-nhap-a17`: đo `input.mod-input` ở `/check-thuong.html`, trang này nay chuyển về `/?tab=check-thuong`. Viết lại trên bản React: thẻ viewport có `maximum-scale=1` và 2 ô lọc Top thưởng cao ≥44px. Bỏ điều kiện ≥16px vì app chặn tự phóng to bằng viewport. 2 ô Kho 1/Kho 2 giữ nguyên theo quyết định của chủ dự án (cao 32px, đo ở `check-thuong-mobile-topbar`).
+- Giới hạn: WebKit trên máy tính không có hành vi tự phóng to của iPhone, nên `o-nhap-a17` chỉ khoá thẻ viewport.
+
+**Job `e2e` bị huỷ không do WebKit:** chạm `timeout-minutes: 40` trong khi job `e2e-webkit` đã xong từ trước. Nhiều spec Chromium chờ hết giờ vì cùng thiếu cấu hình ngành hàng, chưa sửa trong đợt này.

@@ -4,6 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as XLSX from 'xlsx';
+import { seedProductConfigFixture } from './helpers/salesFixture';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -59,6 +60,8 @@ test('xuất hàng loạt NV trên iPhone: một nút, một lượt chia sẻ �
     });
     await page.goto('/?tab=analysis');
     await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
+    await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(taoFileBanHang());
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
     await expect(page.locator('#business-overview')).toContainText('66 Tr', { timeout: 60_000 });
