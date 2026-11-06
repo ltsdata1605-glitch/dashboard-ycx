@@ -324,7 +324,7 @@ export default function LineBotView() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 dark:text-sky-400 hover:underline"
                     >
-                        <AppIcon name="guide" size="sm" />
+                        <AppIcon name="guide" size="md" />
                         Hướng dẫn sử dụng Bot LINE
                     </a>
                 </div>
