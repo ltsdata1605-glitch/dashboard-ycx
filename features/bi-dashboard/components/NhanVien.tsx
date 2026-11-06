@@ -446,6 +446,8 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
         const file = e.target.files?.[0];
         if (!file) return;
         e.target.value = '';
+        (window as any).__pendingYcxAutoSyncFile = file;
+        (window as any).__pendingYcxAutoResolveConflict = 'overwrite_deactivate';
         window.dispatchEvent(new CustomEvent('ycx-auto-sync-file', { detail: { file, autoResolveConflict: 'overwrite_deactivate' } }));
     }, []);
     const [xoaNVConfirm, setXoaNVConfirm] = useState(false);
