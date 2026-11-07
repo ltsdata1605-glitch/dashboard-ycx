@@ -27,7 +27,7 @@ import { standardizeEmployeeName, isIgnoredDept } from '../utils/nhanVienHelpers
 import { MOBILE_GUTTER } from '../utils/mobileUi';
 import { TopBarActions } from '../../../components/shared/ui/TopBarActions';
 import { usePageActions } from '../../../components/shared/ui/PageActions';
-import { clearAnalysisEmployees } from '../services/analysisEmployeeSyncService';
+import { clearAnalysisEmployees, nhapFileNhanVien } from '../services/analysisEmployeeSyncService';
 import { toast } from '../../../components/shared/ui/toast';
 
 const NAV_TABS: { tab: Tab; label: string }[] = [
@@ -442,13 +442,16 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
     const { activeTab: appActiveTab } = useActiveTab();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const nhapFileYcx = useCallback(() => fileInputRef.current?.click(), []);
-    const handleFileChosen = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChosen = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         e.target.value = '';
-        (window as any).__pendingYcxAutoSyncFile = file;
-        (window as any).__pendingYcxAutoResolveConflict = 'overwrite_deactivate';
-        window.dispatchEvent(new CustomEvent('ycx-auto-sync-file', { detail: { file, autoResolveConflict: 'overwrite_deactivate' } }));
+        try {
+            const result = await nhapFileNhanVien(file);
+            toast.success(`Đã nhập ${result.totalCount} nhân viên`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Lỗi nhập file nhân viên');
+        }
     }, []);
     const [xoaNVConfirm, setXoaNVConfirm] = useState(false);
     const handleXoaDanhSach = useCallback(async () => {

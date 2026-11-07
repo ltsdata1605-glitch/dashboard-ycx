@@ -412,6 +412,82 @@ export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload |
 }
 
 /**
+ * Nhập file nhân viên (Excel phân ca) trực tiếp từ BI: parse file → cập nhật
+ * departmentMap → gọi saveAnalysisEmployees. Dùng cùng logic parse với
+ * services/dataService.ts → processShiftFile nhưng tự chứa để không vi phạm
+ * cách ly (BI không import services/ gốc trừ firebase.ts và ngoại lệ khai báo).
+ */
+export async function nhapFileNhanVien(file: File, maKho?: string): Promise<AnalysisEmployeesPayload> {
+    const data = await file.arrayBuffer();
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.read(data, { type: 'array' });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    // any: dữ liệu Excel thô
+    const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+    const cleanMaKho = maKho ? String(maKho).trim().replace(/\D/g, '') : '';
+    const map: Record<string, string> = {};
+    let currentDepartment: string | null = null;
+
+    for (let i = 2; i < rows.length; i++) {
+        const row = rows[i];
+        if (row[0] && typeof row[0] === 'string' && row[0].trim() !== '') {
+            currentDepartment = row[0].trim();
+        }
+        const userId = row[1];
+        const userName = row[2];
+        if (userId && currentDepartment) {
+            const userIdStr = String(userId).trim();
+            const lowerUserId = userIdStr.toLowerCase();
+            const lowerUserName = userName ? String(userName).trim().toLowerCase() : '';
+            if (
+                lowerUserId.startsWith('yêu cầu xuất') || lowerUserId.startsWith('mwg') ||
+                lowerUserId.startsWith('bp ') || lowerUserId.startsWith('hỗ trợ bi') ||
+                lowerUserId.startsWith('nnh ') || lowerUserId.startsWith('đml_str_str') ||
+                lowerUserId.includes('online') ||
+                lowerUserName.startsWith('yêu cầu xuất') || lowerUserName.startsWith('mwg') ||
+                lowerUserName.startsWith('bp ') || lowerUserName.startsWith('hỗ trợ bi') ||
+                lowerUserName.startsWith('nnh ') || lowerUserName.startsWith('đml_str_str') ||
+                lowerUserName.includes('online')
+            ) continue;
+
+            const idMatch = userIdStr.match(/^(\d+)/);
+            const cleanId = idMatch ? idMatch[1] : userIdStr.split(' - ')[0].trim();
+            if (cleanId) {
+                let storedName = userIdStr;
+                if (userIdStr === cleanId && userName && typeof userName === 'string' && userName.trim() !== '') {
+                    storedName = `${cleanId} - ${String(userName).trim()}`;
+                }
+                map[cleanId] = cleanMaKho
+                    ? `${currentDepartment};;${storedName};;${cleanMaKho}`
+                    : `${currentDepartment};;${storedName}`;
+            }
+        }
+    }
+
+    if (Object.keys(map).length === 0) {
+        throw new Error('File không chứa dữ liệu nhân viên hợp lệ (cần cột Bộ phận, User, Họ tên).');
+    }
+
+    // Chỉ giữ BP All In One (như processShiftFile + keepOnlyAllInOne của Phân tích)
+    const allInOneMap: Record<string, string> = {};
+    for (const [id, raw] of Object.entries(map)) {
+        const dept = raw.split(';;')[0].trim();
+        const normalized = dept.normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[đĐ]/g, 'd').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normalized.includes('allinone')) {
+            allInOneMap[id] = raw;
+        }
+    }
+    const finalMap = Object.keys(allInOneMap).length > 0 ? allInOneMap : map;
+
+    // Thay thế departmentMap cũ (không merge) + lưu danh sách nhân viên
+    await saveSetting('departmentMap', finalMap);
+    const employees = convertDepartmentMapToEmployees(finalMap);
+    return saveAnalysisEmployees(employees, undefined, true);
+}
+
+/**
  * Xoá danh sách nhân viên Phân tích khỏi IndexedDB VÀ Cloud Firestore.
  * Xoá cả departmentMap (nguồn gốc bước 1) + cache (bước 2) + cloud (bước 3)
  * và đặt cờ cleared phòng khi cloud chưa xoá kịp. Cờ tự gỡ khi departmentMap
