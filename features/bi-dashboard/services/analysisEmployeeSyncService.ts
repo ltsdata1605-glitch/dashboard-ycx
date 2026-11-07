@@ -339,9 +339,7 @@ export function convertDepartmentMapToEmployees(map: Record<string, string>): Ar
  * Đọc danh sách nhân viên phân tích từ IndexedDB (ưu tiên tối cao từ departmentMap của Phân Tích, fallback Firebase nếu trên thiết bị mới)
  */
 export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload | null> {
-    // 0. Người dùng đã bấm "Xoá danh sách" → trả rỗng cho đến khi có dữ liệu mới
     const cleared = await getSetting<number>(ANALYSIS_CLEARED_KEY);
-    if (cleared) return null;
 
     // 1. Đọc trực tiếp từ departmentMap của Phân Tích (nguồn chuẩn gốc duy nhất)
     try {
@@ -350,6 +348,9 @@ export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload |
             const rawEmployees = convertDepartmentMapToEmployees(deptMap);
             const cleanList = normalizeAnalysisEmployees(rawEmployees);
             if (cleanList.length > 0) {
+                // departmentMap có dữ liệu → người dùng đã nhập file mới → cờ xoá cũ không còn đúng
+                if (cleared) saveSetting(ANALYSIS_CLEARED_KEY, null).catch(() => {});
+
                 // CHỈ ghi cache khi danh sách thật sự đổi. Ghi vô điều kiện tạo VÒNG LẶP VÔ HẠN:
                 // saveSetting('bi_…') phát 'indexeddb-change' (key analysis-employees-list) →
                 // useNhanVienData gọi lại hàm này → ghi tiếp… Hàng trăm giao dịch dồn ứ làm
@@ -383,6 +384,9 @@ export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload |
         console.warn('[AnalysisEmployeeSync] Không thể đọc trực tiếp từ departmentMap:', err);
     }
 
+    // Cờ "đã xoá" chỉ chặn khi departmentMap cũng rỗng (chưa nhập file mới)
+    if (cleared) return null;
+
     // 2. Đọc từ IndexedDB — qua adapter (A29): bản cũ nâng lên v1, bản hỏng bỏ qua
     let local = docAnalysisEmployeesPayload(await getSetting<unknown>(ANALYSIS_EMPLOYEES_KEY));
     if (!local) {
@@ -409,14 +413,15 @@ export async function getAnalysisEmployees(): Promise<AnalysisEmployeesPayload |
 
 /**
  * Xoá danh sách nhân viên Phân tích khỏi IndexedDB VÀ Cloud Firestore.
- * Đặt cờ ANALYSIS_CLEARED_KEY để `getAnalysisEmployees()` trả null ngay lập tức — không
- * rebuild từ departmentMap (bước 1) hay kéo lại từ cloud (bước 3). Cờ tự gỡ khi
- * `saveAnalysisEmployees()` lưu dữ liệu mới.
+ * Xoá cả departmentMap (nguồn gốc bước 1) + cache (bước 2) + cloud (bước 3)
+ * và đặt cờ cleared phòng khi cloud chưa xoá kịp. Cờ tự gỡ khi departmentMap
+ * có dữ liệu mới (nhập file) hoặc `saveAnalysisEmployees()` chạy.
  */
 export async function clearAnalysisEmployees(): Promise<void> {
     await saveSetting(ANALYSIS_CLEARED_KEY, Date.now());
     await saveSetting(ANALYSIS_EMPLOYEES_KEY, null);
     await saveSetting(`bi_${ANALYSIS_EMPLOYEES_KEY}`, null);
+    await saveSetting('departmentMap', null);
     try {
         const user = auth.currentUser;
         if (user) {
