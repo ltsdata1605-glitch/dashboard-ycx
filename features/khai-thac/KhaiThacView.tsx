@@ -273,25 +273,56 @@ export default function KhaiThacView({ isActive }: { isActive?: boolean }) {
         { id: 'history', label: 'Nhật ký', badge: reports.length || undefined },
     ];
 
-    // Khung chung 960px với Report BI (BiWrapper main) và Check thưởng: rộng tối đa 960, đệm ngang 32px desktop, không đệm trên.
+    // Khung chung 980px chuẩn Apple: giao diện thanh thoát, mềm mại, đệm hợp lý cho cả iPhone & Desktop
     return (
-        <div className="w-full max-w-[960px] mx-auto px-2 sm:px-4 lg:px-8 pt-2 pb-4 lg:pb-8 space-y-3" data-testid="khai-thac-view">
-            {/* Thanh điều hướng con + tên nhân viên */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Tabs items={tabItems} activeId={tab} onChange={id => setTab(id as SubTab)} variant="underline" size="sm" />
-                <div className="flex items-center gap-1.5">
-                    <AppIcon name="user" size="sm" className="text-slate-400" />
+        <div className="w-full max-w-[980px] mx-auto px-2.5 sm:px-4 lg:px-6 pt-2 pb-6 lg:pb-10 space-y-3.5" data-testid="khai-thac-view">
+            {/* Thanh điều hướng con + Chip tên nhân viên Apple Style */}
+            <div className="flex items-center justify-between gap-2.5 flex-wrap">
+                <Tabs items={tabItems} activeId={tab} onChange={id => setTab(id as SubTab)} variant="chips" size="sm" />
+
+                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                     {editingName ? (
-                        <>
-                            <Input autoFocus placeholder="Mã - Tên (VD: 21707 - Sơn)" value={nameInput} onChange={e => setNameInput(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') commitName(); }} fullWidth={false} aria-label="Tên nhân viên"
-                                className="h-8 w-56 text-[13px]" data-testid="staff-name-input" />
-                            <Button variant="primary" size="icon" className="h-[var(--btn-height-icon)] w-[var(--btn-height-icon)] rounded" onClick={commitName} aria-label="Lưu tên"><AppIcon name="check" size="sm" /></Button>
-                        </>
+                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-full border border-sky-300 dark:border-sky-700 shadow-2xs">
+                            <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 flex items-center justify-center shrink-0">
+                                <AppIcon name="user" size="xs" />
+                            </span>
+                            <Input
+                                autoFocus
+                                placeholder="Mã - Tên (VD: 21707 - Sơn)"
+                                value={nameInput}
+                                onChange={e => setNameInput(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') commitName(); }}
+                                fullWidth={false}
+                                aria-label="Tên nhân viên"
+                                className="h-7 w-48 text-[13px] border-0 bg-transparent focus:ring-0 px-1 shadow-none"
+                                data-testid="staff-name-input"
+                            />
+                            <Button
+                                variant="primary"
+                                size="icon"
+                                className="ycx-hit h-7 w-7 rounded-full bg-sky-600 hover:bg-sky-500 shadow-2xs"
+                                onClick={commitName}
+                                aria-label="Lưu tên"
+                            >
+                                <AppIcon name="check" size="xs" />
+                            </Button>
+                        </div>
                     ) : (
-                        <Button variant="secondary" size="sm" className="h-8 gap-1.5" onClick={() => { setNameInput(draft.staffName); setEditingName(true); }} title="Đổi tên nhân viên" data-testid="staff-name">
-                            <span className="font-semibold text-slate-800">{draft.staffName || 'Chưa có tên'}</span>
-                            <AppIcon name="edit" size="xs" className="text-slate-400" />
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="ycx-hit h-9 px-3 gap-2 rounded-full bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 shadow-2xs hover:border-sky-300 hover:bg-slate-50 dark:hover:bg-slate-750 transition-all active:scale-95"
+                            onClick={() => { setNameInput(draft.staffName); setEditingName(true); }}
+                            title="Đổi tên nhân viên"
+                            data-testid="staff-name"
+                        >
+                            <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 flex items-center justify-center -ml-0.5">
+                                <AppIcon name="user" size="xs" />
+                            </span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 text-[13px]">
+                                {draft.staffName || 'Chưa có tên'}
+                            </span>
+                            <AppIcon name="edit" size="xs" className="text-slate-400 ml-0.5" />
                         </Button>
                     )}
                 </div>

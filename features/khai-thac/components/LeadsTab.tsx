@@ -21,7 +21,7 @@ interface LeadsTabProps {
 export const OVERDUE_MS = 2 * 60 * 60 * 1000;
 export const isOverdue = (l: Lead, now = Date.now()) => l.status === 'Chưa liên hệ' && now - l.createdAt > OVERDUE_MS;
 
-/** Vạch 3px mép trái mã hoá trạng thái chăm sóc — thay cho pill, đúng chuẩn ca trực. */
+/** Vạch mép trái mã hoá trạng thái chăm sóc chuẩn Apple */
 const STATUS_STRIPE: Record<LeadStatus, string> = {
     'Chưa liên hệ': 'border-l-rose-500',
     'Đã liên hệ': 'border-l-sky-500',
@@ -83,43 +83,43 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
     const overdueCount = leads.filter(l => isOverdue(l, now)).length;
 
     return (
-        <div className="lg:grid lg:grid-cols-12 lg:gap-3 space-y-3 lg:space-y-0">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-3.5 space-y-3.5 lg:space-y-0">
             {/* Form thêm khách */}
-            <section className="lg:col-span-4 border border-slate-200 bg-white self-start" data-testid="lead-form">
+            <section className="lg:col-span-4 rounded-card border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden self-start" data-testid="lead-form">
                 <BandHeader icon="user" title="Thêm khách hàng" />
-                <div className="p-2 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 sm:p-3.5 space-y-3">
+                    <div className="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label htmlFor="lead-name" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Tên khách</label>
-                            <Input id="lead-name" placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} className="h-9 text-[13px]" />
+                            <label htmlFor="lead-name" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Tên khách</label>
+                            <Input id="lead-name" placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} className="h-9 text-[13px] rounded-lg" />
                         </div>
                         <div>
-                            <label htmlFor="lead-phone" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Số điện thoại</label>
+                            <label htmlFor="lead-phone" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Số điện thoại</label>
                             <Input id="lead-phone" type="tel" inputMode="numeric" placeholder="09xx…" value={phone}
-                                onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} className="h-9 text-[13px] tabular-nums" />
+                                onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} className="h-9 text-[13px] tabular-nums rounded-lg" />
                         </div>
                     </div>
                     <div>
-                        <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Sản phẩm quan tâm</span>
+                        <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Sản phẩm quan tâm</span>
                         <div className="flex flex-wrap gap-1.5">
                             {productOptions.map(label => {
                                 const on = picked.includes(label);
                                 return (
                                     <Button key={label} variant="secondary" size="sm" onClick={() => togglePick(label)} aria-pressed={on}
-                                        className={`h-8 px-2.5 text-[12px] ${on ? 'border-sky-400 bg-sky-50 text-sky-700' : ''}`}>
+                                        className={`ycx-hit h-8 px-2.5 text-[12px] rounded-full transition-all duration-150 active:scale-95 ${on ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs' : 'rounded-full'}`}>
                                         {label}
                                     </Button>
                                 );
                             })}
                         </div>
-                        <Input placeholder="Sản phẩm khác…" value={customProduct} onChange={e => setCustomProduct(e.target.value)} className="h-8 text-[13px] mt-1.5" aria-label="Sản phẩm khác" />
+                        <Input placeholder="Sản phẩm khác…" value={customProduct} onChange={e => setCustomProduct(e.target.value)} className="h-8 text-[13px] mt-2 rounded-lg" aria-label="Sản phẩm khác" />
                     </div>
                     <div>
-                        <label htmlFor="lead-notes" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Ghi chú</label>
-                        <Input id="lead-notes" placeholder="Ghi chú khách hàng…" value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-[13px]"
+                        <label htmlFor="lead-notes" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ghi chú</label>
+                        <Input id="lead-notes" placeholder="Ghi chú khách hàng…" value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-[13px] rounded-lg"
                             onKeyDown={e => { if (e.key === 'Enter') submit(); }} />
                     </div>
-                    <Button variant="primary" onClick={submit} disabled={!canAdd} leftIcon={<AppIcon name="add" size="md" />} className="w-full h-10 lg:h-9" data-testid="btn-add-lead"
+                    <Button variant="primary" onClick={submit} disabled={!canAdd} leftIcon={<AppIcon name="add" size="md" />} className="w-full h-10 rounded-full font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/25 active:scale-95 text-[13px]" data-testid="btn-add-lead"
                         title={canAdd ? undefined : Object.values(errors).filter(Boolean).join(' · ')}>
                         Thêm khách
                     </Button>
@@ -127,100 +127,108 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
             </section>
 
             {/* Danh sách */}
-            <section className="lg:col-span-8 border border-slate-200 bg-white" data-testid="lead-list">
+            <section className="lg:col-span-8 rounded-card border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden" data-testid="lead-list">
                 <BandHeader
                     icon="users"
-                    title={<>Danh sách khách hàng <span className="tabular-nums">({leads.length})</span>{staffName ? <span className="ml-2 font-normal normal-case tracking-normal text-slate-500">· {staffName}</span> : null}</>}
+                    title={<>Danh sách khách hàng <span className="tabular-nums text-sky-600 dark:text-sky-400 font-bold">({leads.length})</span>{staffName ? <span className="ml-2 font-normal normal-case tracking-normal text-slate-500 dark:text-slate-400">· {staffName}</span> : null}</>}
                     right={
-                        <>
+                        <div className="flex items-center gap-1.5">
                             <div className="relative hidden sm:block">
-                                <AppIcon name="search" size="xs" className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <AppIcon name="search" size="xs" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <Input placeholder="Tìm nhanh…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Tìm khách hàng"
-                                    className="h-6 w-40 pl-6 pr-2 text-[12px]" fullWidth={false} />
+                                    className="h-7 w-44 pl-7 pr-2 text-[12px] rounded-lg bg-white dark:bg-slate-850" fullWidth={false} />
                             </div>
                             {leads.length > 0 && (
-                                <Button variant="secondary" size="sm" className="h-6 px-2 text-[11px]" leftIcon={<AppIcon name="share" size="xs" />}
+                                <Button variant="secondary" size="sm" className="ycx-hit h-7 px-2.5 text-[11px] rounded-full" leftIcon={<AppIcon name="share" size="xs" />}
                                     onClick={() => shareElementAsImage(listRef.current, `khach-hang-${new Date().toISOString().slice(0, 10)}.png`, 'Danh sách khách hàng')}>
                                     Xuất ảnh
                                 </Button>
                             )}
-                        </>
+                        </div>
                     }
                 />
                 {overdueCount > 0 && (
-                    <div className="px-3 py-1.5 bg-rose-50 border-b border-rose-200 text-[12px] text-rose-700 flex items-center gap-2" role="alert">
-                        <AppIcon name="warning" size="sm" /> {overdueCount} khách quá 2 giờ chưa cập nhật trạng thái chăm sóc.
+                    <div className="px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800/60 flex items-center gap-2 text-[12px] text-amber-800 dark:text-amber-200">
+                        <AppIcon name="clock" size="sm" className="text-amber-600 shrink-0" />
+                        <span>Có <b>{overdueCount}</b> khách quá 2 giờ chưa cập nhật trạng thái liên hệ.</span>
                     </div>
                 )}
-                <div className="sm:hidden px-2 py-1.5 border-b border-slate-100">
-                    <Input placeholder="Tìm nhanh…" value={search} onChange={e => setSearch(e.target.value)} className="h-8 text-[13px]" aria-label="Tìm khách hàng" />
-                </div>
-                <div ref={listRef} className="bg-white">
-                    {filtered.length === 0 ? (
-                        <p className="px-3 py-8 text-center text-[13px] text-slate-400">{leads.length === 0 ? 'Chưa có khách hàng nào.' : 'Không tìm thấy khách phù hợp.'}</p>
-                    ) : (
-                        <ul className="divide-y divide-slate-100">
-                            {filtered.map((l, idx) => {
-                                const overdue = isOverdue(l, now);
-                                const detailLabel = DETAIL_LABEL[l.status];
-                                return (
-                                    <li key={l.id} className={`border-l-[3px] ${STATUS_STRIPE[l.status]} px-2.5 py-1.5 lg:py-1 hover:bg-slate-50`} data-testid="lead-row">
-                                        <div className="flex items-start gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-[12px] text-slate-400 tabular-nums">#{idx + 1}</span>
-                                                    <span className="text-[13px] font-semibold text-slate-900 truncate">{l.name}</span>
-                                                    <a href={`tel:${l.phone}`} className="text-[13px] tabular-nums text-sky-700 hover:underline" title="Gọi">{l.phone}</a>
-                                                    {l.product && <span className="text-[12px] text-slate-500 truncate" title={l.product}>· {l.product}</span>}
-                                                    <span className="text-[12px] text-slate-400 tabular-nums">· {ago(l.createdAt, now)} trước</span>
-                                                    {overdue && <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700"><AppIcon name="warning" size="xs" className="text-rose-600" />quá 2h</span>}
-                                                </div>
-                                                {l.notes && <p className="text-[12px] text-slate-500 truncate" title={l.notes}>Ghi chú: {l.notes}</p>}
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <a href={`tel:${l.phone}`} title="Gọi điện" aria-label={`Gọi ${l.name}`}
-                                                    className="h-7 w-7 lg:h-6 lg:w-6 inline-flex items-center justify-center border border-slate-300 rounded text-emerald-700 hover:bg-emerald-50">
-                                                    <AppIcon name="call" size="xs" />
-                                                </a>
-                                                <a href={`https://zalo.me/${l.phone}`} target="_blank" rel="noreferrer" title="Mở Zalo"
-                                                    className="h-7 lg:h-6 px-1.5 inline-flex items-center justify-center border border-slate-300 rounded text-[11px] font-bold text-sky-700 hover:bg-sky-50">
-                                                    Zalo
-                                                </a>
-                                                <Select value={l.status} onChange={e => onUpdate({ ...l, status: e.target.value as LeadStatus, statusDetails: DETAIL_LABEL[e.target.value as LeadStatus] ? l.statusDetails : '', updatedAt: Date.now() })}
-                                                    aria-label="Trạng thái" fullWidth={false} className="h-7 lg:h-6 px-2 pr-7 py-0 text-[12px] w-[122px]">
-                                                    {LEAD_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                                                </Select>
-                                                <Button variant="ghost" size="icon-xs" onClick={() => setPendingDelete(l)} title="Xoá khách" aria-label={`Xoá ${l.name}`}
-                                                    className="text-slate-300 hover:text-rose-600 hover:bg-rose-50">
-                                                    <AppIcon name="delete" size="sm" />
-                                                </Button>
-                                            </div>
+                {leads.length === 0 ? (
+                    <div className="p-8 text-center text-[13px] text-slate-500 dark:text-slate-400">
+                        Chưa có khách hàng nào. Nhập thông tin ở form bên trái để lưu khách cần chăm sóc.
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="p-8 text-center text-[13px] text-slate-500 dark:text-slate-400">
+                        Không tìm thấy khách hàng khớp với từ khoá &quot;{search}&quot;.
+                    </div>
+                ) : (
+                    <div ref={listRef} className="divide-y divide-slate-100 dark:divide-slate-800/80 bg-white dark:bg-slate-900">
+                        {filtered.map(l => {
+                            const overdue = isOverdue(l, now);
+                            const stripe = STATUS_STRIPE[l.status] || 'border-l-slate-300';
+                            return (
+                                <div key={l.id} className={`p-3 sm:p-3.5 border-l-4 ${stripe} flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors`}>
+                                    <div className="min-w-0 flex-1 space-y-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold text-[14px] text-slate-900 dark:text-white">{l.name}</span>
+                                            <a href={`tel:${l.phone}`} className="inline-flex items-center gap-1 text-[13px] font-bold text-sky-600 dark:text-sky-400 hover:underline tabular-nums">
+                                                <AppIcon name="phone" size="xs" /> {l.phone}
+                                            </a>
+                                            <span className="text-[11px] text-slate-400 tabular-nums">({ago(l.createdAt, now)} trước)</span>
+                                            {overdue && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                                                    Quá 2h
+                                                </span>
+                                            )}
                                         </div>
-                                        {detailLabel && (
-                                            <div className="mt-1 flex items-center gap-2">
-                                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 shrink-0">{detailLabel}</span>
-                                                <Input value={l.statusDetails} onChange={e => onUpdate({ ...l, statusDetails: e.target.value, updatedAt: Date.now() })}
-                                                    placeholder="Nhập…" aria-label={detailLabel} className="h-7 lg:h-6 text-[12px]" />
+                                        <div className="text-[13px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-medium text-slate-500 dark:text-slate-400">SP:</span>
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{l.product}</span>
+                                            {l.notes && <span className="text-slate-500 italic">· {l.notes}</span>}
+                                        </div>
+                                        {l.statusDetails && (
+                                            <div className="text-[12px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800 mt-1">
+                                                <b className="text-slate-700 dark:text-slate-300">{DETAIL_LABEL[l.status] || 'Chi tiết'}:</b> {l.statusDetails}
                                             </div>
                                         )}
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    )}
-                </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                        <div className="w-36">
+                                            <Select
+                                                value={l.status}
+                                                onChange={e => onUpdate({ ...l, status: e.target.value as LeadStatus, updatedAt: Date.now() })}
+                                                options={LEAD_STATUSES.map(s => ({ value: s, label: s }))}
+                                                className="h-8 text-[12px] rounded-lg"
+                                            />
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            onClick={() => setPendingDelete(l)}
+                                            title="Xoá khách này"
+                                            aria-label="Xoá khách"
+                                            className="ycx-hit h-8 w-8 text-slate-400 hover:text-rose-600 rounded-full"
+                                        >
+                                            <AppIcon name="delete" size="sm" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </section>
 
             <ConfirmDialog
                 isOpen={!!pendingDelete}
-                onClose={() => setPendingDelete(null)}
-                onConfirm={() => { if (pendingDelete) onRemove(pendingDelete.id); setPendingDelete(null); }}
                 title="Xoá khách hàng?"
-                message={pendingDelete ? <>Xoá <b>{pendingDelete.name}</b> ({pendingDelete.phone}) khỏi danh sách. Không hoàn tác được.</> : ''}
+                message={`Xoá khách hàng "${pendingDelete?.name}" (${pendingDelete?.phone})? Không thể hoàn tác.`}
                 confirmText="Xoá"
+                cancelText="Giữ lại"
                 variant="danger"
+                onConfirm={() => { if (pendingDelete) { onRemove(pendingDelete.id); setPendingDelete(null); } }}
+                onClose={() => setPendingDelete(null)}
             />
         </div>
     );
 };
-
