@@ -29,7 +29,7 @@ import AvatarDisplay from './shared/AvatarDisplay';
 import { Button } from '../../../../components/shared/ui/Button';
 import { Select } from '../../../../components/shared/ui/Select';
 import { Input } from '../../../../components/shared/ui/Input';
-import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
 import { ConfirmDialog } from '../../../../components/shared/ui/ConfirmDialog';
 
 /**
@@ -59,7 +59,7 @@ interface CompetitionSummaryViewProps {
 }
 
 export interface CompetitionSummaryViewHandle {
-    handleExportPNG: (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null) => Promise<'download' | 'share' | 'cancel' | null>;
+    handleExportPNG: (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null) => Promise<'download' | 'share' | 'cancel' | 'copy' | null>;
 }
 
 const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, CompetitionSummaryViewProps>(({
@@ -383,7 +383,7 @@ const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, Competit
 
     const { showExportOptions } = useExportOptionsContext();
 
-    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (!cardRef.current) return null;
         const original = cardRef.current;
         try {
@@ -418,7 +418,7 @@ const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, Competit
         }
         setIsExportingByGroup(true);
         setExportGroupProgress({ current: 0, total: allAvailableGroups.length });
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
 
         const job = startExportJob({ title: 'Xuất ảnh thi đua theo nhóm tiêu chí', total: allAvailableGroups.length });
         for (let i = 0; i < allAvailableGroups.length; i++) {
@@ -445,7 +445,7 @@ const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, Competit
     // "HIỆU QUẢ" (BOT/NoSale) — ẩn hết các cột ngành hàng động (groupedVisibleHeaders). Dùng lại
     // đúng cơ chế elementsToHide của exportElementAsImage (thao tác trên bản CLONE, không đụng gì
     // tới bảng đang hiển thị) nên không cần đổi selectedTitles hay bất kỳ state nào của bảng gốc.
-    const handleExportSummaryPNG = async (): Promise<'download' | 'share' | 'cancel' | null> => {
+    const handleExportSummaryPNG = async (): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (!cardRef.current) return null;
         const original = cardRef.current;
         try {
@@ -463,6 +463,27 @@ const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, Competit
         } catch (err) {
             console.error('Failed to export summary image', err);
             return null;
+        }
+    };
+
+    const handleCopyPNG = async (isSummary = false) => {
+        if (!cardRef.current) return;
+        try {
+            const currentGroup = activeGroupFilter ? ` - ${activeGroupFilter.replace(/[\\/:*?"<>|]/g, '')}` : '';
+            const nameToUse = `Thi Đua - ${(tableName || 'Báo Cáo').replace(/[\\/:*?"<>|]/g, '')}${currentGroup} - ${supermarketName}.png`;
+            const elementsToHide = ['.no-print', '.export-button-component'];
+            if (isSummary) elementsToHide.push('.competition-dynamic-col');
+            const blob = await exportElementAsImage(cardRef.current, nameToUse, {
+                mode: 'blob-only', elementsToHide, isCompactTable: true
+            });
+            if (blob) {
+                const ok = await copyBlobToClipboard(blob);
+                if (ok) toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                else toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+            }
+        } catch (err) {
+            console.error('Failed to copy image', err);
+            toast.error('Lỗi khi sao chép ảnh', { id: 'copy-image-status' });
         }
     };
 
@@ -668,6 +689,7 @@ const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, Competit
 
             <ExportButton
                 onExportPNG={async () => { await handleExportSummaryPNG(); }}
+                onCopyImage={async () => { await handleCopyPNG(true); }}
                 icon={<AppIcon name="columns" size="md" />}
                 title="Xuất ảnh rút gọn (chỉ Nhân viên, %HT 100%, Hiệu quả)"
                 ariaLabel="Xuất ảnh rút gọn"
@@ -676,6 +698,7 @@ const CompetitionSummaryView = forwardRef<CompetitionSummaryViewHandle, Competit
 
             <ExportButton 
                 onExportPNG={async () => { await handleExportPNG(); }} 
+                onCopyImage={async () => { await handleCopyPNG(false); }}
                 className="w-7 h-7 sm:w-8 sm:h-8 lg:h-[var(--btn-height-icon)] lg:w-[var(--btn-height-icon)]"
                 autoExportAreaId="bi-nhan-vien-thi-dua"
                 autoExportAreaName="BI: Nhân Viên — Thi Đua Tổng Hợp"

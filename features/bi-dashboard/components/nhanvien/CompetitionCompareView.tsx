@@ -10,7 +10,8 @@ import { useIndexedDBState } from '../../hooks/useIndexedDBState';
 import { useEmployeeAvatar } from '../../hooks/useEmployeeAvatar';
 import { Button } from '../../../../components/shared/ui/Button';
 import { Input } from '../../../../components/shared/ui/Input';
-import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
+import { toast } from '../../../../components/shared/ui/toast';
 import { useExportOptionsContext } from '../../contexts/ExportOptionsContext';
 import { calculateRunRate, getMonthProgress } from '../../services/metricService';
 import { resolveEmployeeTarget } from '../../services/competitionSummaryCalc';
@@ -335,7 +336,7 @@ const CompetitionCompareView: React.FC<CompetitionCompareViewProps> = ({
         return rows;
     }, [empA, empB, allCompetitionsByCriterion, selectedCompetitions, employeeDataMap, employeeCompetitionTargets, nameOverrides]);
 
-    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (!cardRef.current) return null;
         try {
             const defaultFilename = `So Sánh - ${empA?.name.replace(/[\\/:*?"<>|]/g, '')} vs ${empB?.name.replace(/[\\/:*?"<>|]/g, '')}.png`;
@@ -348,6 +349,11 @@ const CompetitionCompareView: React.FC<CompetitionCompareViewProps> = ({
                 } else if (autoAction === 'share') {
                     await shareBlob(blob, filename);
                     return 'share';
+                } else if (autoAction === 'copy') {
+                    const ok = await copyBlobToClipboard(blob);
+                    if (ok) toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                    else toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+                    return 'copy';
                 } else {
                     return await showExportOptions(blob, filename);
                 }
@@ -364,7 +370,7 @@ const CompetitionCompareView: React.FC<CompetitionCompareViewProps> = ({
         setIsBatchExporting(true);
         const originalEmpAId = empAId;
         const originalEmpBId = empBId;
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
         const job = startExportJob({ title: 'Xuất ảnh so sánh từng cặp', total: autoPairs.length });
         try {
             for (const [i, pair] of autoPairs.entries()) {

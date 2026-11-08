@@ -16,6 +16,7 @@ import { useIndustryGridLogic } from '../../hooks/useIndustryGridLogic';
 import { Button } from '../shared/ui/Button';
 import { industryToneByKey } from '../../utils/industryColors';
 import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 import { registerYcxAutoExportRunner } from '../../services/autoReportExportService';
 
 // Ramp phân loại nhóm — chỉ dùng sắc độ của 5 màu semantic (sky/emerald/amber/rose/slate)
@@ -287,6 +288,21 @@ const IndustryGridInner: React.FC<IndustryGridInnerProps> = React.memo(({
                         {isExporting ? <AppIcon name="loading" size="md" spin /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
                         {!isExporting && <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
                     </Button>
+                    <CopyImageButton
+                        variant="ghost"
+                        size="icon"
+                        disabled={isExporting}
+                        className="w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        onGetBlob={async () => {
+                            if (!cardRef.current) return null;
+                            const prefix = getExportFilenamePrefix(filters.kho);
+                            return exportElementAsImage(cardRef.current, `${prefix} - Tỷ Trọng Ngành Hàng.png`, {
+                                elementsToHide: ['.hide-on-export'],
+                                forcedWidth: 1024,
+                                mode: 'blob-only',
+                            });
+                        }}
+                    />
                     <AreaAutoExportButton
                         areaId="Phân Tích Ngành Hàng"
                         areaName="Phân Tích Ngành Hàng"

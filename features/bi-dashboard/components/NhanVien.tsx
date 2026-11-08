@@ -689,6 +689,7 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive, isThuongTab }) => 
                 onClose={exportOptions.handleClose}
                 onDownload={exportOptions.handleDownload}
                 onShare={exportOptions.handleShare}
+                onCopy={exportOptions.handleCopy}
                 canShare={exportOptions.canShare}
                 filename={exportOptions.pendingExport?.filename || ''}
             />

@@ -12,6 +12,7 @@ import { useDashboardContext } from '../../../contexts/DashboardContext';
 import { Button } from '../../shared/ui/Button';
 import { ActionMenu, type ActionMenuItem } from '../../shared/ui/ActionMenu';
 import AreaAutoExportButton from '../../shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../../shared/export/CopyImageButton';
 import { exportElementAsImage } from '../../shared/export/captureEngine';
 import { registerYcxAutoExportRunner } from '../../../services/autoReportExportService';
 
@@ -331,6 +332,22 @@ export const PerformanceSingleTable: React.FC<RenderSingleTableProps> = ({
                             {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
                             {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
                         </Button>
+                        <CopyImageButton
+                            variant="ghost" size="icon"
+                            disabled={isExporting}
+                            className="w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+                            title="Sao chép ảnh tab hiện tại"
+                            onGetBlob={async () => {
+                                const el = getTableElement();
+                                if (!el) return null;
+                                const res = await exportElementAsImage(el, `${areaId}.png`, {
+                                    isCompactTable: true,
+                                    fitAllColumns: true,
+                                    mode: 'blob-only',
+                                });
+                                return (res instanceof Blob) ? res : null;
+                            }}
+                        />
                         <AreaAutoExportButton
                             areaId={areaId}
                             areaName={areaName}

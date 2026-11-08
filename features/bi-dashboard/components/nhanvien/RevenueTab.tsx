@@ -23,7 +23,8 @@ import { RevenueDesktopRow } from './revenue/RevenueDesktopRow';
 import { useRevenueData } from '../../hooks/useRevenueData';
 import { Button } from '../../../../components/shared/ui/Button';
 import { EmptyState } from '../../../../components/shared/ui/EmptyState';
-import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { toast } from '../../../../components/shared/ui/toast';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
 import { TieuDeBaoCao } from './shared/TieuDeBaoCao';
 
 const f = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
@@ -259,8 +260,8 @@ const RevenueView: React.FC<{
     const handleExportPNG = async (
         scope: RevenueExportScope = 'all',
         customFilename?: string,
-        autoAction?: 'download' | 'share' | 'cancel' | null
-    ): Promise<'download' | 'share' | 'cancel' | null> => {
+        autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null
+    ): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (!cardRef.current) return null;
         const original = cardRef.current;
         
@@ -318,6 +319,14 @@ const RevenueView: React.FC<{
                 } else if (autoAction === 'share') {
                     await shareBlob(blob, safeName);
                     return 'share';
+                } else if (autoAction === 'copy') {
+                    const ok = await copyBlobToClipboard(blob);
+                    if (ok) {
+                        toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                    } else {
+                        toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+                    }
+                    return 'download';
                 } else {
                     return await showExportOptions(blob, safeName);
                 }
@@ -360,7 +369,7 @@ const RevenueView: React.FC<{
         setIsExportingByDept(true);
         setExportDeptProgress({ current: 0, total: allDepts.length });
 
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
 
         // Bảng tiến trình chung (components/shared/export): %, tên bộ phận, Huỷ, tổng kết
         const job = startExportJob({ title: 'Xuất ảnh Doanh thu theo bộ phận', total: allDepts.length });
@@ -510,6 +519,8 @@ const RevenueView: React.FC<{
                     </Button>
                     <ExportButton
                         options={exportOptions}
+                        targetRef={cardRef}
+                        onCopyImage={async () => { await handleExportPNG('all', undefined, 'copy'); }}
                         autoExportAreaId="bi-nhan-vien-doanh-thu"
                         autoExportAreaName="BI: Nhân Viên — Doanh Thu"
                     />

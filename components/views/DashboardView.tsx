@@ -45,6 +45,7 @@ const ExportOptionsModal = React.lazy(() => import('../shared/export/ExportOptio
 const ShiftWarehouseInputModal = React.lazy(() => import('../modals/ShiftWarehouseInputModal'));
 import { registerYcxAutoExportRunner, triggerYcxAutoReportExport } from '../../services/autoReportExportService';
 import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 import { hasTempRealtimeData } from '../../services/dbService';
 
 import ProcessingLoader from '../common/ProcessingLoader';
@@ -645,6 +646,22 @@ const DashboardView = React.memo(function DashboardView({ isActive }: { isActive
                                                         <Button variant="ghost" size="icon" onClick={() => handleBusinessOverviewExport()} disabled={isExporting} title="Xuất ảnh toàn báo cáo" aria-label="Xuất ảnh toàn báo cáo" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40">
                                                             <AppIcon name="exportImage" size="md" />
                                                         </Button>
+                                                        <CopyImageButton
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            disabled={isExporting}
+                                                            className="w-8 h-8 lg:w-9 lg:h-9 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-control hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
+                                                            title="Sao chép ảnh tổng quan doanh thu"
+                                                            onGetBlob={async () => {
+                                                                if (!kpiCardsOnlyRef.current) return null;
+                                                                const prefix = getExportFilenamePrefix(filterState.kho);
+                                                                const res = await handleExport(kpiCardsOnlyRef.current, `${prefix} - Tổng Quan Doanh Thu.png`, {
+                                                                    captureAsDisplayed: true,
+                                                                    mode: 'blob-only',
+                                                                });
+                                                                return (res instanceof Blob) ? res : null;
+                                                            }}
+                                                        />
                                                         <AreaAutoExportButton
                                                             areaId="Tổng Quan Doanh Thu"
                                                             areaName="Tổng Quan Doanh Thu"

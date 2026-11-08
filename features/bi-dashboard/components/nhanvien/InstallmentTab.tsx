@@ -3,7 +3,6 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { AppIcon } from '../../../../components/shared/ui/icon/AppIcon';
 import { startExportJob } from '../../../../components/shared/export';
 import Card from '../Card';
-import { toast } from '../../../../components/shared/ui/toast';
 import { useExportOptionsContext } from '../../contexts/ExportOptionsContext';
 import ExportButton from '../ExportButton';
 import { InstallmentRow, InstallmentProvider } from '../../types/nhanVienTypes';
@@ -12,7 +11,8 @@ import { useIndexedDBState } from '../../hooks/useIndexedDBState';
 import { Button } from '../../../../components/shared/ui/Button';
 import { EmptyState } from '../../../../components/shared/ui/EmptyState';
 import { onActivateKey } from '../../../../components/shared/ui';
-import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { toast } from '../../../../components/shared/ui/toast';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
 import { MedalBadge, DeltaBadge } from '../shared/Badges';
 import AvatarDisplay from './shared/AvatarDisplay';
 import { getMetricColorByTarget } from './revenue/ColorSettingsModal';
@@ -325,7 +325,7 @@ const InstallmentTab: React.FC<InstallmentTabProps> = ({
 
     const { showExportOptions } = useExportOptionsContext();
 
-    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (!cardRef.current) return null;
         const original = cardRef.current;
         try {
@@ -340,6 +340,11 @@ const InstallmentTab: React.FC<InstallmentTabProps> = ({
                 } else if (autoAction === 'share') {
                     await shareBlob(blob, safeName);
                     return 'share';
+                } else if (autoAction === 'copy') {
+                    const ok = await copyBlobToClipboard(blob);
+                    if (ok) toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                    else toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+                    return 'download';
                 } else {
                     return await showExportOptions(blob, safeName);
                 }
@@ -356,7 +361,7 @@ const InstallmentTab: React.FC<InstallmentTabProps> = ({
         if (allDepts.length === 0) return;
         setIsExportingByDept(true);
         setExportDeptProgress({ current: 0, total: allDepts.length });
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
         
         // Bảng tiến trình chung (components/shared/export): %, tên bộ phận, Huỷ, tổng kết
         const job = startExportJob({ title: 'Xuất ảnh Trả chậm theo bộ phận', total: allDepts.length });
@@ -464,8 +469,16 @@ const InstallmentTab: React.FC<InstallmentTabProps> = ({
                     </Button>
                     <ExportButton
                         onExportPNG={async () => { await handleExportPNG(); }}
+                        onCopyImage={async () => { await handleExportPNG(undefined, 'copy'); }}
+                        targetRef={cardRef}
                         autoExportAreaId="bi-nhan-vien-tra-cham"
                         autoExportAreaName="BI: Nhân Viên — Trả Chậm"
+                        onTestAutoExport={async () => {
+                            if (!cardRef.current) return null;
+                            return exportElementAsImage(cardRef.current, `Báo Cáo Trả Chậm - ${supermarketName}.png`, {
+                                mode: 'blob-only', elementsToHide: ['.no-print', '.export-button-component'], isCompactTable: true
+                            });
+                        }}
                     />
                 </div>
             </div>

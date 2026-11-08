@@ -9,6 +9,7 @@ import { useIndustryAnalysisLogic } from './industry/useIndustryAnalysisLogic';
 import { DEPT_COLORS, RankBadge } from './performance/PerformanceTableUtils';
 import { DATA_STATUS_COLORS } from '../../constants';
 import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 import { exportElementAsImage } from '../shared/export/captureEngine';
 import { registerYcxAutoExportRunner } from '../../services/autoReportExportService';
 
@@ -343,10 +344,28 @@ const IndustryAnalysisTab = React.memo(forwardRef<HTMLDivElement, IndustryAnalys
                             <AppIcon name="exportBatch" size="md" />
                         </Button>
                         {onExport && (
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onExport?.(); }} disabled={isExporting} title="Xuất Ảnh Tab" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-40">
-                                {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
-                                {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
-                            </Button>
+                            <>
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onExport?.(); }} disabled={isExporting} title="Xuất Ảnh Tab" className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-40">
+                                    {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                                    {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                                </Button>
+                                <CopyImageButton
+                                    variant="ghost" size="icon"
+                                    disabled={isExporting}
+                                    className="w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-40"
+                                    title="Sao chép ảnh khai thác ngành hàng"
+                                    onGetBlob={async () => {
+                                        const el = typeof ref === 'function' ? null : ref?.current;
+                                        if (!el) return null;
+                                        const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - Khai Thác.png', {
+                                            isCompactTable: true,
+                                            fitAllColumns: true,
+                                            mode: 'blob-only',
+                                        });
+                                        return (res instanceof Blob) ? res : null;
+                                    }}
+                                />
+                            </>
                         )}
                         <AreaAutoExportButton
                             areaId="Phân Tích Nhân Viên - Khai Thác"

@@ -15,7 +15,7 @@ import { getBonusForEmployee } from '../../utils/bonusParser';
 import { Button } from '../../../../components/shared/ui/Button';
 import { Input } from '../../../../components/shared/ui/Input';
 import { MultiSelectDropdown } from '../../../../components/shared/ui/MultiSelectDropdown';
-import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
 import { calculateRunRate } from '../../services/metricService';
 import {
     findEmployeeRow,
@@ -62,7 +62,8 @@ interface IndividualCompetitionViewProps {
 }
 
 export interface IndividualCompetitionViewHandle {
-    handleExportPNG: (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null) => Promise<'download' | 'share' | 'cancel' | null>;
+    handleExportPNG: (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null) => Promise<'download' | 'share' | 'cancel' | 'copy' | null>;
+    handleCopyPNG?: () => Promise<void>;
     performBatchExport: () => Promise<void>;
     isBatchExporting: boolean;
     exportProgress: { current: number; total: number } | null;
@@ -513,6 +514,7 @@ export const IndividualCompetitionView = forwardRef<IndividualCompetitionViewHan
 
     useImperativeHandle(ref, () => ({
         handleExportPNG,
+        handleCopyPNG: async () => { await handleExportPNG(undefined, 'copy'); },
         performBatchExport,
         isBatchExporting,
         exportProgress
@@ -607,7 +609,7 @@ export const IndividualCompetitionView = forwardRef<IndividualCompetitionViewHan
     
     const { showExportOptions } = useExportOptionsContext();
 
-    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+    const handleExportPNG = async (customFilename?: string, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (!cardRef.current) return null;
         const originalCard = cardRef.current;
         try {
@@ -623,6 +625,11 @@ export const IndividualCompetitionView = forwardRef<IndividualCompetitionViewHan
                 } else if (autoAction === 'share') {
                     await shareBlob(blob, filename);
                     return 'share';
+                } else if (autoAction === 'copy') {
+                    const ok = await copyBlobToClipboard(blob);
+                    if (ok) toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                    else toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+                    return 'download';
                 } else {
                     return await showExportOptions(blob, filename);
                 }
@@ -641,7 +648,7 @@ export const IndividualCompetitionView = forwardRef<IndividualCompetitionViewHan
         setExportProgress({ current: 0, total: employeesToExport.length });
         const originalSelection = selectedEmployee;
         
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
         
         try {
             for (const [index, emp] of employeesToExport.entries()) {

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 interface ExportOptionsContextType {
-    showExportOptions: (blob: Blob, filename: string) => Promise<'download' | 'share' | 'cancel'>;
+    showExportOptions: (blob: Blob, filename: string) => Promise<'download' | 'share' | 'cancel' | 'copy'>;
 }
 
 const ExportOptionsContext = createContext<ExportOptionsContextType | null>(null);
@@ -13,7 +13,7 @@ export function useExportOptionsContext(): ExportOptionsContextType {
     if (!ctx) {
         // Fallback: direct download if no context
         return {
-            showExportOptions: async (blob: Blob, filename: string): Promise<'download' | 'share' | 'cancel'> => {
+            showExportOptions: async (blob: Blob, filename: string): Promise<'download' | 'share' | 'cancel' | 'copy'> => {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.download = filename;

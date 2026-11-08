@@ -12,6 +12,7 @@ import { Modal } from '../shared/ui/Modal';
 import { Button } from '../shared/ui/Button';
 import { ActionMenu, type ActionMenuItem } from '../shared/ui/ActionMenu';
 import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 import { registerYcxAutoExportRunner } from '../../services/autoReportExportService';
 
 // Import refactored components
@@ -363,10 +364,28 @@ const HeadToHeadTab = React.memo(forwardRef<HTMLDivElement, HeadToHeadTabProps>(
                             {isBatchExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportBatch" size="md" className="hidden lg:block" />}
                         </Button>
                         {onExport && (
-                            <Button variant="ghost" size="icon" onClick={onExport} disabled={isExporting} className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors disabled:opacity-40" title="Xuất ảnh bảng hiện tại">
-                                {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
-                                {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
-                            </Button>
+                            <>
+                                <Button variant="ghost" size="icon" onClick={onExport} disabled={isExporting} className="ycx-hit flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors disabled:opacity-40" title="Xuất ảnh bảng hiện tại">
+                                    {isExporting ? <AppIcon name="loading" size="md" spin className="lg:hidden" /> : <AppIcon name="exportImage" size="md" className="lg:hidden" />}
+                                    {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name="exportImage" size="md" className="hidden lg:block" />}
+                                </Button>
+                                <CopyImageButton
+                                    variant="ghost" size="icon"
+                                    disabled={isExporting}
+                                    className="w-8 h-8 lg:w-9 lg:h-9 rounded-control text-slate-400 dark:text-slate-500 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors disabled:opacity-40"
+                                    title="Sao chép ảnh bảng 7 ngày"
+                                    onGetBlob={async () => {
+                                        const el = typeof ref === 'function' ? null : ref?.current;
+                                        if (!el) return null;
+                                        const res = await exportElementAsImage(el, 'Phân Tích Nhân Viên - 7 Ngày.png', {
+                                            isCompactTable: true,
+                                            fitAllColumns: true,
+                                            mode: 'blob-only',
+                                        });
+                                        return (res instanceof Blob) ? res : null;
+                                    }}
+                                />
+                            </>
                         )}
                         <AreaAutoExportButton
                             areaId="Phân Tích Nhân Viên - 7 Ngày"

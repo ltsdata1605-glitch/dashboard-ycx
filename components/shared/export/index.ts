@@ -21,3 +21,6 @@ export {
     type ExportJob, type ExportJobState, type ExportItemStatus,
 } from './exportProgress';
 export { fitTablesToContent, appendExportFooter, exportFooterText, fixCircularAvatars } from './exportLayout';
+export { CopyImageButton, type CopyImageButtonProps } from './CopyImageButton';
+export { AreaAutoExportButton } from './AreaAutoExportButton';
+

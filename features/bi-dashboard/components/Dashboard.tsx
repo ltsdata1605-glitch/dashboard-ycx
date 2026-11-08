@@ -163,10 +163,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToUpdater, isActive, on
     const handleExportPNG = async (
         targetRef: React.RefObject<HTMLDivElement | null>,
         filenamePart: string,
-        autoAction?: 'download' | 'share' | 'cancel' | null,
+        autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null,
         /** Tuỳ chọn thêm cho exportElementAsImage — vd bảng Thi đua dùng fitAllColumns + fitWidthToTable. */
         extraOptions?: Record<string, unknown>,
-    ): Promise<'download' | 'share' | 'cancel' | null> => {
+    ): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         const original = targetRef.current;
         if (!original) return null;
 
@@ -235,7 +235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToUpdater, isActive, on
         const originalSm = activeSupermarket;
         const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
 
         try {
             for (const sm of ['Tổng', ...supermarkets]) {
@@ -626,6 +626,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToUpdater, isActive, on
                 onClose={exportOptions.handleClose}
                 onDownload={exportOptions.handleDownload}
                 onShare={exportOptions.handleShare}
+                onCopy={exportOptions.handleCopy}
                 canShare={exportOptions.canShare}
                 filename={exportOptions.pendingExport?.filename || ''}
             />

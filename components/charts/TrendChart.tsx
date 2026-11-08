@@ -24,6 +24,7 @@ import { Button } from '../shared/ui/Button';
 import { Tabs } from '../shared/ui/Tabs';
 import { ActionMenu } from '../shared/ui/ActionMenu';
 import AreaAutoExportButton from '../shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 import { registerYcxAutoExportRunner } from '../../services/autoReportExportService';
 
 const CustomTooltip = ({ active, payload, metricName }: { active?: boolean; payload?: { payload: RechartsTrendData }[]; metricName: string }) => {
@@ -526,6 +527,23 @@ const TrendChartInner: React.FC<TrendChartInnerProps> = React.memo(({
             {isExporting ? <AppIcon name="loading" size="md" spin className="hidden lg:block" /> : <AppIcon name={displayMode === 'calendar' ? 'exportBatch' : 'exportImage'} size="md" className="hidden lg:block" />}
           </Button>
 
+          <CopyImageButton
+            variant="toolbar"
+            size="icon"
+            disabled={isExporting}
+            className="disabled:opacity-40"
+            title="Sao chép ảnh xu hướng doanh thu"
+            onGetBlob={async () => {
+              if (!chartCardRef.current) return null;
+              const prefix = getExportFilenamePrefix(filterState.kho);
+              const res = await handleExport(chartCardRef.current, `${prefix} - Xu Hướng Doanh Thu.png`, {
+                captureAsDisplayed: true,
+                mode: 'blob-only',
+              });
+              return (res instanceof Blob) ? res : null;
+            }}
+          />
+
           <AreaAutoExportButton
             areaId="Xu Hướng Doanh Thu"
             areaName="Xu Hướng Doanh Thu"
@@ -672,6 +690,23 @@ const TrendChartInner: React.FC<TrendChartInnerProps> = React.memo(({
                                         >
                                             <AppIcon name="exportImage" size="md" />
                                         </Button>
+                                        <CopyImageButton
+                                            variant="ghost" size="icon-inline"
+                                            disabled={isExporting}
+                                            className="w-[var(--btn-height-icon)] h-[var(--btn-height-icon)] flex rounded-control bg-white border border-slate-200 text-slate-500 hover:text-sky-700 shadow-sm"
+                                            title="Sao chép ảnh bảng nháp"
+                                            onGetBlob={async () => {
+                                                if (!draftCalendarRef.current) return null;
+                                                const prefix = getExportFilenamePrefix(filterState.kho);
+                                                const monthLabel = calendarFilters.month ? calendarFilters.month.split('-').reverse().join('-') : 'lich';
+                                                const res = await handleExport(draftCalendarRef.current, `${prefix} - Lịch Doanh Thu Nhập Tháng ${monthLabel}.png`, {
+                                                    captureAsDisplayed: true,
+                                                    elementsToHide: ['.hide-on-export'],
+                                                    mode: 'blob-only',
+                                                });
+                                                return (res instanceof Blob) ? res : null;
+                                            }}
+                                        />
                                     </>
                                 }
                             />

@@ -17,7 +17,7 @@ import { getDefaultGroupLabel } from '../../utils/dashboardHelpers';
 import { getErrorMessage } from '../../../../utils/dataUtils';
 import { Switch } from '../dashboard/DashboardWidgets';
 import { useIndexedDBState } from '../../hooks/useIndexedDBState';
-import { exportElementAsImage, downloadBlob, shareBlob } from '../../services/uiService';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
 import { Button } from '../../../../components/shared/ui/Button';
 import { useCenterActiveInStrip } from '../../../../components/shared/ui/useCenterActiveInStrip';
 import { Input } from '../../../../components/shared/ui/Input';
@@ -249,7 +249,7 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
 
     const { showExportOptions } = useExportOptionsContext();
 
-    const exportGroupViewToPNG = async (filename: string, refToExport = groupViewRef, autoAction?: 'download' | 'share' | 'cancel' | null): Promise<'download' | 'share' | 'cancel' | null> => {
+    const exportGroupViewToPNG = async (filename: string, refToExport = groupViewRef, autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
         if (refToExport === groupViewRef) await ensureAllGroupCards(); // ảnh phải đủ mọi thẻ, kể cả thẻ chưa kịp vẽ
         if (!refToExport.current) return null;
         const original = refToExport.current;
@@ -314,6 +314,11 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
                 } else if (autoAction === 'share') {
                     await shareBlob(blob, filename);
                     return 'share';
+                } else if (autoAction === 'copy') {
+                    const ok = await copyBlobToClipboard(blob);
+                    if (ok) toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                    else toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+                    return 'download';
                 } else {
                     return await showExportOptions(blob, filename);
                 }
@@ -335,7 +340,7 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
         const targets = Array.from(highlightedEmployees);
         setExportProgress({ current: 0, total: targets.length });
 
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
         const job = startExportJob({ title: 'Xuất ảnh nhân viên nổi bật', total: targets.length });
 
         try {
@@ -374,7 +379,7 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
         const cards = groupViewRef.current.querySelectorAll('.competition-group-card');
         setExportProgress({ current: 0, total: cards.length + 1 });
 
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
         const job = startExportJob({ title: 'Xuất ảnh nhóm thi đua', total: cards.length + 1 });
 
         try {
@@ -493,7 +498,7 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
         setIsBatchExporting(true);
         setExportProgress({ current: 0, total: summaryTables.length });
 
-        let autoAction: 'download' | 'share' | 'cancel' | null = null;
+        let autoAction: 'download' | 'share' | 'cancel' | 'copy' | null = null;
         // Bảng tiến trình chung thay cho toast "Đang xuất bảng…" / "Đã xuất thành công toàn bộ…"
         const job = startExportJob({ title: 'Xuất ảnh các bảng tổng hợp', total: summaryTables.length });
 
@@ -908,6 +913,7 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
                                     )}
                                     <ExportButton
                                         onExportPNG={async () => { await exportGroupViewToPNG(`Nhóm Thi Đua - ${supermarket || 'Siêu Thị'}.png`, groupViewRef); }}
+                                        onCopyImage={async () => { await exportGroupViewToPNG(`Nhóm Thi Đua - ${supermarket || 'Siêu Thị'}.png`, groupViewRef, 'copy'); }}
                                         autoExportAreaId="bi-nhan-vien-thi-dua"
                                         autoExportAreaName="BI: Nhân Viên — Thi Đua Nhóm"
                                     />
@@ -928,6 +934,7 @@ export const CompetitionTab: React.FC<CompetitionTabProps> = React.memo(({
                                     </Button>
                                     <ExportButton
                                         onExportPNG={async () => { await individualViewRef.current?.handleExportPNG(); }}
+                                        onCopyImage={async () => { await individualViewRef.current?.handleCopyPNG?.(); }}
                                         className="w-8 h-8"
                                         autoExportAreaId="bi-nhan-vien-thi-dua"
                                         autoExportAreaName="BI: Nhân Viên — Thi Đua Cá Nhân"

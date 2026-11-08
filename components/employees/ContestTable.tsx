@@ -6,6 +6,7 @@ import { getRowValue, calculateRowMetrics, abbreviateName, formatQuantity, forma
 import { COL } from '../../constants';
 import { Button } from '../shared/ui/Button';
 import { exportElementAsImage } from '../../services/uiService';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 import { useDashboardContext } from '../../contexts/DashboardContext';
 import { DEPT_COLORS, RankBadge } from './performance/PerformanceTableUtils';
 
@@ -421,6 +422,24 @@ const ContestTable: React.FC<ContestTableProps> = React.memo(({ config, allEmplo
                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleExport(); }} disabled={isExporting} title="Xuất Ảnh" className="text-slate-400 hover:text-sky-600 hover:bg-sky-50">
                             {isExporting ? <AppIcon name="loading" size="md" spin /> : <AppIcon name="exportImage" size="md" />}
                         </Button>
+                        <CopyImageButton
+                            variant="ghost" size="icon"
+                            disabled={isExporting}
+                            className="text-slate-400 hover:text-sky-600 hover:bg-sky-50"
+                            title="Sao chép ảnh bảng thi đua"
+                            onGetBlob={async () => {
+                                if (!exportRef.current) return null;
+                                const safeTabName = sanitizeFilename(config.tableName).trim();
+                                const prefix = (Array.isArray(filterState.kho) && filterState.kho.length > 0 && !filterState.kho.includes('all')) ? `[${filterState.kho.join('_')}]` : '[Tat-ca-khu-vuc]';
+                                return exportElementAsImage(exportRef.current, `${prefix} - ${safeTabName}.png`, {
+                                    isCompactTable: true,
+                                    fitAllColumns: true,
+                                    fitWidthToTable: true,
+                                    elementsToHide: ['.hide-on-export'],
+                                    mode: 'blob-only',
+                                });
+                            }}
+                        />
                     </div>
                 </div>
 

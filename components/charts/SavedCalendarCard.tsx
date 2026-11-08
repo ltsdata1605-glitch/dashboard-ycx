@@ -7,6 +7,7 @@ import type { DataRow, ProductConfig } from '../../types';
 import { COL } from '../../constants';
 import { exportElementAsImage } from '../../services/uiService';
 import { Button } from '../shared/ui/Button';
+import { CopyImageButton } from '../shared/export/CopyImageButton';
 
 interface SavedCalendarCardProps {
     filter: {
@@ -159,6 +160,22 @@ const SavedCalendarCard: React.FC<SavedCalendarCardProps> = React.memo(({ filter
                             >
                                 {isExporting ? <><AppIcon name="loading" size="md" spin /></> : <><AppIcon name="exportImage" size="md" /></>}
                             </Button>
+                            <CopyImageButton
+                                variant="ghost" size="icon-xs"
+                                disabled={isExporting}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-sky-700 dark:hover:text-sky-400 shadow-sm"
+                                title="Sao chép ảnh"
+                                onGetBlob={async () => {
+                                    try { await choAmLichSanSang(); } catch { /* ignore */ }
+                                    await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+                                    if (!cardRef.current) return null;
+                                    const prefix = getExportFilenamePrefix(filter.kho);
+                                    return exportElementAsImage(cardRef.current, `${prefix} - Lịch Doanh Thu.png`, {
+                                        elementsToHide: ['.hide-on-export'],
+                                        mode: 'blob-only',
+                                    });
+                                }}
+                            />
                             <Button
                                 variant="ghost" size="icon-xs"
                                 onClick={() => onRemove(filter.id)}

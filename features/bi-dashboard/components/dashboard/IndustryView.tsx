@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useId } from 
 import { AppIcon } from '../../../../components/shared/ui/icon/AppIcon';
 import Card from '../Card';
 import ExportButton from '../ExportButton';
+import { exportElementAsImage } from '../../services/uiService';
 import { parseIndustryRealtimeData, parseIndustryLuyKeData, parseNumber, shortenSupermarketName, formatIndustryDisplayName } from '../../utils/dashboardHelpers';
 import { getBorderAccentFromColorClass } from '../../../../utils/dataUtils';
 import { Switch } from './DashboardWidgets';
@@ -486,8 +487,18 @@ const IndustryView = React.forwardRef<HTMLDivElement, IndustryViewProps>((props,
             {onExport && (
                 <ExportButton
                     onExportPNG={onExport}
+                    getTarget={() => (typeof ref === 'function' ? null : (ref?.current || null))}
                     autoExportAreaId="bi-nganh-hang-tung-st"
                     autoExportAreaName={`BI: Ngành Hàng — ${shortenSupermarketName(activeSupermarket || '')}`}
+                    onTestAutoExport={async () => {
+                        const el = typeof ref === 'function' ? null : ref?.current;
+                        if (!el) return null;
+                        return exportElementAsImage(el, `Ngành Hàng - ${shortenSupermarketName(activeSupermarket || '')}.png`, {
+                            mode: 'blob-only',
+                            elementsToHide: ['.no-print', '.export-button-component'],
+                            isCompactTable: true,
+                        });
+                    }}
                 />
             )}
         </div>

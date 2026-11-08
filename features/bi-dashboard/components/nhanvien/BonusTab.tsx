@@ -11,7 +11,8 @@ import { Employee, BonusMetrics, RevenueRow } from '../../types/nhanVienTypes';
 import { getYesterdayDateString } from '../../utils/nhanVienHelpers';
 
 import { Button } from '../../../../components/shared/ui/Button';
-import { exportElementAsImage } from '../../services/uiService';
+import { toast } from '../../../../components/shared/ui/toast';
+import { exportElementAsImage, downloadBlob, shareBlob, copyBlobToClipboard } from '../../services/uiService';
 
 import { AutoBonusPanel } from './bonus/AutoBonusPanel';
 import { UseBonusAutoBridgeResult } from '../../hooks/useBonusAutoBridge';
@@ -76,20 +77,41 @@ export const BonusView: React.FC<{
 
     const { showExportOptions } = useExportOptionsContext();
 
-    const handleExportPNG = async (customFilename?: string) => {
-        if (!cardRef.current) return;
+    const handleExportPNG = async (
+        customFilename?: string,
+        autoAction?: 'download' | 'share' | 'cancel' | 'copy' | null
+    ): Promise<'download' | 'share' | 'cancel' | 'copy' | null> => {
+        if (!cardRef.current) return null;
         const original = cardRef.current;
 
         try {
             const safeName = customFilename || `Báo Cáo Thưởng - ${supermarketName}.png`;
             const blob = await exportElementAsImage(original, safeName, {
                 mode: 'blob-only',
-                elementsToHide: ['.no-print', '.export-button-component'],
+                elementsToHide: ['.no-print', '.export-button-component', '.copy-image-button-component'],
                 isCompactTable: true,
             });
-            if (blob) showExportOptions(blob, safeName);
+            if (!blob) return null;
+            if (autoAction === 'download') {
+                await downloadBlob(blob, safeName);
+                return 'download';
+            } else if (autoAction === 'share') {
+                await shareBlob(blob, safeName);
+                return 'share';
+            } else if (autoAction === 'copy') {
+                const ok = await copyBlobToClipboard(blob);
+                if (ok) {
+                    toast.success('Đã sao chép ảnh vào bộ nhớ tạm (có thể dán trực tiếp)!', { id: 'copy-image-status', duration: 3500 });
+                } else {
+                    toast.error('Trình duyệt chưa hỗ trợ sao chép ảnh trực tiếp', { id: 'copy-image-status' });
+                }
+                return 'copy';
+            } else {
+                return await showExportOptions(blob, safeName);
+            }
         } catch (err) {
             console.error('Export error', err);
+            return null;
         }
     };
 
@@ -171,9 +193,19 @@ export const BonusView: React.FC<{
                         }
                     />
                     <ExportButton
-                        onExportPNG={handleExportPNG}
+                        onExportPNG={async () => { await handleExportPNG(); }}
+                        onCopyImage={async () => { await handleExportPNG(undefined, 'copy'); }}
+                        targetRef={cardRef}
                         autoExportAreaId="bi-nhan-vien-thuong"
                         autoExportAreaName="BI: Nhân Viên — Điểm Thưởng"
+                        onTestAutoExport={async () => {
+                            if (!cardRef.current) return null;
+                            return exportElementAsImage(cardRef.current, `Báo Cáo Thưởng - ${supermarketName}.png`, {
+                                mode: 'blob-only',
+                                elementsToHide: ['.no-print', '.export-button-component', '.copy-image-button-component'],
+                                isCompactTable: true,
+                            });
+                        }}
                     />
                 </div>
             </div>

@@ -4,6 +4,7 @@ import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
 import { renderIcon, type IconProp } from '../../../components/shared/ui/icon/renderIcon';
 import { Button, cn } from '../../../components/shared/ui/Button';
 import { AreaAutoExportButton } from '../../../components/shared/export/AreaAutoExportButton';
+import { CopyImageButton } from '../../../components/shared/export/CopyImageButton';
 
 export interface ExportOptionItem {
   id: string;
@@ -26,6 +27,14 @@ interface ExportButtonProps {
   autoExportAreaId?: string;
   autoExportAreaName?: string;
   onTestAutoExport?: () => Promise<Blob | null>;
+  /** Hàm sao chép ảnh trực tiếp */
+  onCopyImage?: () => Promise<void>;
+  /** Ref vùng phần tử DOM cần chụp để sao chép */
+  targetRef?: React.RefObject<HTMLElement | null>;
+  /** Hàm lấy vùng phần tử DOM cần chụp để sao chép */
+  getTarget?: () => HTMLElement | null;
+  /** Ẩn nút sao chép ảnh */
+  hideCopyButton?: boolean;
 }
 
 const ExportButton: React.FC<ExportButtonProps> = ({
@@ -39,6 +48,10 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   autoExportAreaId,
   autoExportAreaName,
   onTestAutoExport,
+  onCopyImage,
+  targetRef,
+  getTarget,
+  hideCopyButton = false,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -196,6 +209,21 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           document.body
         )}
       </div>
+
+      {/* Nút Sao chép ảnh vào bộ nhớ tạm */}
+      {!hideCopyButton && (onCopyImage || onTestAutoExport || targetRef || getTarget) && (
+        <CopyImageButton
+          onCopy={onCopyImage}
+          onGetBlob={onTestAutoExport}
+          targetRef={targetRef}
+          getTarget={getTarget}
+          disabled={disabled || isLoading}
+          className={className}
+          dataUi="bi"
+          title="Sao chép ảnh vào bộ nhớ tạm"
+          ariaLabel="Sao chép ảnh"
+        />
+      )}
 
       {/* Nút Cấu hình tự xuất Bot LINE */}
       {autoExportAreaId && (
