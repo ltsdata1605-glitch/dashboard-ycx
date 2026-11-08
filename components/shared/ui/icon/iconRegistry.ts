@@ -24,7 +24,7 @@ import {
   Bug, Building2, Cable, Calculator, Calendar, CalendarCheck, CalendarClock, CalendarRange, CalendarX, Camera,
   ChartColumn, ChartGantt, ChartLine, ChartPie, ChartSpline, Check, ChefHat, ChevronDown, ChevronLeft, ChevronRight,
   ChevronUp, ChevronsDownUp, ChevronsUpDown, CircleAlert, CircleCheck, CircleDollarSign, CircleHelp, CircleMinus,
-  CirclePlus, CircleX, ClipboardList, ClipboardPaste, Clock, Cloud, CloudDownload, CloudUpload, Code, Coffee, Coins,
+  CirclePlus, CircleX, ClipboardCopy, ClipboardList, ClipboardPaste, Clock, Cloud, CloudDownload, CloudUpload, Code, Coffee, Coins,
   Columns2, Compass, Contact, Copy, CornerDownLeft, Cpu, CreditCard, Crown, Database, Download, Droplets,
   EllipsisVertical, Eye, EyeOff, Factory, Fan, FastForward, FileCheck, FileKey2, FilePlus, FileScan,
   FileSpreadsheet, FileText, Film, Filter, Flame, Flashlight, FlashlightOff, FolderOpen, GalleryHorizontalEnd,
@@ -84,6 +84,7 @@ export const ICON_REGISTRY = {
   edit: Pencil,
   delete: Trash2,
   copy: Copy,
+  copyImage: ClipboardCopy,          // copy ảnh vào clipboard (không tải về)
   paste: ClipboardPaste,
   save: Save,
   close: X,

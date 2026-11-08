@@ -11,6 +11,7 @@ import { toast } from '../../../../../components/shared/ui/toast';
 import { Button } from '../../../../../components/shared/ui/Button';
 import { AppIcon } from '../../../../../components/shared/ui/icon/AppIcon';
 import { exportElementAsImage } from '../../../services/uiService';
+import { copyBlobToClipboard } from '../../../../../components/shared/ui/imageDelivery';
 import { useExportOptionsContext } from '../../../contexts/ExportOptionsContext';
 
 interface BonusTierTableProps {
@@ -148,6 +149,27 @@ export const BonusTierTable: React.FC<BonusTierTableProps> = ({
         }
     }, []);
 
+    const handleCopyTierImage = useCallback(async (tierIndex: number, tierLabel: string) => {
+        const el = tierRefs.current[tierIndex];
+        if (!el) return;
+        try {
+            const name = `${tierLabel} - ${supermarketName}.png`;
+            const blob = await exportElementAsImage(el, name, {
+                mode: 'blob-only',
+                elementsToHide: ['.no-print'],
+                isCompactTable: true,
+            });
+            if (blob) {
+                const ok = await copyBlobToClipboard(blob);
+                if (ok) toast.success(`Đã copy ảnh ${tierLabel}`);
+                else toast.error('Trình duyệt không hỗ trợ copy ảnh');
+            }
+        } catch (err) {
+            console.error('Copy tier image error', err);
+            toast.error('Lỗi copy ảnh');
+        }
+    }, [supermarketName]);
+
     const handleExportTier = useCallback(async (tierIndex: number, tierLabel: string) => {
         const el = tierRefs.current[tierIndex];
         if (!el) return;
@@ -205,6 +227,10 @@ export const BonusTierTable: React.FC<BonusTierTableProps> = ({
                                 <Button variant="secondary" size="xs" data-ui="bi" className="gap-1" onClick={() => handleCopyGroup(tier)} title={`Copy danh sách ${tier.label}`}>
                                     <AppIcon name="copy" size="xs" />
                                     <span className="hidden sm:inline">Copy</span>
+                                </Button>
+                                <Button variant="secondary" size="xs" data-ui="bi" className="gap-1" onClick={() => handleCopyTierImage(tierIdx, tier.label)} title={`Copy ảnh ${tier.label} vào clipboard`}>
+                                    <AppIcon name="copyImage" size="xs" />
+                                    <span className="hidden sm:inline">Copy ảnh</span>
                                 </Button>
                                 <Button variant="secondary" size="xs" data-ui="bi" className="gap-1" onClick={() => handleExportTier(tierIdx, tier.label)} title={`Xuất ảnh ${tier.label}`}>
                                     <AppIcon name="image" size="xs" />
