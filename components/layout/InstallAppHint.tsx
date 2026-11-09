@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { AppIcon } from '../shared/ui/icon';
 import { Button } from '../shared/ui/Button';
-import { Modal } from '../shared/ui/Modal';
 import { isRunningStandalone, readDismissedAt, shouldShowInstallHint, writeDismissedAt } from './installHint';
+import { InstallGuideModal } from './InstallGuideModal';
 
-/** Hiện chậm vài giây: để người dùng thấy app trước, không chắn ngay màn đầu. */
-const SHOW_DELAY_MS = 4000;
+/** Hiện chậm 1,5 giây: để người dùng kịp thấy trang mà không phải chờ đợi quá lâu. */
+const SHOW_DELAY_MS = 1500;
 
 /**
  * Nhắc cài app lên màn hình chính — CHỈ Safari trên iPhone, khi chưa cài, không phải màn In Sticker/Phân Ca.
@@ -45,49 +45,26 @@ const InstallAppHint: React.FC<{ hidden?: boolean }> = ({ hidden }) => {
                 role="region"
                 aria-label="Cài Dashboard lên màn hình chính"
                 data-testid="install-app-hint"
-                className="lg:hidden mx-3 mt-2 mb-1 flex items-center gap-3 rounded-card bg-white border border-slate-200 shadow-sm pl-2.5 pr-1 py-1.5"
+                className="lg:hidden mx-3 mt-2 mb-1 flex items-center gap-3 rounded-card bg-white dark:bg-slate-850 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs pl-2.5 pr-1 py-1.5"
             >
-                <img src="/icons/apple-touch-icon-120.png" alt="" className="w-9 h-9 rounded-control shrink-0" />
+                <img src="/icons/apple-touch-icon-120.png" alt="" className="w-9 h-9 rounded-control shrink-0 shadow-2xs" />
                 <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-semibold text-slate-900 leading-5 truncate">Cài như ứng dụng</p>
-                    <p className="text-[13px] text-slate-500 leading-[18px] truncate">Mở toàn màn hình, nhanh hơn</p>
+                    <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100 leading-5 truncate">Cài như ứng dụng</p>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-[18px] truncate">Mở toàn màn hình, nhanh hơn</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setGuideOpen(true)} className="shrink-0 rounded-full">
+                <Button size="sm" variant="outline" onClick={() => setGuideOpen(true)} className="shrink-0 rounded-full border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-300 font-semibold px-3">
                     Xem cách
                 </Button>
-                <Button variant="ghost" size="icon" onClick={dismiss} aria-label="Để sau" title="Để sau — nhắc lại sau 14 ngày" className="shrink-0 text-slate-400 min-h-11 min-w-11">
+                <Button variant="ghost" size="icon" onClick={dismiss} aria-label="Để sau" title="Để sau — nhắc lại sau 14 ngày" className="shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 min-h-11 min-w-11">
                     <AppIcon name="close" size="md" />
                 </Button>
             </div>
 
-            <Modal
+            <InstallGuideModal
                 isOpen={guideOpen}
                 onClose={() => setGuideOpen(false)}
-                position="bottom"
-                maxWidth="sm"
-                title="Cài lên màn hình chính"
-                footer={
-                    <div className="flex gap-2">
-                        <Button variant="secondary" className="flex-1" onClick={dismiss}>Để sau</Button>
-                        <Button className="flex-1" onClick={() => setGuideOpen(false)}>Đã hiểu</Button>
-                    </div>
-                }
-            >
-                <ol className="space-y-3">
-                    {[
-                        { icon: 'iosShare' as const, text: <>Bấm nút <b>Chia sẻ</b> ở thanh dưới của Safari.</> },
-                        { icon: 'iosAddToHome' as const, text: <>Chọn <b>Thêm vào MH chính</b>.</> },
-                        { icon: 'check' as const, text: <>Bấm <b>Thêm</b> — từ nay mở Dashboard từ biểu tượng như một ứng dụng.</> },
-                    ].map((b, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                            <span className="w-7 h-7 rounded-full bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
-                                <AppIcon name={b.icon} size="md" />
-                            </span>
-                            <span className="text-[15px] leading-6 text-slate-700">{b.text}</span>
-                        </li>
-                    ))}
-                </ol>
-            </Modal>
+                onDismissForever={dismiss}
+            />
         </>
     );
 };

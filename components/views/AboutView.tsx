@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppIcon } from '../shared/ui/icon/AppIcon';
 import type { IconName } from '../shared/ui/icon/iconRegistry';
 import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';
 import { useActiveTab } from '../../contexts/LayoutContext';
 import { useMenuConfig } from '../../contexts/MenuConfigContext';
+import { InstallGuideModal } from '../layout/InstallGuideModal';
 
 /**
  * Trang Giới thiệu — kiểu "Giới thiệu" của Cài đặt iOS (GĐ7, KE_HOACH_GIAO_DIEN_APPLE.md).
@@ -26,6 +27,7 @@ const PHAN_HE: { tab: string; ten: string; moTa: string; icon: IconName; tone: L
 export default function AboutView() {
     const { setActiveTab } = useActiveTab();
     const { isFeatureEnabled } = useMenuConfig();
+    const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
     // Phân hệ đã tắt trong Quản lý Bật/Tắt thì ẩn luôn dòng của nó (2026-10-30, chủ dự án).
     const phanHeDangBat = PHAN_HE.filter(p => isFeatureEnabled(p.tab));
 
@@ -40,6 +42,17 @@ export default function AboutView() {
                 <p className="type-footnote text-slate-500">Phiên bản 11.2 · 2026</p>
             </header>
 
+            <ListGroup title="Trải nghiệm ứng dụng">
+                <ListRow
+                    icon="iosAddToHome"
+                    iconTone="sky"
+                    label="Cài lên màn hình chính iPhone (PWA)"
+                    description="Xem hướng dẫn thêm Dashboard ra màn hình chính để mở toàn màn hình, không bị viền trình duyệt"
+                    chevron
+                    onClick={() => setIsInstallGuideOpen(true)}
+                />
+            </ListGroup>
+
             {phanHeDangBat.length > 0 && (
                 <ListGroup title="Phân hệ">
                     {phanHeDangBat.map(p => (
@@ -49,6 +62,11 @@ export default function AboutView() {
             )}
 
             <p className="text-center type-footnote text-slate-400">@21707</p>
+
+            <InstallGuideModal
+                isOpen={isInstallGuideOpen}
+                onClose={() => setIsInstallGuideOpen(false)}
+            />
         </div>
     );
 }

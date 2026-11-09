@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
 import { useActiveTab } from '../../../contexts/LayoutContext';
+import { useMenuConfig } from '../../../contexts/MenuConfigContext';
 import { Button } from '../../../components/shared/ui/Button';
 import { TopBarActions } from '../../../components/shared/ui/TopBarActions';
 import { Tabs } from '../../../components/shared/ui/Tabs';
@@ -26,6 +27,7 @@ export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
     onDecreaseFontSize, onIncreaseFontSize,
 }) => {
     const { activeTab } = useActiveTab();
+    const { isFeatureEnabled } = useMenuConfig();
     const [mounted, setMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -41,6 +43,16 @@ export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
     }, []);
 
     if (!mounted || activeTab !== 'tools-print-sticker') return null;
+
+    const allStickerTabs = [
+        { id: 'gia_soc', featureKey: 'tools-print-sticker:gia_soc', label: 'Giá Sốc', shortLabel: 'Giá sốc', icon: 'quick' as const, color: 'sky', onClick: onSelectGiaSoc, isActive: stickerMode === 'sticker' && stickerType === 'gia_soc' },
+        { id: 'gio_vang', featureKey: 'tools-print-sticker:gio_vang', label: 'Giờ Vàng', shortLabel: 'Giờ vàng', icon: 'clock' as const, color: 'amber', onClick: onSelectGioVang, isActive: stickerMode === 'sticker' && stickerType === 'gio_vang' },
+        { id: 'draw', featureKey: 'tools-print-sticker:draw', label: 'Phiếu', shortLabel: 'Phiếu', icon: 'coupon' as const, color: 'rose', onClick: onSelectDraw, isActive: stickerMode === 'sticker' && stickerType === 'draw' },
+        { id: 'event', featureKey: 'tools-print-sticker:event', label: 'Sticker', shortLabel: 'Sticker', icon: 'product' as const, color: 'emerald', onClick: onSelectEvent, isActive: stickerMode === 'event' },
+    ];
+
+    // Lọc theo cấu hình bật/tắt từ Quản trị hệ thống
+    const stickerTabs = allStickerTabs.filter(tab => isFeatureEnabled(tab.featureKey));
 
     // iPhone / iPad (GĐ7, KE_HOACH_GIAO_DIEN_APPLE.md): KHÔNG nhét dải chế độ vào thanh trên nữa (trước: thanh 470px nhét vào
     // khe ~250px, phải vuốt ngang mới thấy "Sticker" và ô cỡ chữ — apple-tuong-thich đỏ ở mọi khung cảm ứng). Nay là HÀNG
@@ -58,12 +70,7 @@ export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
                     fullWidth
                     activeId={activeId}
                     onChange={id => chon[id]?.()}
-                    items={[
-                        { id: 'gia_soc', label: 'Giá sốc' },
-                        { id: 'gio_vang', label: 'Giờ vàng' },
-                        { id: 'draw', label: 'Phiếu' },
-                        { id: 'event', label: 'Sticker' },
-                    ]}
+                    items={stickerTabs.map(t => ({ id: t.id, label: t.shortLabel }))}
                 />
                 {stickerMode === 'sticker' && (
                     <div className="flex items-center justify-between gap-3 pl-1">
@@ -93,13 +100,6 @@ export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
             </div>
         );
     }
-
-    const stickerTabs = [
-        { id: 'gia_soc', label: 'Giá Sốc', icon: 'quick' as const, color: 'sky', onClick: onSelectGiaSoc, isActive: stickerMode === 'sticker' && stickerType === 'gia_soc' },
-        { id: 'gio_vang', label: 'Giờ Vàng', icon: 'clock' as const, color: 'amber', onClick: onSelectGioVang, isActive: stickerMode === 'sticker' && stickerType === 'gio_vang' },
-        { id: 'draw', label: 'Phiếu', icon: 'coupon' as const, color: 'rose', onClick: onSelectDraw, isActive: stickerMode === 'sticker' && stickerType === 'draw' },
-        { id: 'event', label: 'Sticker', icon: 'product' as const, color: 'emerald', onClick: onSelectEvent, isActive: stickerMode === 'event' },
-    ];
 
     const getModeColorClasses = (color: string, isActive: boolean) => {
         if (!isActive) return 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50';

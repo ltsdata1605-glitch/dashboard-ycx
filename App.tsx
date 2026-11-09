@@ -291,12 +291,12 @@ function AppContent() {
     const { user, userRole, isDemoMode, isLoading, departmentId, status, hasCachedSession } = useAuth();
     const titleData = TAB_TITLES[activeTab] || { main: 'Hub', highlight: '2.0' };
     // Các "mini-app" toàn màn hình (In Sticker có sẵn BottomNavigation nội bộ: Trang chủ/Công
-    // cụ/Quét mã/Lưu DS/Lọc; Phân ca là lịch/bảng cần tối đa không gian màn hình) — hiện thêm
+    // cụ/Quét mã/Lưu DS/Lọc; Phân ca là lịch/bảng cần tối đa không gian màn hình; Báo cáo Khai thác có Liquid Glass Dock riêng) — hiện thêm
     // MobileBottomNav của app chính bên dưới chúng tạo ra 2 lớp thanh điều hướng chồng nhau trên
-    // mobile (riêng In Sticker), vừa rối mắt vừa dư khoảng trắng, và chiếm mất không gian màn
+    // mobile, vừa rối mắt vừa dư khoảng trắng, và chiếm mất không gian màn
     // hình quý giá của cả hai (bug user báo cáo). Ẩn thanh điều hướng chính khi đang ở các tab
     // này; đổi lại logo/tiêu đề ở top bar (vẫn hiện, không bị ẩn) trở thành nút "Về Dashboard".
-    const isFullscreenMobileTool = activeTab === 'tools-print-sticker' || activeTab === 'tools-phanca';
+    const isFullscreenMobileTool = activeTab === 'tools-print-sticker' || activeTab === 'tools-phanca' || activeTab === 'reports';
     const sauLanRanhDau = useSauLanRanhDau();
 
     // Viền mờ "còn cột bên phải" cho mọi bảng cuộn ngang (Đợt C, kế hoạch iPhone)

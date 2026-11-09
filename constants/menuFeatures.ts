@@ -11,6 +11,7 @@ export interface AppMenuFeature {
     path?: string;
     description: string;
     defaultEnabled: boolean;
+    subTabs?: { id: string; label: string; icon?: IconName; defaultEnabled?: boolean }[];
 }
 
 /**
@@ -93,6 +94,12 @@ export const APP_MENU_FEATURES: AppMenuFeature[] = [
         queryTab: 'tools-print-sticker',
         description: 'Công cụ in tem nhãn, sticker sản phẩm sự kiện và khuyến mãi nhanh',
         defaultEnabled: true,
+        subTabs: [
+            { id: 'tools-print-sticker:gia_soc', label: 'Giá Sốc', icon: 'quick', defaultEnabled: true },
+            { id: 'tools-print-sticker:gio_vang', label: 'Giờ Vàng', icon: 'clock', defaultEnabled: true },
+            { id: 'tools-print-sticker:draw', label: 'Phiếu', icon: 'coupon', defaultEnabled: true },
+            { id: 'tools-print-sticker:event', label: 'Sticker', icon: 'product', defaultEnabled: true },
+        ],
     },
     {
         id: 'tools-phanca',

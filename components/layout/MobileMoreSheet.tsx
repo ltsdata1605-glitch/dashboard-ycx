@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useActiveTab } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../shared/ui/Button';
@@ -7,6 +7,7 @@ import { Modal } from '../shared/ui/Modal';
 import { ListGroup, ListRow, type ListIconTone } from '../shared/ui/ListGroup';
 import { cn } from '../shared/ui/utils';
 import { formatCleanDisplayName } from '../../utils/basicHelpers';
+import { InstallGuideModal } from './InstallGuideModal';
 
 export interface NavTabItem { id: string; label: string; icon: IconName; tone?: ListIconTone }
 
@@ -24,6 +25,7 @@ const MobileMoreSheet: React.FC<{
 }> = ({ isOpen, onClose, onTabClick, toolTabs, systemTabs }) => {
     const { activeTab } = useActiveTab();
     const { user, userRole, employeeName, departmentId, isDemoMode, logout } = useAuth();
+    const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
     const tenHienThi = employeeName || formatCleanDisplayName(user?.displayName, isDemoMode ? 'Tài khoản Thử nghiệm' : 'Khách');
     const vaiTro = userRole === 'admin' ? 'Admin' : userRole === 'manager' ? 'Quản lý' : userRole ? 'Nhân viên' : null;
 
@@ -106,6 +108,13 @@ const MobileMoreSheet: React.FC<{
                 </ListGroup>
 
                 <ListGroup title="Hệ thống">
+                    <ListRow
+                        label="Cài lên màn hình chính iPhone"
+                        icon="iosAddToHome"
+                        iconTone="sky"
+                        chevron
+                        onClick={() => setIsInstallGuideOpen(true)}
+                    />
                     {systemTabs.map(t => (
                         <ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}
                             selected={activeTab === t.id} chevron={activeTab !== t.id}
@@ -113,6 +122,11 @@ const MobileMoreSheet: React.FC<{
                     ))}
                 </ListGroup>
             </div>
+
+            <InstallGuideModal
+                isOpen={isInstallGuideOpen}
+                onClose={() => setIsInstallGuideOpen(false)}
+            />
         </Modal>
     );
 };

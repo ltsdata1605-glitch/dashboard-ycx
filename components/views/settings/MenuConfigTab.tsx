@@ -238,107 +238,153 @@ export const MenuConfigTab: React.FC = () => {
                             <div
                                 key={feat.id}
                                 className={cn(
-                                    'bg-white dark:bg-slate-900 border rounded-card p-3 sm:p-4 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs',
+                                    'bg-white dark:bg-slate-900 border rounded-card p-3 sm:p-4 transition-all duration-200 flex flex-col gap-3 shadow-xs',
                                     isEnabled
                                         ? 'border-slate-200/90 dark:border-slate-800'
                                         : 'border-rose-200 dark:border-rose-950/60 bg-rose-50/20 dark:bg-rose-950/10'
                                 )}
                             >
-                                {/* Left info */}
-                                <div className="flex items-start gap-3 min-w-0">
-                                    <div
-                                        className={cn(
-                                            'w-10 h-10 rounded-popup flex items-center justify-center shrink-0 shadow-2xs mt-0.5',
-                                            isEnabled
-                                                ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400'
-                                                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
-                                        )}
-                                    >
-                                        <AppIcon name={feat.icon} size="md" />
-                                    </div>
-
-                                    <div className="space-y-1 min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                                                {feat.label}
-                                            </span>
-
-                                            <span
-                                                className={cn(
-                                                    'px-2 py-0.5 text-[11px] font-bold rounded-full uppercase tracking-wider',
-                                                    feat.group === 'main'
-                                                        ? 'bg-sky-100 text-sky-800'
-                                                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                                )}
-                                            >
-                                                {feat.group === 'main' ? 'Menu chính' : 'Công cụ'}
-                                            </span>
-
-                                            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
-                                                ?tab={feat.id}
-                                            </span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    {/* Left info */}
+                                    <div className="flex items-start gap-3 min-w-0">
+                                        <div
+                                            className={cn(
+                                                'w-10 h-10 rounded-popup flex items-center justify-center shrink-0 shadow-2xs mt-0.5',
+                                                isEnabled
+                                                    ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400'
+                                                    : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                                            )}
+                                        >
+                                            <AppIcon name={feat.icon} size="md" />
                                         </div>
 
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                                            {feat.description}
-                                        </p>
-                                    </div>
-                                </div>
+                                        <div className="space-y-1 min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                                                    {feat.label}
+                                                </span>
 
-                                {/* Right controls */}
-                                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 shrink-0">
-                                    {/* Ai được xem chức năng này (quản trị hệ thống luôn xem được) */}
-                                    <div role="group" aria-label={`Ai được xem ${feat.label}`} className="flex items-center gap-1">
-                                        {VAI_TRO_CHON.map(v => {
-                                            const dangXem = (featureRoles?.[feat.id] ?? TAT_CA_VAI_TRO).includes(v.id);
-                                            return (
-                                                <Button
-                                                    key={v.id}
-                                                    variant="toggle"
-                                                    size="xs"
-                                                    aria-pressed={dangXem}
-                                                    onClick={() => doiVaiTro(feat.id, v.id)}
-                                                    className="ycx-hit text-[11px] font-semibold"
-                                                    title={`${dangXem ? 'Đang cho' : 'Chưa cho'} ${v.label} xem`}
+                                                <span
+                                                    className={cn(
+                                                        'px-2 py-0.5 text-[11px] font-bold rounded-full uppercase tracking-wider',
+                                                        feat.group === 'main'
+                                                            ? 'bg-sky-100 text-sky-800'
+                                                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                    )}
                                                 >
-                                                    {v.label}
-                                                </Button>
-                                            );
-                                        })}
+                                                    {feat.group === 'main' ? 'Menu chính' : 'Công cụ'}
+                                                </span>
+
+                                                <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                                                    ?tab={feat.id}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                                                {feat.description}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {/* Status Badge */}
-                                    <span
-                                        className={cn(
-                                            'px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5',
-                                            isEnabled
-                                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60'
-                                                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60'
-                                        )}
-                                    >
+                                    {/* Right controls */}
+                                    <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 shrink-0">
+                                        {/* Ai được xem chức năng này (quản trị hệ thống luôn xem được) */}
+                                        <div role="group" aria-label={`Ai được xem ${feat.label}`} className="flex items-center gap-1">
+                                            {VAI_TRO_CHON.map(v => {
+                                                const dangXem = (featureRoles?.[feat.id] ?? TAT_CA_VAI_TRO).includes(v.id);
+                                                return (
+                                                    <Button
+                                                        key={v.id}
+                                                        variant="toggle"
+                                                        size="xs"
+                                                        aria-pressed={dangXem}
+                                                        onClick={() => doiVaiTro(feat.id, v.id)}
+                                                        className="ycx-hit text-[11px] font-semibold"
+                                                        title={`${dangXem ? 'Đang cho' : 'Chưa cho'} ${v.label} xem`}
+                                                    >
+                                                        {v.label}
+                                                    </Button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Status Badge */}
                                         <span
                                             className={cn(
-                                                'w-1.5 h-1.5 rounded-full',
-                                                isEnabled ? 'bg-emerald-500' : 'bg-rose-500'
+                                                'px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5',
+                                                isEnabled
+                                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60'
+                                                    : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60'
                                             )}
-                                        />
-                                        <span>{isEnabled ? 'Đang mở' : 'Đã tắt (404)'}</span>
-                                    </span>
+                                        >
+                                            <span
+                                                className={cn(
+                                                    'w-1.5 h-1.5 rounded-full',
+                                                    isEnabled ? 'bg-emerald-500' : 'bg-rose-500'
+                                                )}
+                                            />
+                                            <span>{isEnabled ? 'Đang mở' : 'Đã tắt (404)'}</span>
+                                        </span>
 
-                                    {/* Switch Toggle */}
-                                    <div className="flex items-center gap-1.5">
-                                        <Switch
-                                            checked={isEnabled}
-                                            onChange={(next) => handleToggle(feat.id, next)}
-                                            disabled={isUpdating}
-                                            label={`Bật tắt ${feat.label}`}
-                                            title={isEnabled ? 'Nhấn để tắt tính năng' : 'Nhấn để mở tính năng'}
-                                        />
-                                        {isUpdating && (
-                                            <AppIcon name="loading" size="xs" spin className="text-sky-600" />
-                                        )}
+                                        {/* Switch Toggle */}
+                                        <div className="flex items-center gap-1.5">
+                                            <Switch
+                                                checked={isEnabled}
+                                                onChange={(next) => handleToggle(feat.id, next)}
+                                                disabled={isUpdating}
+                                                label={`Bật tắt ${feat.label}`}
+                                                title={isEnabled ? 'Nhấn để tắt tính năng' : 'Nhấn để mở tính năng'}
+                                            />
+                                            {isUpdating && (
+                                                <AppIcon name="loading" size="xs" spin className="text-sky-600" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Danh sách Tab con (nếu có) */}
+                                {feat.subTabs && feat.subTabs.length > 0 && isEnabled && (
+                                    <div className="mt-1 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 pl-2 sm:pl-12">
+                                        <div className="text-[12px] font-semibold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+                                            <AppIcon name="columns" size="xs" className="text-slate-400" />
+                                            <span>Quản lý chế độ in / Tab con của {feat.shortLabel}:</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                                            {feat.subTabs.map((sub) => {
+                                                const isSubEnabled = isFeatureEnabled(sub.id);
+                                                const isSubUpdating = togglingId === sub.id;
+                                                return (
+                                                    <div
+                                                        key={sub.id}
+                                                        className={cn(
+                                                            'flex items-center justify-between p-2 rounded-xl border text-xs transition-colors',
+                                                            isSubEnabled
+                                                                ? 'bg-slate-50/80 dark:bg-slate-850/80 border-slate-200/80 dark:border-slate-700/80'
+                                                                : 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/50 opacity-75'
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                            {sub.icon && <AppIcon name={sub.icon} size="xs" className={isSubEnabled ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'} />}
+                                                            <span className={cn('font-medium truncate', isSubEnabled ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 line-through')}>
+                                                                {sub.label}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                                                            <Switch
+                                                                checked={isSubEnabled}
+                                                                onChange={(next) => handleToggle(sub.id, next)}
+                                                                disabled={isSubUpdating}
+                                                                label={`Bật tắt ${sub.label}`}
+                                                                title={isSubEnabled ? `Tắt chế độ ${sub.label}` : `Bật chế độ ${sub.label}`}
+                                                            />
+                                                            {isSubUpdating && <AppIcon name="loading" size="xs" spin className="text-sky-600" />}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })

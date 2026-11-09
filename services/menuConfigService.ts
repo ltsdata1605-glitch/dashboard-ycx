@@ -20,11 +20,16 @@ export interface SystemMenuConfigDoc {
     updatedByName?: string;
 }
 
-/** Giá trị mặc định ban đầu: toàn bộ các chức năng đều được BẬT (true) */
+/** Giá trị mặc định ban đầu: toàn bộ các chức năng và tab con đều được BẬT (true) */
 export function getDefaultFeaturesMap(): Record<string, boolean> {
     const map: Record<string, boolean> = {};
     for (const item of APP_MENU_FEATURES) {
         map[item.id] = item.defaultEnabled ?? true;
+        if (item.subTabs) {
+            for (const sub of item.subTabs) {
+                map[sub.id] = sub.defaultEnabled ?? true;
+            }
+        }
     }
     return map;
 }
