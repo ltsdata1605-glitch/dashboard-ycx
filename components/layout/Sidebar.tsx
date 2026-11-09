@@ -1,4 +1,3 @@
-import { chonThayThe, SO_O_CHINH } from './navThayThe';
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../shared/ui/Button';
 import { usePresence } from '../shared/ui/usePresence';
@@ -8,7 +7,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMenuConfig } from '../../contexts/MenuConfigContext';
 import { AppIcon, type IconName } from '../shared/ui/icon';
 import { NAV_TAB_ICONS } from './navIcons';
-import { formatCleanDisplayName } from '../../utils/basicHelpers';
 
 interface NavSubItem {
     id: string;
@@ -201,32 +199,24 @@ const NavItem = React.memo(({
 
 export default function Sidebar() {
     const { isDesktopMenuOpen, activeTab, setActiveTab } = useLayout();
-    const { user, userRole, employeeName, departmentId, isDemoMode, logout } = useAuth();
+    const { user, userRole, isDemoMode } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
 
-    // Icon theo TÊN CHỨC NĂNG (chuẩn hoá icon 2026-10-02)
+    // Toàn bộ danh sách tính năng trên laptop (đưa tất cả công cụ ra ngoài menu, không giấu trong popup)
     const menuItems: NavMenuItem[] = [
         { id: 'analysis', label: 'Phân tích YCX', icon: NAV_TAB_ICONS['analysis'], path: '/analysis' },
         { id: 'employees', label: 'Report BI', icon: NAV_TAB_ICONS['employees'], path: '/employees' },
         { id: 'check-thuong', label: 'Check thưởng', icon: NAV_TAB_ICONS['check-thuong'], path: '/' },
         { id: 'thuong', label: 'Thưởng', icon: NAV_TAB_ICONS['thuong'], path: '/thuong' },
         ...(isDemoMode || userRole === 'admin' || userRole === 'manager' ? [
-            { id: 'tools-line-bot', label: 'Bot LINE', icon: NAV_TAB_ICONS['tools-line-bot'], path: '/line-bot' }
+            { id: 'tools-line-bot', label: 'Bot LINE PMH', icon: NAV_TAB_ICONS['tools-line-bot'], path: '/line-bot' }
         ] : []),
-        { 
-            id: 'tools', 
-            label: 'Công cụ', 
-            icon: NAV_TAB_ICONS['tools'], 
-            path: '/tools',
-            subItems: [
-                { id: 'reports', label: 'Báo cáo', icon: NAV_TAB_ICONS['reports'] },
-                { id: 'tools-print-sticker', label: 'In Sticker', icon: NAV_TAB_ICONS['tools-print-sticker'] },
-                { id: 'tools-phanca', label: 'Phân ca', icon: NAV_TAB_ICONS['tools-phanca'] },
-                { id: 'tools-coupon', label: 'Rút gọn Coupon', icon: NAV_TAB_ICONS['tools-coupon'] },
-                { id: 'tools-tax', label: 'Tính thuế', icon: NAV_TAB_ICONS['tools-tax'] },
-                { id: 'tools-price-compare', label: 'So sánh giá ĐT', icon: NAV_TAB_ICONS['tools-price-compare'] }
-            ]
-        },
+        { id: 'reports', label: 'Báo cáo khai thác', icon: NAV_TAB_ICONS['reports'], path: '/reports' },
+        { id: 'tools-print-sticker', label: 'In Sticker', icon: NAV_TAB_ICONS['tools-print-sticker'] },
+        { id: 'tools-phanca', label: 'Phân ca làm việc', icon: NAV_TAB_ICONS['tools-phanca'] },
+        { id: 'tools-coupon', label: 'Rút gọn Coupon', icon: NAV_TAB_ICONS['tools-coupon'] },
+        { id: 'tools-tax', label: 'Tính thuế TNCN', icon: NAV_TAB_ICONS['tools-tax'] },
+        { id: 'tools-price-compare', label: 'So sánh giá ĐT', icon: NAV_TAB_ICONS['tools-price-compare'] },
     ];
 
     const secondaryItems: NavMenuItem[] = [
@@ -235,39 +225,7 @@ export default function Sidebar() {
 
     // Lọc các chức năng theo cấu hình Bật/Tắt của Quản trị hệ thống
     const visibleMenuItems = React.useMemo(() => {
-        const danhSach = menuItems
-            .map(item => {
-                if (item.subItems && item.subItems.length > 0) {
-                    const activeSubs = item.subItems.filter(sub => isFeatureEnabled(sub.id));
-                    if (activeSubs.length === 0) return null;
-                    return { ...item, subItems: activeSubs };
-                }
-                if (!isFeatureEnabled(item.id)) return null;
-                return item;
-            })
-            .filter((item): item is NavMenuItem => item !== null);
-
-        // Ô menu chính bị tắt → công cụ đang bật đưa lên thay (chonThayThe, 2026-10-30). Công cụ đã lên không còn trong nhóm "Công cụ".
-        const CHINH_IDS = ['analysis', 'employees', 'check-thuong', 'thuong'];
-        const nhomChinh = danhSach.filter(i => CHINH_IDS.includes(i.id));
-        const congCu = (danhSach.find(i => i.id === 'tools')?.subItems ?? []).map(s => ({ id: s.id, label: s.label, icon: s.icon }));
-        const { chinh: chinhSau, congCu: congCuCon } = chonThayThe<NavMenuItem>(nhomChinh, congCu, SO_O_CHINH);
-        const ketQua: NavMenuItem[] = [];
-        let daChen = false;
-        for (const item of danhSach) {
-            if (CHINH_IDS.includes(item.id)) {
-                if (!daChen) { ketQua.push(...chinhSau); daChen = true; }
-                continue;
-            }
-            if (item.id === 'tools') {
-                if (congCuCon.length > 0) ketQua.push({ ...item, subItems: congCuCon });
-                continue;
-            }
-            if (!daChen && chinhSau.length > 0) { ketQua.push(...chinhSau); daChen = true; }
-            ketQua.push(item);
-        }
-        if (!daChen) ketQua.unshift(...chinhSau);
-        return ketQua;
+        return menuItems.filter(item => isFeatureEnabled(item.id));
     }, [menuItems, isFeatureEnabled]);
 
     // Ẩn sidebar khi không còn mục nào hiển thị (tất cả tính năng bị tắt)
@@ -282,13 +240,13 @@ export default function Sidebar() {
                     data-testid="desktop-nav-menu"
                     data-glass="panel" data-glass-tone="strong"
                     className={cn(
-                        "hidden lg:flex fixed top-[72px] left-8 z-[130] flex-col items-center py-2 px-1.5 ycx-glass rounded-card w-[56px]",
+                        "hidden lg:flex fixed top-[72px] left-8 z-[130] flex-col items-center py-2 px-1.5 ycx-glass rounded-card w-[56px] max-h-[calc(100vh-88px)]",
                         "origin-top transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transition-none",
                         shown ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-95",
                     )}
                 >
-                    {/* Function Items */}
-                    <div className="flex flex-col items-center w-full space-y-0.5">
+                    {/* Function Items - Cho phép cuộn dọc mượt mà nếu màn hình laptop nhỏ */}
+                    <div className="flex flex-col items-center w-full space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-none py-0.5">
                         {visibleMenuItems.map(item => (
                             <NavItem 
                                 key={item.id} 
@@ -313,10 +271,10 @@ export default function Sidebar() {
                     )}
 
                     {/* Thin divider */}
-                    <div className="w-8 h-[1px] bg-slate-100 dark:bg-slate-800 my-1.5" />
+                    <div className="w-8 h-[1px] bg-slate-100 dark:bg-slate-800 my-1.5 shrink-0" />
 
                     {/* User Profile / Settings */}
-                    <div className="flex items-center justify-center my-0.5">
+                    <div className="flex items-center justify-center my-0.5 shrink-0">
                         <Button
                             variant="card" size="none"
                             onClick={() => setActiveTab('settings')}

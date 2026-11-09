@@ -25,7 +25,7 @@ export const CounterRow: React.FC<CounterRowProps> = ({ icon, label, value, onCh
 
     return (
         <div
-            className={`flex items-center justify-between gap-1 sm:gap-2 px-2 sm:px-3 h-11 lg:h-[36px] border-b border-slate-100/90 dark:border-slate-800/80 transition-colors duration-150 ${
+            className={`flex items-center justify-between gap-1 sm:gap-2 px-2 sm:px-3 h-10 lg:h-9 py-1 border-b border-slate-100/90 dark:border-slate-800/80 transition-colors duration-150 ${
                 active ? 'bg-sky-50/70 dark:bg-sky-950/25' : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
             }`}
         >
@@ -79,13 +79,13 @@ export const CounterRow: React.FC<CounterRowProps> = ({ icon, label, value, onCh
                         onClick={() => onChange(Math.max(0, value - 1))}
                         disabled={value === 0}
                         aria-label={`Giảm ${label}`}
-                        className="ycx-hit w-7 h-7 min-w-0 min-h-0 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all duration-150"
+                        className="ycx-hit w-6 h-6 sm:w-6.5 sm:h-6.5 min-w-0 min-h-0 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all duration-150"
                     >
                         <AppIcon name="minus" size="xs" />
                     </Button>
 
                     <span
-                        className={`min-w-[22px] px-1 text-center text-[13px] tabular-nums font-bold transition-colors ${
+                        className={`min-w-[20px] px-1 text-center text-[12.5px] sm:text-[13px] tabular-nums font-bold transition-colors ${
                             active
                                 ? 'text-sky-600 dark:text-sky-400 font-extrabold'
                                 : 'text-slate-400 dark:text-slate-500'
@@ -100,7 +100,7 @@ export const CounterRow: React.FC<CounterRowProps> = ({ icon, label, value, onCh
                         size="icon"
                         onClick={() => onChange(value + 1)}
                         aria-label={`Tăng ${label}`}
-                        className={`ycx-hit w-7 h-7 min-w-0 min-h-0 rounded-full flex items-center justify-center active:scale-90 transition-all duration-150 ${
+                        className={`ycx-hit w-6 h-6 sm:w-6.5 sm:h-6.5 min-w-0 min-h-0 rounded-full flex items-center justify-center active:scale-90 transition-all duration-150 ${
                             active
                                 ? 'bg-sky-500 text-white hover:bg-sky-600 shadow-2xs'
                                 : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'

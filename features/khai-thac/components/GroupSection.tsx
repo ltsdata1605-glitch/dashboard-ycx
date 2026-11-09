@@ -85,7 +85,7 @@ const AmountRow: React.FC<{
 
     return (
         <div
-            className={`flex items-center justify-between gap-1 sm:gap-2 px-2 sm:px-3 h-11 lg:h-[36px] border-b border-slate-100/90 dark:border-slate-800/80 transition-colors duration-150 ${
+            className={`flex items-center justify-between gap-1 sm:gap-2 px-2 sm:px-3 h-10 lg:h-9 py-1 border-b border-slate-100/90 dark:border-slate-800/80 transition-colors duration-150 ${
                 active ? 'bg-emerald-50/70 dark:bg-emerald-950/25' : 'bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
             }`}
         >
@@ -240,14 +240,14 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
 
             {/* Dòng "khác": tên tự do + stepper */}
             {meta.otherPlaceholder && (
-                <div className="flex items-center gap-2 px-2.5 sm:px-3 h-11 lg:h-[38px] border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-850/50">
+                <div className="flex items-center gap-2 px-2.5 sm:px-3 h-10 lg:h-9 py-1 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-850/50">
                     <Input
                         type="text"
                         placeholder={meta.otherPlaceholder}
                         value={other.name}
                         aria-label={meta.otherPlaceholder}
                         onChange={e => onOther(group, { name: e.target.value })}
-                        className="h-8 lg:h-7 px-2.5 text-[13px] bg-white dark:bg-slate-900 rounded-lg border-slate-200 dark:border-slate-700"
+                        className="h-7.5 lg:h-7 px-2.5 text-[13px] bg-white dark:bg-slate-900 rounded-lg border-slate-200 dark:border-slate-700"
                     />
 
                     {/* Apple Stepper for Other */}
@@ -264,13 +264,13 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
                             onClick={() => onOther(group, { count: Math.max(0, other.count - 1) })}
                             disabled={other.count === 0}
                             aria-label="Giảm mục khác"
-                            className="ycx-hit w-7 h-7 min-w-0 min-h-0 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all duration-150"
+                            className="ycx-hit w-6 h-6 sm:w-6.5 sm:h-6.5 min-w-0 min-h-0 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-90 disabled:opacity-25 disabled:pointer-events-none transition-all duration-150"
                         >
                             <AppIcon name="minus" size="xs" />
                         </Button>
 
                         <span
-                            className={`min-w-[22px] px-1 text-center text-[13px] tabular-nums font-bold transition-colors ${
+                            className={`min-w-[20px] px-1 text-center text-[12.5px] sm:text-[13px] tabular-nums font-bold transition-colors ${
                                 other.count > 0
                                     ? 'text-sky-600 dark:text-sky-400 font-extrabold'
                                     : 'text-slate-400 dark:text-slate-500'
@@ -284,7 +284,7 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
                             size="icon"
                             onClick={() => onOther(group, { count: other.count + 1 })}
                             aria-label="Tăng mục khác"
-                            className={`ycx-hit w-7 h-7 min-w-0 min-h-0 rounded-full flex items-center justify-center active:scale-90 transition-all duration-150 ${
+                            className={`ycx-hit w-6 h-6 sm:w-6.5 sm:h-6.5 min-w-0 min-h-0 rounded-full flex items-center justify-center active:scale-90 transition-all duration-150 ${
                                 other.count > 0
                                     ? 'bg-sky-500 text-white hover:bg-sky-600 shadow-2xs'
                                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'

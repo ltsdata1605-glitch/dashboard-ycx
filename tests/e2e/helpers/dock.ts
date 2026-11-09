@@ -11,7 +11,12 @@ export async function moMucCongCu(page: Page, ten: string) {
     const dock = page.locator('aside').first();
     const muc = dock.getByRole('button', { name: ten, exact: true });
     await expect(async () => {
-        if (!(await muc.isVisible())) await dock.getByRole('button', { name: 'Công cụ', exact: true }).click({ timeout: 5_000 });
+        if (!(await muc.isVisible())) {
+            const btnCongCu = dock.getByRole('button', { name: 'Công cụ', exact: true });
+            if (await btnCongCu.isVisible()) {
+                await btnCongCu.click({ timeout: 5_000 });
+            }
+        }
         await muc.click({ timeout: 3_000 });
     }).toPass({ timeout: 30_000 });
 }
