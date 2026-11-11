@@ -37,9 +37,40 @@ const LoginView: React.FC = () => {
     const isReopeningRef = useRef(false);
     const [isReopening, setIsReopening] = useState(false);
 
+    // Phân biệt phiên vừa bấm chuyển hướng ngay trong trang hiện tại (đang rời trang sang Google)
+    // với trường hợp tải lại trang / bấm Back quay về khi localStorage còn sót mã handoff cũ.
+    const initiatedInCurrentPageRef = useRef(false);
+    const navigationStartedAtRef = useRef(0);
+
     // Vừa quay về từ trang đăng nhập (còn mã chờ, hoặc AuthContext đang nhận phiên): hiện màn "Đang hoàn tất",
     // KHÔNG hiện lại form đăng nhập — trước 2026-10-13 form hiện lại vài giây khiến người dùng tưởng bị lỗi.
     const [waitingHandoff, setWaitingHandoff] = useState(() => useHandoff && (hasPendingPwaHandoff() || isPwaHandoffClaiming()));
+
+    const replenishPkceIfNeeded = () => {
+        if (!preparedRef.current) {
+            setIsPreparingPkce(true);
+            getOrPreparePwaHandoff()
+                .then(p => {
+                    preparedRef.current = p;
+                    setIsPreparingPkce(false);
+                })
+                .catch(() => {
+                    setIsPreparingPkce(false);
+                });
+        }
+    };
+
+    const resetWaitingState = () => {
+        initiatedInCurrentPageRef.current = false;
+        navigationStartedAtRef.current = 0;
+        isLoggingInRef.current = false;
+        isReopeningRef.current = false;
+        setWaitingHandoff(false);
+        setIsLoggingIn(false);
+        setIsReopening(false);
+        setIsPreparingReopen(false);
+        replenishPkceIfNeeded();
+    };
 
     // Khởi tạo PKCE thuần túy trong useEffect (tuân thủ StrictMode & Concurrent React, không tạo side-effect trong useState)
     useEffect(() => {
@@ -65,10 +96,47 @@ const LoginView: React.FC = () => {
         return () => { unmounted = true; };
     }, [useHandoff]);
 
+    // Khôi phục tức thì khi người dùng bấm nút "< Quay lại" trên Safari / trình duyệt di động (BFCache pageshow persisted):
+    // Tránh giữ nguyên vòng xoay "Đang đăng nhập…" đã bị đóng băng từ trước lúc chuyển sang trang Google.
+    useEffect(() => {
+        if (isStandalone) return;
+        let disposed = false;
+        const onPageShow = async (e: PageTransitionEvent) => {
+            if (!e.persisted || disposed) return;
+            initiatedInCurrentPageRef.current = false;
+            navigationStartedAtRef.current = 0;
+            const verifierOnBack = readPendingHandoff();
+            if (!verifierOnBack) {
+                resetWaitingState();
+                return;
+            }
+            try {
+                const claimed = await Promise.race([
+                    claimPwaHandoff(1),
+                    new Promise<boolean>(resolve => setTimeout(() => resolve(false), 2500)),
+                ]);
+                if (claimed || disposed) return;
+            } catch {
+                if (disposed) return;
+            }
+            if (readPendingHandoff() === verifierOnBack) {
+                clearPendingPwaHandoff(verifierOnBack);
+                resetWaitingState();
+            }
+        };
+        window.addEventListener('pageshow', onPageShow);
+        return () => {
+            disposed = true;
+            window.removeEventListener('pageshow', onPageShow);
+        };
+    }, [isStandalone]);
+
     useEffect(() => {
         if (!waitingHandoff) return;
         let stopped = false;
         let busy = false;
+        let emptyClaimCount = 0;
+        let trackedVerifier: string | null = null;
         // Hỏi máy chủ dày (1,5 s) trong 30 giây đầu, sau đó thưa dần 4 s — mỗi lượt hỏi là 1 lần gọi hàm + 1 giao dịch Firestore,
         // người dùng để màn chờ mở 6 phút từng tốn ~240 lượt (2026-10-21). Quay lại app (focus/visibility) thì hỏi ngay.
         const batDau = Date.now();
@@ -78,18 +146,59 @@ const LoginView: React.FC = () => {
             if (ngay === 'dinh-ky' && Date.now() - batDau > 30_000 && Date.now() - lanCuoi < 4_000) return;
             lanCuoi = Date.now();
             if (!hasPendingPwaHandoff() && !isPwaHandoffClaiming()) {
-                isLoggingInRef.current = false;
-                isReopeningRef.current = false;
-                setWaitingHandoff(false);
-                setIsLoggingIn(false);
-                setIsReopening(false);
+                resetWaitingState();
                 return;
             }
             busy = true;
             const currentHandoffVerifier = readPendingHandoff();
+            if (currentHandoffVerifier !== trackedVerifier) {
+                trackedVerifier = currentHandoffVerifier;
+                emptyClaimCount = 0;
+            }
             try {
                 // Vào được thì onAuthStateChanged ở AuthContext tự chuyển màn hình.
-                if (await claimPwaHandoff(1)) stopped = true;
+                if (await claimPwaHandoff(1)) {
+                    stopped = true;
+                    return;
+                }
+
+                // Nếu phiên đã bị thay thế hoặc huỷ trong lúc gọi mạng thì nhường quyền cho phiên mới.
+                if (stopped || (currentHandoffVerifier && readPendingHandoff() !== currentHandoffVerifier)) {
+                    return;
+                }
+
+                // Trình duyệt thường (iOS Safari, Chrome… cùng tab — KHÔNG phải PWA Màn hình chính mở cửa sổ nổi riêng):
+                // 1) Tải lại / mở lại trang khi còn sót ycxPwaHandoff cũ: pwa-login.html luôn await lưu phiên vào Firestore
+                //    TRƯỚC KHI redirect về app, nên nếu 2 lượt hỏi liên tiếp đều nhận ready: false (~1,5s) nghĩa là người dùng
+                //    chưa hoàn tất Google (bấm Quay lại / Tải lại / đóng tab) → tự dọn mã mồ côi và trả về nút đăng nhập ngay,
+                //    không để treo ở "Đang đăng nhập…" suốt nhiều phút.
+                if (!isStandalone && !initiatedInCurrentPageRef.current) {
+                    emptyClaimCount += 1;
+                    if (emptyClaimCount >= 2) {
+                        stopped = true;
+                        clearPendingPwaHandoff(currentHandoffVerifier ?? undefined);
+                        resetWaitingState();
+                        return;
+                    }
+                }
+
+                // 2) Vừa bấm đăng nhập cùng tab nhưng sau 12s trình duyệt vẫn chưa rời trang (mạng nghẽn / bấm Dừng tải ✕):
+                //    tự thoát trạng thái chờ để người dùng bấm thử lại được ngay.
+                const hasDevRedirectHook = import.meta.env.DEV
+                    && typeof (window as unknown as { __ycxTestRedirectHook?: unknown }).__ycxTestRedirectHook === 'function';
+                if (
+                    !isStandalone
+                    && initiatedInCurrentPageRef.current
+                    && !hasDevRedirectHook
+                    && navigationStartedAtRef.current > 0
+                    && Date.now() - navigationStartedAtRef.current >= 12_000
+                ) {
+                    stopped = true;
+                    clearPendingPwaHandoff(currentHandoffVerifier ?? undefined);
+                    resetWaitingState();
+                    setError('Trang đăng nhập Google chưa tự mở hoặc kết nối bị gián đoạn. Vui lòng bấm "Tiếp tục với Google" để thử lại.');
+                    return;
+                }
             } catch (err: unknown) {
                 // RACE CONDITION PROTECTION: Nếu trong lúc claim đang gọi máy chủ, người dùng đã mở phiên mới
                 // (hoặc bấm Huỷ), lỗi của phiên cũ KHÔNG ĐƯỢC huỷ màn hình chờ hoặc xoá phiên mới!
@@ -101,11 +210,7 @@ const LoginView: React.FC = () => {
                 console.error('[Auth] Nhận phiên đăng nhập từ trang Google lỗi:', err);
                 takePwaHandoffError();
                 clearPendingPwaHandoff(currentHandoffVerifier ?? undefined);
-                isLoggingInRef.current = false;
-                isReopeningRef.current = false;
-                setWaitingHandoff(false);
-                setIsLoggingIn(false);
-                setIsReopening(false);
+                resetWaitingState();
                 const goc = err instanceof PwaHandoffSignInError ? err.cause : err;
                 setError(`Chưa vào được ứng dụng (${getErrorCode(goc) || getErrorMessage(goc)}). Vui lòng bấm "Tiếp tục với Google" lại.`);
             } finally {
@@ -122,7 +227,7 @@ const LoginView: React.FC = () => {
             document.removeEventListener('visibilitychange', tick);
             window.removeEventListener('focus', tick);
         };
-    }, [waitingHandoff]);
+    }, [waitingHandoff, isStandalone]);
 
     const handlePwaLogin = () => {
         // Guard đồng bộ tức thì: chặn hoàn toàn click liên tiếp trong cùng render cycle hoặc khi mã đang chuẩn bị
@@ -165,9 +270,13 @@ const LoginView: React.FC = () => {
         // startPwaHandoffLogin() chạy trực tiếp trong cử chỉ chạm để window.open() không bị Safari chặn.
         try {
             startPwaHandoffLogin(prepared);
+            initiatedInCurrentPageRef.current = true;
+            navigationStartedAtRef.current = Date.now();
             setWaitingHandoff(true);
         } catch (err: unknown) {
             console.error('[Auth] Khởi tạo chuyển hướng đăng nhập thất bại:', err);
+            initiatedInCurrentPageRef.current = false;
+            navigationStartedAtRef.current = 0;
             isLoggingInRef.current = false;
             setIsLoggingIn(false);
             clearPendingPwaHandoff();
@@ -221,6 +330,8 @@ const LoginView: React.FC = () => {
         let success = false;
         try {
             startPwaHandoffLogin(prepared);
+            initiatedInCurrentPageRef.current = true;
+            navigationStartedAtRef.current = Date.now();
             success = true;
         } catch (err: unknown) {
             console.error('[Auth] Mở lại trang đăng nhập thất bại:', err);
@@ -245,27 +356,9 @@ const LoginView: React.FC = () => {
     };
 
     const handleCancelPwaLogin = () => {
-        isLoggingInRef.current = false;
-        isReopeningRef.current = false;
         clearPendingPwaHandoff();
-        setWaitingHandoff(false);
-        setIsLoggingIn(false);
-        setIsReopening(false);
-        setIsPreparingReopen(false);
         setError(null);
-
-        // Khôi phục mã mới nếu chưa có
-        if (!preparedRef.current) {
-            setIsPreparingPkce(true);
-            getOrPreparePwaHandoff()
-                .then(p => {
-                    preparedRef.current = p;
-                    setIsPreparingPkce(false);
-                })
-                .catch(() => {
-                    setIsPreparingPkce(false);
-                });
-        }
+        resetWaitingState();
     };
 
     const handleRetryFromError = () => {

@@ -41,8 +41,8 @@ test.describe('LoginView Apple Design System V2 & Google Button Verification', (
         // Chiều rộng ôm gọn trong khoảng max-w-[300px]
         expect(computed.rectWidth).toBeLessThanOrEqual(300);
 
-        // Bo góc rounded-[10px]
-        expect(computed.borderRadius).toBe('10px');
+        // Bo góc chuẩn semantic token rounded-popup (--popup-radius: 12px)
+        expect(computed.borderRadius).toBe('12px');
 
         // Màu nền trắng (--surface-primary: #ffffff)
         expect(computed.backgroundColor).toBe('rgb(255, 255, 255)');
@@ -199,7 +199,7 @@ test.describe('LoginView Apple Design System V2 & Google Button Verification', (
         const waitingScreen = page.getByTestId('login-handoff-waiting');
         await expect(waitingScreen).toBeVisible({ timeout: 5_000 });
         await expect(waitingScreen.locator('.animate-spin')).toBeVisible();
-        await expect(page.getByText('Đang hoàn tất đăng nhập…')).toBeVisible();
+        await expect(page.getByText('Đang đăng nhập…')).toBeVisible();
 
         // Xác nhận số lần gọi chuyển hướng chỉ đúng 1 lần duy nhất
         const totalRedirects = await page.evaluate(() => (window as any).__redirectCalls || 0);
@@ -791,5 +791,107 @@ test.describe('LoginView Apple Design System V2 & Google Button Verification', (
         // localStorage đã được dọn sạch vì phiên đã thất bại thật sự
         const rawHandoff = await page.evaluate(() => localStorage.getItem('ycxPwaHandoff'));
         expect(rawHandoff).toBeNull();
+    });
+
+    test('15. [iPhone Mobile Browser Abandoned Handoff Recovery] Same-tab reload with ready=false auto-recovers instead of hanging on "Đang đăng nhập…"', async ({ browser }) => {
+        const context = await browser.newContext({
+            ...devices['iPhone 15'],
+        });
+        const page = await context.newPage();
+        try {
+            let claimCount = 0;
+            await page.route('**/*pwaHandoffClaim*', async (route) => {
+                claimCount++;
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ result: { ready: false } }),
+                });
+            });
+
+            await page.goto('/');
+            await page.evaluate(() => {
+                localStorage.setItem('ycxPwaHandoff', JSON.stringify({ v: 'abandoned-safari-verifier-' + 'x'.repeat(18), at: Date.now() }));
+            });
+            await page.reload();
+
+            const waitingScreen = page.getByTestId('login-handoff-waiting');
+            const googleBtn = page.getByTestId('login-google');
+
+            // Sau tối đa 2 lượt hỏi ready:false (~1.5s-3s), giao diện tự thoát màn chờ và bật lại nút Google
+            await expect(waitingScreen).toHaveCount(0, { timeout: 6_000 });
+            await expect(googleBtn).toBeVisible();
+            await expect(googleBtn).toBeEnabled();
+            expect(claimCount).toBeGreaterThanOrEqual(2);
+
+            // Mã mồ côi đã được dọn sạch khỏi localStorage
+            const remaining = await page.evaluate(() => localStorage.getItem('ycxPwaHandoff'));
+            expect(remaining).toBeNull();
+        } finally {
+            await context.close();
+        }
+    });
+
+    test('16. [Safari BFCache pageshow Recovery] Pressing Back from Google (pageshow persisted=true) immediately exits "Đang đăng nhập…"', async ({ page }) => {
+        await page.route('**/*pwaHandoffClaim*', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ result: { ready: false } }),
+            });
+        });
+
+        await page.evaluate(() => {
+            (window as any).__ycxTestRedirectHook = () => {};
+        });
+
+        const googleBtn = page.getByTestId('login-google');
+        await expect(googleBtn).toBeVisible();
+        await googleBtn.click();
+
+        const waitingScreen = page.getByTestId('login-handoff-waiting');
+        await expect(waitingScreen).toBeVisible({ timeout: 5_000 });
+
+        // Mô phỏng Safari khôi phục trang từ BFCache khi người dùng bấm nút "<" Quay lại
+        await page.evaluate(() => {
+            window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+        });
+
+        await expect(waitingScreen).toHaveCount(0, { timeout: 5_000 });
+        await expect(googleBtn).toBeVisible();
+        await expect(googleBtn).toBeEnabled();
+
+        const remaining = await page.evaluate(() => localStorage.getItem('ycxPwaHandoff'));
+        expect(remaining).toBeNull();
+    });
+
+    test('17. [Extended Google 2FA Window] Handoff verifier at 10 minutes still claims session instead of expiring prematurely at 6 minutes', async ({ page }) => {
+        const claimedVerifiers: string[] = [];
+        await page.route('**/*pwaHandoffClaim*', async (route) => {
+            const payload = route.request().postDataJSON()?.data;
+            if (payload?.verifier) claimedVerifiers.push(payload.verifier);
+            await route.fulfill({
+                status: 400,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    error: {
+                        status: 'DEADLINE_EXCEEDED',
+                        message: 'functions/deadline-exceeded',
+                    },
+                }),
+            });
+        });
+
+        const tenMinVerifier = 'verifier-after-10-min-2fa-' + 'z'.repeat(17);
+        await page.evaluate((v) => {
+            localStorage.setItem('ycxPwaHandoff', JSON.stringify({
+                v,
+                at: Date.now() - 10 * 60 * 1000, // 10 phút trước (> 6 phút cũ, < 30 phút mới)
+            }));
+        }, tenMinVerifier);
+
+        await page.reload();
+
+        await expect.poll(() => claimedVerifiers.includes(tenMinVerifier), { timeout: 5_000 }).toBe(true);
     });
 });

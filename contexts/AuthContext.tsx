@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Ultra-Fast Boot đã mở dashboard bằng cache hợp lệ? Đọc trong callback onAuthStateChanged
     // (closure cũ, deps []) nên phải là ref chứ không phải state.
     const bootedFromCacheRef = useRef(false);
+    const hasAcceptedUserRef = useRef(false);
 
     useEffect(() => {
         cleanupGarbageKeys().catch(console.error);
@@ -149,8 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // TUYỆT ĐỐI KHÔNG nhận user này vào app, không dọn dữ liệu cục bộ và không nạp quyền.
             if (!isAuthTransitionAuthorized(currentUser)) {
                 console.warn('[Auth] Chặn Auth State từ phiên cũ đã bị thay thế:', currentUser?.uid);
+                // Nếu app vừa khởi động chưa có user hợp lệ nào và fallbackTimer vừa bị xoá ở trên,
+                // phải tắt isLoading để LoginView được render và xử lý nhận phiên handoff hiện hành (tránh treo spinner mãi).
+                if (!bootedFromCacheRef.current && !hasAcceptedUserRef.current) {
+                    setIsLoading(false);
+                }
                 return;
             }
+            hasAcceptedUserRef.current = Boolean(currentUser);
             setUser(currentUser);
             if (currentUser) {
                 // Tự động tắt demo mode nếu user đã đăng nhập tài khoản thật

@@ -163,7 +163,10 @@ export const checkRedirectLoginResult = async () => {
 export const isIOSStandalonePwa = (): boolean => isIOSDevice() && isStandaloneMode();
 
 const PWA_HANDOFF_KEY = 'ycxPwaHandoff';
-const PWA_HANDOFF_MAX_AGE_MS = 6 * 60 * 1000;
+// Giữ verifier tối đa 30 phút kể từ lúc bấm đăng nhập để người dùng thoải mái nhập mật khẩu / duyệt 2FA Google
+// (sự cố thực tế 2026-11-11: thao tác Google 8 phút quay về bị xoá mất verifier khi hạn cũ chỉ 6 phút).
+// Token thật trên máy chủ (functions/src/pwaHandoff.ts) vẫn tự hết hạn sau 5 phút kể từ lúc Google trả về.
+const PWA_HANDOFF_MAX_AGE_MS = 30 * 60 * 1000;
 const PWA_LOGIN_URL = 'https://auth.dashboard.pro.vn/pwa-login.html';
 
 const toBase64Url = (bytes: Uint8Array): string =>

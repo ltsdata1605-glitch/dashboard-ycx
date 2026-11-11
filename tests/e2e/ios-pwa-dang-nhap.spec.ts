@@ -54,7 +54,7 @@ test('iOS PWA: mở trang đăng nhập riêng và hỏi nhận phiên', async (
     // Trong lúc chờ: màn "Đang hoàn tất đăng nhập…" thay hẳn form (2026-10-13 — form hiện lại làm người dùng tưởng lỗi).
     const waiting = page.getByTestId('login-handoff-waiting');
     await expect(waiting).toBeVisible();
-    await expect(page.getByText('Đang hoàn tất đăng nhập…')).toBeVisible();
+    await expect(page.getByText('Đang đăng nhập…')).toBeVisible();
     await expect(btn).toBeHidden();
 
     await expect.poll(() => claims.length, { timeout: 10_000 }).toBeGreaterThan(0);

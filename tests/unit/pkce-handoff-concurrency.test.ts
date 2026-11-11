@@ -263,4 +263,22 @@ describe('PKCE Prewarming & Concurrency Protection', () => {
         expect(prepared2?.code).toBeTruthy();
         expect(prepared2?.verifier).toBeTruthy();
     });
+
+    it('giữ hiệu lực verifier trong cửa sổ 30 phút (đủ cho Google 2FA > 6 phút) và tự xoá khi quá 30 phút', () => {
+        const PWA_HANDOFF_KEY = 'ycxPwaHandoff';
+        // 10 phút trước (sự cố thực tế 8 phút nhập mật khẩu + 2FA Google): vẫn còn hiệu lực
+        localStorage.setItem(PWA_HANDOFF_KEY, JSON.stringify({
+            v: 'verifier_10_min',
+            at: Date.now() - 10 * 60 * 1000,
+        }));
+        expect(readPendingHandoff()).toBe('verifier_10_min');
+
+        // 31 phút trước: đã quá hạn 30 phút -> tự dọn khỏi localStorage
+        localStorage.setItem(PWA_HANDOFF_KEY, JSON.stringify({
+            v: 'verifier_31_min',
+            at: Date.now() - 31 * 60 * 1000,
+        }));
+        expect(readPendingHandoff()).toBeNull();
+        expect(localStorage.getItem(PWA_HANDOFF_KEY)).toBeNull();
+    });
 });
