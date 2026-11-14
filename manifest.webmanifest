@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Dashboard",
-  "short_name": "Dashboard",
+  "name": "Báo Cáo",
+  "short_name": "Báo Cáo",
   "description": "Phân tích doanh thu, Report BI, Phân ca và In Sticker cho siêu thị.",
   "lang": "vi",
   "start_url": "/",
