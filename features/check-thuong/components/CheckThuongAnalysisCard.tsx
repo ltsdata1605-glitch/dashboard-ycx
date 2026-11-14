@@ -147,7 +147,7 @@ export const CheckThuongAnalysisCard: React.FC<CheckThuongAnalysisCardProps> = (
                                             size="none"
                                             type="button"
                                             onClick={() => onSelectCategory?.(item.nganhHang, item.kenh)}
-                                            title={isSelected ? 'Đang lọc môn này • Bấm để đưa về trạng thái mặc định' : 'Bấm để lọc môn này trong bảng • Bấm lại để huỷ lọc'}
+                                            title="Bấm để xem Bảng Xếp Hạng môn này"
                                             className={`text-left transition-all ${
                                                 isSelected
                                                     ? 'bg-amber-100/90 dark:bg-amber-950/80 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-control ring-1.5 ring-amber-500 font-semibold shadow-2xs'
@@ -201,7 +201,7 @@ export const CheckThuongAnalysisCard: React.FC<CheckThuongAnalysisCardProps> = (
                                             size="none"
                                             type="button"
                                             onClick={() => onSelectCategory?.(item.name, item.kenh)}
-                                            title={isSelected ? 'Đang lọc môn này • Bấm để đưa về trạng thái mặc định' : 'Bấm để lọc môn này trong bảng • Bấm lại để huỷ lọc'}
+                                            title="Bấm để xem Bảng Xếp Hạng môn này"
                                             className={`text-left transition-all ${
                                                 isSelected
                                                     ? 'bg-emerald-100/90 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded-control ring-1.5 ring-emerald-500 font-semibold shadow-2xs'

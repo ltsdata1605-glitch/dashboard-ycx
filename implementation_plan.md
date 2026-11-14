@@ -9417,6 +9417,7 @@ thấy. Lượt kiểm phiên bản `fetch …user.js?t=…` còn khớp `isStat
 **Sửa:** `scripts/sw-template.js` — `.user.js` (mọi kiểu yêu cầu) không `respondWith`, để trình duyệt/tiện ích tự xử lý.
 Test `tests/unit/sw-bo-qua-userscript.test.ts` chạy thật hàm `fetch` của SW (đỏ 2/3 với bản cũ). `tests/e2e/offline-app-shell.spec.ts`
 chỉnh theo `/dashboard-ycx/` (trước đó đỏ vì mở app ở gốc) — 3/3 qua.
+
 ## Nền phiếu In Sticker 404 dưới /dashboard-ycx/ (2026-11-14)
 
 **Triệu chứng:** `https://ltsdata1605-glitch.github.io/frame/bg_phieu.png` → 404 (đúng là `/dashboard-ycx/frame/bg_phieu.png` → 200).
@@ -9437,6 +9438,17 @@ thái đồng bộ) vừa được nhét thẳng vào `url(...)`. Vite không th
 - Test `tests/unit/duong-dan-goc-app.test.ts`: `DA_BIET` rỗng. Khai báo hằng mã định danh trong `stickerBackgroundHelpers.ts` được
   miễn theo ĐÚNG mẫu dòng `export const X_BG = '/frame/….png';` (không miễn cả file), kèm bài khoá: mọi `url(` vẽ nền trong
   `features/sticker-event/stickerprinter` phải qua `bgImageUrl(`. Test đơn vị `stickerBackgroundHelpers.test.ts` cho hàm chuyển.
+
+## Check thưởng: bấm dòng "Phân Tích & Đề Xuất" mở Bảng Xếp Hạng (2026-11-14)
+
+**Yêu cầu (ảnh chủ dự án):** bấm dòng "T11 - ĐÈN NĂNG LƯỢNG MẶT TRỜI: cần cải thiện 16 hạng" không hiện "Bảng Xếp Hạng".
+Trước đây bấm dòng phân tích (Cảnh báo / Cơ hội vàng) chỉ LỌC bảng ngành hàng theo môn + cuộn xuống.
+
+**Sửa:** `CheckThuongSearchView.handleSelectCategoryFromAnalysis` giữ phần lọc (đưa thẻ KPI về "Tất cả", đặt môn) và MỞ
+`CheckThuongRankingModal` của môn đó (bỏ bước cuộn). Đóng bảng xếp hạng → `onClose` đưa về mặc định như bấm dòng trong bảng.
+Chữ gợi ý nút đổi thành "Bấm để xem Bảng Xếp Hạng môn này". Test: `tests/e2e/check-thuong-phan-tich-mo-bxh.spec.ts` (harness
+`helpers/checkThuongPhanTichHarness.tsx`, không cần đăng nhập — laptop + iPhone); `check-thuong-analysis-filter-reset.spec.ts`
+(cần profile dữ liệu thật) sửa theo hành vi mới.
 
 ## `npm run check` xanh lại sau khi bỏ Phân tích/Report BI và chuyển sang github.io (2026-11-14)
 

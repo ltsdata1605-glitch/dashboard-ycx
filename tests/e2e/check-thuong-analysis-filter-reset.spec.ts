@@ -35,23 +35,19 @@ test.describe('Check Thưởng - Thao tác lọc và đưa về trạng thái m�
         // 4. Click vào môn thi đó
         await analysisItemBtn.click();
 
-        // 5. Kiểm chứng:
+        // 5. Kiểm chứng (2026-11-14: bấm dòng phân tích MỞ Bảng Xếp Hạng của môn đó, không chỉ lọc bảng):
         // - Thẻ < 100% lập tức mất trạng thái ring-2 (được đưa về trạng thái mặc định)
         await expect(cardUnder100).not.toHaveClass(/ring-2/);
 
-        // - Banner "Đang lọc theo môn thi" xuất hiện
-        const filterBanner = page.locator(':text("Đang lọc theo môn thi:")').first();
-        await expect(filterBanner).toBeVisible({ timeout: 5000 });
+        // - Bảng Xếp Hạng của đúng môn hiện ra
+        const bxh = page.getByRole('dialog');
+        await expect(bxh).toBeVisible({ timeout: 5000 });
+        await expect(bxh).toContainText(`Bảng Xếp Hạng: ${categoryName}`);
 
-        // - Nút "Đưa về mặc định" hiển thị
-        const resetBtn = page.locator('button:has-text("Đưa về mặc định")').first();
-        await expect(resetBtn).toBeVisible();
-
-        // 6. Click nút "Đưa về mặc định"
-        await resetBtn.click();
-
-        // Banner biến mất, toàn bộ trở về trạng thái mặc định
-        await expect(filterBanner).not.toBeVisible();
+        // 6. Đóng Bảng Xếp Hạng → toàn bộ trở về trạng thái mặc định (không còn banner lọc)
+        await bxh.getByRole('button', { name: 'Đóng' }).click();
+        await expect(bxh).toBeHidden();
+        await expect(page.locator(':text("Đang lọc theo môn thi:")')).toHaveCount(0);
         await expect(cardUnder100).not.toHaveClass(/ring-2/);
     });
 });
