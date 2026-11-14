@@ -29,7 +29,6 @@ const MAN: { ten: string; tab: string }[] = [
     { ten: 'Phân ca', tab: 'tools-phanca' },
     { ten: 'Rút gọn Coupon', tab: 'tools-coupon' },
     { ten: 'Tính thuế', tab: 'tools-tax' },
-    { ten: 'So sánh giá', tab: 'tools-price-compare' },
     { ten: 'Phân quyền', tab: 'settings' },
     { ten: 'Duyệt user', tab: 'approval' },
     { ten: 'Giới thiệu', tab: 'help' },

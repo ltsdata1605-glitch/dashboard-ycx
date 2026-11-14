@@ -213,7 +213,6 @@ export default function Sidebar() {
         { id: 'tools-phanca', label: 'Phân ca làm việc', icon: NAV_TAB_ICONS['tools-phanca'] },
         { id: 'tools-coupon', label: 'Rút gọn Coupon', icon: NAV_TAB_ICONS['tools-coupon'] },
         { id: 'tools-tax', label: 'Tính thuế TNCN', icon: NAV_TAB_ICONS['tools-tax'] },
-        { id: 'tools-price-compare', label: 'So sánh giá ĐT', icon: NAV_TAB_ICONS['tools-price-compare'] },
     ];
 
     const secondaryItems: NavMenuItem[] = [

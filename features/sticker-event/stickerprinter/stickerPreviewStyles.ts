@@ -1,3 +1,5 @@
+import { GIA_SOC_ALT_BG, bgImageUrl } from './stickerBackgroundHelpers';
+
 interface StickerPreviewStyleParams {
     stickerType: 'gia_soc' | 'gio_vang' | 'draw';
     bgImage: string;
@@ -20,7 +22,7 @@ export function getStickerPreviewStyles({
                     aspect-ratio: ${stickerType === 'draw' ? '2482 / 3512' : '197 / 285'};
                     position: relative;
                     background-color: white;
-                    background-image: url('${bgImage}');
+                    background-image: url('${bgImageUrl(bgImage)}');
                     background-position: center;
                     background-size: 100% 100%;
                     background-repeat: no-repeat;
@@ -68,7 +70,7 @@ export function getStickerPreviewStyles({
                     color: white;
                     font-family: 'UTM Avo', sans-serif;
                     text-transform: uppercase;
-                    display: ${bgImage === '/frame/X24.png' ? 'none' : 'flex'};
+                    display: ${bgImage === GIA_SOC_ALT_BG ? 'none' : 'flex'};
                     align-items: center;
                     justify-content: center;
                 }

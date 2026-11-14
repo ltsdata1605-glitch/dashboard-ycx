@@ -12,7 +12,6 @@ const MODULE: { ten: string; tab: string; cho?: RegExp }[] = [
     { ten: 'Bot LINE', tab: 'tools-line-bot' },
     { ten: 'In Sticker', tab: 'tools-print-sticker' },
     { ten: 'Phân ca', tab: 'tools-phanca' },
-    { ten: 'So sánh giá', tab: 'tools-price-compare' },
     { ten: 'Phân quyền', tab: 'settings' },
     { ten: 'Duyệt user', tab: 'approval' },
     { ten: 'Giới thiệu', tab: 'help' },

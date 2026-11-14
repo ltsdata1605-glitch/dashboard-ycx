@@ -10,7 +10,7 @@ import { renderAmountDiscount, renderPercentDiscount } from './discountHelpers';
 import { getStickerPreviewStyles } from './stickerPreviewStyles';
 import { normalizeStickerPriceUnit, formatDiscountAmount } from '../utils/format';
 import { FloatingFormatToolbar } from './FloatingFormatToolbar';
-import { resolveEffectiveBgImage } from './stickerBackgroundHelpers';
+import { resolveEffectiveBgImage, bgImageUrl } from './stickerBackgroundHelpers';
 
 interface StickerPrintPreviewProps {
     batchItems: BatchItem[];
@@ -259,7 +259,7 @@ export const StickerPrintPreview: React.FC<StickerPrintPreviewProps> = ({
                                 className="sticker-container draw-page active-preview-page"
                                 data-type="draw"
                                 style={{
-                                    backgroundImage: `url(${effectiveBgImage})`,
+                                    backgroundImage: `url(${bgImageUrl(effectiveBgImage)})`,
                                 }}
                             >
                                 {currentPageTickets.map((ticket, index) => {
@@ -292,7 +292,7 @@ export const StickerPrintPreview: React.FC<StickerPrintPreviewProps> = ({
                 ) : batchItems.length > 0 ? (
                     <>
                         {batchItems.filter(it => it.selected).slice(0, 20).map((item, index, arr) => (
-                            <div key={item.id} className="sticker-container" data-type={stickerType} style={{ pageBreakAfter: index < arr.length - 1 ? 'always' : 'auto', backgroundImage: `url(${effectiveBgImage})` }}>
+                            <div key={item.id} className="sticker-container" data-type={stickerType} style={{ pageBreakAfter: index < arr.length - 1 ? 'always' : 'auto', backgroundImage: `url(${bgImageUrl(effectiveBgImage)})` }}>
                                 {showBarcode && item.imei && (
                                 <div className="barcode">
                                     <BarcodeCanvas value={item.imei} />
@@ -347,7 +347,7 @@ export const StickerPrintPreview: React.FC<StickerPrintPreviewProps> = ({
                         )}
                     </>
                 ) : (
-                    <div className="sticker-container" data-type={stickerType} style={{ backgroundImage: `url(${effectiveBgImage})` }}>
+                    <div className="sticker-container" data-type={stickerType} style={{ backgroundImage: `url(${bgImageUrl(effectiveBgImage)})` }}>
                         {showBarcode && barcodeImei && (
                             <div className="barcode">
                                 <BarcodeCanvas value={barcodeImei} />
