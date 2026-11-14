@@ -9404,3 +9404,16 @@ dashboard.pro.vn` → cài xong cũng không chạy trên Dashboard mới; `@upd
 - Test `tests/unit/duong-dan-goc-app.test.ts` quét code app: chuỗi trỏ file trong `public/` theo "/" là đỏ.
 - **CHỜ SỬA (DA_BIET trong test):** nền phiếu In Sticker `'/frame/…'` — vừa là mã định danh (so sánh, lưu lịch sử in) vừa là URL
   ảnh → đổi ở chỗ vẽ `url(...)`, không đổi hằng.
+
+## Sửa "Cài đặt Script ngay" chỉ hiện nguyên văn file, không ra trang Cài đặt Tampermonkey (2026-11-14)
+
+**Triệu chứng (ảnh chủ dự án):** sau bản sửa 404, bấm nút mở đúng `…/dashboard-ycx/scripts/mwg-…user.js` nhưng trình duyệt hiện
+nguyên văn file thay vì trang Cài đặt của Tampermonkey.
+
+**Nguyên nhân (đo bằng Playwright, `response.fromServiceWorker()`):** service worker của app (phạm vi `/dashboard-ycx/`) trả
+lời MỌI lượt điều hướng trong phạm vi, kể cả mở tab `.user.js` → Tampermonkey (bắt `.user.js` ở tầng mạng của trình duyệt) không
+thấy. Lượt kiểm phiên bản `fetch …user.js?t=…` còn khớp `isStaticFile` (`scripts/`) → mỗi lần lưu thêm một bản vào cache.
+
+**Sửa:** `scripts/sw-template.js` — `.user.js` (mọi kiểu yêu cầu) không `respondWith`, để trình duyệt/tiện ích tự xử lý.
+Test `tests/unit/sw-bo-qua-userscript.test.ts` chạy thật hàm `fetch` của SW (đỏ 2/3 với bản cũ). `tests/e2e/offline-app-shell.spec.ts`
+chỉnh theo `/dashboard-ycx/` (trước đó đỏ vì mở app ở gốc) — 3/3 qua.
