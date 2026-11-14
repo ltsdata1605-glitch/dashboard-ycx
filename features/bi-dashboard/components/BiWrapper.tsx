@@ -141,7 +141,31 @@ const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boole
         };
     }, []);
 
+    const [bonusPeriodLabel, setBonusPeriodLabel] = useState<string | null>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('ycx_latest_bonus_period_label');
+        }
+        return null;
+    });
+
+    useEffect(() => {
+        const handleLabel = (e: Event) => {
+            const l = (e as CustomEvent).detail?.label;
+            if (l) {
+                setBonusPeriodLabel(l);
+                try { localStorage.setItem('ycx_latest_bonus_period_label', l); } catch {}
+            }
+        };
+        window.addEventListener('ycx-auto-bonus-period-label-changed', handleLabel);
+        return () => window.removeEventListener('ycx-auto-bonus-period-label-changed', handleLabel);
+    }, []);
+
     const currentTimestamp = React.useMemo(() => {
+        if (isThuongTab) {
+            if (bonusPeriodLabel) {
+                return bonusPeriodLabel;
+            }
+        }
         let ts: string | null = null;
         if (dashboardMainTab === 'realtime') {
             ts = summaryRealtimeTs || competitionRealtimeTs || summaryLuyKeTs || competitionLuyKeTs;
@@ -153,7 +177,7 @@ const BiWrapper = React.memo(function BiWrapper({ isActive }: { isActive?: boole
             return now.toLocaleDateString('vi-VN');
         }
         return ts;
-    }, [dashboardMainTab, summaryRealtimeTs, competitionRealtimeTs, summaryLuyKeTs, competitionLuyKeTs, hasSummaryRealtime, hasSummaryLuyKe, hasCompetitionRealtime]);
+    }, [isThuongTab, bonusPeriodLabel, dashboardMainTab, summaryRealtimeTs, competitionRealtimeTs, summaryLuyKeTs, competitionLuyKeTs, hasSummaryRealtime, hasSummaryLuyKe, hasCompetitionRealtime]);
 
     const [cloudFeedback, setCloudFeedback] = useState<{
         message: string;

@@ -44,6 +44,12 @@ import { SyncProvider } from './contexts/SyncContext';
 import { MenuConfigProvider, useMenuConfig } from './contexts/MenuConfigContext';
 import { AppToaster } from './components/shared/ui/toast';
 import MobileNavBar from './components/layout/MobileNavBar';
+import {
+    TAB_LUON_BAT,
+    laTabToanManMobile,
+    timTabBatDauTien,
+    timTabCoThanhDuoiDauTien,
+} from './components/layout/navThayThe';
 import PageActionsBar from './components/layout/PageActionsBar';
 import { PageActionsProvider } from './components/shared/ui/PageActions';
 import PendingApprovalBanner from './components/layout/PendingApprovalBanner';
@@ -109,15 +115,17 @@ const ManChoKhoiDong = () => (
 
 const TabContent = React.memo(() => {
     const { activeTab, setActiveTab } = useActiveTab();
+    const { userRole, isDemoMode } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
     const [mountedTabs, setMountedTabs] = React.useState<Set<string>>(() => new Set([activeTab]));
+    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const laTabLuonBat = (id: string) => (TAB_LUON_BAT as readonly string[]).includes(id);
 
     // Route / Tab Guard: tính năng đã bị Quản trị hệ thống tắt thì đường dẫn tới nó coi như CHƯA TỪNG TỒN TẠI (2026-10-30, chủ dự án):
-    // tự chuyển sang Báo cáo Khai thác, không hiện trang 404. Nếu Báo cáo cũng đang tắt thì sang Giới thiệu (tab không bao giờ tắt).
-    // Trang 404 (FeatureDisabled404View) chỉ còn dùng để xem thử trong Quản lý Bật/Tắt.
-    const TAB_LUON_BAT = ['settings', 'approval', 'pending-approval', 'help'];
-    const isTabDisabled = !TAB_LUON_BAT.includes(activeTab) && !isFeatureEnabled(activeTab);
-    const tabDuPhong = isFeatureEnabled('reports') ? 'reports' : 'help';
+    // tự chuyển sang tab tính năng đầu tiên đang bật (ưu tiên tab có thanh điều hướng dưới như Phân tích / Report BI / Check thưởng / Thưởng...),
+    // không hiện trang 404. Nếu tất cả tính năng đều tắt thì sang Giới thiệu (tab hệ thống luôn bật).
+    const isTabDisabled = !laTabLuonBat(activeTab) && (!isFeatureEnabled(activeTab) || (activeTab === 'tools-line-bot' && !canAccessLineBot));
+    const tabDuPhong = timTabBatDauTien(isFeatureEnabled, canAccessLineBot);
     React.useEffect(() => {
         if (isTabDisabled) setActiveTab(tabDuPhong);
     }, [isTabDisabled, tabDuPhong, setActiveTab]);
@@ -129,7 +137,7 @@ const TabContent = React.memo(() => {
         setMountedTabs(prev => {
             const next = new Set<string>();
             for (const t of prev) {
-                if (TAB_LUON_BAT.includes(t) || isFeatureEnabled(t) || (t === 'employees' && giuEmployees)) next.add(t);
+                if (laTabLuonBat(t) || isFeatureEnabled(t) || (t === 'employees' && giuEmployees)) next.add(t);
             }
             return next.size === prev.size ? prev : next;
         });
@@ -170,7 +178,7 @@ const TabContent = React.memo(() => {
             if (activeTab === 'thuong') toMount.push('employees');
             const thuongBat = isFeatureEnabled('thuong');
             const filtered = toMount.filter(t =>
-                TAB_LUON_BAT.includes(t) || isFeatureEnabled(t) || (t === 'employees' && thuongBat));
+                laTabLuonBat(t) || isFeatureEnabled(t) || (t === 'employees' && thuongBat));
             if (filtered.length === 0 || filtered.every(t => prev.has(t))) return prev;
             const next = new Set(prev);
             filtered.forEach(t => next.add(t));
@@ -272,6 +280,7 @@ const TAB_NAV_TITLES: Record<string, string> = {
     'analysis': 'Phân tích',
     'check-thuong': 'Check thưởng',
     'employees': 'Report BI',
+    'thuong': 'Hiệu suất thưởng',
     'tools': 'Công cụ',
     'tools-print-sticker': 'In Sticker',
     'tools-coupon': 'Rút gọn coupon',
@@ -289,15 +298,48 @@ function AppContent() {
     const { isDarkMode, toggleDarkMode, isDesktopMenuOpen, toggleDesktopMenu } = useLayout();
     const { activeTab, setActiveTab } = useActiveTab();
     const { user, userRole, isDemoMode, isLoading, departmentId, status, hasCachedSession } = useAuth();
+    const { isFeatureEnabled } = useMenuConfig();
+    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
     const titleData = TAB_TITLES[activeTab] || { main: 'Hub', highlight: '2.0' };
     // Các "mini-app" toàn màn hình (In Sticker có sẵn BottomNavigation nội bộ: Trang chủ/Công
     // cụ/Quét mã/Lưu DS/Lọc; Phân ca là lịch/bảng cần tối đa không gian màn hình; Báo cáo Khai thác có Liquid Glass Dock riêng) — hiện thêm
     // MobileBottomNav của app chính bên dưới chúng tạo ra 2 lớp thanh điều hướng chồng nhau trên
     // mobile, vừa rối mắt vừa dư khoảng trắng, và chiếm mất không gian màn
     // hình quý giá của cả hai (bug user báo cáo). Ẩn thanh điều hướng chính khi đang ở các tab
-    // này; đổi lại logo/tiêu đề ở top bar (vẫn hiện, không bị ẩn) trở thành nút "Về Dashboard".
-    const isFullscreenMobileTool = activeTab === 'tools-print-sticker' || activeTab === 'tools-phanca' || activeTab === 'reports';
+    // này; đổi lại thanh trên có nút ‹ "Về Dashboard" và nút "Menu tính năng" để chuyển tab bất cứ lúc nào.
+    const isFullscreenMobileTool = laTabToanManMobile(activeTab);
+    const [isMobileMenuSheetOpen, setIsMobileMenuSheetOpen] = React.useState(false);
+    const lastNonFullscreenTabRef = React.useRef<string | null>(null);
     const sauLanRanhDau = useSauLanRanhDau();
+
+    React.useEffect(() => {
+        if (isFullscreenMobileTool) return;
+        const laHeThong = (TAB_LUON_BAT as readonly string[]).includes(activeTab);
+        const hopLe = laHeThong || (isFeatureEnabled(activeTab) && (activeTab !== 'tools-line-bot' || canAccessLineBot));
+        if (hopLe) {
+            lastNonFullscreenTabRef.current = activeTab;
+        }
+    }, [activeTab, isFullscreenMobileTool, isFeatureEnabled, canAccessLineBot]);
+
+    const handleFullscreenMobileBack = React.useCallback(() => {
+        const prev = lastNonFullscreenTabRef.current;
+        const prevLaHeThong = prev != null && (TAB_LUON_BAT as readonly string[]).includes(prev);
+        const prevHopLe = prev != null && !laTabToanManMobile(prev) && (
+            prevLaHeThong || (isFeatureEnabled(prev) && (prev !== 'tools-line-bot' || canAccessLineBot))
+        );
+        if (prev && prevHopLe) {
+            setActiveTab(prev);
+            return;
+        }
+        const tabCoThanhDuoi = timTabCoThanhDuoiDauTien(isFeatureEnabled, canAccessLineBot);
+        if (tabCoThanhDuoi) {
+            setActiveTab(tabCoThanhDuoi);
+            return;
+        }
+        // Trường hợp tất cả tab có thanh dưới đều bị tắt (chỉ bật Báo cáo / In Sticker / Phân ca):
+        // bấm ‹ mở thẳng sheet menu tính năng để người dùng chuyển sang công cụ khác hoặc Phân quyền / Đăng xuất.
+        setIsMobileMenuSheetOpen(true);
+    }, [isFeatureEnabled, canAccessLineBot, setActiveTab]);
 
     // Viền mờ "còn cột bên phải" cho mọi bảng cuộn ngang (Đợt C, kế hoạch iPhone)
     React.useEffect(() => installTableScrollCue(), []);
@@ -373,14 +415,19 @@ function AppContent() {
     return (
         <div className="flex min-h-dvh bg-slate-50 dark:bg-slate-900 transition-colors duration-500">
             <Sidebar />
-            {!isFullscreenMobileTool && <MobileBottomNav />}
+            <MobileBottomNav
+                hideBar={isFullscreenMobileTool}
+                externalMoreOpen={isMobileMenuSheetOpen}
+                onExternalMoreOpenChange={setIsMobileMenuSheetOpen}
+            />
             <div className="flex-grow flex flex-col min-w-0 w-full relative">
 
                 {/* Thanh trên iPhone/iPad (GĐ4) — vật liệu mờ, tiêu đề 17px, nút 44px; laptop dùng thanh tiêu đề bên dưới. */}
                 <MobileNavBar
                     title={TAB_NAV_TITLES[activeTab] || `${titleData.main} ${titleData.highlight ?? ''}`.trim()}
                     tabIcon={navTabIcon(activeTab)}
-                    onBack={isFullscreenMobileTool ? () => setActiveTab('analysis') : undefined}
+                    onBack={isFullscreenMobileTool ? handleFullscreenMobileBack : undefined}
+                    onOpenMenu={isFullscreenMobileTool ? () => setIsMobileMenuSheetOpen(true) : undefined}
                 />
 
                 <main className="flex-grow flex flex-col bg-slate-50/50 dark:bg-slate-950/20 relative">
@@ -399,7 +446,7 @@ function AppContent() {
                                     <Button
                                         variant="card" size="none"
                                         onClick={() => {
-                                            setActiveTab('analysis');
+                                            setActiveTab(timTabBatDauTien(isFeatureEnabled, canAccessLineBot));
                                             // toggleDesktopMenu (không phải setIsDesktopMenuOpen): nhớ trạng thái dock qua lần mở sau.
                                             toggleDesktopMenu();
                                         }}

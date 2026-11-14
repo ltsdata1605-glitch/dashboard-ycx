@@ -20,9 +20,10 @@ const MobileMoreSheet: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     onTabClick: (id: string) => void;
+    mainTabs?: NavTabItem[];
     toolTabs: NavTabItem[];
     systemTabs: NavTabItem[];
-}> = ({ isOpen, onClose, onTabClick, toolTabs, systemTabs }) => {
+}> = ({ isOpen, onClose, onTabClick, mainTabs, toolTabs, systemTabs }) => {
     const { activeTab } = useActiveTab();
     const { user, userRole, employeeName, departmentId, isDemoMode, logout } = useAuth();
     const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
@@ -99,13 +100,25 @@ const MobileMoreSheet: React.FC<{
                     </div>
                 </ListGroup>
 
-                <ListGroup title="Công cụ">
-                    {toolTabs.map(t => (
-                        <ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}
-                            selected={activeTab === t.id} chevron={activeTab !== t.id}
-                            onClick={() => onTabClick(t.id)} />
-                    ))}
-                </ListGroup>
+                {mainTabs && mainTabs.length > 0 && (
+                    <ListGroup title="Chức năng chính">
+                        {mainTabs.map(t => (
+                            <ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone || 'sky'}
+                                selected={activeTab === t.id} chevron={activeTab !== t.id}
+                                onClick={() => onTabClick(t.id)} />
+                        ))}
+                    </ListGroup>
+                )}
+
+                {toolTabs.length > 0 && (
+                    <ListGroup title="Công cụ">
+                        {toolTabs.map(t => (
+                            <ListRow key={t.id} label={t.label} icon={t.icon} iconTone={t.tone}
+                                selected={activeTab === t.id} chevron={activeTab !== t.id}
+                                onClick={() => onTabClick(t.id)} />
+                        ))}
+                    </ListGroup>
+                )}
 
                 <ListGroup title="Hệ thống">
                     <ListRow

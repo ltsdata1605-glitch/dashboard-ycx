@@ -290,6 +290,9 @@ export async function saveBonusPeriodLabelGlobal(
     await Promise.all(uniqueSafeNames.map(safeName =>
         db.set(`bonus-current-period-label-${safeName}`, label)
     ));
+    try {
+        localStorage.setItem('ycx_latest_bonus_period_label', label);
+    } catch {}
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('ycx-auto-bonus-period-label-changed', { detail: { label } }));
     }

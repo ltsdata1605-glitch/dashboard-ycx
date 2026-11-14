@@ -1,9 +1,11 @@
 import React from 'react';
 import { useActiveTab } from '../../contexts/LayoutContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMenuConfig } from '../../contexts/MenuConfigContext';
 import { Button } from '../shared/ui/Button';
 import { AppIcon } from '../shared/ui/icon';
 import { getFeatureById } from '../../constants/menuFeatures';
+import { timTabBatDauTien } from '../layout/navThayThe';
 
 interface FeatureDisabled404ViewProps {
     featureId: string;
@@ -15,13 +17,15 @@ export const FeatureDisabled404View: React.FC<FeatureDisabled404ViewProps> = ({
     onGoToAdminConfig,
 }) => {
     const { setActiveTab } = useActiveTab();
-    const { userRole } = useAuth();
+    const { userRole, isDemoMode } = useAuth();
+    const { isFeatureEnabled } = useMenuConfig();
     const isAdmin = userRole === 'admin';
+    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
     const feature = getFeatureById(featureId);
     const featureName = feature ? feature.label : featureId;
 
     const handleBackHome = () => {
-        setActiveTab('analysis');
+        setActiveTab(timTabBatDauTien(isFeatureEnabled, canAccessLineBot));
     };
 
     const handleOpenAdminSettings = () => {

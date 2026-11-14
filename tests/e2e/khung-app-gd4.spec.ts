@@ -177,6 +177,48 @@ test.describe('iPhone 16 Pro Max 440×956 (cảm ứng)', () => {
         expect(vung.h).toBeGreaterThanOrEqual(43.5);
         expect(vung.hien).toBeLessThan(44); // cỡ nhìn thấy: một dòng chữ phụ 12px
     });
+
+    test('khi tắt Phân tích/Report BI/Check thưởng: Báo cáo khai thác có nút Menu tính năng và nút ‹ Về Dashboard quay về Thưởng (hiện lại thanh dưới)', async ({ page }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem('ycx_system_menu_config_v1', JSON.stringify({
+                features: {
+                    analysis: false,
+                    employees: false,
+                    'check-thuong': false,
+                    thuong: true,
+                    reports: true,
+                    'tools-print-sticker': true,
+                    'tools-phanca': true,
+                    'tools-line-bot': true,
+                },
+            }));
+        });
+        await vaoDungThu(page, 'reports');
+        const bar = page.locator('[data-app-chrome="topbar"]');
+        await expect(bar.getByRole('heading', { level: 1 })).toHaveText('Báo cáo khai thác');
+
+        // 1. Nút Menu tính năng trên thanh trên mở đầy đủ danh sách Chức năng chính + Công cụ + Hệ thống
+        const nutMenu = bar.getByRole('button', { name: 'Menu tính năng' });
+        await expect(nutMenu).toBeVisible();
+        const hopMenu = await nutMenu.boundingBox();
+        expect(hopMenu!.width).toBeGreaterThanOrEqual(43.5);
+        expect(hopMenu!.height).toBeGreaterThanOrEqual(43.5);
+
+        await nutMenu.click();
+        const sheet = page.getByRole('dialog', { name: 'Thêm' });
+        await expect(sheet).toBeVisible();
+        await expect(sheet.getByRole('heading', { name: 'Chức năng chính' })).toBeVisible();
+        await expect(sheet.getByRole('button', { name: /Thưởng/ })).toBeVisible();
+        await expect(sheet.getByRole('button', { name: /In Sticker/ })).toBeVisible();
+        await expect(sheet.getByRole('button', { name: /Phân ca/ })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(sheet).toBeHidden();
+
+        // 2. Bấm nút ‹ "Về Dashboard" không bị kẹt ở Báo cáo khai thác nữa mà chuyển về Thưởng + hiện lại thanh tab dưới
+        await bar.getByRole('button', { name: 'Về Dashboard' }).click();
+        await expect(bar.getByRole('heading', { level: 1 })).toHaveText('Hiệu suất thưởng');
+        await expect(page.locator('nav[data-app-chrome="tabbar"]')).toBeVisible();
+    });
 });
 
 test.describe('laptop 1366×800', () => {

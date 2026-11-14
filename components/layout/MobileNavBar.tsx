@@ -10,8 +10,10 @@ interface MobileNavBarProps {
     title: string;
     /** Icon của tab (navIcons) trong ô nhận diện bên trái. */
     tabIcon: IconName;
-    /** Mini-app toàn màn (In Sticker, Phân ca — không có thanh tab dưới): hiện nút ‹ quay về Phân tích. */
+    /** Mini-app toàn màn (Báo cáo khai thác, In Sticker, Phân ca — không có thanh tab dưới): hiện nút ‹ quay về Dashboard. */
     onBack?: () => void;
+    /** Mini-app toàn màn: mở trực tiếp sheet menu tất cả tính năng ("Thêm") khi thanh tab dưới đang ẩn. */
+    onOpenMenu?: () => void;
 }
 
 /**
@@ -25,7 +27,7 @@ interface MobileNavBarProps {
  * Màn đưa CẢ thanh công cụ lên khe cũ (Check thưởng có dữ liệu — chủ dự án chốt "1 thanh bar duy nhất") đánh dấu gốc thanh bằng
  * `data-thay-tieu-de`: dưới 540px chữ tiêu đề nhường chỗ (CSS `:has` trong styles.css) — trước đó tiêu đề bị cắt còn chữ "C".
  */
-export const MobileNavBar: React.FC<MobileNavBarProps> = ({ title, tabIcon, onBack }) => (
+export const MobileNavBar: React.FC<MobileNavBarProps> = ({ title, tabIcon, onBack, onOpenMenu }) => (
     <div
         data-app-chrome="topbar"
         className="ycx-navbar mobile-chrome ycx-material lg:hidden sticky top-0 z-[100] border-b border-[color:var(--hairline)] pt-[env(safe-area-inset-top,0px)]"
@@ -59,6 +61,18 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({ title, tabIcon, onBa
                 <div id="mobile-topbar-actions" className="flex items-center justify-end min-w-0" />
                 <div data-action-capsule="" className="flex items-center min-w-0">
                     <PageActionsBar variant="mobile" />
+                    {onOpenMenu && (
+                        <Button
+                            variant="ghost" size="none"
+                            onClick={onOpenMenu}
+                            title="Menu tính năng"
+                            aria-label="Menu tính năng"
+                            aria-haspopup="dialog"
+                            className="relative flex items-center justify-center w-11 h-11 rounded-full text-slate-600 hover:bg-slate-100 active:bg-slate-200/70 transition-colors shrink-0 ycx-hit"
+                        >
+                            <AppIcon name="menu" size="md" />
+                        </Button>
+                    )}
                     <NotificationBell buttonClassName="relative flex items-center justify-center w-11 h-11 rounded-full text-slate-600 hover:bg-slate-100 active:bg-slate-200/70 transition-colors shrink-0 ycx-hit" />
                 </div>
             </div>
