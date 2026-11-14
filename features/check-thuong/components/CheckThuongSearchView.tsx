@@ -177,13 +177,10 @@ export const CheckThuongSearchView: React.FC<CheckThuongSearchViewProps> = ({
         // 3. Đặt môn thi cần lọc
         setSelectedCategoryName(categoryName);
 
-        // 4. Tự động cuộn mượt xuống bảng danh sách ngành hàng để người dùng nhìn thấy ngay
-        setTimeout(() => {
-            const container = document.getElementById('check-thuong-categories-view');
-            if (container) {
-                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 50);
+        // 4. Mở Bảng Xếp Hạng của môn đó — giống bấm dòng trong bảng ngành hàng (2026-11-14, chủ dự án: bấm dòng trong
+        //    Phân Tích & Đề Xuất "không hiển thị Bảng Xếp Hạng"; trước đây chỉ lọc bảng + cuộn xuống). Đóng bảng xếp hạng
+        //    thì đưa về mặc định (onClose của CheckThuongRankingModal bên dưới).
+        setSelectedCategory({ name: categoryName, channel });
     };
 
     const handleExportOverview = () => {

@@ -9417,3 +9417,14 @@ thấy. Lượt kiểm phiên bản `fetch …user.js?t=…` còn khớp `isStat
 **Sửa:** `scripts/sw-template.js` — `.user.js` (mọi kiểu yêu cầu) không `respondWith`, để trình duyệt/tiện ích tự xử lý.
 Test `tests/unit/sw-bo-qua-userscript.test.ts` chạy thật hàm `fetch` của SW (đỏ 2/3 với bản cũ). `tests/e2e/offline-app-shell.spec.ts`
 chỉnh theo `/dashboard-ycx/` (trước đó đỏ vì mở app ở gốc) — 3/3 qua.
+
+## Check thưởng: bấm dòng "Phân Tích & Đề Xuất" mở Bảng Xếp Hạng (2026-11-14)
+
+**Yêu cầu (ảnh chủ dự án):** bấm dòng "T11 - ĐÈN NĂNG LƯỢNG MẶT TRỜI: cần cải thiện 16 hạng" không hiện "Bảng Xếp Hạng".
+Trước đây bấm dòng phân tích (Cảnh báo / Cơ hội vàng) chỉ LỌC bảng ngành hàng theo môn + cuộn xuống.
+
+**Sửa:** `CheckThuongSearchView.handleSelectCategoryFromAnalysis` giữ phần lọc (đưa thẻ KPI về "Tất cả", đặt môn) và MỞ
+`CheckThuongRankingModal` của môn đó (bỏ bước cuộn). Đóng bảng xếp hạng → `onClose` đưa về mặc định như bấm dòng trong bảng.
+Chữ gợi ý nút đổi thành "Bấm để xem Bảng Xếp Hạng môn này". Test: `tests/e2e/check-thuong-phan-tich-mo-bxh.spec.ts` (harness
+`helpers/checkThuongPhanTichHarness.tsx`, không cần đăng nhập — laptop + iPhone); `check-thuong-analysis-filter-reset.spec.ts`
+(cần profile dữ liệu thật) sửa theo hành vi mới.
