@@ -18,7 +18,7 @@ import { expect, test } from '@playwright/test';
  */
 const TABS = [
     'analysis', 'check-thuong', 'employees', 'tools-print-sticker',
-    'tools-phanca', 'tools-coupon', 'tools-tax', 'tools-price-compare',
+    'tools-phanca', 'tools-coupon', 'tools-tax',
     'settings', 'help',
 ];
 

@@ -17,7 +17,7 @@ test('liên kết hướng dẫn hiện trong Bot LINE và mở được trang h
 
     const lienKet = page.getByRole('link', { name: 'Hướng dẫn sử dụng Bot LINE' });
     await expect(lienKet).toBeVisible({ timeout: 30_000 });
-    await expect(lienKet).toHaveAttribute('href', '/huong-dan-bot-line.html');
+    await expect(lienKet).toHaveAttribute('href', '/dashboard-ycx/huong-dan-bot-line.html');
     await expect(lienKet).toHaveAttribute('target', '_blank');
 
     const [trang] = await Promise.all([

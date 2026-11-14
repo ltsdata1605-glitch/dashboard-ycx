@@ -78,7 +78,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = React.memo(({
         { id: 'tools-line-bot', label: 'Bot LINE', icon: NAV_TAB_ICONS['tools-line-bot'], tone: 'emerald' },
         { id: 'tools-coupon', label: 'Rút gọn Coupon', icon: NAV_TAB_ICONS['tools-coupon'], tone: 'amber' },
         { id: 'tools-tax', label: 'Tính thuế', icon: NAV_TAB_ICONS['tools-tax'], tone: 'rose' },
-        { id: 'tools-price-compare', label: 'So sánh giá ĐT', icon: NAV_TAB_ICONS['tools-price-compare'], tone: 'slate' },
     ];
     const systemTabs: TabItem[] = [
         { id: 'settings', label: 'Phân quyền', icon: NAV_TAB_ICONS['settings'], tone: 'slate' },

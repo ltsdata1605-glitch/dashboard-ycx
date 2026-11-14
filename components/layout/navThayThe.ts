@@ -27,7 +27,6 @@ export const THU_TU_TAB_CO_THANH_DUOI = [
     'tools-line-bot',
     'tools-coupon',
     'tools-tax',
-    'tools-price-compare',
 ] as const;
 
 /** Thứ tự ưu tiên toàn bộ tính năng khi chọn tab mặc định / dự phòng (ưu tiên tab có thanh dưới trước, sau đó tới mini-app toàn màn). */

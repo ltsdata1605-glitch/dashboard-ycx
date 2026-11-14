@@ -626,7 +626,7 @@ export async function applyBiSyncResults(
 }
 
 /** Đường dẫn userscript (cùng domain Dashboard) — mở link này thì Tampermonkey hiện trang Cài đặt / Cập nhật. */
-export const USERSCRIPT_URL = '/scripts/mwg-auto-thu-thap-diem-thuong.user.js';
+export const USERSCRIPT_URL = `${import.meta.env.BASE_URL}scripts/mwg-auto-thu-thap-diem-thuong.user.js`; // theo vite `base` (/dashboard-ycx/)
 
 /** Bản tối thiểu khi KHÔNG đọc được bản mới nhất (mất mạng…): cần Bước 3 GROUPBY BICAT & DT quy đổi + Trả góp. */
 export const USERSCRIPT_MIN_VERSION = '6.3';

@@ -9387,6 +9387,37 @@ origin authDomain; pwa-login.html đọc thẳng từ đó (không `getRedirectR
   trang về = origin trang xử lý; các spec đăng nhập đổi `auth.dashboard.pro.vn` → `dashboa-7e20b.firebaseapp.com`.
 - Deploy: app (gh-pages) + `firebase deploy --only hosting` (trang pwa-login.html).
 
+## Sửa "Cài đặt Script ngay" 404 sau khi chuyển sang /dashboard-ycx/ (2026-11-14)
+
+**Triệu chứng (ảnh chủ dự án):** nút "Cài đặt Script ngay" mở `ltsdata1605-glitch.github.io/scripts/mwg-…user.js` → 404 GitHub Pages.
+
+**Nguyên nhân:** app chạy dưới đường dẫn con `/dashboard-ycx/` (vite `base`). Vite tự thêm tiền tố cho `url()` trong CSS và
+index.html, nhưng chuỗi viết trong JS/TSX (`'/scripts/…'`, `src="/icons/…"`) thì không. Thêm nữa userscript chỉ `@match
+dashboard.pro.vn` → cài xong cũng không chạy trên Dashboard mới; `@updateURL` trỏ tên miền đã bỏ.
+
+**Sửa:**
+- Đường dẫn userscript (`TampermonkeyInstallGuideContent`, `AutoClickGuideModal`, `biAutoSyncService.USERSCRIPT_URL`,
+  `ycxAutoSyncService.YCX_USERSCRIPT_URL`), khung dò "Kiểm tra kết nối" (`userscriptProbeService`), icon gợi ý cài app,
+  ảnh hướng dẫn Coupon, link hướng dẫn Bot LINE → `${import.meta.env.BASE_URL}…`.
+- Userscript MWG 7.35: thêm `@match https://ltsdata1605-glitch.github.io/dashboard-ycx/*`, `@updateURL/@downloadURL` về github.io.
+  TNB PMH 1.8: `@updateURL/@downloadURL` về github.io.
+- Test `tests/unit/duong-dan-goc-app.test.ts` quét code app: chuỗi trỏ file trong `public/` theo "/" là đỏ.
+- **CHỜ SỬA (DA_BIET trong test):** nền phiếu In Sticker `'/frame/…'` — vừa là mã định danh (so sánh, lưu lịch sử in) vừa là URL
+  ảnh → đổi ở chỗ vẽ `url(...)`, không đổi hằng.
+
+## Sửa "Cài đặt Script ngay" chỉ hiện nguyên văn file, không ra trang Cài đặt Tampermonkey (2026-11-14)
+
+**Triệu chứng (ảnh chủ dự án):** sau bản sửa 404, bấm nút mở đúng `…/dashboard-ycx/scripts/mwg-…user.js` nhưng trình duyệt hiện
+nguyên văn file thay vì trang Cài đặt của Tampermonkey.
+
+**Nguyên nhân (đo bằng Playwright, `response.fromServiceWorker()`):** service worker của app (phạm vi `/dashboard-ycx/`) trả
+lời MỌI lượt điều hướng trong phạm vi, kể cả mở tab `.user.js` → Tampermonkey (bắt `.user.js` ở tầng mạng của trình duyệt) không
+thấy. Lượt kiểm phiên bản `fetch …user.js?t=…` còn khớp `isStaticFile` (`scripts/`) → mỗi lần lưu thêm một bản vào cache.
+
+**Sửa:** `scripts/sw-template.js` — `.user.js` (mọi kiểu yêu cầu) không `respondWith`, để trình duyệt/tiện ích tự xử lý.
+Test `tests/unit/sw-bo-qua-userscript.test.ts` chạy thật hàm `fetch` của SW (đỏ 2/3 với bản cũ). `tests/e2e/offline-app-shell.spec.ts`
+chỉnh theo `/dashboard-ycx/` (trước đó đỏ vì mở app ở gốc) — 3/3 qua.
+
 ## `npm run check` xanh lại sau khi bỏ Phân tích/Report BI và chuyển sang github.io (2026-11-14)
 
 `eb1fa51` (bỏ module Phân tích YCX + Report BI) và `aaa1d73` (deploy `ltsdata1605-glitch.github.io/dashboard-ycx/`, `base: '/dashboard-ycx/'`)
@@ -9410,7 +9441,8 @@ nên lint:ratchet chưa từng chạy tới).
 **Rủi ro:** đổi màu icon 5 nhóm khai thác + nút "Sao chép ảnh" là đổi giao diện thấy được (theo chuẩn 5 họ màu); `ReportEntryTab` iPhone
 dùng sheet chung (thêm kéo-để-đóng, né bàn phím). Phần còn lại không đổi pixel.
 
-**Chưa sửa — lỗi production cùng nguồn gốc `base`, cần quyết định riêng:** đường dẫn file tĩnh viết cứng trong TS/TSX (`/frame/*.png` nền
-sticker — có giá trị đã lưu trong IndexedDB, `/icons/…`, `/Tuts/Coupon.png`, `/huong-dan-bot-line.html`, `/scripts/*.user.js`,
-`/userscript-probe.html`), `public/manifest.webmanifest` (`id`/`start_url`/`scope` = `/`), `public/huong-dan-bot-line.html` (`/huong-dan.css`),
-`price-scraper-server` chỉ cho origin `https://dashboard.pro.vn`. Đo 2026-11-14: các file đó 404 ở gốc github.io, 200 dưới `/dashboard-ycx/`.
+**Chưa sửa — lỗi production cùng nguồn gốc `base` (sau khi gộp bản sửa "Cài đặt Script ngay" của phiên song song, cef189e):**
+nền phiếu In Sticker `/frame/*.png` (đã nằm trong `DA_BIET` của `tests/unit/duong-dan-goc-app.test.ts` — chuỗi vừa là mã định danh đã lưu
+vừa là URL, phải đổi ở chỗ vẽ), `public/manifest.webmanifest` (`id`/`start_url`/`scope` = `/` → app Màn hình chính mở `github.io/` = 404;
+đổi `id` làm iOS/Chrome coi là app MỚI — cần chủ dự án chốt), `public/huong-dan-bot-line.html` (`href="/huong-dan.css"` — file trong
+public/ không được Vite viết lại). Đo 2026-11-14: các file đó 404 ở gốc github.io, 200 dưới `/dashboard-ycx/`.

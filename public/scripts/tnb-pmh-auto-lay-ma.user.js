@@ -20,8 +20,7 @@
 /*
  * CHANGELOG:
  * - v1.8 (2026-11-14):
- *   + @updateURL/@downloadURL chuyển sang https://ltsdata1605-glitch.github.io/dashboard-ycx/ (dashboard.pro.vn đã bỏ, không còn phân giải).
- *     Bản đã cài từ dashboard.pro.vn không tự cập nhật được — cài lại một lần từ link mới.
+ *   + @updateURL/@downloadURL trỏ về ltsdata1605-glitch.github.io/dashboard-ycx (dashboard.pro.vn không còn phục vụ).
  * - v1.7 (2026-10-16):
  *   + Hỗ trợ tự động tra cứu TNB Data tại https://admintnb.com/data/: Tự động điền mã bảo mật vào ô #mbm-code và click #mbm-btn (XÁC NHẬN).
  * - v1.6 (2026-09-29):

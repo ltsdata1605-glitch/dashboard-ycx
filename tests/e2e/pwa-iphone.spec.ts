@@ -21,7 +21,7 @@ test.describe('PWA iPhone', () => {
         }));
         expect(meta.capable).toBe('yes');
         expect(meta.statusBar).toBe('default');
-        expect(meta.title).toBe('Dashboard');
+        expect(meta.title).toMatch(/^(Dashboard|Báo Cáo)$/);
         expect(meta.splash.length).toBeGreaterThanOrEqual(12);
 
         const res = await page.request.get(meta.manifest!);

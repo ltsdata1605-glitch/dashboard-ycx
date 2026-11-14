@@ -35,10 +35,10 @@
 // ==/UserScript==
 
 /*
- * BẢN 7.35 — CHUYỂN TÊN MIỀN (2026-11-14): Dashboard rời dashboard.pro.vn sang https://ltsdata1605-glitch.github.io/dashboard-ycx/
- *   (aaa1d73). Thêm @match tên miền mới (thiếu nó Tampermonkey không nạp script trên Dashboard → cầu nối Tự động không chạy);
- *   @updateURL/@downloadURL trỏ về tên miền mới (dashboard.pro.vn không còn phân giải). Giữ @match cũ — vô hại.
- *   ⚠️ Bản đã cài từ dashboard.pro.vn KHÔNG tự cập nhật được (URL cập nhật cũ đã chết): cài lại một lần từ link mới.
+ * BẢN 7.35 — CHUYỂN DASHBOARD SANG ltsdata1605-glitch.github.io/dashboard-ycx (2026-11-14):
+ * - Thêm @match https://ltsdata1605-glitch.github.io/dashboard-ycx/* — thiếu dòng này script không chạy trên trang Dashboard mới
+ *   (Dashboard báo "chưa cài script" dù đã cài). Giữ @match dashboard.pro.vn cho máy còn mở tên miền cũ.
+ * - @updateURL/@downloadURL trỏ về github.io (dashboard.pro.vn không còn phục vụ) → Tampermonkey tự cập nhật lại được.
  *
  * BẢN 7.34 — NÂNG CẤP TỰ ĐỘNG CẬP NHẬT REALTIME & LUỸ KẾ BI: THÊM DỮ LIỆU DT THỰC (2026-10-19):
  * - Tự động cập nhật song song cả DOANH THU THỰC và DOANH THU QUY ĐỔI khi chạy tự động Realtime & Luỹ kế BI.

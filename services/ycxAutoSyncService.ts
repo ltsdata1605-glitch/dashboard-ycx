@@ -14,7 +14,7 @@
  */
 
 export const YCX_REPORT_URL = 'https://report.mwgroup.vn/home/dashboard/77';
-export const YCX_USERSCRIPT_URL = '/scripts/mwg-auto-thu-thap-diem-thuong.user.js';
+export const YCX_USERSCRIPT_URL = `${import.meta.env.BASE_URL}scripts/mwg-auto-thu-thap-diem-thuong.user.js`; // theo vite `base` (/dashboard-ycx/)
 /** Bản userscript tối thiểu: 7.13 treo ở ô Kho / Lịch sử lỗi 415 (7.14 sửa); 7.15 thêm Luỹ kế; 7.16 hẹn giờ + gửi LINE */
 export const YCX_MIN_USERSCRIPT_VERSION = '7.16';
 

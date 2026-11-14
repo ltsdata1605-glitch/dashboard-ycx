@@ -47,7 +47,7 @@ const InstallAppHint: React.FC<{ hidden?: boolean }> = ({ hidden }) => {
                 data-testid="install-app-hint"
                 className="lg:hidden mx-3 mt-2 mb-1 flex items-center gap-3 rounded-card bg-white dark:bg-slate-850 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs pl-2.5 pr-1 py-1.5"
             >
-                <img src="/icons/apple-touch-icon-120.png" alt="" className="w-9 h-9 rounded-control shrink-0 shadow-2xs" />
+                <img src={`${import.meta.env.BASE_URL}icons/apple-touch-icon-120.png`} alt="" className="w-9 h-9 rounded-control shrink-0 shadow-2xs" />
                 <div className="min-w-0 flex-1">
                     <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100 leading-5 truncate">Cài như ứng dụng</p>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-[18px] truncate">Mở toàn màn hình, nhanh hơn</p>

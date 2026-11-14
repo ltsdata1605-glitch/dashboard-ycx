@@ -8,7 +8,8 @@ import fs from 'node:fs';
  * (chạy: npm run build && npx playwright test tests/e2e/offline-app-shell.spec.ts).
  */
 const PORT = 4179;
-const BASE = `http://127.0.0.1:${PORT}`;
+// App + service worker ở đường dẫn con /dashboard-ycx/ (vite `base`, 2026-11-14) — phạm vi SW không phủ gốc '/'.
+const BASE = `http://127.0.0.1:${PORT}/dashboard-ycx/`;
 let server: ChildProcess | null = null;
 
 test.skip(!fs.existsSync('dist/sw.js'), 'Chưa build: thiếu dist/sw.js');
@@ -44,7 +45,7 @@ test('mất mạng: tải lại trang vẫn dựng được app từ bản lưu 
   await expect(page.locator('body')).toContainText(/dashboard/i, { timeout: 30_000 });
 
   // đường dẫn SPA khác cũng mở được (dùng chung app shell)
-  await page.goto(`${BASE}/?tab=tools-line-bot`);
+  await page.goto(`${BASE}?tab=tools-line-bot`);
   await expect(page.locator('body')).toContainText(/dashboard/i, { timeout: 30_000 });
   expect(swErrors).toEqual([]);
 });
@@ -68,7 +69,7 @@ test('mạng chậm quá 4 giây: dùng bản lưu nhưng bản mới về trễ
   const loai: Record<string, string> = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json',
     '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
   const sv = http.createServer((req, res) => {
-    const p = decodeURIComponent((req.url || '/').split('?')[0]);
+    const p = decodeURIComponent((req.url || '/').split('?')[0]).replace(/^\/dashboard-ycx(?=\/|$)/, '');
     let f = path.join('dist', p);
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join('dist', 'index.html');
     const gui = () => {
@@ -81,7 +82,7 @@ test('mạng chậm quá 4 giây: dùng bản lưu nhưng bản mới về trễ
   });
   await new Promise<void>((r) => sv.listen(4180, '127.0.0.1', () => r()));
   try {
-    const goc = 'http://127.0.0.1:4180';
+    const goc = 'http://127.0.0.1:4180/dashboard-ycx/';
     await page.goto(goc);
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
     await page.reload();
@@ -94,7 +95,7 @@ test('mạng chậm quá 4 giây: dùng bản lưu nhưng bản mới về trễ
     expect(ms).toBeLessThan(5_900); // trả bản lưu sau ~4 giây, không chờ mạng 6 giây
     await expect.poll(() => page.evaluate(async () => {
       const k = (await caches.keys()).find((x) => x.startsWith('ycx-shell-'));
-      const res = k ? await (await caches.open(k)).match('/index.html') : undefined;
+      const res = k ? await (await caches.open(k)).match('/dashboard-ycx/') : undefined;
       return res ? (await res.text()).includes('BAN-MOI-VE-TRE') : false;
     }), { timeout: 15_000 }).toBe(true);
   } finally {
