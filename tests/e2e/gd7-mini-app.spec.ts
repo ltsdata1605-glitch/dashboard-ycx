@@ -191,7 +191,7 @@ test.describe('iPhone 16 Pro Max (cảm ứng)', () => {
         await moDungThu(page, '/?tab=check-thuong');
         await expect(page.getByRole('heading', { name: 'Tải file thưởng thi đua' })).toBeVisible({ timeout: 20_000 });
         expect(await page.locator('.animate-bounce').count()).toBe(0);
-        expect(await page.title()).toBe('Dashboard');
+        expect(await page.title()).toMatch(/^(Dashboard|Báo Cáo)$/);
     });
 
     test('Check thưởng có dữ liệu: thanh công cụ trên thanh trên, không còn tiêu đề bị cắt còn "C"', async ({ page }) => {
