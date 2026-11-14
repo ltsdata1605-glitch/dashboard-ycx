@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
 import { StickerPage, BatchItem, PrintHistoryEntry, SavedStickerList } from './types';
 import { DEFAULT_HISTORY_ID, DEFAULT_DRAW_HISTORY_ENTRY } from '../hooks/useStickerPrinterData';
+import { DRAW_DMX_DEFAULT_BG, DRAW_TGDD_DEFAULT_BG } from './stickerBackgroundHelpers';
 import { StickerManualQueue } from './StickerManualQueue';
 import { Button, Input, Tabs, EmptyState, SectionCard, Switch } from '../../../components/shared/ui';
 import type { TabItem } from '../../../components/shared/ui';
@@ -264,8 +265,8 @@ export const StickerPrintControls: React.FC<StickerPrintControlsProps> = ({
                                         activeId={bgImage}
                                         onChange={setBgImage}
                                         items={[
-                                            { id: '/frame/bg_phieu.png', label: 'ĐMX' },
-                                            { id: '/frame/bg_phieutgd.png', label: 'TGĐ' },
+                                            { id: DRAW_DMX_DEFAULT_BG, label: 'ĐMX' },
+                                            { id: DRAW_TGDD_DEFAULT_BG, label: 'TGĐ' },
                                         ]}
                                     />
                                 </div>

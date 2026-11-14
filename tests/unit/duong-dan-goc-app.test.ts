@@ -12,14 +12,15 @@ const PUBLIC = readdirSync('public');
 const THU_MUC_CODE = ['components', 'features', 'services', 'hooks', 'utils', 'contexts', 'constants'];
 const FILE_GOC = ['App.tsx', 'index.tsx'];
 
-/** Đã biết, CHỜ SỬA riêng — chỉ được GỠ khỏi danh sách, không thêm. Nền phiếu In Sticker: chuỗi '/frame/…' vừa là mã định danh
- *  (so sánh, lưu trong lịch sử in) vừa là URL ảnh → phải đổi ở chỗ VẼ (url(...)) chứ không đổi hằng. */
-const DA_BIET = new Set([
-    'features/sticker-event/hooks/useStickerPrinterData.ts',
-    'features/sticker-event/stickerprinter/stickerPreviewStyles.ts',
-    'features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts',
-    'features/sticker-event/stickerprinter/StickerPrintControls.tsx',
-]);
+/** Đã biết, CHỜ SỬA riêng — chỉ được GỠ khỏi danh sách, không thêm. (Nền phiếu In Sticker đã sửa 2026-11-14 → rỗng.) */
+const DA_BIET = new Set<string>([]);
+
+/** Nền phiếu In Sticker: '/frame/…' là MÃ ĐỊNH DANH (so sánh, lưu trong lịch sử in — đổi giá trị là lịch sử cũ lệch), URL vẽ đi
+ *  qua `bgImageUrl()`. Chỉ miễn ĐÚNG dòng khai báo hằng `export const X_BG = '/frame/….png';` ở đúng 1 file — không miễn cả file:
+ *  thêm chuỗi '/frame/…' ở dòng khác (kể cả trong file này) vẫn đỏ. Chỗ vẽ được khoá ở bài "nền phiếu vẽ qua bgImageUrl" dưới. */
+const FILE_MA_NEN = 'features/sticker-event/stickerprinter/stickerBackgroundHelpers.ts';
+const DONG_MA_NEN = /^export const [A-Z_]+_BG = '\/frame\/[\w.-]+\.png';$/;
+const laDongMaNen = (f: string, d: string) => f === FILE_MA_NEN && DONG_MA_NEN.test(d.trim());
 
 function liet(dir: string): string[] {
     return readdirSync(dir).flatMap((ten) => {
@@ -40,7 +41,7 @@ describe('file trong public/ không gọi theo đường dẫn gốc "/"', () =>
             const dong = readFileSync(f, 'utf8').split('\n');
             dong.forEach((d, i) => {
                 if (/^\s*(\/\/|\*)/.test(d)) return; // chú thích
-                if (MAU.test(d) && !DA_BIET.has(f)) vi.push(`${f}:${i + 1}: ${d.trim().slice(0, 120)}`);
+                if (MAU.test(d) && !DA_BIET.has(f) && !laDongMaNen(f, d)) vi.push(`${f}:${i + 1}: ${d.trim().slice(0, 120)}`);
             });
         }
         expect(vi, 'Dùng `${import.meta.env.BASE_URL}<đường dẫn>` thay vì "/<đường dẫn>"').toEqual([]);
@@ -48,6 +49,34 @@ describe('file trong public/ không gọi theo đường dẫn gốc "/"', () =>
 
     it('danh sách đã biết vẫn còn đúng (sửa xong thì gỡ khỏi DA_BIET)', () => {
         for (const f of DA_BIET) expect(MAU.test(readFileSync(f, 'utf8')), f).toBe(true);
+    });
+
+    it('mã nền In Sticker: dòng được miễn đúng là khai báo hằng, và file có bgImageUrl', () => {
+        const src = readFileSync(FILE_MA_NEN, 'utf8');
+        const dongMa = src.split('\n').filter((d) => MAU.test(d) && !/^\s*(\/\/|\*)/.test(d));
+        expect(dongMa.length).toBeGreaterThan(0);
+        for (const d of dongMa) expect(DONG_MA_NEN.test(d.trim()), d).toBe(true);
+        expect(src).toMatch(/export const bgImageUrl\b/);
+    });
+
+    it('nền phiếu In Sticker vẽ qua bgImageUrl (url(...) không nhận thẳng mã nền)', () => {
+        // url('${bgImage}') / url(${effectiveBgImage}) … — mọi nội suy biến nền trong url( phải bắt đầu bằng bgImageUrl(
+        const THO = /url\(['"]?\$\{(?!bgImageUrl\()[^}]*bg[_]?image/i;
+        const vi: string[] = [];
+        for (const f of liet('features/sticker-event')) {
+            readFileSync(f, 'utf8').split('\n').forEach((d, i) => {
+                if (THO.test(d)) vi.push(`${f}:${i + 1}: ${d.trim().slice(0, 120)}`);
+            });
+        }
+        expect(vi, 'Bọc bằng bgImageUrl(…) — mã nền "/frame/…" không có tiền tố vite base').toEqual([]);
+        // còn đúng các chỗ vẽ đã biết (bài trên không trống rỗng vì đổi tên biến)
+        const coBoc = liet('features/sticker-event').filter((f) => /url\(['"]?\$\{bgImageUrl\(/.test(readFileSync(f, 'utf8')));
+        expect(coBoc.sort()).toEqual([
+            'features/sticker-event/stickerprinter/StickerPrintPreview.tsx',
+            'features/sticker-event/stickerprinter/excelParsers.ts',
+            'features/sticker-event/stickerprinter/pageHtmlUtils.ts',
+            'features/sticker-event/stickerprinter/stickerPreviewStyles.ts',
+        ]);
     });
 });
 

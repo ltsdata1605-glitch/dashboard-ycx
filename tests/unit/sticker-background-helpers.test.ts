@@ -10,6 +10,8 @@ import {
     GIA_SOC_DEFAULT_BG,
     DRAW_DMX_DEFAULT_BG,
     DRAW_TGDD_DEFAULT_BG,
+    GIA_SOC_ALT_BG,
+    bgImageUrl,
 } from '../../features/sticker-event/stickerprinter/stickerBackgroundHelpers';
 
 describe('stickerBackgroundHelpers', () => {
@@ -57,5 +59,39 @@ describe('stickerBackgroundHelpers', () => {
         expect(getDefaultActiveFieldForType('draw')).toBe('drawContentBottomLeft');
         expect(getDefaultActiveFieldForType('gio_vang')).toBe('header');
         expect(getDefaultActiveFieldForType('gia_soc')).toBe('header');
+    });
+
+    // 2026-11-14: app chạy dưới /dashboard-ycx/ — mã nền giữ nguyên (lịch sử in đã lưu so khớp theo mã), chỉ URL vẽ có tiền tố.
+    it('mã định danh nền KHÔNG đổi giá trị (lịch sử in / trạng thái đã lưu so khớp theo chuỗi này)', () => {
+        expect([GIO_VANG_DEFAULT_BG, GIA_SOC_DEFAULT_BG, GIA_SOC_ALT_BG, DRAW_DMX_DEFAULT_BG, DRAW_TGDD_DEFAULT_BG]).toEqual([
+            '/frame/GVO2-scaled.png', '/frame/X24_NEW.png', '/frame/X24.png', '/frame/bg_phieu.png', '/frame/bg_phieutgd.png',
+        ]);
+        // mục lịch sử cũ lưu mã gốc vẫn hợp lệ
+        expect(isValidBgImageForType('draw', '/frame/bg_phieutgd.png')).toBe(true);
+    });
+
+    it('bgImageUrl: mã gốc → URL theo vite base', () => {
+        const B = '/dashboard-ycx/';
+        expect(bgImageUrl(DRAW_DMX_DEFAULT_BG, B)).toBe('/dashboard-ycx/frame/bg_phieu.png');
+        expect(bgImageUrl(GIO_VANG_DEFAULT_BG, B)).toBe('/dashboard-ycx/frame/GVO2-scaled.png');
+        expect(bgImageUrl('/dashboard-ycx/frame/X24.png', B)).toBe('/dashboard-ycx/frame/X24.png'); // đã có tiền tố → không nối 2 lần
+        expect(bgImageUrl('/dashboard-ycx/frame/X24.png', '/dashboard-ycx')).toBe('/dashboard-ycx/frame/X24.png'); // base thiếu '/' cuối
+        expect(bgImageUrl('/frame/X24.png', '/dashboard-ycx')).toBe('/dashboard-ycx/frame/X24.png');
+        expect(bgImageUrl('/frame/X24.png', '/')).toBe('/frame/X24.png'); // chạy ở gốc tên miền
+    });
+
+    it('bgImageUrl: data:/http(s):/blob:/protocol-relative/rỗng giữ nguyên', () => {
+        const B = '/dashboard-ycx/';
+        for (const v of ['data:image/png;base64,AAAA', 'https://cdn.example.com/a.png', 'http://x/a.png', 'blob:https://x/1', '//cdn.example.com/a.png', 'frame/a.png']) {
+            expect(bgImageUrl(v, B)).toBe(v);
+        }
+        expect(bgImageUrl('', B)).toBe('');
+        expect(bgImageUrl(null, B)).toBe('');
+        expect(bgImageUrl(undefined, B)).toBe('');
+    });
+
+    it('bgImageUrl mặc định lấy import.meta.env.BASE_URL', () => {
+        const base = import.meta.env.BASE_URL;
+        expect(bgImageUrl(DRAW_DMX_DEFAULT_BG)).toBe(base === '/' ? '/frame/bg_phieu.png' : `${base.replace(/\/?$/, '/')}frame/bg_phieu.png`);
     });
 });

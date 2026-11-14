@@ -57,7 +57,7 @@ export const DEFAULT_DRAW_HISTORY_ENTRY: PrintHistoryEntry = {
     label: 'Phiếu Rút Thăm — Mẫu mặc định',
     pageCount: 1000,
     stickerType: 'draw',
-    bgImage: '/frame/bg_phieu.png',
+    bgImage: DRAW_DMX_DEFAULT_BG,
     headerTextSize: 8,
     subHeaderTextSize: 13,
     percentTextSize: 36.9,
@@ -93,7 +93,7 @@ export const DEFAULT_DRAW_HISTORY_ENTRY: PrintHistoryEntry = {
 export function useStickerPrinterData() {
     const [stickerMode, setStickerMode] = useState<'sticker'>('sticker');
     const [stickerType, setStickerType] = useState<'gia_soc' | 'gio_vang' | 'draw'>('draw');
-    const [bgImage, setBgImage] = useState('/frame/bg_phieu.png');
+    const [bgImage, setBgImage] = useState<string>(DRAW_DMX_DEFAULT_BG);
     const [priceSource, setPriceSource] = useState<'sale' | 'service'>('sale');
     
     // Ticket draw state — khởi tạo từ mẫu mặc định

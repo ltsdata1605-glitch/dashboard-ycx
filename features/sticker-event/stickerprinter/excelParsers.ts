@@ -1,6 +1,7 @@
 import { generateBarcodeDataUrl } from './BarcodeCanvas';
 import { StickerPage, BatchItem } from './types';
 import { cleanWaterPurifierName, generatePageHtml } from './pageHtmlUtils';
+import { bgImageUrl } from './stickerBackgroundHelpers';
 import { formatPriceChangePercent, normalizeStickerPriceUnit } from '../utils/format';
 
 export const parsePercentValue = (percentStr: string | undefined): number => {
@@ -308,7 +309,7 @@ export function parseTemplateExcelData(
             priceHtml = `<div class="extra2">${newPrice}</div>`;
         }
 
-        const html = `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:197/285;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;">
+        const html = `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImageUrl(bgImage)}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:197/285;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;">
                         ${barcodeHtml}
                         <div class="header-text">${rowHeader}</div>
                         ${subHeaderHtml}
