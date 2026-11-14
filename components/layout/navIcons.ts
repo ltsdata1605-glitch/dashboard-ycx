@@ -17,7 +17,6 @@ export const NAV_TAB_ICONS: Record<string, IconName> = {
     'tools-line-bot': 'navLineBot',
     'tools-coupon': 'navCoupon',
     'tools-tax': 'navTax',
-    'tools-price-compare': 'navPriceCompare',
     'settings': 'navPermissions',
     'help': 'navHelp',
     'pending-approval': 'security',

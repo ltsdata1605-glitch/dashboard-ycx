@@ -14,7 +14,7 @@ import { createSalesXlsx, TEST_EMPLOYEE } from './helpers/salesFixture';
  *   - `phan-tich`: Phân Tích có dữ liệu bán hàng giả (nhiều modal chỉ hiện khi có dữ liệu) + modal hiệu quả nhân viên;
  *   - `report-bi`: Report BI có dữ liệu thi đua + danh sách nhân viên giả, từng màn con.
  */
-const TABS = ['analysis', 'check-thuong', 'reports', 'settings', 'tools-tax', 'tools-coupon', 'tools-price-compare',
+const TABS = ['analysis', 'check-thuong', 'reports', 'settings', 'tools-tax', 'tools-coupon',
     'help', 'tools-phanca', 'tools-print-sticker', 'tools-line-bot', 'tools-khai-thac', 'employees'];
 
 const MAN = [['điện thoại 390', 390], ['laptop 1366', 1366]] as const;

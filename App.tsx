@@ -19,7 +19,6 @@ const SettingsView = lazyWithRetry(() => import('./components/views/SettingsView
 const AboutView = lazyWithRetry(() => import('./components/views/AboutView'), 'AboutView');
 const StickerPrinterView = lazyWithRetry(() => import('./features/sticker-event/StickerPrinterView'), 'StickerPrinterView');
 const PhanCaView = lazyWithRetry(() => import('./features/phan-ca/PhanCaView'), 'PhanCaView');
-const PriceComparisonView = lazyWithRetry(() => import('./components/views/PriceComparisonView'), 'PriceComparisonView');
 const LineBotView = lazyWithRetry(() => import('./features/line-bot/LineBotView'), 'LineBotView');
 const KhaiThacView = lazyWithRetry(() => import('./features/khai-thac/KhaiThacView'), 'KhaiThacView');
 const TaxCalculatorView = lazyWithRetry(() => import('./features/tax-calculator/TaxCalculatorView'), 'TaxCalculatorView');
@@ -161,8 +160,6 @@ const TabContent = React.memo(() => {
         { id: 'thuong', className: 'w-full', component: <BiWrapper /> },
         { id: 'tools-print-sticker', className: 'w-full h-full', component: <StickerPrinterView /> },
         { id: 'tools-phanca', className: 'w-full h-full bg-slate-50', component: <PhanCaView /> },
-        // So giá: max-w 1600 nhưng laptop 1280–1440 tràn bề ngang → dock trái đè tiêu đề/ô nhập (tour GĐ9) → chừa lề dock.
-        { id: 'tools-price-compare', className: 'w-full h-full ycx-tranh-dock', component: <PriceComparisonView /> },
         { id: 'tools-line-bot', className: 'w-full h-full bg-slate-50 dark:bg-slate-900', component: <LineBotView /> },
         { id: 'reports', className: 'w-full bg-slate-50', component: <KhaiThacView /> },
     ], []);
@@ -202,7 +199,7 @@ const TabContent = React.memo(() => {
             )}
 
             {/* Fallback for any tab not handled above */}
-            {!persistentViews.some(v => v.id === activeTab) && !['tools-coupon', 'tools-tax', 'tools-price-compare', 'tools'].includes(activeTab) && (
+            {!persistentViews.some(v => v.id === activeTab) && !['tools-coupon', 'tools-tax', 'tools'].includes(activeTab) && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400">
                     <p className="text-[17px] font-medium leading-7">Tính năng đang được phát triển</p>
                     <p className="text-sm">Vui lòng quay lại sau</p>
@@ -220,7 +217,6 @@ const TAB_TITLES: Record<string, { main: string, highlight?: string }> = {
     'tools-print-sticker': { main: 'In', highlight: 'Sticker' },
     'tools-coupon': { main: 'Rút gọn', highlight: 'Coupon' },
     'tools-tax': { main: 'Tính', highlight: 'Thuế' },
-    'tools-price-compare': { main: 'So sánh', highlight: 'Giá' },
     'tools-phanca': { main: 'Phân', highlight: 'Ca' },
     'tools-line-bot': { main: 'Bot LINE', highlight: 'PMH' },
     'reports': { main: 'Báo cáo', highlight: 'Khai thác' },
@@ -241,7 +237,6 @@ const TAB_NAV_TITLES: Record<string, string> = {
     'tools-print-sticker': 'In Sticker',
     'tools-coupon': 'Rút gọn coupon',
     'tools-tax': 'Tính thuế',
-    'tools-price-compare': 'So sánh giá',
     'tools-phanca': 'Phân ca',
     'tools-line-bot': 'Bot LINE PMH',
     'reports': 'Báo cáo khai thác',

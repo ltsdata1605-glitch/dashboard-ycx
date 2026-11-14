@@ -108,16 +108,6 @@ export const APP_MENU_FEATURES: AppMenuFeature[] = [
         description: 'Bảng tính thuế thu nhập cá nhân chi tiết theo biểu thuế luỹ tiến từng phần',
         defaultEnabled: true,
     },
-    {
-        id: 'tools-price-compare',
-        label: 'So sánh giá ĐT',
-        shortLabel: 'So sánh giá',
-        group: 'tools',
-        icon: NAV_TAB_ICONS['tools-price-compare'],
-        queryTab: 'tools-price-compare',
-        description: 'Tra cứu và so sánh giá bán điện thoại thị trường giữa các chuỗi bán lẻ',
-        defaultEnabled: true,
-    },
 ];
 
 export const MENU_FEATURE_MAP: Record<string, AppMenuFeature> = APP_MENU_FEATURES.reduce(
