@@ -1,0 +1,1 @@
+const n=[{id:"auto-bonus",label:"Đổ Thưởng",parentFeatures:["thuong"]},{id:"auto-tnb",label:"TNB Data"}],e={};var a;for(const t of n)(a=t.parentFeatures)!=null&&a.length&&(e[t.id]=t.parentFeatures);const o=e;export{n as A,o as a};
