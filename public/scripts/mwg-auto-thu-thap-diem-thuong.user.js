@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWG - Tự động lấy điểm thưởng nhân viên
 // @namespace    dashboard-ycx
-// @version      7.34
+// @version      7.35
 // @description  Gọi thẳng API GetReward (mỗi mã NV), parse HTML <table> trả về thành TSV giống hệt copy tay; nối cầu với Dashboard để chạy chế độ Tự động; Direct Internal API Engine siêu tốc 1-2s cho Realtime (tự động cập nhật đầy đủ cả Doanh thu THỰC và Doanh thu QUY ĐỔI cho nhân viên, tự chọn DT thực & DT quy đổi & Trả góp & Chi tiết doanh thu, lấy danh sách siêu thị qua API filter-store-getbyasmlist, Bước 3 lấy trọn vẹn cây ngành hàng BI trong 1 lần gọi GROUPBY BICAT, đợi có dữ liệu từng khu vực & tự động rà soát vét lại toàn cụm đảm bảo 100% có dữ liệu) & thu thập Luỹ kế trên baocao.dienmayxanh.com; nút Copy All mở rộng cây dữ liệu theo cấp + tự copy; tự động điền mã bảo mật & tra cứu TNB Data trên admintnb.com/data
 // @match        https://newinsite.thegioididong.com/office/thuong-nhan-vien*
 // @match        https://baocao.dienmayxanh.com/*
@@ -9,6 +9,7 @@
 // @match        https://report.mwgroup.vn/*
 // @match        https://admintnb.com/data*
 // @match        https://admintnb.com/data/*
+// @match        https://ltsdata1605-glitch.github.io/dashboard-ycx/*
 // @match        https://dashboard.pro.vn/*
 // @match        http://127.0.0.1:5173/*
 // @match        http://127.0.0.1:5174/*
@@ -29,11 +30,16 @@
 // @connect      cdnv2.tgdd.vn
 // @connect      api.line.me
 // @connect      *
-// @updateURL    https://dashboard.pro.vn/scripts/mwg-auto-thu-thap-diem-thuong.user.js
-// @downloadURL  https://dashboard.pro.vn/scripts/mwg-auto-thu-thap-diem-thuong.user.js
+// @updateURL    https://ltsdata1605-glitch.github.io/dashboard-ycx/scripts/mwg-auto-thu-thap-diem-thuong.user.js
+// @downloadURL  https://ltsdata1605-glitch.github.io/dashboard-ycx/scripts/mwg-auto-thu-thap-diem-thuong.user.js
 // ==/UserScript==
 
 /*
+ * BẢN 7.35 — CHUYỂN TÊN MIỀN (2026-11-14): Dashboard rời dashboard.pro.vn sang https://ltsdata1605-glitch.github.io/dashboard-ycx/
+ *   (aaa1d73). Thêm @match tên miền mới (thiếu nó Tampermonkey không nạp script trên Dashboard → cầu nối Tự động không chạy);
+ *   @updateURL/@downloadURL trỏ về tên miền mới (dashboard.pro.vn không còn phân giải). Giữ @match cũ — vô hại.
+ *   ⚠️ Bản đã cài từ dashboard.pro.vn KHÔNG tự cập nhật được (URL cập nhật cũ đã chết): cài lại một lần từ link mới.
+ *
  * BẢN 7.34 — NÂNG CẤP TỰ ĐỘNG CẬP NHẬT REALTIME & LUỸ KẾ BI: THÊM DỮ LIỆU DT THỰC (2026-10-19):
  * - Tự động cập nhật song song cả DOANH THU THỰC và DOANH THU QUY ĐỔI khi chạy tự động Realtime & Luỹ kế BI.
  * - Direct API Engine: Tạo đồng thời bộ dữ liệu Thực (employeeThucByStore, employeeByStore) và bộ dữ liệu Quy đổi (employeeQdByStore), đổ đúng vào ô REALTIME / REALTIME QĐ và LUỸ KẾ / LUỸ KẾ QĐ.
@@ -605,7 +611,7 @@
   const JOB_TTL_MS = 15 * 60 * 1000;
   // Phiên bản báo cho Dashboard (ping/pong) — lấy từ dòng @version qua GM_info. Trước bản 7.4 hằng này ghi cứng
   // '6.4' nên Dashboard KHÔNG biết máy đang chạy bản nào. Hằng dự phòng phải trùng @version (unit test kiểm).
-  const SCRIPT_VERSION_FALLBACK = '7.34';
+  const SCRIPT_VERSION_FALLBACK = '7.35';
   const SCRIPT_VERSION = (typeof GM_info !== 'undefined' && GM_info && GM_info.script && GM_info.script.version) || SCRIPT_VERSION_FALLBACK;
 
   // ====== CẦU NỐI TỰ ĐỘNG HOÁ BI (REALTIME & LUỸ KẾ) ======
