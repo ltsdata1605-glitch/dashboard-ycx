@@ -1,11 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * 2026-11-14: app chạy dưới đường dẫn con `/dashboard-ycx/` (vite `base`). Nền phiếu In Sticker từng gọi '/frame/…' thẳng trong
  * url(...) → github.io/frame/bg_phieu.png 404, xem trước và bản in mất nền. Mã nền '/frame/…' giữ nguyên (lịch sử in so khớp theo
  * nó), chỗ vẽ đi qua `bgImageUrl()`. Bài này mở đúng đường dẫn con, kiểm ảnh nền ở xem trước VÀ trong trang in đều trả 200.
  */
-const BASE = '/dashboard-ycx/';
+const BASE = APP_BASE; // constants/appBase.ts — nguồn duy nhất
 const ANH = process.env.ANH_NEN_PHIEU; // đặt thư mục để lưu ảnh xem trước (kiểm bằng mắt), không đặt thì bỏ qua
 
 const CAC_LOAI: Array<{ sub: string; nen: string }> = [

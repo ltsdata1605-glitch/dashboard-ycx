@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * 2026-11-14 (ảnh chủ dự án): bấm dòng trong "Phân Tích & Đề Xuất" (vd "T11 - ĐÈN NĂNG LƯỢNG MẶT TRỜI: cần cải thiện 16 hạng")
@@ -8,7 +9,7 @@ import { test, expect } from '@playwright/test';
 test('bấm dòng "Cơ hội vàng" trong Phân Tích & Đề Xuất → mở Bảng Xếp Hạng của đúng môn đó', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/');
-    await page.evaluate(async () => (await import('/dashboard-ycx/tests/e2e/helpers/checkThuongPhanTichHarness.tsx' as string)).mount());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mount(), appPath('/tests/e2e/helpers/checkThuongPhanTichHarness.tsx'));
     const dongPhanTich = page.getByRole('button', { name: /T11 - ĐÈN NĂNG LƯỢNG MẶT TRỜI: cần cải thiện 16 hạng/ });
     await expect(dongPhanTich).toBeVisible({ timeout: 15000 });
     await dongPhanTich.click();
@@ -31,7 +32,7 @@ test.describe('iPhone', () => {
     test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     test('chạm dòng phân tích → Bảng Xếp Hạng hiện trên màn điện thoại', async ({ page }) => {
         await page.goto('/');
-        await page.evaluate(async () => (await import('/dashboard-ycx/tests/e2e/helpers/checkThuongPhanTichHarness.tsx' as string)).mount());
+        await page.evaluate(async (duongDan) => (await import(duongDan)).mount(), appPath('/tests/e2e/helpers/checkThuongPhanTichHarness.tsx'));
         await page.getByRole('button', { name: /T11 - ĐÈN NĂNG LƯỢNG MẶT TRỜI: cần cải thiện 16 hạng/ }).tap();
         const bxh = page.getByRole('dialog');
         await expect(bxh).toBeVisible({ timeout: 5000 });

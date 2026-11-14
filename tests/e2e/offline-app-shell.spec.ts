@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Offline (chủ dự án chốt 2026-10-08): mở app khi MẤT MẠNG vẫn thấy giao diện, không trang trắng.
@@ -93,11 +94,11 @@ test('mạng chậm quá 4 giây: dùng bản lưu nhưng bản mới về trễ
     const ms = Date.now() - t0;
     console.log('RELOAD_MS', ms);
     expect(ms).toBeLessThan(5_900); // trả bản lưu sau ~4 giây, không chờ mạng 6 giây
-    await expect.poll(() => page.evaluate(async () => {
+    await expect.poll(() => page.evaluate(async (base) => {
       const k = (await caches.keys()).find((x) => x.startsWith('ycx-shell-'));
-      const res = k ? await (await caches.open(k)).match('/dashboard-ycx/') : undefined;
+      const res = k ? await (await caches.open(k)).match(base) : undefined;
       return res ? (await res.text()).includes('BAN-MOI-VE-TRE') : false;
-    }), { timeout: 15_000 }).toBe(true);
+    }, APP_BASE), { timeout: 15_000 }).toBe(true);
   } finally {
     sv.close();
   }

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { chanGhiCloud, dangNhapBangToken, hasCustomToken } from './helpers/customTokenLogin';
+import { appPath } from './helpers/appBase';
 
 /**
  * Liên kết "Hướng dẫn sử dụng Bot LINE" trong tab Bot LINE — chỉ đọc (chặn ghi cloud).
@@ -17,7 +18,7 @@ test('liên kết hướng dẫn hiện trong Bot LINE và mở được trang h
 
     const lienKet = page.getByRole('link', { name: 'Hướng dẫn sử dụng Bot LINE' });
     await expect(lienKet).toBeVisible({ timeout: 30_000 });
-    await expect(lienKet).toHaveAttribute('href', '/dashboard-ycx/huong-dan-bot-line.html');
+    await expect(lienKet).toHaveAttribute('href', appPath('/huong-dan-bot-line.html'));
     await expect(lienKet).toHaveAttribute('target', '_blank');
 
     const [trang] = await Promise.all([
