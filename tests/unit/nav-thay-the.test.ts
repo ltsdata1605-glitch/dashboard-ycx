@@ -24,13 +24,13 @@ describe('chonThayThe — công cụ thay ô menu chính bị tắt', () => {
 });
 
 describe('timTabBatDauTien & timTabCoThanhDuoiDauTien — điều hướng dự phòng khi tắt tab chính', () => {
-    it('mặc định bật hết: ưu tiên analysis', () => {
-        expect(timTabBatDauTien(() => true)).toBe('analysis');
-        expect(timTabCoThanhDuoiDauTien(() => true)).toBe('analysis');
+    it('mặc định bật hết: ưu tiên check-thuong', () => {
+        expect(timTabBatDauTien(() => true)).toBe('check-thuong');
+        expect(timTabCoThanhDuoiDauTien(() => true)).toBe('check-thuong');
     });
 
-    it('tắt Phân tích, Report BI, Check thưởng nhưng bật Thưởng: về thẳng Thưởng (không nhảy vào Báo cáo toàn màn)', () => {
-        const tat = new Set(['analysis', 'employees', 'check-thuong']);
+    it('tắt Check thưởng nhưng bật Thưởng: về thẳng Thưởng (không nhảy vào Báo cáo toàn màn)', () => {
+        const tat = new Set(['check-thuong']);
         const bat = (id: string) => !tat.has(id);
         expect(timTabBatDauTien(bat)).toBe('thuong');
         expect(timTabCoThanhDuoiDauTien(bat)).toBe('thuong');

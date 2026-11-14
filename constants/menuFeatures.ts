@@ -21,28 +21,6 @@ export interface AppMenuFeature {
  */
 export const APP_MENU_FEATURES: AppMenuFeature[] = [
     {
-        id: 'analysis',
-        label: 'Phân tích YCX',
-        shortLabel: 'Phân tích',
-        group: 'main',
-        icon: NAV_TAB_ICONS['analysis'],
-        path: '/analysis',
-        queryTab: 'analysis',
-        description: 'Bảng tổng quan doanh thu, ngành hàng, nhân viên và biểu đồ hiệu suất kinh doanh',
-        defaultEnabled: true,
-    },
-    {
-        id: 'employees',
-        label: 'Report BI',
-        shortLabel: 'Report BI',
-        group: 'main',
-        icon: NAV_TAB_ICONS['employees'],
-        path: '/employees',
-        queryTab: 'employees',
-        description: 'Báo cáo chi tiết theo kho, bảng xếp hạng thi đua, doanh số nhân viên và tiến độ luỹ kế',
-        defaultEnabled: true,
-    },
-    {
         id: 'check-thuong',
         label: 'Check thưởng',
         shortLabel: 'Check thưởng',

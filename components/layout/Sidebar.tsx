@@ -96,9 +96,8 @@ const NavItem = React.memo(({
             // TUYỆT ĐỐI không chuyển tab sang trang rỗng ('tools')
             setIsOpenByClick((prev) => !prev);
         } else {
-            if (item.path === '/analysis') setActiveTab('analysis');
-            else if (item.path === '/') setActiveTab('check-thuong');
-            else if (item.path === '/employees') setActiveTab('employees');
+            if (item.path === '/') setActiveTab('check-thuong');
+            else if (item.path === '/thuong') setActiveTab('thuong');
             else if (item.path === '/reports') setActiveTab('reports');
             else if (item.path === '/line-bot') setActiveTab('tools-line-bot');
             else if (item.id) setActiveTab(item.id);
@@ -204,8 +203,6 @@ export default function Sidebar() {
 
     // Toàn bộ danh sách tính năng trên laptop (đưa tất cả công cụ ra ngoài menu, không giấu trong popup)
     const menuItems: NavMenuItem[] = [
-        { id: 'analysis', label: 'Phân tích YCX', icon: NAV_TAB_ICONS['analysis'], path: '/analysis' },
-        { id: 'employees', label: 'Report BI', icon: NAV_TAB_ICONS['employees'], path: '/employees' },
         { id: 'check-thuong', label: 'Check thưởng', icon: NAV_TAB_ICONS['check-thuong'], path: '/' },
         { id: 'thuong', label: 'Thưởng', icon: NAV_TAB_ICONS['thuong'], path: '/thuong' },
         ...(isDemoMode || userRole === 'admin' || userRole === 'manager' ? [

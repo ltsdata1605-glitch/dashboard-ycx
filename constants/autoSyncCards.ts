@@ -11,11 +11,7 @@ export interface AutoSyncCardMeta {
 }
 
 export const AUTO_SYNC_CARDS: AutoSyncCardMeta[] = [
-    { id: 'auto-bi-realtime', label: 'BI Realtime', parentFeatures: ['employees'] },
-    { id: 'auto-bi-luyke', label: 'BI Luỹ kế', parentFeatures: ['employees'] },
-    { id: 'auto-bonus', label: 'Đổ Thưởng', parentFeatures: ['employees', 'thuong'] },
-    { id: 'auto-ycx-realtime', label: 'YCX Realtime', parentFeatures: ['analysis'] },
-    { id: 'auto-ycx-luyke', label: 'YCX Luỹ kế', parentFeatures: ['analysis'] },
+    { id: 'auto-bonus', label: 'Đổ Thưởng', parentFeatures: ['thuong'] },
     { id: 'auto-tnb', label: 'TNB Data' },
 ];
 

@@ -67,8 +67,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = React.memo(({
 
     // Icon theo TÊN CHỨC NĂNG (chuẩn hoá icon 2026-10-02) — cùng tên với Sidebar nên 2 thanh luôn cùng hình.
     const mainTabs: TabItem[] = [
-        { id: 'analysis', label: 'Phân tích', icon: NAV_TAB_ICONS['analysis'] },
-        { id: 'employees', label: 'Report BI', icon: NAV_TAB_ICONS['employees'] },
         { id: 'check-thuong', label: 'Check thưởng', icon: NAV_TAB_ICONS['check-thuong'] },
         { id: 'thuong', label: 'Thưởng', icon: NAV_TAB_ICONS['thuong'] },
     ];

@@ -11,7 +11,7 @@ import { Button } from './components/shared/ui/Button';
 import { navTabIcon } from './components/layout/navIcons';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
-const DashboardView = lazyWithRetry(() => import('./components/views/DashboardView'), 'DashboardView');
+// DashboardView đã xoá theo yêu cầu người dùng
 const CheckThuongView = lazyWithRetry(() => import('./components/views/CheckThuongView'), 'CheckThuongView');
 const ExternalToolView = lazyWithRetry(() => import('./components/views/ExternalToolView'), 'ExternalToolView');
 const UserManagementView = lazyWithRetry(() => import('./components/views/UserManagementView'), 'UserManagementView');
@@ -85,8 +85,7 @@ function useSauLanRanhDau(timeout = 1500): boolean {
  *  lazyWithRetry (không gọi import() trần): module tải xong thì lần mở tab đầu vẽ ngay, không treo Suspense + giữ màn chờ
  *  300 ms của React (GĐ9 2026-10-14: Report BI 0,5–0,7 s → xem utils/lazyWithRetry.ts). */
 const TAI_TRUOC_TAB: Record<string, () => Promise<unknown>> = {
-    'analysis': () => DashboardView.preload(),
-    'employees': () => BiWrapper.preload(),
+    'thuong': () => BiWrapper.preload(),
     'check-thuong': () => CheckThuongView.preload(),
 };
 
@@ -130,75 +129,36 @@ const TabContent = React.memo(() => {
         if (isTabDisabled) setActiveTab(tabDuPhong);
     }, [isTabDisabled, tabDuPhong, setActiveTab]);
 
-    // GỠ tab bị tắt khỏi mountedTabs — không để view cũ chạy ngầm tải dữ liệu (31k dòng Phân tích…)
-    // Ngoại lệ: `employees` (BiWrapper) giữ lại khi tab `thuong` đang mở và bật.
+    // GỠ tab bị tắt khỏi mountedTabs — không để view cũ chạy ngầm tải dữ liệu
     React.useEffect(() => {
-        const giuEmployees = activeTab === 'thuong' && isFeatureEnabled('thuong');
         setMountedTabs(prev => {
             const next = new Set<string>();
             for (const t of prev) {
-                if (laTabLuonBat(t) || isFeatureEnabled(t) || (t === 'employees' && giuEmployees)) next.add(t);
+                if (laTabLuonBat(t) || isFeatureEnabled(t)) next.add(t);
             }
             return next.size === prev.size ? prev : next;
         });
-    }, [isFeatureEnabled, activeTab]);
-
-    // Nút "Nhập nhân viên (File YCX)" ở Report BI phát sự kiện này. Hộp chọn file nằm trong
-    // DashboardView (tab Phân Tích). Khi tab đó ĐANG HIỆN (activeTab === 'analysis') thì DashboardView
-    // tự xử lý; ngược lại phải chuyển sang Phân Tích — kể cả khi tab đã mount nhưng ẩn (inert chặn click).
-    React.useEffect(() => {
-        const onRequestUpload = () => {
-            if (!isFeatureEnabled('analysis')) return;
-            if (activeTab === 'analysis') return;
-            try { sessionStorage.setItem('ycx-pending-upload-ycx', '1'); } catch { /* Private Mode */ }
-            setActiveTab('analysis');
-        };
-        window.addEventListener('ycx-request-upload-ycx', onRequestUpload);
-        return () => window.removeEventListener('ycx-request-upload-ycx', onRequestUpload);
-    }, [activeTab, setActiveTab, isFeatureEnabled]);
-
-    // Khi nhận file YCX từ Auto Sync (Realtime / Luỹ kế), bảo đảm tab 'analysis' được mount ngầm
-    // trong DOM để xử lý và lưu dữ liệu mà KHÔNG ép người dùng phải chuyển tab rời khỏi màn hình hiện tại.
-    // Nhưng nếu tính năng Phân tích đã TẮT thì không mount — không cần đồng bộ dữ liệu cho tính năng tắt.
-    React.useEffect(() => {
-        const handleAutoSync = () => {
-            if (!isFeatureEnabled('analysis')) return;
-            setMountedTabs(prev => prev.has('analysis') ? prev : new Set(prev).add('analysis'));
-        };
-        window.addEventListener('ycx-auto-sync-file', handleAutoSync);
-        return () => window.removeEventListener('ycx-auto-sync-file', handleAutoSync);
     }, [isFeatureEnabled]);
 
-    // Mount tab on first visit — `thuong` cần mount cả `employees` (dùng chung BiWrapper).
-    // Không mount tab có tính năng đã tắt — tránh tải dữ liệu thừa.
-    // Ngoại lệ: `thuong` bật thì `employees` BẮT BUỘC mount (BiWrapper cung cấp nội dung cho cả hai).
+    // Mount tab on first visit
     React.useEffect(() => {
         setMountedTabs(prev => {
-            const toMount = [activeTab];
-            if (activeTab === 'thuong') toMount.push('employees');
-            const thuongBat = isFeatureEnabled('thuong');
-            const filtered = toMount.filter(t =>
-                laTabLuonBat(t) || isFeatureEnabled(t) || (t === 'employees' && thuongBat));
-            if (filtered.length === 0 || filtered.every(t => prev.has(t))) return prev;
+            if (!laTabLuonBat(activeTab) && !isFeatureEnabled(activeTab)) return prev;
+            if (prev.has(activeTab)) return prev;
             const next = new Set(prev);
-            filtered.forEach(t => next.add(t));
+            next.add(activeTab);
             return next;
         });
     }, [activeTab, isFeatureEnabled]);
 
-    // Tab `thuong` dùng chung BiWrapper với `employees` (không mount bản thứ 2).
-    // Khi activeTab = 'thuong', mount BiWrapper sớm và truyền prop để tự chuyển sang employee > bonus.
-    const biIsActive = activeTab === 'employees' || activeTab === 'thuong';
-
     // Persistent views — only mount when first visited, keep alive after
     const persistentViews = React.useMemo(() => [
-        { id: 'analysis', component: <DashboardView /> },
         { id: 'approval', className: 'w-full', component: <UserManagementView /> },
         { id: 'settings', className: 'w-full', component: <SettingsView /> },
         { id: 'pending-approval', className: 'w-full', component: <PendingApprovalView /> },
         { id: 'help', className: 'w-full', component: <AboutView /> },
         { id: 'check-thuong', className: 'w-full', component: <CheckThuongView /> },
-        { id: 'employees', className: 'w-full', component: <BiWrapper />, alsoVisibleWhen: 'thuong' },
+        { id: 'thuong', className: 'w-full', component: <BiWrapper /> },
         { id: 'tools-print-sticker', className: 'w-full h-full', component: <StickerPrinterView /> },
         { id: 'tools-phanca', className: 'w-full h-full bg-slate-50', component: <PhanCaView /> },
         // So giá: max-w 1600 nhưng laptop 1280–1440 tràn bề ngang → dock trái đè tiêu đề/ô nhập (tour GĐ9) → chừa lề dock.
@@ -213,8 +173,8 @@ const TabContent = React.memo(() => {
     return (
         <>
             {persistentViews.map(view => {
-                const isVisible = activeTab === view.id || (view.alsoVisibleWhen != null && activeTab === view.alsoVisibleWhen);
-                const viewIsActive = view.id === 'employees' ? biIsActive : activeTab === view.id;
+                const isVisible = activeTab === view.id;
+                const viewIsActive = activeTab === view.id;
                 return mountedTabs.has(view.id) ? (
                     <div
                         key={view.id}
@@ -242,7 +202,7 @@ const TabContent = React.memo(() => {
             )}
 
             {/* Fallback for any tab not handled above */}
-            {!persistentViews.some(v => v.id === activeTab || v.alsoVisibleWhen === activeTab) && !['tools-coupon', 'tools-tax', 'tools-price-compare', 'tools'].includes(activeTab) && (
+            {!persistentViews.some(v => v.id === activeTab) && !['tools-coupon', 'tools-tax', 'tools-price-compare', 'tools'].includes(activeTab) && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400">
                     <p className="text-[17px] font-medium leading-7">Tính năng đang được phát triển</p>
                     <p className="text-sm">Vui lòng quay lại sau</p>
@@ -254,9 +214,7 @@ const TabContent = React.memo(() => {
 TabContent.displayName = 'TabContent';
 
 const TAB_TITLES: Record<string, { main: string, highlight?: string }> = {
-    'analysis': { main: 'Phân', highlight: 'Tích' },
     'check-thuong': { main: 'Check', highlight: 'Thưởng' },
-    'employees': { main: 'Report', highlight: 'BI' },
     'thuong': { main: 'Hiệu suất', highlight: 'Thưởng' },
     'tools': { main: 'Công', highlight: 'Cụ' },
     'tools-print-sticker': { main: 'In', highlight: 'Sticker' },
@@ -277,9 +235,7 @@ const TAB_TITLES: Record<string, { main: string, highlight?: string }> = {
  * TAB_TITLES (tiêu đề 2 màu IN HOA theo thiết kế khung laptop của chủ dự án 2026-10-12).
  */
 const TAB_NAV_TITLES: Record<string, string> = {
-    'analysis': 'Phân tích',
     'check-thuong': 'Check thưởng',
-    'employees': 'Report BI',
     'thuong': 'Hiệu suất thưởng',
     'tools': 'Công cụ',
     'tools-print-sticker': 'In Sticker',

@@ -22,8 +22,6 @@ export function laTabToanManMobile(tabId: string): boolean {
 
 /** Thứ tự ưu tiên các tab có hiển thị thanh điều hướng dưới trên điện thoại (MobileBottomNav). */
 export const THU_TU_TAB_CO_THANH_DUOI = [
-    'analysis',
-    'employees',
     'check-thuong',
     'thuong',
     'tools-line-bot',

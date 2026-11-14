@@ -26,7 +26,7 @@ const TabContext = createContext<TabContextType | undefined>(undefined);
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [activeTab, setActiveTabRaw] = useState('analysis');
+    const [activeTab, setActiveTabRaw] = useState('check-thuong');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(() => {
@@ -46,7 +46,10 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // Check URL query parameter first (has highest priority)
             const urlParams = new URLSearchParams(window.location.search);
             const urlTab = urlParams.get('tab');
-            const initialTab = urlTab || savedTab || 'analysis';
+            let initialTab = urlTab || savedTab || 'check-thuong';
+            if (initialTab === 'analysis' || initialTab === 'employees') {
+                initialTab = 'check-thuong';
+            }
             const resolvedInitialTab = initialTab === 'tools' ? 'tools-print-sticker' : initialTab;
             
             setActiveTabRaw(resolvedInitialTab);
@@ -56,7 +59,7 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (urlTab && urlTab !== savedTab) saveSetting('active_tab', resolvedInitialTab).catch(() => {});
 
             // Sync URL with initial tab if not present
-            if (!urlTab || urlTab === 'tools') {
+            if (!urlTab || urlTab === 'tools' || urlTab === 'analysis' || urlTab === 'employees') {
                 const newUrl = new URL(window.location.href);
                 newUrl.searchParams.set('tab', resolvedInitialTab);
                 window.history.replaceState(null, '', newUrl.toString());
@@ -81,8 +84,8 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.set('tab', tab);
-            // Nếu rời khỏi tab employees và tools-print-sticker thì dọn sạch các query con
-            if (tab !== 'employees' && tab !== 'tools-print-sticker') {
+            // Nếu rời khỏi tab thuong và tools-print-sticker thì dọn sạch các query con
+            if (tab !== 'thuong' && tab !== 'tools-print-sticker') {
                 newUrl.searchParams.delete('view');
                 newUrl.searchParams.delete('mode');
                 newUrl.searchParams.delete('sub');
