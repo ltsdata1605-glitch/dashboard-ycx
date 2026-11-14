@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Modal tự dựng (`fixed inset-0`) chuyển dần sang <Modal> dùng chung (GĐ4 — rawOverlay). Mỗi modal đã chuyển phải:
@@ -23,7 +24,7 @@ for (const vp of [{ ten: 'laptop', width: 1366, height: 768 }, { ten: 'iphone', 
         test(`${c.anh} (${vp.ten}): hành vi chuẩn + nằm gọn trong màn hình`, async ({ page }) => {
             await page.setViewportSize({ width: vp.width, height: vp.height });
             await page.goto('/');
-            await page.evaluate(async () => (await import('/tests/e2e/helpers/modalDaChuyenHarness.tsx' as string)).mountHarness());
+            await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/modalDaChuyenHarness.tsx'));
             await page.locator(c.nut).click();
             const hop = page.getByRole('dialog', { name: c.ten });
             await expect(hop).toBeVisible();
@@ -50,7 +51,7 @@ for (const vp of [{ ten: 'laptop', width: 1366, height: 768 }, { ten: 'iphone', 
 
 test('modal trong dòng bảng có onClick (ảnh đại diện): click trong khung / ra nền KHÔNG kích hoạt dòng bảng cha', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/modalDaChuyenHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/modalDaChuyenHarness.tsx'));
     await page.locator('#mo-avatar').click();
     const hop = page.getByRole('dialog', { name: /Ảnh Đại Diện Nhân Viên/ });
     await expect(hop).toBeVisible();
@@ -63,7 +64,7 @@ test('modal trong dòng bảng có onClick (ảnh đại diện): click trong kh
 
 test('nạp mã: hộp xác nhận xoá đợt nạp lồng trong modal chính — Escape đóng hộp xác nhận trước, rồi mới đến modal chính', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/modalDaChuyenHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/modalDaChuyenHarness.tsx'));
     await page.locator('#mo-nap-ma2').click();
     const chinh = page.getByRole('dialog', { name: /Nạp Mã PMH & Quản Lý Lần Nạp/ });
     await expect(chinh).toBeVisible();
@@ -88,7 +89,7 @@ test('nạp mã: bấm "Sửa đợt này" mở modal sửa đợt, đổi sang 
     const loi: string[] = [];
     page.on('pageerror', e => loi.push(e.message));
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/modalDaChuyenHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/modalDaChuyenHarness.tsx'));
     await page.locator('#mo-nap-ma2').click();
     const chinh = page.getByRole('dialog', { name: /Nạp Mã PMH & Quản Lý Lần Nạp/ });
     await chinh.getByText(/Lịch Sử Các Lần Nạp/).click();

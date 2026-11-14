@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 // React ActionMenu thật, callbacks cục bộ trong appleUiHarness; không chèn DOM giả cho trạng thái.
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
 test('Material token và reduced transparency trên action sheet thật', async ({ page, context }) => {
-    await page.goto('/tests/e2e/helpers/materialHarness.html');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html'));
     await page.getByTestId('menu-thu').click();
     const material = page.locator('[data-action-sheet] .ycx-material').first();
     await expect(material).toBeVisible();
@@ -46,7 +47,7 @@ test('Material token và reduced transparency trên action sheet thật', async 
 for (const width of [320, 390, 440]) {
     test(`Aggregate harness fits ${width}px and keeps cancel in viewport`, async ({ page }) => {
         await page.setViewportSize({ width, height: 844 });
-        await page.goto('/tests/e2e/helpers/materialHarness.html?aggregate');
+        await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?aggregate'));
         await expect(page.getByTestId('menu-thu')).toBeVisible();
         console.log('overflow candidates', await page.evaluate(() =>
             Array.from(document.querySelectorAll('body *')).filter(el => {

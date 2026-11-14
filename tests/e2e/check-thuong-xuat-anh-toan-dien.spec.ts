@@ -4,6 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as XLSX from 'xlsx';
+import { appPath } from './helpers/appBase';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -21,7 +22,7 @@ const chuanBi = async (page: Page) => {
 
 test('Kiểm tra toàn bộ chức năng xuất ảnh ở Check Thưởng: không còn lỗi htmlToImage không được tải', async ({ page }) => {
     await chuanBi(page);
-    await page.goto('/check-thuong.html');
+    await page.goto(appPath('/check-thuong.html'));
 
     // Chờ gắn xong các bộ nghe sự kiện
     await page.waitForTimeout(500);

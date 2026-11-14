@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 for(const width of [390,1366]) {
   test(`competition switch names and row bubbling ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?competition-switch');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?competition-switch'));
     await page.getByRole('button',{name:'Bộ lọc thi đua (Chương trình & Cột hiển thị)',exact:true}).click();
     const program=page.getByRole('switch',{name:/^AUDIT A$/i});
     await expect(program).toHaveAttribute('aria-checked','false');

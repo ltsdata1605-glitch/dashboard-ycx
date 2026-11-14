@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Audit A30 (2026-09-29) — features/khai-thac/services/khaiThacDb.ts: promise ghi từng resolve ở
@@ -8,8 +9,8 @@ import { expect, test } from '@playwright/test';
  */
 test('lưu báo cáo: transaction bị huỷ sau khi put thành công → báo lỗi, không báo "đã lưu"', async ({ page }) => {
     await page.goto('/');
-    const kq = await page.evaluate(async () => {
-        const p = '/features/khai-thac/services/khaiThacDb.ts';
+    const kq = await page.evaluate(async (B) => {
+        const p = B + 'features/khai-thac/services/khaiThacDb.ts';
         const { khaiThacDb } = await import(/* @vite-ignore */ p) as typeof import('../../features/khai-thac/services/khaiThacDb');
 
         const w = window as unknown as { __abort?: string };
@@ -36,7 +37,7 @@ test('lưu báo cáo: transaction bị huỷ sau khi put thành công → báo l
         const okLuuDuoc = (await khaiThacDb.listReports()).some(r => r.id === 'r-ok');
         await khaiThacDb.deleteReport('r-ok');
         return { ketQua, conTrongMay, okLuuDuoc, abort: w.__abort };
-    });
+    }, APP_BASE);
     console.log('KẾT QUẢ A30:', JSON.stringify(kq));
     expect(kq.conTrongMay).toBe(false);               // dữ liệu thật sự KHÔNG được lưu
     expect(kq.ketQua).not.toBe('đã lưu');             // nên không được báo đã lưu

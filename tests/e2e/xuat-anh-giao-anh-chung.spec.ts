@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { appPath, APP_BASE } from './helpers/appBase';
 
 /**
  * Đợt 3 audit (2026-09-30) — khâu giao ảnh chung (components/shared/ui/imageDelivery.ts) và các bộ
@@ -53,20 +54,20 @@ const png = () => new Blob([new Uint8Array(600).fill(1)], { type: 'image/png' })
 
 test('deliverImage trên iPhone: mở bảng chia sẻ, trả "shared"', async ({ page }) => {
     await giaLap(page);
-    const kq = await page.evaluate(async () => {
-        const m = await import(/* @vite-ignore */ '/components/shared/ui/imageDelivery.ts' as string);
+    const kq = await page.evaluate(async (B) => {
+        const m = await import(/* @vite-ignore */ B + 'components/shared/ui/imageDelivery.ts' as string);
         return m.deliverImage(new Blob([new Uint8Array(600)], { type: 'image/png' }), 'Bao_cao_A.png');
-    });
+    }, APP_BASE);
     expect(kq).toBe('shared');
     expect(await page.evaluate(() => (window as unknown as W).__share.ten)).toEqual(['Bao cao A.png']);
 });
 
 test('deliverImage: Safari từ chối (NotAllowedError) → nút chạm lại, KHÔNG lặng lẽ tải file', async ({ page }) => {
     await giaLap(page, 'NotAllowedError');
-    const kq = await page.evaluate(async () => {
-        const m = await import(/* @vite-ignore */ '/components/shared/ui/imageDelivery.ts' as string);
+    const kq = await page.evaluate(async (B) => {
+        const m = await import(/* @vite-ignore */ B + 'components/shared/ui/imageDelivery.ts' as string);
         return m.deliverImage(new Blob([new Uint8Array(600)], { type: 'image/png' }), 'x.png');
-    });
+    }, APP_BASE);
     expect(kq).toBe('retry-offered');
     await expect(page.getByRole('button', { name: 'Chia sẻ / Lưu ảnh' })).toBeVisible();
     expect(await page.evaluate(() => (window as unknown as W).__taiFile.length)).toBe(0);
@@ -74,17 +75,17 @@ test('deliverImage: Safari từ chối (NotAllowedError) → nút chạm lại, 
 
 test('deliverImage: người dùng đóng bảng chia sẻ → "cancelled", không tải', async ({ page }) => {
     await giaLap(page, 'AbortError');
-    const kq = await page.evaluate(async () => {
-        const m = await import(/* @vite-ignore */ '/components/shared/ui/imageDelivery.ts' as string);
+    const kq = await page.evaluate(async (B) => {
+        const m = await import(/* @vite-ignore */ B + 'components/shared/ui/imageDelivery.ts' as string);
         return m.deliverImage(new Blob([new Uint8Array(600)], { type: 'image/png' }), 'x.png');
-    });
+    }, APP_BASE);
     expect(kq).toBe('cancelled');
     expect(await page.evaluate(() => (window as unknown as W).__taiFile.length)).toBe(0);
 });
 
 for (const kv of [
-    { ten: 'Phân ca', mod: '/features/phan-ca/services/uiService.ts' },
-    { ten: 'In Sticker', mod: '/features/sticker-event/services/uiService.ts' },
+    { ten: 'Phân ca', mod: appPath('/features/phan-ca/services/uiService.ts') },
+    { ten: 'In Sticker', mod: appPath('/features/sticker-event/services/uiService.ts') },
 ]) {
     test(`${kv.ten}: tải file không thu hồi blob URL ngay; iPhone đi đường chia sẻ`, async ({ page }) => {
         await giaLap(page);
@@ -121,20 +122,20 @@ for (const kv of [
 
 test('Check thưởng Top: iPhone mở bảng chia sẻ (trước: luôn tải file); tên siêu thị dài không bị cắt "…"', async ({ page }) => {
     await giaLap(page);
-    const kq = await page.evaluate(async () => {
+    const kq = await page.evaluate(async (B) => {
         let css = '';
         const mo = new MutationObserver(() => {
             const td = document.querySelector('#check-thuong-capture-target tbody td:nth-child(3)') as HTMLElement | null;
             if (td && !css) css = td.getAttribute('style') || '';
         });
         mo.observe(document.body, { childList: true, subtree: true });
-        const m = await import(/* @vite-ignore */ '/features/check-thuong/services/checkThuongImageExport.ts' as string);
+        const m = await import(/* @vite-ignore */ B + 'features/check-thuong/services/checkThuongImageExport.ts' as string);
         const ketQua = await m.exportLeaderboardToImage({
             stores: [{ storeCode: '1234', storeName: 'ĐMX Siêu Thị Điện Máy Xanh Số 123 Đường Hùng Vương Nối Dài Phường 7 Quận 5', achievedCount: 3, totalCategories: 5, achievedPercent: 60, totalBonus: 12_000_000 }],
         });
         mo.disconnect();
         return { ketQua, css };
-    });
+    }, APP_BASE);
     expect(kq.ketQua).toBe('shared');
     expect(await page.evaluate(() => (window as unknown as W).__share.lan)).toBe(1);
     expect(kq.css).not.toContain('text-overflow: ellipsis');

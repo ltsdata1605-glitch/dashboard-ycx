@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 test('ordinary render failure can recover through actual retry state',async({page})=>{
-  await page.goto('/tests/e2e/helpers/materialHarness.html?error-boundary');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?error-boundary'));
   await expect(page.getByRole('heading',{name:'Đã xảy ra lỗi tại AUDIT'})).toBeVisible();
   await expect(page.getByText('AUDIT render failure',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Khắc phục fixture'}).click();
@@ -10,7 +11,7 @@ test('ordinary render failure can recover through actual retry state',async({pag
 });
 test('exhausted chunk reload budget shows truthful recovery message and manual reload works',async({page})=>{
   await page.addInitScript(()=>sessionStorage.setItem('auditDocumentLoads',String(Number(sessionStorage.getItem('auditDocumentLoads')||0)+1)));
-  await page.goto('/tests/e2e/helpers/materialHarness.html?error-boundary&chunk');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?error-boundary&chunk'));
   await expect(page.getByText('Không tải được một phần ứng dụng. Vui lòng thử tải lại trang.',{exact:true})).toBeVisible();
   await expect(page.getByText(/Phiên bản mới đã được cập nhật/)).toHaveCount(0);
   const before=await page.evaluate(()=>Number(sessionStorage.getItem('auditDocumentLoads')));

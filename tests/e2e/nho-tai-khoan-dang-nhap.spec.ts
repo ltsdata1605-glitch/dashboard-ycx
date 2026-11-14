@@ -1,4 +1,5 @@
 import { test, expect, devices } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Nhớ tài khoản đã dùng trên máy (2026-10-21, chủ dự án yêu cầu): lần sau Google chọn sẵn tài khoản đó (login_hint), bỏ bước
@@ -43,8 +44,7 @@ test('"Dùng tài khoản khác": quên tài khoản, Google hiện danh sách c
 test('đăng xuất (dọn dữ liệu máy) VẪN nhớ tài khoản; "Xoá tất cả dữ liệu" thì quên', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    const ketQua = await page.evaluate(async () => {
-        const duongDan = '/services/localDataOwner.ts';
+    const ketQua = await page.evaluate(async (duongDan) => {
         const owner = await import(/* @vite-ignore */ duongDan) as { clearAllLocalAppData: (o?: { xoaKhaiThacRiengHienTai?: boolean }) => Promise<void> };
         localStorage.setItem('ycxTaiKhoanGanNhat', JSON.stringify({ email: 'quanly@vd.vn' }));
         localStorage.setItem('ycx_du_lieu_rieng', 'x');
@@ -52,7 +52,7 @@ test('đăng xuất (dọn dữ liệu máy) VẪN nhớ tài khoản; "Xoá t�
         const sauDangXuat = [localStorage.getItem('ycxTaiKhoanGanNhat'), localStorage.getItem('ycx_du_lieu_rieng')];
         await owner.clearAllLocalAppData({ xoaKhaiThacRiengHienTai: true }); // "Xoá tất cả dữ liệu (Người dùng mới)"
         return { sauDangXuat, sauXoaHet: localStorage.getItem('ycxTaiKhoanGanNhat') };
-    });
+    }, appPath('/services/localDataOwner.ts'));
     expect(ketQua.sauDangXuat).toEqual([JSON.stringify({ email: 'quanly@vd.vn' }), null]);
     expect(ketQua.sauXoaHet).toBeNull();
 });

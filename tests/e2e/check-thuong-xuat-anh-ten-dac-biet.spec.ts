@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Audit A09 (2026-09-29): exporter "Top thưởng" chèn tên siêu thị / mã kho / tiêu đề / tên file từ
@@ -7,7 +8,7 @@ import { expect, test } from '@playwright/test';
  */
 test('tên siêu thị có ký tự HTML: ảnh hiện đúng nguyên văn, không sinh thẻ HTML', async ({ page }) => {
     await page.goto('/');
-    const kq = await page.evaluate(async () => {
+    const kq = await page.evaluate(async (B) => {
         const w = window as unknown as { __xss?: number };
         HTMLAnchorElement.prototype.click = function () { /* chặn tải file trong test */ };
         // `as`: TS thu hẹp biến gán trong callback về `null` → `never` ở strict
@@ -18,7 +19,7 @@ test('tên siêu thị có ký tự HTML: ảnh hiện đúng nguyên văn, khô
         });
         mo.observe(document.body, { childList: true, subtree: true });
 
-        const p = '/features/check-thuong/services/checkThuongImageExport.ts';
+        const p = B + 'features/check-thuong/services/checkThuongImageExport.ts';
         const mod = await import(/* @vite-ignore */ p) as typeof import('../../features/check-thuong/services/checkThuongImageExport');
         const ten = 'ĐMX <b>Hùng Vương</b> & <img src=x onerror="window.__xss=1">';
         await mod.exportLeaderboardToImage({
@@ -28,7 +29,7 @@ test('tên siêu thị có ký tự HTML: ảnh hiện đúng nguyên văn, khô
         });
         mo.disconnect();
         return { chup, xss: w.__xss ?? 0, ten };
-    });
+    }, APP_BASE);
 
     expect(kq.chup, 'không bắt được DOM ảnh').not.toBeNull();
     expect(kq.chup!.soImg, 'tên siêu thị sinh ra thẻ <img> thật').toBe(0);

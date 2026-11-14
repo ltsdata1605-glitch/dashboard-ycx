@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 for (const floating of [false, true]) {
 
@@ -6,13 +7,13 @@ for (const width of [390, 1366]) {
     test.describe(`Dropdown ${floating ? 'floating' : 'inline'} ${width}`, () => {
         test.use({ viewport: { width, height: 844 } });
         test('span icon trigger has a name without nested interactive controls', async ({ page }) => {
-            await page.goto(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`);
+            await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`));
             const trigger = page.locator('[data-dropdown-trigger]');
             await expect(trigger).toHaveAccessibleName('Chọn chế độ xem');
             await expect(trigger.locator('button,[role="button"]')).toHaveCount(0);
         });
         test('keyboard selection skips disabled items and restores focus to trigger', async ({ page }) => {
-            await page.goto(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`);
+            await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`));
             const trigger = page.locator('[data-dropdown-trigger]');
             await expect(trigger).toBeVisible();
             await page.keyboard.press('Tab');
@@ -33,7 +34,7 @@ for (const width of [390, 1366]) {
             await page.screenshot({path:`audit/evidence/${process.env.AUDIT_SCREENSHOT_PREFIX || 'c16'}-dropdown-${floating ? 'floating' : 'inline'}-${width}.png`, animations:'disabled'});
         });
         test('Escape returns focus but outside click preserves the destination focus', async ({ page }) => {
-            await page.goto(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`);
+            await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`));
             const trigger = page.locator('[data-dropdown-trigger]');
             await trigger.click();
             await page.getByRole('button', { name:'Kỳ này', exact:true }).hover();
@@ -52,7 +53,7 @@ for (const width of [390, 1366]) {
 test.describe(`Dropdown touch emulation ${floating ? 'floating' : 'inline'}`, () => {
     test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
     test('tap selects and reopening preserves the current item', async ({ page }) => {
-        await page.goto(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`);
+        await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?dropdown${floating ? '&floating' : ''}`));
         const trigger = page.locator('[data-dropdown-trigger]');
         await trigger.tap();
         await page.getByRole('button', {name:'Kỳ trước',exact:true}).tap();
@@ -67,7 +68,7 @@ test.describe(`Dropdown touch emulation ${floating ? 'floating' : 'inline'}`, ()
 
 test('floating dropdown follows viewport resize and page scroll', async ({ page }) => {
     await page.setViewportSize({width:390,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?dropdown&floating');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?dropdown&floating'));
     const trigger = page.locator('[data-dropdown-trigger]');
     await trigger.click();
     const panel = page.locator('[data-dropdown-panel]');

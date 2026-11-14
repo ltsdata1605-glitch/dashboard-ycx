@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Audit A32/A33 (2026-09-30) — So giá dùng server trên máy tính (localhost:3456).
  * A32: trên điện thoại báo rõ "chỉ dùng trên máy tính", không gọi localhost vô ích.
  * A33: view bị gỡ khi đang so giá → huỷ request + đóng luồng tiến độ (trước: chạy tiếp mồ côi).
  */
-const HARNESS = '/tests/e2e/helpers/priceHarness.tsx';
+const HARNESS = appPath('/tests/e2e/helpers/priceHarness.tsx');
 
 test.describe('iPhone', () => {
     test.use({

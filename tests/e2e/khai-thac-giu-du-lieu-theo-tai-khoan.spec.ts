@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Audit A01 — chủ dự án chốt 2026-09-29: "Báo cáo khai thác lưu cục bộ trên máy ở IndexedDB, không
@@ -15,10 +16,10 @@ type W = Window & { __m: Mods; __dem: () => Promise<{ reports: number; leads: nu
 
 test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => {
+    await page.evaluate(async (B) => {
         const w = window as unknown as W;
-        const ownerPath = '/services/localDataOwner.ts';
-        const ktPath = '/features/khai-thac/services/khaiThacDb.ts';
+        const ownerPath = B + 'services/localDataOwner.ts';
+        const ktPath = B + 'features/khai-thac/services/khaiThacDb.ts';
         w.__m = {
             owner: await import(/* @vite-ignore */ ownerPath),
             kt: await import(/* @vite-ignore */ ktPath),
@@ -28,7 +29,7 @@ test.beforeEach(async ({ page }) => {
             leads: (await w.__m.kt.khaiThacDb.listLeads()).length,
         });
         w.__dangXuat = async () => { await w.__m.owner.clearAllLocalAppData(); w.__m.owner.setLocalDataOwner(null); };
-    });
+    }, APP_BASE);
 });
 
 test('đăng xuất rồi CÙNG tài khoản đăng nhập lại: báo cáo + khách hàng còn nguyên', async ({ page }) => {

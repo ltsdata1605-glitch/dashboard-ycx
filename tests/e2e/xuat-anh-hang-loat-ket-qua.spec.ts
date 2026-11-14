@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Download, type Page } from '@playwright/test';
 import { chanGhiCloud } from './helpers/customTokenLogin';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Stub đăng nhập + gieo dữ liệu thẳng vào IndexedDB: cùng cách với `sticker-nut-va-quet-ma.spec.ts`
@@ -166,8 +167,8 @@ test('Sticker: nút Xuất ảnh ra ảnh có nội dung thật, đủ lề, kh�
 test('Sticker: 1 ảnh lỗi giữa batch → báo đúng 2/3 ảnh, không còn DOM tạm', async ({ page }) => {
     await page.goto('/');
 
-    const result = await page.evaluate(async () => {
-        const modPath = '/features/sticker-event/services/batchImageExportService.ts';
+    const result = await page.evaluate(async (B) => {
+        const modPath = B + 'features/sticker-event/services/batchImageExportService.ts';
         const mod = (await import(/* @vite-ignore */ modPath)) as typeof import('../../features/sticker-event/services/batchImageExportService');
 
         let calls = 0;
@@ -193,7 +194,7 @@ test('Sticker: 1 ảnh lỗi giữa batch → báo đúng 2/3 ảnh, không còn
             leftoverHost: Array.from(document.body.children).filter(el => (el as HTMLElement).style.left === '-9999px').length,
             overlayVisible: !!document.getElementById('export-overlay') && getComputedStyle(document.getElementById('export-overlay')!).display !== 'none',
         };
-    });
+    }, APP_BASE);
 
     console.log('KẾT QUẢ BATCH STICKER:', JSON.stringify({ ...result.res, items: undefined }));
     expect(result.res.success).toBe(false);

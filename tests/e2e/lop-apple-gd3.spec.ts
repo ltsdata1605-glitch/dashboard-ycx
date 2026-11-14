@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * GĐ3 — Lớp thiết kế Apple (KE_HOACH_GIAO_DIEN_APPLE.md mục 3, 2026-10-11): kiểm HÀNH VI + số đo thật của các component
@@ -8,7 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 async function mo(page: Page) {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/appleUiHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/appleUiHarness.tsx'));
     await expect(page.locator('#khung-app')).toBeAttached();
 }
 const nhatKy = (page: Page) => page.evaluate(() => (window as unknown as { __log: string[] }).__log.slice());

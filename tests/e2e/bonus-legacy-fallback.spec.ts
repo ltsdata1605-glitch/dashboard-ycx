@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 for(const withStore of [false,true]) {
   test(`legacy bonus native IndexedDB fallback store=${withStore}`,async({page})=>{
     const errors:string[]=[];
@@ -12,7 +13,7 @@ for(const withStore of [false,true]) {
         return nativeClose.call(this);
       };
     });
-    await page.goto(`/tests/e2e/helpers/materialHarness.html?bonus-fallback${withStore?'&with-store':''}`);
+    await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?bonus-fallback${withStore?'&with-store':''}`));
     // First close is fixture seeding; second means the real hook reached the legacy fallback.
     await expect.poll(()=>page.evaluate(()=> (window as unknown as {auditLegacy:{legacyCloses:number}}).auditLegacy.legacyCloses)).toBeGreaterThanOrEqual(2);
     await expect(page.locator('output')).toHaveText(withStore?'AUDIT legacy':'NO_BONUS');

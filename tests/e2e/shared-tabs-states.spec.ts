@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 for (const variant of ['underline', 'pills', 'segment', 'chips']) {
   test(`${variant}: exposes selection and native keyboard changes`, async ({ page, browserName }) => {
-    await page.goto(`/tests/e2e/helpers/materialHarness.html?tabs&variant=${variant}`);
+    await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?tabs&variant=${variant}`));
     const one = page.getByRole('button', { name: 'Một', exact: true });
     const two = page.getByRole('button', { name: 'Hai', exact: true });
     await expect(one).toHaveAttribute('aria-pressed', 'true');
@@ -25,7 +26,7 @@ test.describe('touch landscape target', () => {
   for (const variant of ['underline','pills']) {
     for (const size of ['sm','md']) {
       test(`${variant} ${size}:44px`, async ({page}) => {
-        await page.goto(`/tests/e2e/helpers/materialHarness.html?tabs&variant=${variant}&size=${size}`);
+        await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?tabs&variant=${variant}&size=${size}`));
         const button=page.getByRole('button',{name:'Một',exact:true});
         await expect(button).toBeVisible();
         expect(await page.evaluate(()=>matchMedia('(pointer: coarse)').matches)).toBe(true);

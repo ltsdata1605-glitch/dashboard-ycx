@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Đợt D — kế hoạch iPhone: ô nhập số bật bàn phím số, nút "Chụp" (phiếu lương) mở thẳng camera,
@@ -8,10 +9,10 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 
 test('Tabs: chọn mục khuất bên phải → dải tự cuộn đưa mục vào giữa, trang không nhảy dọc', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => {
-        const m = await import('/tests/e2e/helpers/tabsHarness.tsx' as string);
+    await page.evaluate(async (B) => {
+        const m = await import(B + 'tests/e2e/helpers/tabsHarness.tsx' as string);
         m.mount();
-    });
+    }, APP_BASE);
     await expect(page.getByRole('button', { name: 'Kho số 1000' })).toBeVisible();
     const y0 = await page.evaluate(() => window.scrollY);
     await page.evaluate(() => (window as unknown as { __setTab: (id: string) => void }).__setTab('k8'));

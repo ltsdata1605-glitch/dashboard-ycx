@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Test hồi quy cho các tab chạy bằng <iframe> — sinh ra sau một sự cố THẬT:
@@ -60,7 +61,7 @@ test.describe('Tab dùng iframe không bị CSP chặn', () => {
      */
     test('Check Thưởng dùng xlsx đã vá lỗ hổng (>= 0.20.3), không phải bản 0.18.5', async ({ page }) => {
         await page.goto('/?tab=check-thuong');
-        const version = await page.evaluate(async () => (await import('/@id/xlsx' as string) as { version?: string }).version);
+        const version = await page.evaluate(async (duongDan) => (await import(duongDan) as { version?: string }).version, appPath('/@id/xlsx'));
         expect(version, 'không nạp được thư viện xlsx mà Check Thưởng dùng').toBeTruthy();
         expect(version, `xlsx ${version} vẫn dính CVE — phải dùng >= 0.20.3 từ cdn.sheetjs.com`).not.toBe('0.18.5');
         const [maj, min] = String(version).split('.').map(Number);

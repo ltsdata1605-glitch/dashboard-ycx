@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * 2026-10-30 (chủ dự án): người dùng PHẢI đăng nhập mới dùng được mọi tính năng của dashboard.pro.vn.
@@ -18,7 +19,7 @@ for (const url of duong) {
 }
 
 test('trang cũ /check-thuong.html chuyển về app (đăng nhập), không hiện bảng tra cứu', async ({ page }) => {
-    await page.goto('/check-thuong.html');
+    await page.goto(appPath('/check-thuong.html'));
     await page.waitForURL(/\?tab=check-thuong/, { timeout: 30_000 });
     await expect(page.getByTestId('login-view')).toBeVisible({ timeout: 30_000 });
 });

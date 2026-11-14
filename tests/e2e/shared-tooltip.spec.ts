@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 for (const width of [390, 1366]) {
     test.describe(`Tooltip ${width}`, () => {
         test.use({ viewport: { width, height: 844 } });
         test('keyboard description and Escape preserve focus and caller description', async ({ page }) => {
-            await page.goto('/tests/e2e/helpers/materialHarness.html?tooltip');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?tooltip'));
             const trigger = page.getByRole('button', { name: 'Thao tác' });
             await expect(trigger).toBeVisible();
             await page.keyboard.press('Tab');
@@ -23,14 +24,14 @@ for (const width of [390, 1366]) {
         });
         test('Escape cancels a pending hover timer', async ({ page }) => {
             await page.clock.install();
-            await page.goto('/tests/e2e/helpers/materialHarness.html?tooltip');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?tooltip'));
             await page.getByRole('button', { name: 'Thao tác' }).hover();
             await page.keyboard.press('Escape');
             await page.clock.fastForward(500);
             await expect(page.getByRole('tooltip')).toHaveCount(0);
         });
         test('hover dismissal works and leaving the pointer preserves keyboard focus tooltip', async ({ page }) => {
-            await page.goto('/tests/e2e/helpers/materialHarness.html?tooltip');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?tooltip'));
             const trigger = page.getByRole('button', { name: 'Thao tác' });
             await trigger.hover();
             await expect(page.getByRole('tooltip')).toBeVisible();
@@ -54,7 +55,7 @@ for (const width of [390, 1366]) {
         test.use({ viewport: { width, height: 844 } });
         for (const side of ['top', 'bottom', 'left', 'right']) {
             test(`pointer crosses gap onto ${side} tooltip and leaves without focus`, async ({ page }) => {
-                await page.goto(`/tests/e2e/helpers/materialHarness.html?tooltip&side=${side}`);
+                await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?tooltip&side=${side}`));
                 const trigger = page.getByRole('button', { name: 'Thao tác' });
                 await trigger.hover();
                 await expect(trigger).not.toBeFocused();
@@ -73,7 +74,7 @@ for (const width of [390, 1366]) {
         }
         test('disabled cancels pending and visible tooltip without stale re-entry', async ({ page }) => {
             await page.clock.install();
-            await page.goto('/tests/e2e/helpers/materialHarness.html?tooltip');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?tooltip'));
             const trigger = page.getByRole('button', { name: 'Thao tác' });
             await expect(trigger).toBeVisible();
             await page.keyboard.press('Tab');
@@ -94,7 +95,7 @@ for (const width of [390, 1366]) {
         });
         test('unmount while pending then remount creates a clean tooltip', async ({ page }) => {
             await page.clock.install();
-            await page.goto('/tests/e2e/helpers/materialHarness.html?tooltip');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?tooltip'));
             const trigger = page.getByRole('button', { name: 'Thao tác' });
             await expect(trigger).toBeVisible();
             await page.keyboard.press('Tab');
@@ -119,7 +120,7 @@ for (const width of [390, 1366]) {
         test.use({ viewport: { width, height: 844 } });
         for (const side of ['top', 'bottom', 'left', 'right']) {
             test(`long content at ${side} edge stays readable inside viewport`, async ({ page, browserName }) => {
-                await page.goto(`/tests/e2e/helpers/materialHarness.html?tooltip&side=${side}&edge=${side}`);
+                await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?tooltip&side=${side}&edge=${side}`));
                 const trigger = page.getByRole('button', { name: 'Ở mép' });
                 await expect(trigger).toBeVisible();
                 // WebKit/macOS button traversal uses Option+Tab; this is not a default-Tab acceptance test.

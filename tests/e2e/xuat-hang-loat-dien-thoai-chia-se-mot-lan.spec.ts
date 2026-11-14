@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as XLSX from 'xlsx';
 import { seedProductConfigFixture } from './helpers/salesFixture';
+import { APP_BASE } from './helpers/appBase';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -93,8 +94,8 @@ test('xuất hàng loạt NV trên iPhone: một nút, một lượt chia sẻ �
 
 test('lớp phủ xuất ảnh: hiện lại ngay sau khi ẩn thì KHÔNG bị gỡ theo hẹn cũ', async ({ page }) => {
     await page.goto('/');
-    const conLopPhu = await page.evaluate(async () => {
-        const ui = await import('/services/uiService.ts' as string);
+    const conLopPhu = await page.evaluate(async (B) => {
+        const ui = await import(B + 'services/uiService.ts' as string);
         ui.showExportOverlay('Lô 1');
         await new Promise(r => setTimeout(r, 50));
         ui.hideExportOverlay();
@@ -105,7 +106,7 @@ test('lớp phủ xuất ảnh: hiện lại ngay sau khi ẩn thì KHÔNG bị 
         const ketQua = { coLopPhu: !!el, chu: el?.textContent || '' };
         ui.hideExportOverlay();
         return ketQua;
-    });
+    }, APP_BASE);
     expect(conLopPhu.coLopPhu).toBe(true);
     expect(conLopPhu.chu).toContain('Lô 2');
 });

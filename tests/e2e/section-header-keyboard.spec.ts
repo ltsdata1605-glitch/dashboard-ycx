@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 test('section quick action keyboard does not activate header',async({page})=>{
-  await page.goto('/tests/e2e/helpers/materialHarness.html?section-header');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?section-header'));
   const tab=process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab';
   const header=page.locator('[role="button"]').filter({has:page.getByRole('heading',{name:'Audit section',exact:true})});
   const quick=page.getByRole('button',{name:'Quick audit',exact:true});
@@ -25,7 +26,7 @@ test('section quick action keyboard does not activate header',async({page})=>{
 for(const width of [390,1366]) {
   test(`card tokens and responsive section exception ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?card-foundation');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?card-foundation'));
     const sizes=await page.getByTestId('card').evaluate(el=>{
       const style=getComputedStyle(el);
       return {radius:style.borderTopLeftRadius,token:style.getPropertyValue('--card-radius').trim()};

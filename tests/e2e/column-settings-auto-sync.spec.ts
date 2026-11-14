@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 test.describe('Column Settings Firebase Sync Verification (Silent Real-User)', () => {
     test('Thiết lập hiển thị cột được lưu và phát sự kiện đồng bộ Firebase', async ({ page }) => {
         await page.goto('http://127.0.0.1:5173/');
         await page.waitForLoadState('domcontentloaded');
 
-        const verification = await page.evaluate(async () => {
+        const verification = await page.evaluate(async (B) => {
             const capturedEvents: string[] = [];
             const listener = (e: any) => {
                 if (e.detail?.key) {
@@ -16,11 +17,11 @@ test.describe('Column Settings Firebase Sync Verification (Silent Real-User)', (
 
             // Import db from bi-dashboard utils
             // @ts-ignore
-            const { set, get } = await import('/features/bi-dashboard/utils/db.ts');
+            const { set, get } = await import(B + 'features/bi-dashboard/utils/db.ts');
             // @ts-ignore
-            const { isHeavySyncKey, isLightSyncKey } = await import('/utils/localDbScope.ts');
+            const { isHeavySyncKey, isLightSyncKey } = await import(B + 'utils/localDbScope.ts');
             // @ts-ignore
-            const { isBiConfigKey } = await import('/features/bi-dashboard/services/biCloudSyncService.ts');
+            const { isBiConfigKey } = await import(B + 'features/bi-dashboard/services/biCloudSyncService.ts');
 
             // 1. Test Summary table column setting
             const testColsSummary = ['Lượt Khách LK', 'TB 3T', '%TT'];
@@ -50,7 +51,7 @@ test.describe('Column Settings Firebase Sync Verification (Silent Real-User)', (
                 industryIsHeavy: isHeavySyncKey('bi_global-hidden-cols-industry-v2'),
                 compIsHeavy: isHeavySyncKey('bi_competition-visible-cols-realtime-v6')
             };
-        });
+        }, APP_BASE);
 
         expect(verification.savedSummaryCols).toEqual(['Lượt Khách LK', 'TB 3T', '%TT']);
         expect(verification.savedIndustryCols).toEqual(['% Tỉ trọng', 'Target (QĐ)', 'TB 3T']);

@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 for(const width of [390,1366]) {
   test(`searchable select keyboard filter selection and escape ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?searchable-select');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?searchable-select'));
     const trigger=page.locator('button').filter({hasText:'Chọn ngành…'});
     await expect(trigger).toHaveAccessibleName('Ngành audit Chọn ngành…');
     const tab=process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab';
@@ -27,7 +28,7 @@ for(const width of [390,1366]) {
   });
   test(`searchable select custom option ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?searchable-select&custom');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?searchable-select&custom'));
     await page.locator('button').filter({hasText:'Chọn ngành…'}).click();
     await page.getByPlaceholder('Tìm kiếm...').fill('  Custom audit  ');
     await page.getByRole('button',{name:'Sử dụng "Custom audit"',exact:true}).click();
@@ -36,7 +37,7 @@ for(const width of [390,1366]) {
 }
 
 test('picker Escape closes before its containing shared Modal',async({page})=>{
-  await page.goto('/tests/e2e/helpers/materialHarness.html?searchable-select&in-modal');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?searchable-select&in-modal'));
   const dialog=page.getByRole('dialog',{name:'Audit form'});
   const trigger=page.getByRole('button',{name:'Ngành audit Chọn ngành…',exact:true});
   await trigger.click();

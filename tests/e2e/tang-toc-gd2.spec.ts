@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { appPath } from './helpers/appBase';
 
 /**
  * GĐ2 tăng tốc (KE_HOACH_GIAO_DIEN_APPLE.md mục 4.3, 2026-10-11) — khoá HÀNH VI của các thay đổi về tải, để lần sau không ai
@@ -77,7 +78,7 @@ test('Rảnh thì tải trước 2 tab chính còn lại (chuyển tab nhanh), k
 
 test('BusyBar: bận ngắn không hiện, bận lâu hiện vạch mảnh và vẫn bấm được nút bên dưới', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/busyBarHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/busyBarHarness.tsx'));
     const vach = page.locator('[data-busy-bar]');
 
     // Bận < 300 ms → không nháy gì.

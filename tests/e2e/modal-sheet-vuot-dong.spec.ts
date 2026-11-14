@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Đợt B — kế hoạch iPhone: Modal `position="bottom"` trên màn < 640px là sheet kiểu iOS:
@@ -7,10 +8,10 @@ import { test, expect, type Page } from '@playwright/test';
  */
 async function mo(page: Page, position: 'center' | 'bottom') {
     await page.goto('/');
-    await page.evaluate(async (pos) => {
-        const m = await import('/tests/e2e/helpers/sheetHarness.tsx' as string);
+    await page.evaluate(async ({ pos, B }) => {
+        const m = await import(B + 'tests/e2e/helpers/sheetHarness.tsx' as string);
         m.mount(pos);
-    }, position);
+    }, { pos: position, B: APP_BASE });
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.waitForTimeout(500); // chờ hoạt ảnh trượt lên xong
 }

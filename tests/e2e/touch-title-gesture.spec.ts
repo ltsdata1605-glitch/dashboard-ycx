@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 // Chromium: trusted CDP touch input. WebKit: explicit synthetic PointerEvent boundary,
 // both mount the actual React hook and buttons; neither proves physical iPhone behavior.
 async function hold(page:Page, finish:'end'|'cancel') {
@@ -17,7 +18,7 @@ async function hold(page:Page, finish:'end'|'cancel') {
 // Bài này đo cử chỉ CHẠM — phải chạy ở chế độ cảm ứng (trước 2026-10-30 thiếu dòng này nên trên project laptop luôn đỏ ở matchMedia).
 test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 test.beforeEach(async({page})=>{
-  await page.goto('/tests/e2e/helpers/materialHarness.html?touch-title');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?touch-title'));
   await expect(page.getByRole('button',{name:'Hint',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>matchMedia('(hover: none) and (pointer: coarse)').matches)).toBe(true);
 });

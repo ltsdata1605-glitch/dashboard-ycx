@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 for(const width of [390,1366]) {
   test(`DataTable native sort groups and loading/empty ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?table-foundation');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?table-foundation'));
     const header=page.getByRole('columnheader',{name:'Tên',exact:true});
     await expect(header).toBeVisible();
     await page.keyboard.press(process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab');
@@ -23,7 +24,7 @@ for(const width of [390,1366]) {
   });
   test(`DataTable scroll cue sticky header and column ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?table-foundation');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?table-foundation'));
     const scroller=page.locator('#audit-table .overflow-x-auto');
     const head=page.locator('thead'),cell=page.getByRole('cell',{name:'Audit 1',exact:true});
     await expect(scroller).toHaveAttribute('data-xcue-right','');
@@ -40,7 +41,7 @@ for(const width of [390,1366]) {
 }
 
 test('fixed width and group spans recompute across lg breakpoint',async({page})=>{
-  await page.goto('/tests/e2e/helpers/materialHarness.html?table-foundation');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?table-foundation'));
   for(const width of [1366,390,1366]) {
     await page.setViewportSize({width,height:844});
     await expect(page.locator('table')).toHaveCSS('min-width',width<1024?'400px':'800px');

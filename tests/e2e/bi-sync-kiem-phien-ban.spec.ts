@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { appPath } from './helpers/appBase';
 
 /**
  * Bấm "Tự động Realtime/Luỹ kế" → Dashboard đọc @version của userscript đang phát (bản mới nhất), so với bản máy
@@ -15,7 +16,7 @@ async function mo(page: Page, version: string) {
     // Tab worker MWG (khi được chạy) → trả trang rỗng, không ra mạng thật
     await page.context().route('https://baocao.dienmayxanh.com/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: '<html></html>' }));
     await page.goto('/');
-    await page.evaluate(async (v) => (await import('/tests/e2e/helpers/biVersionHarness.tsx' as string)).mountHarness(v), version);
+    await page.evaluate(async ({ v, duongDan }) => (await import(duongDan)).mountHarness(v), { v: version, duongDan: appPath('/tests/e2e/helpers/biVersionHarness.tsx') });
 }
 
 test('máy chạy bản cũ (vd 6.4 — bản ≤7.3 luôn tự báo 6.4) → tự mở trang cập nhật userscript, không chạy', async ({ page }) => {

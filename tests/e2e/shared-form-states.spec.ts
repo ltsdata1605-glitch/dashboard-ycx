@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 for (const width of [390, 1366]) {
     test.describe(`shared form states ${width}`, () => {
         test.use({ viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390 });
         test('error linkage, busy state, keyboard focus and dense exceptions', async ({ page }) => {
-            await page.goto('/tests/e2e/helpers/materialHarness.html?forms');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?forms'));
             const save = page.getByRole('button', { name: 'Lưu', exact: true });
             await expect(save).toBeVisible();
             await page.keyboard.press('Tab');
@@ -55,7 +56,7 @@ for (const width of [390, 1366]) {
 }
 
 test('loading button exposes busy state independently of form validation', async ({ page }) => {
-    await page.goto('/tests/e2e/helpers/materialHarness.html?forms');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?forms'));
     const save = page.getByRole('button', { name: 'Lưu', exact: true });
     await save.click();
     await expect(save).toBeDisabled();
@@ -66,7 +67,7 @@ for (const width of [390, 1366]) {
     test.describe(`height tokens ${width}`, () => {
         test.use({ viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390 });
         test('height tokens propagate without changing dense/icon/caller exceptions', async ({ page }) => {
-            await page.goto('/tests/e2e/helpers/materialHarness.html?forms');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?forms'));
             const save = page.getByRole('button', { name: 'Lưu', exact: true });
             const input = page.getByRole('textbox', { name: 'Tên', exact: true });
             const select = page.getByRole('combobox', { name: 'Kỳ', exact: true });
@@ -95,7 +96,7 @@ for (const width of [390, 1366]) {
     test.describe(`radius contract ${width}`, () => {
         test.use({ viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390 });
         test('shared radius propagates while caller exceptions retain their tokens', async ({ page }) => {
-            await page.goto('/tests/e2e/helpers/materialHarness.html?forms');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?forms'));
             const shared = [
                 page.getByRole('button', { name: 'Lưu', exact: true }),
                 page.getByRole('textbox', { name: 'Tên', exact: true }),

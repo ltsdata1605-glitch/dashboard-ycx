@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * TOAST THỐNG NHẤT (KE_HOACH_GIAO_DIEN_APPLE.md GĐ1): một API + một giao diện, vị trí TRÊN GIỮA, không bao giờ đè thanh tab
@@ -11,8 +12,8 @@ type KichBan = 'bon-loai' | 'vuot' | 'nut' | 'laptop';
 // (success 2,5 s, info 3 s) thì máy CI chậm thua cuộc đua: run 358 WebKit — `hover` chờ ổn định mất 3,1 s, toast success đã hết giờ
 // trước khi chuột tới → nút "Đóng thông báo" biến mất giữa chừng, `click` chờ 60 s rồi đỏ.
 const LAU = 20000;
-const banToast = (page: Page, kichBan: KichBan) => page.evaluate(async ({ k, lau }) => {
-    const { toast } = await import('/components/shared/ui/toast/toast.ts' as string);
+const banToast = (page: Page, kichBan: KichBan) => page.evaluate(async ({ k, lau, B }) => {
+    const { toast } = await import(B + 'components/shared/ui/toast/toast.ts' as string);
     const w = window as unknown as { __bam?: number };
     if (k === 'bon-loai') {
         toast.success('Đã lưu cấu hình', { duration: lau });
@@ -26,7 +27,7 @@ const banToast = (page: Page, kichBan: KichBan) => page.evaluate(async ({ k, lau
     } else {
         toast.success('Đã đồng bộ dữ liệu lên đám mây!', { duration: lau });
     }
-}, { k: kichBan, lau: LAU });
+}, { k: kichBan, lau: LAU, B: APP_BASE });
 
 const hien = (page: Page) => page.locator('[data-app-toast]').filter({ visible: true });
 

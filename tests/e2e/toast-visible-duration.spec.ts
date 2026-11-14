@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
-test.beforeEach(async({page})=>{await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/tests/e2e/helpers/materialHarness.html?toast-queue');});
+import { appPath } from './helpers/appBase';
+test.beforeEach(async({page})=>{await page.emulateMedia({reducedMotion:'reduce'});await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?toast-queue'));});
 test('queued toast retains duration until its first visible slot',async({page})=>{
   await page.getByRole('button',{name:'Queue',exact:true}).click();await expect(page.locator('[data-app-toast]')).toHaveCount(3);
   await expect(page.getByText('Queued finite',{exact:true})).toHaveCount(0);

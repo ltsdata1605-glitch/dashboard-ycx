@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 async function swipe(page:Page,cancel:boolean){
   const toast=page.getByTestId('app-toast');
   await expect(toast).toHaveCSS('opacity','1');
@@ -18,7 +19,7 @@ async function swipe(page:Page,cancel:boolean){
 }
 test.beforeEach(async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});
-  await page.goto('/tests/e2e/helpers/materialHarness.html?toast-gesture');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?toast-gesture'));
   await expect(page.getByTestId('app-toast')).toHaveCSS('opacity','1');
 });
 test('cancelled swipe retains toast and does not invoke onDismiss',async({page})=>{

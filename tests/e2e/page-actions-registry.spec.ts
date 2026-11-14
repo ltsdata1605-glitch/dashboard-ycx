@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
+import { appPath } from './helpers/appBase';
 for(const variant of ['mobile','desktop']) {
   test(`PageActions latest callback and owner removal ${variant}`,async({page})=>{
     await page.setViewportSize({width:variant==='mobile'?390:1366,height:844});
-    await page.goto(`/tests/e2e/helpers/materialHarness.html?page-actions&variant=${variant}`);
+    await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?page-actions&variant=${variant}`));
     const result=page.getByLabel('Action result');
     await page.getByRole('button',{name:'A primary',exact:true}).click();await expect(result).toHaveText('A:1:primary');
     await page.getByRole('button',{name:'Update callback',exact:true}).click();
@@ -17,7 +18,7 @@ for(const variant of ['mobile','desktop']) {
   });
   test(`PageActions overflow scope and loading ${variant}`,async({page})=>{
     await page.setViewportSize({width:variant==='mobile'?390:1366,height:844});
-    await page.goto(`/tests/e2e/helpers/materialHarness.html?page-actions&variant=${variant}`);
+    await page.goto(appPath(`/tests/e2e/helpers/materialHarness.html?page-actions&variant=${variant}`));
     const bar=page.locator(`[data-page-actions="${variant}"]`);
     await expect(bar.getByRole('button')).toHaveCount(variant==='mobile'?3:4);
     await page.getByTestId('page-actions-more').click();

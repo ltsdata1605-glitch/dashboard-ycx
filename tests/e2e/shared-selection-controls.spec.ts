@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/tests/e2e/helpers/materialHarness.html?selection-controls');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?selection-controls'));
 });
 
 for (const [name, width, height] of [['Nhỏ', 36, 20], ['Vừa', 44, 26]] as const) {

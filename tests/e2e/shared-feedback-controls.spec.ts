@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 for (const width of [390, 1366]) {
   test.describe(`Feedback ${width}`, () => {
     test.use({ viewport: { width, height: 844 } });
     test.beforeEach(async ({ page }) => {
-      await page.goto('/tests/e2e/helpers/materialHarness.html?feedback');
+      await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?feedback'));
     });
     test('progress names and bounded visual/ARIA values', async ({ page }) => {
       const bars = page.getByRole('progressbar');

@@ -1,12 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
+import { appPath } from './helpers/appBase';
 
 /**
  * Bộ xuất ảnh CHUNG (components/shared/export) — kế hoạch "Hợp nhất xuất ảnh" 2026-10-01.
  * Chạy code thật trong Chromium (html-to-image thật, DOM thật), nạp module qua Vite.
  */
 type Mod = typeof import('../../components/shared/export');
-const MOD = '/components/shared/export/index.ts';
+const MOD = appPath('/components/shared/export/index.ts');
 
 async function datBang(page: Page) {
     await page.goto('/');

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Audit A11/A12 (2026-09-29) — Modal dùng chung (components/shared/ui/Modal.tsx, 67 nơi dùng).
@@ -8,11 +9,11 @@ import { expect, test, type Page } from '@playwright/test';
  */
 const moHarness = async (page: Page) => {
     await page.goto('/');
-    await page.evaluate(async () => {
-        const p = '/tests/e2e/helpers/modalHarness.tsx';
+    await page.evaluate(async (B) => {
+        const p = B + 'tests/e2e/helpers/modalHarness.tsx';
         const mod = await import(/* @vite-ignore */ p) as { mountHarness: () => void };
         mod.mountHarness();
-    });
+    }, APP_BASE);
     await expect(page.locator('#mo-a')).toBeVisible();
 };
 const overflow = (page: Page) => page.evaluate(() => document.body.style.overflow);

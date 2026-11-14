@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 test('failed CSS request may retry; pending and loaded requests deduplicate', async ({ page }) => {
   let count = 0;
@@ -10,7 +11,7 @@ test('failed CSS request may retry; pending and loaded requests deduplicate', as
     await gate;
     await route.fulfill({contentType:'text/css',body:'/* successful mocked stylesheet */'});
   });
-  await page.goto('/tests/e2e/helpers/materialHarness.html?fonts');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?fonts'));
   const load = page.getByRole('button', {name:'Tải Inter'});
   await load.click();
   await expect.poll(() => count).toBe(1);

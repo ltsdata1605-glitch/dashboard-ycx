@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Trang LIFF bấm dùng coupon (public/liff-copy.html) — 2026-10-20 chủ dự án chốt "Tắt tin nhắn xác nhận khi dùng coupon":
@@ -31,7 +32,7 @@ async function mo(page: Page, phanHoi: object | null, treMs = 0, status = 200, r
         if (treMs) await new Promise(res => setTimeout(res, treMs));
         await r.fulfill({ status, contentType: 'application/json', body: JSON.stringify(phanHoi) }).catch(() => {});
     });
-    await page.goto('/liff-copy.html?code=ABC123&type=PMH&index=3');
+    await page.goto(appPath('/liff-copy.html?code=ABC123&type=PMH&index=3'));
     return goi;
 }
 const soTinGui = (page: Page) => page.evaluate(() => (window as unknown as { __gui: string[] }).__gui.length);

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 900 }]) {
     test.describe(`Shared glass controls ${viewport.width}`, () => {
@@ -6,7 +7,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 900 
         test.use({ viewport, isMobile: mobile, hasTouch: mobile });
 
         test('tokens, active/disabled, keyboard focus and transparency fallback', async ({ page, context }) => {
-            await page.goto('/tests/e2e/helpers/materialHarness.html?controls');
+            await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?controls'));
             const capsule = page.getByRole('group', { name: 'Phân hệ', exact: true });
             const first = capsule.getByRole('button', { name: 'Siêu thị' });
             const second = capsule.getByRole('button', { name: 'Nhân viên' });

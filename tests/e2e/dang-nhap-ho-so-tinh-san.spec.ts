@@ -6,6 +6,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { chanGhiCloud, dangNhapBangToken, docKhoaCaiDatCloud, hasCustomToken } from './helpers/customTokenLogin';
+import { appPath } from './helpers/appBase';
 test.skip(!hasCustomToken(), 'Chưa có custom token của tài khoản test');
 test.use({ launchOptions: { ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}), ...(process.env.HTTPS_PROXY ? { proxy: { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' } } : {}) } });
 
@@ -25,10 +26,9 @@ test('có hồ sơ tính sẵn cho đúng tài khoản: vào app KHÔNG gọi re
     await dangNhapBangToken(p1);
     await expect(p1.getByRole('button', { name: /Tiếp tục với Google/i })).toHaveCount(0, { timeout: 60_000 });
     await expect.poll(() => hoSo, { timeout: 30_000 }).not.toBeNull();
-    const uid = await p1.evaluate(async () => {
-        const duongDan = '/services/firebase.ts'; // biến → tsc không đòi phân giải đường dẫn trình duyệt
+    const uid = await p1.evaluate(async (duongDan) => {
         return ((await import(/* @vite-ignore */ duongDan)) as { auth: { currentUser: { uid: string } } }).auth.currentUser.uid;
-    });
+    }, appPath('/services/firebase.ts'));
     await c1.close();
 
     for (const [ten, uidHoSo, soLuotMongDoi] of [['dung-uid', uid, 0], ['uid-khac', 'uid-cua-nguoi-khac', 1]] as const) {

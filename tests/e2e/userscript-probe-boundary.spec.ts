@@ -1,15 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
+import { appPath, APP_BASE } from './helpers/appBase';
 
 type ProbeState = { versions: string[]; pings: number };
 async function start(page: Page) {
-    await page.goto('/tests/e2e/helpers/materialHarness.html');
-    await page.evaluate(async () => {
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html'));
+    await page.evaluate(async (B) => {
         const state: ProbeState = { versions: [], pings: 0 };
         (window as unknown as { auditProbe: ProbeState }).auditProbe = state;
-        const path = '/features/bi-dashboard/services/userscriptProbeService.ts';
+        const path = B + 'features/bi-dashboard/services/userscriptProbeService.ts';
         const service = await import(/* @vite-ignore */ path);
         service.startUserscriptUpdateWatcher('2.0.0', (version: string) => state.versions.push(version));
-    });
+    }, APP_BASE);
     const handle = await page.locator('#__ycx_userscript_probe_frame__').elementHandle();
     const frame = await handle!.contentFrame();
     await frame!.waitForLoadState();
@@ -38,9 +39,9 @@ async function sendVersion(frame: NonNullable<Awaited<ReturnType<typeof start>>>
 test('unrelated same-origin frame cannot claim an installed version', async ({ page }) => {
     await start(page);
     // A sibling frame is the untrusted message source, not a fake application UI.
-    await page.evaluate(() => {
-        const frame = document.createElement('iframe'); frame.id = 'unrelated'; frame.src = '/userscript-probe.html'; document.body.append(frame);
-    });
+    await page.evaluate((B) => {
+        const frame = document.createElement('iframe'); frame.id = 'unrelated'; frame.src = B + 'userscript-probe.html'; document.body.append(frame);
+    }, APP_BASE);
     const frame = await (await page.locator('#unrelated').elementHandle())!.contentFrame();
     await frame!.waitForLoadState();
     await sendVersion(frame!);
@@ -67,10 +68,10 @@ test('opaque-origin message from the owned frame is rejected', async ({ page }) 
 
 test('current probe after reload still reports version once', async ({ page }) => {
     await start(page);
-    await page.evaluate(async () => {
-        const path = '/features/bi-dashboard/services/userscriptProbeService.ts';
+    await page.evaluate(async (B) => {
+        const path = B + 'features/bi-dashboard/services/userscriptProbeService.ts';
         (await import(/* @vite-ignore */ path)).reloadProbeIframe();
-    });
+    }, APP_BASE);
     const frame = await (await page.locator('#__ycx_userscript_probe_frame__').elementHandle())!.contentFrame();
     await frame!.waitForLoadState();
     await sendVersion(frame!);
@@ -87,9 +88,9 @@ test('probe accepts parent ping and rejects a sibling ping', async ({ page }) =>
             if ((e as CustomEvent).detail?.nonce?.startsWith('probe_')) (window as unknown as { auditPings: number }).auditPings++;
         });
     });
-    await page.evaluate(() => {
-        const sibling = document.createElement('iframe'); sibling.id = 'unrelated'; sibling.src = '/userscript-probe.html'; document.body.append(sibling);
-    });
+    await page.evaluate((B) => {
+        const sibling = document.createElement('iframe'); sibling.id = 'unrelated'; sibling.src = B + 'userscript-probe.html'; document.body.append(sibling);
+    }, APP_BASE);
     const sibling = await (await page.locator('#unrelated').elementHandle())!.contentFrame();
     await sibling!.waitForLoadState();
     const before = await probe.evaluate(() => (window as unknown as { auditPings: number }).auditPings);

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { moCheckThuong, napFileThuong, taoFileThuong } from './helpers/checkThuongNative';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Audit A17 (2026-09-30).
@@ -12,14 +13,14 @@ import { moCheckThuong, napFileThuong, taoFileThuong } from './helpers/checkThuo
  */
 test('Input: lỗi nối vào ô cho trình đọc màn hình', async ({ page }) => {
     await page.goto('/');
-    const kq = await page.evaluate(async () => {
-        (await import('/tests/e2e/helpers/inputHarness.tsx' as string)).mountInput();
+    const kq = await page.evaluate(async (B) => {
+        (await import(B + 'tests/e2e/helpers/inputHarness.tsx' as string)).mountInput();
         const el = document.getElementById('input-harness')!;
         await new Promise(r => setTimeout(r, 300));
         const input = el.querySelector('input')!;
         const ids = (input.getAttribute('aria-describedby') || '').split(' ');
         return { invalid: input.getAttribute('aria-invalid'), ids, loi: ids.map(i => document.getElementById(i)?.textContent || null) };
-    });
+    }, APP_BASE);
     expect(kq.invalid).toBe('true');
     expect(kq.ids[0]).toBe('goi-y'); // describedby sẵn có được giữ
     expect(kq.loi[1]).toBe('Mã kho phải là số');

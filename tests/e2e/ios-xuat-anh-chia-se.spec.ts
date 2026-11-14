@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { appPath, APP_BASE } from './helpers/appBase';
 
 /**
  * Xuất ảnh trên Safari iOS (2026-09-27). Máy test chỉ có Chromium nên GIẢ LẬP đúng hành vi Safari:
@@ -36,8 +37,8 @@ const giaLapSafari = async (page: Page) => {
 };
 
 for (const kv of [
-    { ten: 'Phân tích', mod: '/services/uiService.ts' },
-    { ten: 'Report BI', mod: '/features/bi-dashboard/services/uiExport/blobUtils.ts' },
+    { ten: 'Phân tích', mod: appPath('/services/uiService.ts') },
+    { ten: 'Report BI', mod: appPath('/features/bi-dashboard/services/uiExport/blobUtils.ts') },
 ]) {
     test(`${kv.ten}: share bị Safari từ chối → hiện nút chạm lại, chạm thì mở bảng chia sẻ`, async ({ page }) => {
         await giaLapSafari(page);
@@ -66,12 +67,12 @@ for (const kv of [
 test('tải file (vd Excel): KHÔNG thu hồi blob URL ngay — Safari iOS đọc blob không đồng bộ', async ({ page }) => {
     await giaLapSafari(page);
     await page.goto('/?tab=analysis');
-    const soLanThuHoi = await page.evaluate(async () => {
-        const modPath = '/services/uiService.ts'; // biến: để TypeScript không cố phân giải đường dẫn dev server
+    const soLanThuHoi = await page.evaluate(async (B) => {
+        const modPath = B + 'services/uiService.ts'; // biến: để TypeScript không cố phân giải đường dẫn dev server
         const mod = await import(/* @vite-ignore */ modPath) as { downloadBlob: (b: Blob, f: string) => void };
         mod.downloadBlob(new Blob(['a,b'], { type: 'text/csv' }), 'x.csv');
         await new Promise(r => setTimeout(r, 500));
         return (window as unknown as { __revoke: number }).__revoke;
-    });
+    }, APP_BASE);
     expect(soLanThuHoi).toBe(0);
 });

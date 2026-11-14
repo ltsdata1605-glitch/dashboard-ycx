@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { appPath } from './helpers/appBase';
 
 /**
  * GĐ10 bước 1 (2026-10-15) — 2 luật cứng của CLAUDE.md mục 2:
@@ -15,7 +16,7 @@ const batHopThoaiTrinhDuyet = (page: Page) => {
 };
 const moHarness = async (page: Page, loai: 'coupon-loc' | 'ma-sp' | 'hoi-3') => {
     await page.goto('/');
-    await page.evaluate(async (l) => (await import('/tests/e2e/helpers/gd10Harness.tsx' as string)).mount(l), loai);
+    await page.evaluate(async ({ l, duongDan }) => (await import(duongDan)).mount(l), { l: loai, duongDan: appPath('/tests/e2e/helpers/gd10Harness.tsx') });
 };
 const daBam = (page: Page) => page.evaluate(() => (window as unknown as { __bam?: string[] }).__bam ?? []);
 /** Ngay sau khi bấm đóng, modal còn mờ dần ~200 ms (usePresence) — chữ trong hộp phải GIỮ NGUYÊN, không nháy sang câu hỏi khác hay

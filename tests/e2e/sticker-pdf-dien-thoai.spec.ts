@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Audit 2026-10-07 (GĐ5, IOS-01 + IOS-08): in tem trên ĐIỆN THOẠI tạo PDF để xem trước.
@@ -15,7 +16,7 @@ const SP = (msp: string) => ({ msp, sanPham: `Sản phẩm ${msp}`, thuongERP: 0
 const CAI_DAT = { showOriginalPrice: true, showPromotion: true, showBonus: false, showQrCode: true, showEmployeeName: false, tagsPerPage: 4, shortenPrice: false, sortByName: false, stickerStyle: 'default' };
 
 async function inTem(page: Page, loiCanvas: boolean) {
-    return page.evaluate(async ({ sps, caiDat, loiCanvas }) => {
+    return page.evaluate(async ({ sps, caiDat, loiCanvas, B }) => {
         if (loiCanvas) {
             // Canvas chụp tem thuộc iframe dựng (realm riêng) → giả lập lỗi ngay trong iframe đó khi nó xuất hiện.
             new MutationObserver(() => {
@@ -24,8 +25,7 @@ async function inTem(page: Page, loiCanvas: boolean) {
                 if (w) w.HTMLCanvasElement.prototype.toDataURL = () => { throw new Error('canvas hỏng (giả lập)'); };
             }).observe(document.body, { childList: true });
         }
-        // @ts-expect-error — đường dẫn module do Vite dev phục vụ trong trình duyệt, không phải đường dẫn TypeScript
-        const mod = await import('/features/sticker-event/services/printService.ts');
+        const mod = await import(B + 'features/sticker-event/services/printService.ts');
         // Khung dựng ẩn: bản cũ là <div> opacity 0 / z-index -1, bản mới là iframe [data-sticker-render].
         const anCon = () => [...document.body.children].filter((el) => el.hasAttribute('data-sticker-render') || ((el as HTMLElement).style.zIndex === '-1' && (el as HTMLElement).style.opacity === '0')).length;
         try {
@@ -34,7 +34,7 @@ async function inTem(page: Page, loiCanvas: boolean) {
         } catch (e) {
             return { url: null, loi: String((e as Error).message), khungAnConLai: anCon() };
         }
-    }, { sps: [SP('1001'), SP('1002'), SP('1003')], caiDat: CAI_DAT, loiCanvas });
+    }, { sps: [SP('1001'), SP('1002'), SP('1003')], caiDat: CAI_DAT, loiCanvas, B: APP_BASE });
 }
 
 test('iPhone: PDF là Blob URL, xem trước trong iframe không bị CSP chặn', async ({ page }) => {
@@ -89,13 +89,12 @@ test('iPhone: khổ bill 80mm — mỗi tem một trang PDF', async ({ page }) =
     test.setTimeout(90000);
     await page.goto('/');
     await page.waitForTimeout(1500);
-    const kq = await page.evaluate(async ({ sps, caiDat }) => {
-        // @ts-expect-error — đường dẫn module do Vite dev phục vụ trong trình duyệt, không phải đường dẫn TypeScript
-        const mod = await import('/features/sticker-event/services/printService.ts');
+    const kq = await page.evaluate(async ({ sps, caiDat, B }) => {
+        const mod = await import(B + 'features/sticker-event/services/printService.ts');
         const url = await mod.printPriceTags(sps, 'NV', caiDat) as string;
         const txt = await (await fetch(url)).text();
         return { url, trang: (txt.match(/\/Type\s*\/Page[^s]/g) ?? []).length };
-    }, { sps: [SP('2001'), SP('2002'), SP('2003')], caiDat: { ...CAI_DAT, tagsPerPage: 80 } });
+    }, { sps: [SP('2001'), SP('2002'), SP('2003')], caiDat: { ...CAI_DAT, tagsPerPage: 80 }, B: APP_BASE });
     console.log('Bill 80mm — số trang:', kq.trang);
     expect(kq.url).toMatch(/^blob:/);
     expect(kq.trang).toBe(3);

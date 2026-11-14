@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { moMucCongCu } from './helpers/dock';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Đợt 2 audit (2026-09-29) — component dùng chung, KHÔNG đổi nhận diện:
@@ -9,10 +10,10 @@ import { moMucCongCu } from './helpers/dock';
  */
 const moHarness = async (page: Page) => {
     await page.goto('/');
-    await page.evaluate(async () => {
-        const p = '/tests/e2e/helpers/uiHarness.tsx';
+    await page.evaluate(async (B) => {
+        const p = B + 'tests/e2e/helpers/uiHarness.tsx';
         (await import(/* @vite-ignore */ p) as { mountUiHarness: () => void }).mountUiHarness();
-    });
+    }, APP_BASE);
     await expect(page.locator('#nut-thuong')).toBeVisible();
 };
 

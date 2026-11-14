@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Chủ dự án báo 2026-09-23: tài khoản MỚI đăng nhập trên cùng máy vẫn thấy dữ liệu của tài khoản
@@ -9,9 +10,9 @@ import { expect, test } from '@playwright/test';
 test('đổi tài khoản: dữ liệu cục bộ của tài khoản trước bị dọn sạch', async ({ page }) => {
     await page.goto('/');
 
-    const result = await page.evaluate(async () => {
+    const result = await page.evaluate(async (B) => {
         // Đường dẫn qua dev server của Vite — dùng biến để TypeScript không cố phân giải module
-        const modPath = '/services/localDataOwner.ts';
+        const modPath = B + 'services/localDataOwner.ts';
         const mod = (await import(/* @vite-ignore */ modPath)) as typeof import('../../services/localDataOwner');
 
         // Giả lập dữ liệu của "tài khoản cũ" trong đúng các kho app dùng thật
@@ -82,7 +83,7 @@ test('đổi tài khoản: dữ liệu cục bộ của tài khoản trước b�
             lsGemini: localStorage.getItem('CUSTOM_GEMINI_API_KEY'),
             owner: mod.getLocalDataOwner(),
         };
-    });
+    }, APP_BASE);
 
     console.log('KẾT QUẢ ĐỔI TÀI KHOẢN:', JSON.stringify(result));
     expect(result.before).toBeTruthy();       // có dữ liệu của người cũ trước đó
@@ -99,15 +100,15 @@ test('đổi tài khoản: dữ liệu cục bộ của tài khoản trước b�
 test('cùng một tài khoản: KHÔNG dọn dữ liệu', async ({ page }) => {
     await page.goto('/');
 
-    const kept = await page.evaluate(async () => {
+    const kept = await page.evaluate(async (B) => {
         // Đường dẫn qua dev server của Vite — dùng biến để TypeScript không cố phân giải module
-        const modPath = '/services/localDataOwner.ts';
+        const modPath = B + 'services/localDataOwner.ts';
         const mod = (await import(/* @vite-ignore */ modPath)) as typeof import('../../services/localDataOwner');
         localStorage.setItem('ycx-giu-lai', 'dữ liệu của chính tôi');
         mod.setLocalDataOwner('uid-cua-toi');
         const wiped = await mod.ensureLocalDataBelongsTo('uid-cua-toi');
         return { wiped, value: localStorage.getItem('ycx-giu-lai') };
-    });
+    }, APP_BASE);
 
     console.log('CÙNG TÀI KHOẢN:', JSON.stringify(kept));
     expect(kept.wiped).toBe(false);

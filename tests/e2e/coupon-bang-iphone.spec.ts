@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * "Bảng luôn là bảng" (CLAUDE.md mục 2, chủ dự án chốt 2026-10-02) — danh sách mã coupon ở Bot LINE trước đây trên điện thoại là
@@ -8,7 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 const moHarness = async (page: Page) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/couponTableHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/couponTableHarness.tsx'));
     await expect(page.getByTestId('coupon-table').locator('table')).toBeVisible({ timeout: 20_000 });
 };
 

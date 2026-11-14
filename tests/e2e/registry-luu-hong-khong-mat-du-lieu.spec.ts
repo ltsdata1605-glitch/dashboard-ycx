@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import * as XLSX from 'xlsx';
+import { appPath } from './helpers/appBase';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 function fileBanHang(): Buffer {
@@ -23,7 +24,7 @@ function fileBanHang(): Buffer {
  * registry → dọn bản cũ), bước dọn vẫn chạy trong khi registry còn trỏ BẢN CŨ → bản cũ bị xoá = mất dữ liệu.
  * Test trên IndexedDB thật của Chromium: giả lập QuotaExceededError chỉ đúng lúc ghi registry.
  */
-const MOD = '/services/dbService.ts';
+const MOD = appPath('/services/dbService.ts');
 
 test('ghi registry hỏng khi đồng bộ bản cloud: báo lỗi, dữ liệu cũ còn nguyên, không để rác bản mới', async ({ page }) => {
     await page.goto('/');
@@ -108,7 +109,7 @@ test('nạp tệp Lũy kế lúc bộ nhớ đầy: hiện lỗi (không tung ho
             };
         });
         return { registry: reg.length, khoaTep: keys.filter((k) => k.includes('file_')) };
-    }, [MOD, '/utils/localDbScope.ts'] as const);
+    }, [MOD, appPath('/utils/localDbScope.ts')] as const);
     console.log('Sau lỗi lưu:', JSON.stringify(rac));
     expect(rac.registry).toBe(0);
     expect(rac.khoaTep, 'không còn dữ liệu tệp mồ côi').toEqual([]);

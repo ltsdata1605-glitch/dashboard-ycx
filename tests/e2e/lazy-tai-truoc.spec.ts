@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * utils/lazyWithRetry `.preload()` (GĐ9 2026-10-14 — chuyển tab ≤ 0,3 s): module đã tải trước thì lần gắn đầu vẽ component
@@ -10,10 +11,10 @@ import { test, expect } from '@playwright/test';
  */
 test('lazyWithRetry: đường lazy không gắn lại sau khi module về; đường preload vẽ ngay, không qua màn chờ', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => {
-        const m = await import('/tests/e2e/helpers/lazyWithRetryHarness.tsx' as string);
+    await page.evaluate(async (B) => {
+        const m = await import(B + 'tests/e2e/helpers/lazyWithRetryHarness.tsx' as string);
         await m.mount();
-    });
+    }, APP_BASE);
     const w = (fn: string) => page.evaluate((f) => (window as unknown as Record<string, () => void>)[f](), fn);
 
     // Đường React.lazy: chưa có module → màn chờ; module về → nội dung.

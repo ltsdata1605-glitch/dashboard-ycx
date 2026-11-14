@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Tab loại bảng/cột của 2 hộp thoại cấu hình (7 Ngày, cột nhân viên) — 2026-10-28 chuyển từ 3 nút tự vẽ sang <Tabs variant="underline">.
@@ -9,7 +10,7 @@ for (const ten of ['HeadToHeadConfigModal', 'ColumnConfigModal']) {
   test(ten, async ({ page }) => {
     const loiJs: string[] = []; page.on('pageerror', e => loiJs.push(e.message));
     await page.goto('/'); await page.waitForTimeout(1500);
-    const loi = await page.evaluate(async (n) => { const m = await import('/tests/e2e/helpers/modalSizeHarness.tsx' as string); return m.mountModal(n); }, ten);
+    const loi = await page.evaluate(async ({ n, duongDan }) => { const m = await import(duongDan); return m.mountModal(n); }, { n: ten, duongDan: appPath('/tests/e2e/helpers/modalSizeHarness.tsx') });
     expect(loi).toBeFalsy();
     const hop = page.locator('[role="dialog"]').last();
     const tabs = hop.getByRole('button', { name: /Truy vấn Data|Tính Toán|Thiết lập Target/ });

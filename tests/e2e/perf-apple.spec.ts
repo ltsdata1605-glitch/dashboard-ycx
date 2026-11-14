@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * ĐO tốc độ tải & chuyển tab trên BẢN BUILD production — mốc so sánh trước/sau của kế hoạch giao diện chuẩn Apple
@@ -37,7 +38,7 @@ test('tốc độ tải + chuyển tab (bản build, iPhone, 4G, CPU x4)', async
         await cdp.send('Network.clearBrowserCache');
         await context.clearCookies();
         // Bỏ service worker lần trước để đo lượt tải "lần đầu" thật.
-        await page.goto('/favicon.svg');
+        await page.goto(appPath('/favicon.svg'));
         await page.evaluate(async () => { const r = await navigator.serviceWorker?.getRegistrations?.(); await Promise.all((r || []).map(x => x.unregister())); for (const k of await caches.keys()) await caches.delete(k); });
         const t0 = Date.now();
         await page.goto('/?tab=analysis', { waitUntil: 'commit' });

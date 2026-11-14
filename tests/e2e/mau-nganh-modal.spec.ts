@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Ô ngành ở 2 modal "chưa xuất" / "chưa thu" (2026-10-15): trước đây class màu dựng ĐỘNG (`border-${color}-500`…) → Tailwind
@@ -13,10 +14,10 @@ for (const loai of ['chua-xuat', 'chua-thu'] as const) {
     test(`modal ${loai}: đủ 12 ngành, ngành nào cũng có màu (vạch trái, ô icon, con số)`, async ({ page }, info) => {
         await page.setViewportSize({ width: 1280, height: 900 });
         await page.goto('/');
-        await page.evaluate(async (l) => {
-            const m = await import('/tests/e2e/helpers/industryTileHarness.tsx' as string);
+        await page.evaluate(async ({ l, B }) => {
+            const m = await import(B + 'tests/e2e/helpers/industryTileHarness.tsx' as string);
             m.mount(l);
-        }, loai);
+        }, { l: loai, B: APP_BASE });
         await expect(page.locator('p[title="Khác"]')).toBeVisible({ timeout: 20_000 });
 
         const ketQua = await page.evaluate((nganh) => nganh.map((ten) => {

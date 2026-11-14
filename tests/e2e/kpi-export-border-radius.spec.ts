@@ -1,14 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { appPath, APP_BASE } from './helpers/appBase';
 
 test.describe('KPI Export Border Radius Verification', () => {
     test('Xác thực vạch màu đỉnh thẻ Industry KPI được bo góc cong 14.5px theo góc thẻ 16px khi xuất ảnh', async ({ page }) => {
-        await page.goto('http://127.0.0.1:5173/tests/e2e/helpers/empty.html').catch(async () => {
-            await page.goto('http://127.0.0.1:5173/');
+        await page.goto(appPath('/tests/e2e/helpers/empty.html')).catch(async () => {
+            await page.goto('/');
         });
 
-        const result = await page.evaluate(async () => {
+        const result = await page.evaluate(async (B) => {
             // @ts-ignore
-            const { exportBiCore } = await import('/components/shared/export/presetBi.ts');
+            const { exportBiCore } = await import(B + 'components/shared/export/presetBi.ts');
 
             const testContainer = document.createElement('div');
             testContainer.className = 'js-industry-view-container';
@@ -73,7 +74,7 @@ test.describe('KPI Export Border Radius Verification', () => {
                 cloneTopBarMarginLeft,
                 cloneTopBarWidth
             };
-        });
+        }, APP_BASE);
 
         expect(result.cloneCardRadius).toBe('16px');
         expect(result.cloneOverflow).toBe('hidden');
@@ -84,13 +85,13 @@ test.describe('KPI Export Border Radius Verification', () => {
     });
 
     test('Xác thực thẻ Tổng quan KpiCard (.kpi-overview-card) giữ bo tròn 16px và vạch đỉnh cong khi xuất', async ({ page }) => {
-        await page.goto('http://127.0.0.1:5173/tests/e2e/helpers/empty.html').catch(async () => {
-            await page.goto('http://127.0.0.1:5173/');
+        await page.goto(appPath('/tests/e2e/helpers/empty.html')).catch(async () => {
+            await page.goto('/');
         });
 
-        const result = await page.evaluate(async () => {
+        const result = await page.evaluate(async (B) => {
             // @ts-ignore
-            const { exportBiCore } = await import('/components/shared/export/presetBi.ts');
+            const { exportBiCore } = await import(B + 'components/shared/export/presetBi.ts');
 
             const testContainer = document.createElement('div');
             testContainer.style.width = '800px';
@@ -144,7 +145,7 @@ test.describe('KPI Export Border Radius Verification', () => {
                 cloneTopRightRadius,
                 cloneTopBarMarginLeft
             };
-        });
+        }, APP_BASE);
 
         expect(result.cloneCardRadius).toBe('16px');
         expect(result.cloneOverflow).toBe('hidden');

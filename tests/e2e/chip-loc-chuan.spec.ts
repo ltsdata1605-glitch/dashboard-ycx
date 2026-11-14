@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Chip lọc (2026-10-28, chủ dự án chốt "Chuyển"): 2 hộp thoại chọn người dùng LINE + danh mục avatar Report BI trước tự vẽ
@@ -14,7 +15,7 @@ for (const c of CA) {
   test(c.ten, async ({ page }) => {
     const loiJs: string[] = []; page.on('pageerror', e => loiJs.push(e.message));
     await page.goto('/'); await page.waitForTimeout(1500);
-    const loi = await page.evaluate(async (n) => { const m = await import('/tests/e2e/helpers/modalSizeHarness.tsx' as string); return m.mountModal(n); }, c.ten);
+    const loi = await page.evaluate(async ({ n, duongDan }) => { const m = await import(duongDan); return m.mountModal(n); }, { n: c.ten, duongDan: appPath('/tests/e2e/helpers/modalSizeHarness.tsx') });
     expect(loi).toBeFalsy();
     const hop = page.locator('[role="dialog"]').last();
     const tatCa = hop.getByRole('button', { name: /^Tất cả/ });

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Audit A34 (2026-09-30): ~9 modal TỰ DỰNG (Thuế, Bot LINE, KPI ngành hàng BI) không qua Modal dùng
@@ -8,7 +9,7 @@ import { expect, test } from '@playwright/test';
  */
 test('modal tự dựng: tên + khoá cuộn + bẫy Tab + Escape đóng + trả focus', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/tuDungModalHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/tuDungModalHarness.tsx'));
     await page.locator('#mo-bieu-thue').click();
 
     const hop = page.getByRole('dialog', { name: 'Biểu thuế thu nhập cá nhân' });
@@ -29,7 +30,7 @@ test('modal tự dựng: tên + khoá cuộn + bẫy Tab + Escape đóng + trả
 
 test('lớp phủ tự dựng trong component lớn (CouponImportModal): tên + khoá cuộn + Escape đóng + trả focus', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/couponHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/couponHarness.tsx'));
     await page.locator('#mo-nap-ma').click();
     const hop = page.getByRole('dialog', { name: /Nạp Mã PMH/ });
     await expect(hop).toBeVisible();

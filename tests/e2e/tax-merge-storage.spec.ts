@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { appPath, APP_BASE } from './helpers/appBase';
 
 // Real service + real browser IndexedDB; only Firebase boundary is replaced.
 // Every test gets a fresh profile; the audit config blocks external traffic.
@@ -19,10 +20,10 @@ for (const scenario of ['local-newer', 'cloud-newer', 'cloud-ascending', 'cloud-
                 export const runTransaction = async (_db, fn) => fn({get: async () => snap(), set: (_ref, value) => {globalThis.__auditCloud = structuredClone(value.records);}});
             ` });
         });
-        await page.goto('/tests/e2e/helpers/materialHarness.html');
-        const result = await page.evaluate(async scenario => {
-            const dbPath = '/features/tax-calculator/services/taxIndexedDbService.ts';
-            const syncPath = '/features/tax-calculator/services/taxSyncService.ts';
+        await page.goto(appPath('/tests/e2e/helpers/materialHarness.html'));
+        const result = await page.evaluate(async ({ scenario, B }) => {
+            const dbPath = B + 'features/tax-calculator/services/taxIndexedDbService.ts';
+            const syncPath = B + 'features/tax-calculator/services/taxSyncService.ts';
             const { taxIndexedDbService: local } = await import(/* @vite-ignore */ dbPath);
             const record = (day: number, id?: number) => ({ id, name: 'Audit Fixture', monthYear: '09/2026', createdAt: `2026-10-0${day}T00:00:00Z`, totalIncome: day, dependents: 0, proxyAmount: 0, taxOnProxyAmount: 0 });
             let records;
@@ -37,7 +38,7 @@ for (const scenario of ['local-newer', 'cloud-newer', 'cloud-ascending', 'cloud-
             const displayed = await sync.getAllRecords();
             const durable = await local.getAll();
             return { displayed: displayed.map((r: { totalIncome: number }) => r.totalIncome), durable: durable.map((r: { totalIncome: number }) => r.totalIncome), id: displayed[0]?.id, localId: durable[0]?.id };
-        }, scenario);
+        }, { scenario, B: APP_BASE });
         expect(cloudBoundaryHits).toBeGreaterThan(0);
         expect(result.displayed).toEqual([2]);
         expect(result.durable).toEqual([2]);

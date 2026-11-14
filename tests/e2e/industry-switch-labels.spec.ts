@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 for (const width of [390,1366]) {
   test(`industry and subindustry labels toggle their rows once ${width}`,async({page})=>{
     await page.setViewportSize({width,height:844});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?industry-switch');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?industry-switch'));
     await page.getByRole('button',{name:'Mở rộng tất cả',exact:true}).click();
     await page.getByRole('button',{name:'Bộ lọc ngành hàng & nhóm hàng',exact:true}).click();
     for (const name of ['Audit a','Sub audit a']) {
@@ -29,7 +30,7 @@ for (const width of [390,1366]) {
 for (const height of [844,568]) {
   test(`industry mobile filter stays inside viewport and closes by keyboard ${height}`,async({page})=>{
     await page.setViewportSize({width:390,height});
-    await page.goto('/tests/e2e/helpers/materialHarness.html?industry-switch');
+    await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?industry-switch'));
     const trigger=page.getByRole('button',{name:'Bộ lọc ngành hàng & nhóm hàng',exact:true});
     for (let step=0;step<8;step++) {
       await page.keyboard.press(process.env.AUDIT_ENGINE==='webkit'?'Alt+Tab':'Tab');
@@ -65,7 +66,7 @@ for (const height of [844,568]) {
 
 test('industry tree expander has a name, expanded state and keyboard activation',async({page})=>{
   await page.setViewportSize({width:1366,height:844});
-  await page.goto('/tests/e2e/helpers/materialHarness.html?industry-switch');
+  await page.goto(appPath('/tests/e2e/helpers/materialHarness.html?industry-switch'));
   const toggle=page.getByRole('button',{name:'Mở rộng Audit a',exact:true});
   await expect(toggle).toHaveAttribute('aria-expanded','false');
   for(let step=0;step<40;step++) {

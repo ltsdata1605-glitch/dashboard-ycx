@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { createSign } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { appPath } from './appBase';
 
 /**
  * Đăng nhập TÀI KHOẢN THẬT bằng custom token (2026-09-28, "Cách B"): container không qua được
@@ -80,17 +81,17 @@ export const dangNhapBangToken = async (page: Page) => {
     const token = kyCustomToken() || readFileSync(customTokenFile(), 'utf8').trim();
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
-    await page.evaluate(async (t) => {
+    await page.evaluate(async ({ t, duongDanApp }) => {
         // Lấy đúng URL deps đã tối ưu mà services/firebase.ts đang import, để dùng chung bản module
         // (khác `?v=` là ra bản `firebase/auth` thứ hai, không nhận instance auth của app).
-        const src = await (await fetch('/services/firebase.ts')).text();
+        // duongDanApp có tiền tố base (`/dashboard-ycx/services/firebase.ts`) — `/services/…` trần là 404 từ aaa1d73.
+        const src = await (await fetch(duongDanApp)).text();
         const depUrl = src.match(/from\s+["']([^"']*firebase_auth[^"']*)["']/)?.[1];
-        if (!depUrl) throw new Error('Không tìm thấy import firebase/auth trong services/firebase.ts');
-        const duongDanApp = '/services/firebase.ts'; // biến → tsc không đòi phân giải đường dẫn trình duyệt
+        if (!depUrl) throw new Error(`Không tìm thấy import firebase/auth trong ${duongDanApp}`);
         const fb = await import(/* @vite-ignore */ duongDanApp) as { auth: unknown };
         const fa = await import(/* @vite-ignore */ depUrl) as { signInWithCustomToken: (a: unknown, t: string) => Promise<unknown> };
         await fa.signInWithCustomToken(fb.auth, t);
-    }, token);
+    }, { t: token, duongDanApp: appPath('/services/firebase.ts') });
 };
 
 /** Tên các khoá trong `users/{FIREBASE_TEST_UID}.settings` trên cloud — đọc bằng CHÍNH tài khoản test (rules cho chủ hồ sơ đọc),

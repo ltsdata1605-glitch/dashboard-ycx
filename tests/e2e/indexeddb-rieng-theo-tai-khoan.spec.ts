@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * Chủ dự án chốt 2026-09-23: "tách BI_HUB_DATABASE_V2 theo uid" — mỗi tài khoản một IndexedDB
@@ -10,11 +11,11 @@ import { expect, test } from '@playwright/test';
 test('mỗi tài khoản đọc/ghi vào database riêng, người cũ quay lại vẫn còn dữ liệu', async ({ page }) => {
     await page.goto('/');
 
-    const result = await page.evaluate(async () => {
+    const result = await page.evaluate(async (B) => {
         // Dùng biến cho đường dẫn để TypeScript không cố phân giải module của dev server
-        const scopePath = '/utils/localDbScope.ts';
-        const ownerPath = '/services/localDataOwner.ts';
-        const dbPath = '/services/dbService.ts';
+        const scopePath = B + 'utils/localDbScope.ts';
+        const ownerPath = B + 'services/localDataOwner.ts';
+        const dbPath = B + 'services/dbService.ts';
         const scope = (await import(/* @vite-ignore */ scopePath)) as typeof import('../../utils/localDbScope');
         const owner = (await import(/* @vite-ignore */ ownerPath)) as typeof import('../../services/localDataOwner');
         const dbs = (await import(/* @vite-ignore */ dbPath)) as typeof import('../../services/dbService');
@@ -85,7 +86,7 @@ test('mỗi tài khoản đọc/ghi vào database riêng, người cũ quay lạ
             coDbCuaA: danhSachDb.includes(dbNameA),
             coDbCuaB: danhSachDb.includes(dbNameB),
         };
-    });
+    }, APP_BASE);
 
     console.log('KẾT QUẢ TÁCH DATABASE THEO UID:', JSON.stringify(result, null, 2));
 
@@ -120,13 +121,13 @@ test('mỗi tài khoản đọc/ghi vào database riêng, người cũ quay lạ
 test('gốc, Report BI và In Sticker mở đúng cùng một database của tài khoản đang đăng nhập', async ({ page }) => {
     await page.goto('/');
 
-    const result = await page.evaluate(async () => {
+    const result = await page.evaluate(async (B) => {
         const paths = {
-            scope: '/utils/localDbScope.ts',
-            root: '/services/dbService.ts',
-            bi: '/features/bi-dashboard/services/dbService.ts',
-            biKeys: '/features/bi-dashboard/utils/db.ts',
-            sticker: '/features/sticker-event/services/dbService.ts',
+            scope: B + 'utils/localDbScope.ts',
+            root: B + 'services/dbService.ts',
+            bi: B + 'features/bi-dashboard/services/dbService.ts',
+            biKeys: B + 'features/bi-dashboard/utils/db.ts',
+            sticker: B + 'features/sticker-event/services/dbService.ts',
         };
         const scope = (await import(/* @vite-ignore */ paths.scope)) as typeof import('../../utils/localDbScope');
         const root = (await import(/* @vite-ignore */ paths.root)) as typeof import('../../services/dbService');
@@ -148,7 +149,7 @@ test('gốc, Report BI và In Sticker mở đúng cùng một database của tà
         const biDocDuoc = await bi.getSetting('sticker_layout_test');
 
         return { tenGoc, tenBi, tenSticker, gocDocDuoc, biDocDuoc, tenMongDoi: scope.biHubDbName() };
-    });
+    }, APP_BASE);
 
     console.log('TÊN DATABASE 3 KHU VỰC:', JSON.stringify(result));
     expect(result.tenMongDoi).toBe('BI_HUB_DATABASE_V2__uid-cung-mot-nguoi');

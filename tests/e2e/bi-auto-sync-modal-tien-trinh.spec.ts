@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 /**
  * Modal "Tự động Cập nhật Realtime" (Report BI) — theo dõi tiến trình ngay tại Dashboard (chủ dự án 2026-10-01:
@@ -13,7 +14,7 @@ const dong = (page: Page, ten: string) => page.getByRole('dialog').locator('div.
 
 test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(async () => (await import('/tests/e2e/helpers/biAutoSyncHarness.tsx' as string)).mountHarness());
+    await page.evaluate(async (duongDan) => (await import(duongDan)).mountHarness(), appPath('/tests/e2e/helpers/biAutoSyncHarness.tsx'));
 });
 
 test('hiện khung tiến trình như tab MWG; bước xác định theo TÊN (Thi đua báo số 2 vẫn sáng đúng dòng Thi đua)', async ({ page }) => {

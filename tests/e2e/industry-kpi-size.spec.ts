@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { appPath } from './helpers/appBase';
 
 test.describe('Industry KPI Card - Hero Number Size and Clarity Verification', () => {
     test.use({ viewport: { width: 390, height: 844 } }); // iPhone 12 / 13 / 14 standard mobile viewport
 
     test('Hiển thị số lượng to rõ 25px-28px trên thẻ KPI ngành hàng', async ({ page }) => {
-        await page.goto('/tests/e2e/helpers/empty.html').catch(async () => {
+        await page.goto(appPath('/tests/e2e/helpers/empty.html')).catch(async () => {
             await page.goto('/');
         });
 
@@ -113,7 +114,7 @@ test.describe('Industry KPI Card - Hero Number Size and Clarity Verification', (
     });
 
     test('Hiển thị doanh thu to rõ 20px-25px trên thẻ KPI ngành hàng', async ({ page }) => {
-        await page.goto('/tests/e2e/helpers/empty.html').catch(async () => {
+        await page.goto(appPath('/tests/e2e/helpers/empty.html')).catch(async () => {
             await page.goto('/');
         });
 
