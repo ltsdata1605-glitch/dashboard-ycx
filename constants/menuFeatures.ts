@@ -76,7 +76,6 @@ export const APP_MENU_FEATURES: AppMenuFeature[] = [
             { id: 'tools-print-sticker:gia_soc', label: 'Giá Sốc', icon: 'quick', defaultEnabled: true },
             { id: 'tools-print-sticker:gio_vang', label: 'Giờ Vàng', icon: 'clock', defaultEnabled: true },
             { id: 'tools-print-sticker:draw', label: 'Phiếu', icon: 'coupon', defaultEnabled: true },
-            { id: 'tools-print-sticker:event', label: 'Sticker', icon: 'product', defaultEnabled: true },
         ],
     },
     {

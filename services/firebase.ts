@@ -13,7 +13,7 @@ const firebaseConfig = {
     // thay vì dashboa-7e20b.firebaseapp.com. Đã thêm domain vào Authorized domains (Firebase Auth) và
     // redirect URI https://auth.dashboard.pro.vn/__/auth/handler vào OAuth Web client (GCP). Đổi lại
     // giá trị cũ nếu domain này ngừng hoạt động — không cần sửa gì khác.
-    authDomain: "auth.dashboard.pro.vn",
+    authDomain: "dashboa-7e20b.firebaseapp.com",
     projectId: "dashboa-7e20b",
     storageBucket: "dashboa-7e20b.firebasestorage.app",
     messagingSenderId: "388853115750",
@@ -167,7 +167,7 @@ const PWA_HANDOFF_KEY = 'ycxPwaHandoff';
 // (sự cố thực tế 2026-11-11: thao tác Google 8 phút quay về bị xoá mất verifier khi hạn cũ chỉ 6 phút).
 // Token thật trên máy chủ (functions/src/pwaHandoff.ts) vẫn tự hết hạn sau 5 phút kể từ lúc Google trả về.
 const PWA_HANDOFF_MAX_AGE_MS = 30 * 60 * 1000;
-const PWA_LOGIN_URL = 'https://auth.dashboard.pro.vn/pwa-login.html';
+const PWA_LOGIN_URL = 'https://dashboa-7e20b.web.app/pwa-login.html';
 
 const toBase64Url = (bytes: Uint8Array): string =>
     btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

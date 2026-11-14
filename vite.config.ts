@@ -64,16 +64,17 @@ function offlineServiceWorker() {
       const dist = path.resolve(__dirname, 'dist');
       if (!fs.existsSync(path.join(dist, 'index.html'))) return;
       const files = walk(dist);
+      const basePath = '/dashboard-ycx/';
       const precache = files
         .filter((f) => (f.startsWith('assets/') && emitted.includes(f)) || f.startsWith('icons/') || f === 'favicon.svg' || f === 'manifest.webmanifest'
           || f === 'prevent-pull-to-refresh.js' || f === 'reload-on-chunk-error.js' || f === 'man-cho-khoi-dong.js' || f === 'fonts/UTM AvoBold.ttf')
-        .map((f) => `/${f}`);
+        .map((f) => `${basePath}${f}`);
       const indexHtml = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
       // LÕI = đúng những file index.html tự nạp (gói vào, modulepreload, CSS) + 2 script ở /public: đủ để dựng app khi
       // mất mạng. Lúc cài service worker chỉ tải LÕI; phần còn lại tải ngầm sau khi trang đã rảnh (GĐ2 tăng tốc 2026-10-11)
       // — trước đây lượt cài đầu tải cùng lúc 7,9 MB / 71 file, giành băng thông với chính lượt mở app trên 4G.
-      const core = Array.from(new Set([...indexHtml.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1])))
-        .concat(['/prevent-pull-to-refresh.js', '/reload-on-chunk-error.js', '/man-cho-khoi-dong.js', '/fonts/UTM AvoBold.ttf', '/favicon.svg', '/manifest.webmanifest'])
+      const core = Array.from(new Set([...indexHtml.matchAll(/(?:src|href)="([^"]+)"/g)].map((m) => m[1])))
+        .concat([`${basePath}prevent-pull-to-refresh.js`, `${basePath}reload-on-chunk-error.js`, `${basePath}man-cho-khoi-dong.js`, `${basePath}fonts/UTM AvoBold.ttf`, `${basePath}favicon.svg`, `${basePath}manifest.webmanifest`])
         .filter((f) => precache.includes(f));
       const version = crypto.createHash('sha1')
         .update(precache.join('|')).update(indexHtml).digest('hex').slice(0, 12);
@@ -86,7 +87,7 @@ function offlineServiceWorker() {
 
 export default defineConfig(() => {
     return {
-      base: '/',
+      base: '/dashboard-ycx/',
       server: {
         open: true,
         proxy: {

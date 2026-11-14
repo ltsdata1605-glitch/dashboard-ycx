@@ -18,15 +18,15 @@ const PRECACHE = __PRECACHE__;
 const CORE = __CORE__;
 
 /** File /assets/ có mã băm trong tên: bản ở HTTP cache / cache của bản cũ luôn đúng → không cần ép tải lại. */
-const requestFor = (u) => new Request(u, { cache: u.startsWith('/assets/') ? 'default' : 'reload' });
+const requestFor = (u) => new Request(u, { cache: u.includes('/assets/') ? 'default' : 'reload' });
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     // index.html bắt buộc; file khác lỗi lẻ tẻ không làm hỏng cả lượt cài.
-    await cache.add(new Request('/index.html', { cache: 'reload' }));
+    await cache.add(new Request(self.registration.scope, { cache: 'reload' }));
     // Chép file /assets/ không đổi từ cache của bản trước (cache cũ chỉ bị dọn ở 'activate') — không tốn mạng.
-    await Promise.allSettled(PRECACHE.filter((u) => u.startsWith('/assets/')).map(async (u) => {
+    await Promise.allSettled(PRECACHE.filter((u) => u.includes('/assets/')).map(async (u) => {
       const old = await caches.match(u);
       if (old) await cache.put(u, old);
     }));
@@ -68,8 +68,8 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-const isHashedAsset = (url) => url.pathname.startsWith('/assets/');
-const isStaticFile = (url) => /^\/(fonts|icons|frame|splash|scripts|Tuts)\//.test(url.pathname) || /\.(woff2?|ttf|png|jpe?g|svg|webp|ico|webmanifest)$/.test(url.pathname) || /^\/(prevent-pull-to-refresh|reload-on-chunk-error|man-cho-khoi-dong)\.js$/.test(url.pathname);
+const isHashedAsset = (url) => url.pathname.includes('/assets/');
+const isStaticFile = (url) => /(?:fonts|icons|frame|splash|scripts|Tuts)\//.test(url.pathname) || /\.(woff2?|ttf|png|jpe?g|svg|webp|ico|webmanifest)$/.test(url.pathname) || /(?:prevent-pull-to-refresh|reload-on-chunk-error|man-cho-khoi-dong)\.js$/.test(url.pathname);
 
 async function networkFirstNavigation(event) {
   const request = event.request;
@@ -82,7 +82,7 @@ async function networkFirstNavigation(event) {
   // bản mới → 404 → reload-on-chunk-error.js tải lại → lại quá 4 giây → lại bản cũ: vòng tải lại mỗi 10 giây (log 21/10:
   // resolveSession bị gọi dồn 4 phút, tràn bộ nhớ 2 lần).
   const network = fetch(request).then((fresh) => {
-    if (fresh && fresh.ok) return cache.put(isShell ? '/index.html' : request, fresh.clone()).then(() => fresh);
+    if (fresh && fresh.ok) return cache.put(isShell ? self.registration.scope : request, fresh.clone()).then(() => fresh);
     return fresh;
   });
   event.waitUntil(network.catch(() => {}));
@@ -92,7 +92,7 @@ async function networkFirstNavigation(event) {
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
     ]);
   } catch (e) {
-    const cached = (isShell ? await cache.match('/index.html') : await cache.match(request));
+    const cached = (isShell ? await cache.match(self.registration.scope) : await cache.match(request));
     if (cached) return cached;
     return network; // không có bản lưu: chờ mạng tới cùng (thay vì báo lỗi sau 4 giây)
   }

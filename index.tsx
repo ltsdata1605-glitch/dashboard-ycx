@@ -29,7 +29,8 @@ root.render(
 // CHỈ bản build production (dist/sw.js do plugin ycx-offline-sw sinh ra); dev server không có file này.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
+    const swPath = `${import.meta.env.BASE_URL}sw.js`;
+    navigator.serviceWorker.register(swPath).then((reg) => {
       // Có mạng lại / quay về tab thì hỏi xem có bản mới không — bản mới nhận vào lần mở kế tiếp (không tự tải lại giữa lúc đang làm việc).
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
       // Service worker lúc cài chỉ tải LÕI (GĐ2 tăng tốc) → khi trang đã vẽ xong + rảnh thì nhắn nó tải ngầm phần còn lại

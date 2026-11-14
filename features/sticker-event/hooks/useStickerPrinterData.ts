@@ -24,7 +24,7 @@ const STICKER_DB_KEY = 'stickerPrinterState';
 const STICKER_HISTORY_KEY = 'stickerPrintHistory';
 const STICKER_SAVED_LISTS_KEY = 'stickerSavedLists';
 const STICKER_LAST_SUB_KEY = 'sticker_last_sub';
-const STICKER_SUBS = ['draw', 'gia-soc', 'gio-vang', 'event'];
+const STICKER_SUBS = ['draw', 'gia-soc', 'gio-vang'];
 function readLastStickerSub(): string {
     try {
         const v = localStorage.getItem(STICKER_LAST_SUB_KEY);
@@ -91,8 +91,7 @@ export const DEFAULT_DRAW_HISTORY_ENTRY: PrintHistoryEntry = {
 };
 
 export function useStickerPrinterData() {
-    const [stickerMode, setStickerMode] = useState<'sticker' | 'event'>('sticker');
-    const [eventEverOpened, setEventEverOpened] = useState(false);
+    const [stickerMode, setStickerMode] = useState<'sticker'>('sticker');
     const [stickerType, setStickerType] = useState<'gia_soc' | 'gio_vang' | 'draw'>('draw');
     const [bgImage, setBgImage] = useState('/frame/bg_phieu.png');
     const [priceSource, setPriceSource] = useState<'sale' | 'service'>('sale');
@@ -396,14 +395,11 @@ export function useStickerPrinterData() {
             setSubHeaderTextContent(prev => (prev && prev.includes('SUẤT')) ? prev : '5 SUẤT/NGÀY');
             setHeaderTextSize(8);
             setActiveField('header');
-        } else if (sub === 'draw') {
+        } else {
             setStickerMode('sticker');
             setStickerType('draw');
             setBgImage(prev => isValidBgImageForType('draw', prev) ? prev : DRAW_DMX_DEFAULT_BG);
             setActiveField('drawContentBottomLeft');
-        } else if (sub === 'event') {
-            setStickerMode('event');
-            setEventEverOpened(true);
         }
     }, []);
 
@@ -418,7 +414,7 @@ export function useStickerPrinterData() {
         }
     };
 
-    // Preload StickerEventApp; read initial sub tab from URL
+    // Read initial sub tab from URL
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         let sub = urlParams.get('sub');
@@ -428,13 +424,6 @@ export function useStickerPrinterData() {
             updateSubQueryParam(sub);
         }
         applySubTab(sub);
-        
-        const timer = setTimeout(() => {
-            import('../StickerEventApp').catch(err => {
-                console.warn('Failed to preload StickerEventApp:', err);
-            });
-        }, 1000);
-        return () => clearTimeout(timer);
     }, [applySubTab]);
 
     // Lắng nghe popstate (Back/Forward trình duyệt) để đổi tab đồng bộ
@@ -472,13 +461,10 @@ export function useStickerPrinterData() {
                         setStickerMode('sticker');
                         setStickerType('gio_vang');
                         effectiveType = 'gio_vang';
-                    } else if (currentSub === 'draw') {
+                    } else {
                         setStickerMode('sticker');
                         setStickerType('draw');
                         effectiveType = 'draw';
-                    } else if (currentSub === 'event') {
-                        setStickerMode('event');
-                        setEventEverOpened(true);
                     }
 
                     // STRICT BG IMAGE BINDING: Chỉ khôi phục bgImage nếu nó thuộc đúng loại tem hiện tại
@@ -1692,7 +1678,6 @@ export function useStickerPrinterData() {
 
     return {
         stickerMode, setStickerMode,
-        eventEverOpened, setEventEverOpened,
         stickerType, setStickerType,
         bgImage, setBgImage,
         priceSource, setPriceSource,

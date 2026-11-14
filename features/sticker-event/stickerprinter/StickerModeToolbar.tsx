@@ -12,7 +12,6 @@ interface StickerModeToolbarProps {
     onSelectGiaSoc: () => void;
     onSelectGioVang: () => void;
     onSelectDraw: () => void;
-    onSelectEvent: () => void;
     getActiveFieldLabel: () => string;
     getDrawActiveFieldLabel: () => string;
     getActiveFontSize: () => number;
@@ -22,7 +21,7 @@ interface StickerModeToolbarProps {
 }
 
 export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
-    stickerMode, stickerType, onSelectGiaSoc, onSelectGioVang, onSelectDraw, onSelectEvent,
+    stickerMode, stickerType, onSelectGiaSoc, onSelectGioVang, onSelectDraw,
     getActiveFieldLabel, getDrawActiveFieldLabel, getActiveFontSize, getDrawActiveFontSize,
     onDecreaseFontSize, onIncreaseFontSize,
 }) => {
@@ -48,7 +47,6 @@ export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
         { id: 'gia_soc', featureKey: 'tools-print-sticker:gia_soc', label: 'Giá Sốc', shortLabel: 'Giá sốc', icon: 'quick' as const, color: 'sky', onClick: onSelectGiaSoc, isActive: stickerMode === 'sticker' && stickerType === 'gia_soc' },
         { id: 'gio_vang', featureKey: 'tools-print-sticker:gio_vang', label: 'Giờ Vàng', shortLabel: 'Giờ vàng', icon: 'clock' as const, color: 'amber', onClick: onSelectGioVang, isActive: stickerMode === 'sticker' && stickerType === 'gio_vang' },
         { id: 'draw', featureKey: 'tools-print-sticker:draw', label: 'Phiếu', shortLabel: 'Phiếu', icon: 'coupon' as const, color: 'rose', onClick: onSelectDraw, isActive: stickerMode === 'sticker' && stickerType === 'draw' },
-        { id: 'event', featureKey: 'tools-print-sticker:event', label: 'Sticker', shortLabel: 'Sticker', icon: 'product' as const, color: 'emerald', onClick: onSelectEvent, isActive: stickerMode === 'event' },
     ];
 
     // Lọc theo cấu hình bật/tắt từ Quản trị hệ thống
@@ -58,8 +56,8 @@ export const StickerModeToolbar: React.FC<StickerModeToolbarProps> = ({
     // khe ~250px, phải vuốt ngang mới thấy "Sticker" và ô cỡ chữ — apple-tuong-thich đỏ ở mọi khung cảm ứng). Nay là HÀNG
     // THỨ HAI ngay dưới thanh trên: segmented 4 chế độ chia đều + hàng cỡ chữ (chỉ ở chế độ tem) với nút −/+ 44px.
     if (isMobile) {
-        const activeId = stickerMode === 'event' ? 'event' : stickerType;
-        const chon: Record<string, () => void> = { gia_soc: onSelectGiaSoc, gio_vang: onSelectGioVang, draw: onSelectDraw, event: onSelectEvent };
+        const activeId = stickerType;
+        const chon: Record<string, () => void> = { gia_soc: onSelectGiaSoc, gio_vang: onSelectGioVang, draw: onSelectDraw };
         const oDangChon = (stickerType === 'draw' ? getDrawActiveFieldLabel() : getActiveFieldLabel()).replace(/^Cỡ chữ\s*/, '');
         return (
             <div data-testid="sticker-mode-bar" className="no-print shrink-0 bg-slate-50/95 border-b border-slate-200 px-3 sm:px-4 pt-2 pb-2">

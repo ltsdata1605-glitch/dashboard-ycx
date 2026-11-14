@@ -22,7 +22,6 @@ import {
 import { usePendingApprovals } from '../../hooks/usePendingApprovalCount';
 import { getManagedUsers, hasFreshManagedUsers } from '../../services/managedUsersCache';
 import { getErrorMessage, getErrorCode, formatCleanDisplayName, getLocalDateString } from '../../utils/dataUtils';
-import { ProductConfigManagerTab } from '../../features/product-config';
 import { ApprovalSettingsTab } from './settings/ApprovalSettingsTab';
 import { MenuConfigTab } from './settings/MenuConfigTab';
 import { AutoSyncRolesTab } from './settings/AutoSyncRolesTab';
@@ -148,9 +147,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
     const [expiryDates, setExpiryDates] = useState<Record<string, string>>({});
     const [editDepartments, setEditDepartments] = useState<Record<string, string>>({});
     const [editNames, setEditNames] = useState<Record<string, string>>({});
-    const [listMode, setListMode] = useState<'pending' | 'active' | 'expired' | 'config' | 'approval_settings' | 'menu_config' | 'auto_config'>('pending');
+    const [listMode, setListMode] = useState<'pending' | 'active' | 'expired' | 'approval_settings' | 'menu_config' | 'auto_config'>('pending');
     const [lastPermissionTab, setLastPermissionTab] = useState<'pending' | 'active' | 'expired'>('pending');
-    const isPermissionsMode = listMode !== 'config' && listMode !== 'approval_settings' && listMode !== 'menu_config' && listMode !== 'auto_config';
+    const isPermissionsMode = listMode !== 'approval_settings' && listMode !== 'menu_config' && listMode !== 'auto_config';
     const laDienThoai = useIsSheetWidth();
     const [searchQuery, setSearchQuery] = useState('');
     const [editRoles, setEditRoles] = useState<Record<string, string>>({});
@@ -276,7 +275,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
     }, []);
 
     const fetchRequests = async (forceRefresh = false) => {
-        if (listMode === 'config' || listMode === 'approval_settings' || listMode === 'menu_config' || listMode === 'auto_config') {
+        if (listMode === 'approval_settings' || listMode === 'menu_config' || listMode === 'auto_config') {
             setIsLoading(false);
             return;
         }
@@ -881,10 +880,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
                         size="sm"
                         fullWidth={laDienThoai}
                         activeId={isPermissionsMode ? 'phan-quyen' : listMode}
-                        onChange={id => (id === 'phan-quyen' ? setListMode(lastPermissionTab) : setListMode(id as 'config' | 'approval_settings' | 'menu_config' | 'auto_config'))}
+                        onChange={id => (id === 'phan-quyen' ? setListMode(lastPermissionTab) : setListMode(id as 'approval_settings' | 'menu_config' | 'auto_config'))}
                         items={[
                             { id: 'phan-quyen', label: 'Phân quyền' },
-                            { id: 'config', label: laDienThoai ? 'Ngành hàng' : 'Khai báo ngành hàng' },
                             { id: 'approval_settings', label: laDienThoai ? 'Duyệt' : 'Cài đặt duyệt' },
                             ...(userRole === 'admin' ? [{ id: 'menu_config', label: laDienThoai ? 'Bật/tắt' : 'Bật/tắt chức năng' }, { id: 'auto_config', label: laDienThoai ? 'Auto' : 'Bật/tắt auto' }] : []),
                         ]}
@@ -950,9 +948,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
                         </div>
                     )}
                 </div>
-                {listMode === 'config' ? (
-                    <ProductConfigManagerTab />
-                ) : listMode === 'approval_settings' ? (
+                {listMode === 'approval_settings' ? (
                     <ApprovalSettingsTab />
                 ) : listMode === 'menu_config' ? (
                     <MenuConfigTab />

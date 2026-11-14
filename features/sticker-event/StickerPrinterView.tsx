@@ -13,7 +13,6 @@ import { useStickerPrinterData } from './hooks/useStickerPrinterData';
 
 import ErrorBoundary from '../../components/shared/ui/ErrorBoundary';
 
-const StickerEventApp = lazy(() => import('./StickerEventApp'));
 import SaveListModal from './SaveListModal';
 
 export default function StickerPrinterView() {
@@ -23,7 +22,6 @@ export default function StickerPrinterView() {
     useEffect(() => { napPhongGoogle(PHONG_GOOGLE); }, []);
     const {
         stickerMode, setStickerMode,
-        eventEverOpened, setEventEverOpened,
         stickerType, setStickerType,
         bgImage, setBgImage,
         priceSource, setPriceSource,
@@ -120,10 +118,6 @@ export default function StickerPrinterView() {
                     applySubTab('draw');
                     updateSubQueryParam('draw');
                 }}
-                onSelectEvent={() => {
-                    applySubTab('event');
-                    updateSubQueryParam('event');
-                }}
                 getActiveFieldLabel={getActiveFieldLabel}
                 getDrawActiveFieldLabel={getDrawActiveFieldLabel}
                 getActiveFontSize={getActiveFontSize}
@@ -150,26 +144,9 @@ export default function StickerPrinterView() {
                 }}
             />
 
-            {/* Vùng nội dung: chiếm phần còn lại dưới hàng chế độ (iPhone/iPad) — 2 lớp Sticker / tem chồng nhau như cũ */}
+            {/* Vùng nội dung in tem */}
             <div className="relative flex-1 min-h-0">
-            {eventEverOpened && (
-                <div className={`absolute inset-0 z-10 w-full h-full overflow-y-auto transition-opacity duration-200 ${stickerMode === 'event' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-                    <ErrorBoundary name="Sticker">
-                        <Suspense fallback={
-                            <div className="w-full h-full flex items-center justify-center bg-slate-50">
-                                <div className="flex flex-col items-center gap-3">
-                                    <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin" />
-                                    <p className="text-sm text-slate-500 font-medium">Đang tải Sticker...</p>
-                                </div>
-                            </div>
-                        }>
-                            <StickerEventApp />
-                        </Suspense>
-                    </ErrorBoundary>
-                </div>
-            )}
-
-            <div className={`w-full h-full overflow-y-auto p-3 sm:p-4 lg:p-8 flex flex-col lg:flex-row gap-4 lg:gap-8 justify-start lg:justify-center items-center lg:items-start ${stickerMode === 'event' ? 'invisible' : 'visible'}`}>
+            <div className="w-full h-full overflow-y-auto p-3 sm:p-4 lg:p-8 flex flex-col lg:flex-row gap-4 lg:gap-8 justify-start lg:justify-center items-center lg:items-start visible">
                 <div className="flex flex-col gap-4 w-full max-w-sm shrink-0">
                     <StickerPrintPreview
                         batchItems={batchItems}
