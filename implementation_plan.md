@@ -9403,7 +9403,7 @@ dashboard.pro.vn` → cài xong cũng không chạy trên Dashboard mới; `@upd
   TNB PMH 1.8: `@updateURL/@downloadURL` về github.io.
 - Test `tests/unit/duong-dan-goc-app.test.ts` quét code app: chuỗi trỏ file trong `public/` theo "/" là đỏ.
 - **CHỜ SỬA (DA_BIET trong test):** nền phiếu In Sticker `'/frame/…'` — vừa là mã định danh (so sánh, lưu lịch sử in) vừa là URL
-  ảnh → đổi ở chỗ vẽ `url(...)`, không đổi hằng.
+  ảnh → đổi ở chỗ vẽ `url(...)`, không đổi hằng. **→ Đã sửa, `DA_BIET` rỗng — xem mục "Nền phiếu In Sticker 404 dưới /dashboard-ycx/".**
 
 ## Sửa "Cài đặt Script ngay" chỉ hiện nguyên văn file, không ra trang Cài đặt Tampermonkey (2026-11-14)
 
@@ -9417,3 +9417,23 @@ thấy. Lượt kiểm phiên bản `fetch …user.js?t=…` còn khớp `isStat
 **Sửa:** `scripts/sw-template.js` — `.user.js` (mọi kiểu yêu cầu) không `respondWith`, để trình duyệt/tiện ích tự xử lý.
 Test `tests/unit/sw-bo-qua-userscript.test.ts` chạy thật hàm `fetch` của SW (đỏ 2/3 với bản cũ). `tests/e2e/offline-app-shell.spec.ts`
 chỉnh theo `/dashboard-ycx/` (trước đó đỏ vì mở app ở gốc) — 3/3 qua.
+## Nền phiếu In Sticker 404 dưới /dashboard-ycx/ (2026-11-14)
+
+**Triệu chứng:** `https://ltsdata1605-glitch.github.io/frame/bg_phieu.png` → 404 (đúng là `/dashboard-ycx/frame/bg_phieu.png` → 200).
+Xem trước và bản in phiếu (rút thăm, giá sốc, giờ vàng) mất nền.
+
+**Nguyên nhân:** chuỗi `'/frame/…'` vừa là MÃ ĐỊNH DANH nền (so sánh trong `isValidBgImageForType`, lưu trong lịch sử in / trạng
+thái đồng bộ) vừa được nhét thẳng vào `url(...)`. Vite không thêm tiền tố `base` cho chuỗi trong JS.
+
+**Sửa (không đổi giá trị hằng — lịch sử in cũ vẫn khớp):**
+- `stickerBackgroundHelpers.ts`: thêm `bgImageUrl(img, base = import.meta.env.BASE_URL)` — chuỗi bắt đầu bằng `/` (không phải `//`)
+  và chưa có tiền tố `base` → `base + phần sau '/'`; `data:`/`http(s):`/`blob:`/rỗng giữ nguyên. Chỉ dùng ở chỗ VẼ.
+- Chỗ vẽ: `stickerPreviewStyles.ts` (`background-image`), `StickerPrintPreview.tsx` (3 style inline), `pageHtmlUtils.ts`
+  (`generateDrawPagesHtml`, `generatePageHtml` 2 nhánh), `excelParsers.ts` (HTML trang nhập từ Excel).
+- Chuỗi rời rạc → hằng: mặc định ở `useStickerPrinterData.ts` (`DRAW_DMX_DEFAULT_BG`), lựa chọn ĐMX/TGĐ ở
+  `StickerPrintControls.tsx`, so sánh X24 ở `stickerPreviewStyles.ts` (`GIA_SOC_ALT_BG`).
+- Luồng IN của In Sticker: `printHost` gắn vào `document.body` của chính app rồi `window.print()` → đường dẫn tuyệt đối có tiền tố
+  `base` đúng. (`services/printService.ts` là in bảng giá của Sticker Event, không dùng nền `/frame/`.)
+- Test `tests/unit/duong-dan-goc-app.test.ts`: `DA_BIET` rỗng. Khai báo hằng mã định danh trong `stickerBackgroundHelpers.ts` được
+  miễn theo ĐÚNG mẫu dòng `export const X_BG = '/frame/….png';` (không miễn cả file), kèm bài khoá: mọi `url(` vẽ nền trong
+  `features/sticker-event/stickerprinter` phải qua `bgImageUrl(`. Test đơn vị `stickerBackgroundHelpers.test.ts` cho hàm chuyển.

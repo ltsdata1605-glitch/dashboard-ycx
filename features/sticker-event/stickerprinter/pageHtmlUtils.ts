@@ -3,6 +3,7 @@ import { StickerPage, PrintHistoryEntry, TicketDrawData } from './types';
 import { formatPriceChangePercent, normalizeStickerPriceUnit } from '../utils/format';
 import { sanitizeTicketHtml, sanitizeTicketHtmlForDisplay, sanitizeTicketHtmlForPrint } from './ticketSanitize';
 import { escapeHtml } from '../services/batchImageExportService';
+import { bgImageUrl } from './stickerBackgroundHelpers';
 
 /**
  * Sinh HTML in cho tất cả trang phiếu rút thăm từ data (không phụ thuộc DOM).
@@ -89,7 +90,7 @@ export const generateDrawPagesHtml = (opts: DrawPrintOptions): string => {
         // Dùng container-type: inline-size + aspect-ratio thay vì height cứng.
         // Chrome print engine gặp lỗi với cqw khi CẢ width LẪN height đều
         // bị ép cứng. Dùng aspect-ratio để height tự tính → cqw hoạt động đúng.
-        pages.push(`<div class="sticker-container draw-page active-preview-page" data-type="draw" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:210mm;aspect-ratio:2482/3512;container-type:inline-size;position:relative;overflow:hidden;font-family:Arial,sans-serif;page-break-after:${isLast ? 'auto' : 'always'}">${ticketBlocks}</div>`);
+        pages.push(`<div class="sticker-container draw-page active-preview-page" data-type="draw" style="background-image:url('${bgImageUrl(bgImage)}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:210mm;aspect-ratio:2482/3512;container-type:inline-size;position:relative;overflow:hidden;font-family:Arial,sans-serif;page-break-after:${isLast ? 'auto' : 'always'}">${ticketBlocks}</div>`);
     }
 
     return pages.join('');
@@ -143,7 +144,7 @@ export const generatePageHtml = (
     discountDisplayMode: 'percent' | 'amount' = 'percent'
 ) => {
     if (stickerType === 'draw') {
-        return `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:2482/3512;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;"></div>`;
+        return `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImageUrl(bgImage)}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:2482/3512;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;"></div>`;
     }
 
     let { newPrice, percent } = resolvePagePrices(page, priceSource);
@@ -198,7 +199,7 @@ export const generatePageHtml = (
         }
     }
 
-    return `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImage}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:197/285;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;">
+    return `<div class="sticker-container" data-type="${stickerType}" style="background-image:url('${bgImageUrl(bgImage)}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;width:100%;aspect-ratio:197/285;position:relative;overflow:hidden;container-type:inline-size;font-family:Arial,sans-serif;">
         ${barcodeHtml}
         <div class="header-text">${escapeHtml(header || '')}</div>
         ${subHeaderHtml}
