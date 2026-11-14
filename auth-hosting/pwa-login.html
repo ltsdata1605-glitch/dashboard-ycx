@@ -11,7 +11,8 @@
 <link rel="preconnect" href="https://asia-southeast1-dashboa-7e20b.cloudfunctions.net" crossorigin>
 <!--
   Trang đăng nhập cho app ở MÀN HÌNH CHÍNH iPhone (PWA Standalone).
-  Phục vụ tại: https://auth.dashboard.pro.vn/pwa-login.html
+  Phục vụ tại: https://dashboa-7e20b.firebaseapp.com/pwa-login.html (cùng origin với authDomain — bắt buộc).
+  Trước 2026-11-14: https://auth.dashboard.pro.vn/pwa-login.html
 -->
 <style>
   :root { color-scheme: light; }
@@ -76,6 +77,15 @@
    *    pwaHandoffStore kèm Bearer ID token Firebase.
    * Test: tests/e2e/pwa-login-khong-gapi.spec.ts.
    */
+  // Trang này PHẢI chạy trên đúng origin của authDomain (2026-11-14, video chủ dự án: đăng nhập máy tính lặp vòng Google ↔
+  // trang này): /__/auth/handler để kết quả Google trong sessionStorage của origin authDomain. App bản 14/11 (còn trong bộ nhớ
+  // đệm máy người dùng) dùng authDomain …firebaseapp.com nhưng đưa về …web.app/pwa-login.html → khác origin → không thấy kết
+  // quả → hiện lại nút → lặp. Mở nhầm ở web.app thì chuyển sang firebaseapp.com, giữ nguyên ?c=…/#…: CÙNG tab nên
+  // sessionStorage của firebaseapp.com (kết quả Google vừa ghi) vẫn còn. Test: tests/e2e/pwa-login-khong-gapi.spec.ts.
+  const AUTH_HOST = 'dashboa-7e20b.firebaseapp.com';
+  const SAI_ORIGIN = location.hostname === 'dashboa-7e20b.web.app';
+  if (SAI_ORIGIN) location.replace('https://' + AUTH_HOST + location.pathname + location.search + location.hash);
+
   // Cấu hình Firebase công khai
   const API_KEY = 'AIzaSyAloEjmYgge4qMEcC5nSEpCKKujXNKCUn4';
   const STORE_URL = 'https://asia-southeast1-dashboa-7e20b.cloudfunctions.net/pwaHandoffStore';
@@ -148,7 +158,7 @@
     ]);
     const auth = fa.initializeAuth(initializeApp({
       apiKey: API_KEY,
-      authDomain: 'dashboa-7e20b.firebaseapp.com',
+      authDomain: AUTH_HOST,
       projectId: 'dashboa-7e20b',
       appId: '1:388853115750:web:33759964955d77a04df6a7',
     }), { persistence: fa.inMemoryPersistence });
@@ -287,7 +297,7 @@
     location.replace(returnUrl);
   }
 
-  main();
+  if (!SAI_ORIGIN) main(); // đang chuyển sang đúng origin: không làm gì ở bản này
 </script>
 </body>
 </html>

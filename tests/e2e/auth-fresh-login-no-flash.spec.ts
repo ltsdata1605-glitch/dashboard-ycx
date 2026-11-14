@@ -55,7 +55,7 @@ async function installStubs(page: import('@playwright/test').Page, authStub = AU
     await page.route('**/services/sessionService.ts*', route =>
         route.fulfill({ status: 200, contentType: 'application/javascript', body: SESSION_STUB }));
 
-    // PKCE Handoff: Chặn chuyển hướng ra ngoài domain Google / auth.dashboard.pro.vn để giữ tab kiểm thử
+    // PKCE Handoff: Chặn chuyển hướng ra ngoài domain Google / dashboa-7e20b.firebaseapp.com để giữ tab kiểm thử
     await page.addInitScript(() => {
         (window as any).__ycxTestRedirectHook = (url: string) => {
             console.log('[E2E Stub] Intercepted external PKCE Handoff redirect to:', url);

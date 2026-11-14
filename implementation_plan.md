@@ -9368,3 +9368,21 @@ Cả 5 test đều lỗi thời so với thay đổi đăng nhập ngày 2026-10
 - `mobile-settings-compact` dùng user giả nên thêm `chanGhiCloud`.
 
 **Vi phạm thật ở Bot LINE:** sau khi `icon-audit-man-goc` đo đúng màn, bài báo liên kết "Hướng dẫn sử dụng Bot LINE" (`features/line-bot/LineBotView.tsx`, từ 5cbbb96) dùng `AppIcon size="sm"` trong khi bài đo đòi `md`. Chủ dự án duyệt đổi đúng dòng đó thành `size="md"`.
+
+## Sửa lỗi đăng nhập lặp vòng Google ↔ pwa-login.html sau khi chuyển sang github.io (2026-11-14)
+
+**Triệu chứng (video chủ dự án, Chrome máy Mac):** bấm "Tiếp tục với Google" ở `ltsdata1605-glitch.github.io/dashboard-ycx` →
+chọn tài khoản → về `dashboa-7e20b.web.app/pwa-login.html` lại hiện nút "Tiếp tục với Google" → bấm → Google → lại về đó, mãi mãi.
+
+**Nguyên nhân:** commit `aaa1d73`/`a414826` bỏ `auth.dashboard.pro.vn`, đặt authDomain = `dashboa-7e20b.firebaseapp.com` nhưng
+`PWA_LOGIN_URL` = `dashboa-7e20b.web.app/pwa-login.html`. Trang `/__/auth/handler` để kết quả Google trong sessionStorage của
+origin authDomain; pwa-login.html đọc thẳng từ đó (không `getRedirectResult`) → khác origin là không thấy gì. Trước đây cả hai cùng
+ở `auth.dashboard.pro.vn` nên chạy được. Tái hiện bằng trang handler thật: `tests/e2e/pwa-login-khong-gapi.spec.ts` (bài "bản app cũ").
+
+**Sửa:**
+- `services/firebase.ts`: `PWA_LOGIN_URL = https://${firebaseConfig.authDomain}/pwa-login.html` — luôn cùng origin, không lệch lại được.
+- `auth-hosting/pwa-login.html`: mở nhầm ở `…web.app` (bản app cũ còn trong bộ nhớ đệm) → `location.replace` sang `…firebaseapp.com`
+  giữ nguyên `?c=…`/`#…`; cùng tab nên kết quả Google vẫn còn. `authDomain` của trang lấy từ hằng `AUTH_HOST`.
+- Test: `tests/unit/pwa-login-cung-origin.test.ts` (khoá bất biến cùng origin), e2e `dang-nhap-cung-tab-no-popup` kiểm origin
+  trang về = origin trang xử lý; các spec đăng nhập đổi `auth.dashboard.pro.vn` → `dashboa-7e20b.firebaseapp.com`.
+- Deploy: app (gh-pages) + `firebase deploy --only hosting` (trang pwa-login.html).

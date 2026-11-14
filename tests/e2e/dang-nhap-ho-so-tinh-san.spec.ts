@@ -1,5 +1,5 @@
 /**
- * Đăng nhập iPhone qua auth.dashboard.pro.vn (2026-10-21): máy chủ tính SẴN phiên (quyền/Kho/claims) lúc trang đó gửi phiên
+ * Đăng nhập iPhone qua dashboa-7e20b.firebaseapp.com (2026-10-21): máy chủ tính SẴN phiên (quyền/Kho/claims) lúc trang đó gửi phiên
  * (pwaHandoffStore) và trả kèm khi app nhận phiên (pwaHandoffClaim) → app KHÔNG gọi resolveSession sau khi vào (bớt 1 lượt gọi
  * máy chủ nối tiếp). Kiểm: có hồ sơ tính sẵn cho đúng uid → 0 lượt resolveSession, vẫn vào app; hồ sơ của uid KHÁC → vẫn gọi.
  * Tài khoản thật, CHỈ ĐỌC (chanGhiCloud).

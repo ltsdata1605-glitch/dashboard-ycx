@@ -8,11 +8,9 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
     apiKey: "AIzaSyAloEjmYgge4qMEcC5nSEpCKKujXNKCUn4",
-    // authDomain tuỳ chỉnh (2026-09-22): auth.dashboard.pro.vn trỏ về Firebase Hosting site dashboa-7e20b,
-    // nơi Firebase tự phục vụ /__/auth/handler — để popup Google ghi "Tiếp tục tới auth.dashboard.pro.vn"
-    // thay vì dashboa-7e20b.firebaseapp.com. Đã thêm domain vào Authorized domains (Firebase Auth) và
-    // redirect URI https://auth.dashboard.pro.vn/__/auth/handler vào OAuth Web client (GCP). Đổi lại
-    // giá trị cũ nếu domain này ngừng hoạt động — không cần sửa gì khác.
+    // authDomain (2026-11-14): về lại tên miền mặc định của Firebase Hosting site dashboa-7e20b khi app chuyển sang
+    // ltsdata1605-glitch.github.io/dashboard-ycx (bỏ dashboard.pro.vn; trước đó dùng auth.dashboard.pro.vn từ 2026-09-22).
+    // Trang đăng nhập phụ pwa-login.html được lấy THEO giá trị này (PWA_LOGIN_URL bên dưới) — phải cùng origin.
     authDomain: "dashboa-7e20b.firebaseapp.com",
     projectId: "dashboa-7e20b",
     storageBucket: "dashboa-7e20b.firebasestorage.app",
@@ -157,7 +155,7 @@ export const checkRedirectLoginResult = async () => {
 
 // ─── Đăng nhập cho app ở MÀN HÌNH CHÍNH iPhone (2026-10-12) ─────────────────────────────────────
 // iOS mở trang Google trong khung trình duyệt RIÊNG (bộ nhớ tách khỏi app) nên signInWithRedirect quay
-// về app tay không. Thay vào đó: app mở https://auth.dashboard.pro.vn/pwa-login.html (đăng nhập xong ở
+// về app tay không. Thay vào đó: app mở trang pwa-login.html ở origin authDomain (PWA_LOGIN_URL, đăng nhập xong ở
 // đó), rồi nhận phiên về qua Cloud Function pwaHandoffClaim. Chi tiết: functions/src/pwaHandoff.ts.
 
 export const isIOSStandalonePwa = (): boolean => isIOSDevice() && isStandaloneMode();
@@ -167,7 +165,12 @@ const PWA_HANDOFF_KEY = 'ycxPwaHandoff';
 // (sự cố thực tế 2026-11-11: thao tác Google 8 phút quay về bị xoá mất verifier khi hạn cũ chỉ 6 phút).
 // Token thật trên máy chủ (functions/src/pwaHandoff.ts) vẫn tự hết hạn sau 5 phút kể từ lúc Google trả về.
 const PWA_HANDOFF_MAX_AGE_MS = 30 * 60 * 1000;
-const PWA_LOGIN_URL = 'https://dashboa-7e20b.web.app/pwa-login.html';
+// 🔴 Trang pwa-login.html PHẢI cùng origin với authDomain (2026-11-14, video chủ dự án: đăng nhập lặp vòng Google ↔
+// pwa-login): trang /__/auth/handler để kết quả Google trong sessionStorage của CHÍNH origin authDomain, pwa-login.html đọc
+// thẳng ở đó (không getRedirectResult). Đổi authDomain sang dashboa-7e20b.firebaseapp.com mà trang lại ở …web.app → trang
+// không thấy kết quả → hiện lại nút "Tiếp tục với Google" → lặp mãi. Lấy theo authDomain để không bao giờ lệch lại.
+// Test: tests/unit/pwa-login-cung-origin.test.ts.
+export const PWA_LOGIN_URL = `https://${firebaseConfig.authDomain}/pwa-login.html`;
 
 const toBase64Url = (bytes: Uint8Array): string =>
     btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

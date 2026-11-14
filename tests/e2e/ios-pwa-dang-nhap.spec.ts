@@ -2,7 +2,7 @@ import { test, expect, devices } from '@playwright/test';
 
 /**
  * App ở Màn hình chính iPhone (2026-10-12): bấm "Tiếp tục với Google" phải mở trang
- * auth.dashboard.pro.vn/pwa-login.html#c=<mã> (KHÔNG signInWithRedirect — redirect quay về app tay không),
+ * dashboa-7e20b.firebaseapp.com/pwa-login.html#c=<mã> (KHÔNG signInWithRedirect — redirect quay về app tay không),
  * rồi app hỏi pwaHandoffClaim cho tới khi nhận phiên. Xem functions/src/pwaHandoff.ts.
  */
 test.use({ ...devices['iPhone 13'], browserName: 'chromium' });
@@ -26,7 +26,7 @@ test('iOS PWA: mở trang đăng nhập riêng và hỏi nhận phiên', async (
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: { ok: true, warm: true } }) });
     });
     // Không ra mạng thật tới trang đăng nhập: chỉ cần biết app mở đúng URL.
-    await context.route('https://auth.dashboard.pro.vn/**', route => route.fulfill({ status: 200, body: 'stub' }));
+    await context.route('https://dashboa-7e20b.firebaseapp.com/**', route => route.fulfill({ status: 200, body: 'stub' }));
 
     await page.goto('/');
     const btn = page.getByRole('button', { name: /Tiếp tục với Google/ });
@@ -42,13 +42,13 @@ test('iOS PWA: mở trang đăng nhập riêng và hỏi nhận phiên', async (
     // 2026-10-21: app đi THẲNG tới trang xử lý của Firebase (bỏ chặng nạp thư viện ở pwa-login.html); xong Firebase đưa về
     // pwa-login.html?c=<mã>&m=pwa (m=pwa: app Màn hình chính → trang đó tự đóng khung khi xong).
     const u = new URL(url);
-    expect(u.origin + u.pathname).toBe('https://auth.dashboard.pro.vn/__/auth/handler');
+    expect(u.origin + u.pathname).toBe('https://dashboa-7e20b.firebaseapp.com/__/auth/handler');
     expect(u.searchParams.get('authType')).toBe('signInViaRedirect');
     expect(u.searchParams.get('providerId')).toBe('google.com');
     expect(u.searchParams.get('scopes')).toContain('https://www.googleapis.com/auth/spreadsheets');
     expect(JSON.parse(u.searchParams.get('customParameters') || '{}')).toEqual({ prompt: 'select_account' }); // máy mới: chưa nhớ tài khoản
     const ve = new URL(u.searchParams.get('redirectUrl') || '');
-    expect(ve.origin + ve.pathname).toBe('https://auth.dashboard.pro.vn/pwa-login.html');
+    expect(ve.origin + ve.pathname).toBe('https://dashboa-7e20b.firebaseapp.com/pwa-login.html');
     expect(ve.searchParams.get('c')).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(ve.searchParams.get('m')).toBe('pwa');
     // Trong lúc chờ: màn "Đang hoàn tất đăng nhập…" thay hẳn form (2026-10-13 — form hiện lại làm người dùng tưởng lỗi).

@@ -1,6 +1,6 @@
 /**
  * Đăng nhập trên thiết bị mới (2026-10-13, video chủ dự án): quay về app phải hiện "Đang hoàn tất" chứ không hiện lại
- * form; trang auth.dashboard.pro.vn phải tự sang Google (trước đây bắt bấm 2 lần). Xem functions/src/pwaHandoff.ts.
+ * form; trang dashboa-7e20b.firebaseapp.com phải tự sang Google (trước đây bắt bấm 2 lần). Xem functions/src/pwaHandoff.ts.
  */
 import { test, expect, devices } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -36,10 +36,10 @@ test('quay về app: hiện ngay "Đang hoàn tất", không hiện lại form',
 test('trang auth: tự sang Google, không bắt bấm thêm', async ({ page }) => {
     const html = readFileSync('auth-hosting/pwa-login.html', 'utf8');
     let toHandler = '';
-    await page.route('https://auth.dashboard.pro.vn/pwa-login.html', r => r.fulfill({ status: 200, contentType: 'text/html', body: html }));
-    await page.route('https://auth.dashboard.pro.vn/__/**', r => { toHandler = r.request().url(); return r.fulfill({ status: 200, body: 'handler-stub' }); });
+    await page.route('https://dashboa-7e20b.firebaseapp.com/pwa-login.html', r => r.fulfill({ status: 200, contentType: 'text/html', body: html }));
+    await page.route('https://dashboa-7e20b.firebaseapp.com/__/**', r => { toHandler = r.request().url(); return r.fulfill({ status: 200, body: 'handler-stub' }); });
     await page.route('**/pwaHandoffStore', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"result":{"ok":true}}' }));
-    await page.goto('https://auth.dashboard.pro.vn/pwa-login.html#c=' + 'B'.repeat(43));
+    await page.goto('https://dashboa-7e20b.firebaseapp.com/pwa-login.html#c=' + 'B'.repeat(43));
     await expect.poll(() => toHandler, { timeout: 20_000 }).toContain('/__/auth/handler');
 
 });

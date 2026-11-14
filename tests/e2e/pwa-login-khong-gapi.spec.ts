@@ -2,7 +2,7 @@ import { test, expect, devices, type Page, type BrowserContext } from '@playwrig
 import { readFileSync } from 'node:fs';
 
 /**
- * Trang đăng nhập phụ auth.dashboard.pro.vn/pwa-login.html KHÔNG được phụ thuộc khung ẩn gapi (apis.google.com)
+ * Trang đăng nhập phụ dashboa-7e20b.firebaseapp.com/pwa-login.html KHÔNG được phụ thuộc khung ẩn gapi (apis.google.com)
  * — 2026-10-21, chủ dự án quay video iPhone mới kẹt ở "Đang mở trang đăng nhập Google…": getAuth() trên iPhone chờ
  * tải gapi + IndexedDB (tới 30–60 s) trước khi chịu chuyển trang. Ở đây apis.google.com bị TREO hẳn (không trả lời)
  * mà trang vẫn phải: sang trang Google, nhận kết quả về, gửi phiên.
@@ -20,15 +20,15 @@ async function chuanBi(context: BrowserContext) {
     const gapi: string[] = [];
     // apis.google.com treo: không trả lời gì (giống máy bị chặn/treo mạng tới đó).
     await context.route('https://apis.google.com/**', r => { gapi.push(r.request().url()); return new Promise(() => {}); });
-    await context.route(/^https:\/\/auth\.dashboard\.pro\.vn\/pwa-login\.html([?#].*)?$/, r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+    await context.route(/^https:\/\/dashboa-7e20b\.firebaseapp\.com\/pwa-login\.html([?#].*)?$/, r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
     return gapi;
 }
 
 /** Đúng URL app mới (services/firebase.ts → taoUrlDangNhapHandoff) mở: đi thẳng tới trang xử lý của Firebase. */
-const urlDiThang = (q: Record<string, string>, thamSo: Record<string, string> = { prompt: 'select_account' }) => {
-    const ve = new URL('https://auth.dashboard.pro.vn/pwa-login.html');
+const urlDiThang = (q: Record<string, string>, thamSo: Record<string, string> = { prompt: 'select_account' }, trangVe = 'https://dashboa-7e20b.firebaseapp.com/pwa-login.html') => {
+    const ve = new URL(trangVe);
     for (const [k, v] of Object.entries(q)) ve.searchParams.set(k, v);
-    return 'https://auth.dashboard.pro.vn/__/auth/handler?' + new URLSearchParams({
+    return 'https://dashboa-7e20b.firebaseapp.com/__/auth/handler?' + new URLSearchParams({
         apiKey: API_KEY, appName: '[DEFAULT]', authType: 'signInViaRedirect',
         redirectUrl: ve.toString(), v: '12.11.0', providerId: 'google.com', customParameters: JSON.stringify(thamSo),
         scopes: 'profile,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/drive.file',
@@ -37,13 +37,13 @@ const urlDiThang = (q: Record<string, string>, thamSo: Record<string, string> = 
 
 async function sangGoogleRoiHuy(page: Page, duoi = '', diThang?: string) {
     const t0 = Date.now();
-    await page.goto(diThang ?? ('https://auth.dashboard.pro.vn/pwa-login.html#c=' + CODE + duoi));
+    await page.goto(diThang ?? ('https://dashboa-7e20b.firebaseapp.com/pwa-login.html#c=' + CODE + duoi));
     await page.waitForURL(/accounts\.google\.com/, { timeout: 15_000 });
     const msSangGoogle = Date.now() - t0;
     const u = new URL(page.url());
     const state = u.searchParams.get('state');
     const redir = u.searchParams.get('redirect_uri');
-    expect(redir).toBe('https://auth.dashboard.pro.vn/__/auth/handler');
+    expect(redir).toBe('https://dashboa-7e20b.firebaseapp.com/__/auth/handler');
     expect(state).toBeTruthy();
     await page.goto(`${redir}?state=${encodeURIComponent(state!)}&error=access_denied`);
     await page.waitForURL(/pwa-login\.html/, { timeout: 15_000 });
@@ -85,7 +85,7 @@ test('mở từ app Màn hình chính (#m=pwa): xong thì nhắc bấm "Xong", K
     await chuanBi(context);
     const { stores } = await giaThanhCong(context);
     let moApp = false;
-    await context.route('https://dashboard.pro.vn/**', r => { moApp = true; return r.fulfill({ status: 200, contentType: 'text/html', body: '<p>app</p>' }); });
+    await context.route('https://ltsdata1605-glitch.github.io/**', r => { moApp = true; return r.fulfill({ status: 200, contentType: 'text/html', body: '<p>app</p>' }); });
     await sangGoogleRoiHuy(page, '&m=pwa');
     await expect(page.locator('#msg')).toContainText('Bấm "Xong"', { timeout: 15_000 });
     expect(stores.find(s => s.data.code)?.data.code).toBe(CODE);
@@ -112,10 +112,10 @@ test('về từ Google thành công: gửi phiên kèm Bearer rồi về app', a
         stores.push({ auth: r.request().headers()['authorization'] ?? null, data: r.request().postDataJSON().data });
         await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"result":{"ok":true}}' });
     });
-    await context.route('https://dashboard.pro.vn/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: '<p>app</p>' }));
+    await context.route('https://ltsdata1605-glitch.github.io/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: '<p>app</p>' }));
 
     await sangGoogleRoiHuy(page);
-    await page.waitForURL('https://dashboard.pro.vn/', { timeout: 15_000 });
+    await page.waitForURL('https://ltsdata1605-glitch.github.io/dashboard-ycx/', { timeout: 15_000 });
 
     expect(String(idpBody!.requestUri)).toContain('/__/auth/handler?state=');
     expect(idpBody!.sessionId).toBeTruthy();
@@ -146,4 +146,26 @@ test('luồng mới, bấm Huỷ ở Google: báo rõ; bấm lại thì vẫn ch
     await page.locator('#go').click();
     await page.waitForURL(/accounts\.google\.com/, { timeout: 20_000 });
     expect(decodeURIComponent(page.url())).toContain('login_hint=nv@vd.vn');
+});
+
+// 2026-11-14 (video chủ dự án, máy tính): bản app 14/11 đưa về pwa-login.html ở dashboa-7e20b.WEB.APP trong khi trang xử lý
+// Google ở dashboa-7e20b.FIREBASEAPP.COM → kết quả Google nằm ở sessionStorage của firebaseapp.com, trang ở web.app không thấy
+// → hiện lại nút "Tiếp tục với Google" → lặp vòng mãi. Trang mở nhầm ở web.app phải tự chuyển sang firebaseapp.com (cùng tab nên
+// kết quả vẫn còn) rồi đăng nhập xong, về app github.io.
+test('bản app cũ đưa về web.app: tự chuyển sang origin authDomain, nhận kết quả Google, về app', async ({ page, context }) => {
+    test.setTimeout(60_000);
+    await chuanBi(context);
+    await context.route(/^https:\/\/dashboa-7e20b\.web\.app\/pwa-login\.html([?#].*)?$/, r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+    const { stores } = await giaThanhCong(context);
+    await context.route('https://ltsdata1605-glitch.github.io/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: '<p>app</p>' }));
+    const diQua: string[] = [];
+    page.on('framenavigated', f => { if (f === page.mainFrame()) diQua.push(new URL(f.url()).host); });
+
+    const ret = 'https://ltsdata1605-glitch.github.io/dashboard-ycx/?tab=check-thuong';
+    await sangGoogleRoiHuy(page, '', urlDiThang({ c: CODE, ret }, undefined, 'https://dashboa-7e20b.web.app/pwa-login.html'));
+    await page.waitForURL(ret, { timeout: 15_000 });
+
+    expect(diQua).toContain('dashboa-7e20b.web.app');
+    expect(diQua).toContain('dashboa-7e20b.firebaseapp.com');
+    expect(stores.find(s => s.data.code)).toEqual({ auth: 'Bearer firebase-id-token-gia', data: { code: CODE, idToken: 'google-id-token-gia', accessToken: 'google-access-gia' } });
 });
