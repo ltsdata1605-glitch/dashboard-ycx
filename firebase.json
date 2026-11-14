@@ -12,7 +12,7 @@
     "redirects": [
       {
         "source": "/",
-        "destination": "https://dashboard.pro.vn/",
+        "destination": "https://ltsdata1605-glitch.github.io/dashboard-ycx/",
         "type": 302
       }
     ],

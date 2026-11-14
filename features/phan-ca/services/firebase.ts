@@ -13,7 +13,7 @@ const firebaseConfig = {
     // thay vì dashboa-7e20b.firebaseapp.com. Đã thêm domain vào Authorized domains (Firebase Auth) và
     // redirect URI https://auth.dashboard.pro.vn/__/auth/handler vào OAuth Web client (GCP). Đổi lại
     // giá trị cũ nếu domain này ngừng hoạt động — không cần sửa gì khác.
-    authDomain: "auth.dashboard.pro.vn",
+    authDomain: "dashboa-7e20b.firebaseapp.com",
     projectId: "dashboa-7e20b",
     storageBucket: "dashboa-7e20b.firebasestorage.app",
     messagingSenderId: "388853115750",

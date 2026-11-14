@@ -58,7 +58,7 @@
     Tiếp tục với Google
   </button>
 
-  <a id="back" class="btn primary" href="https://dashboard.pro.vn/" hidden>Quay lại ứng dụng</a>
+  <a id="back" class="btn primary" href="https://ltsdata1605-glitch.github.io/dashboard-ycx/" hidden>Quay lại ứng dụng</a>
   <div id="msg" class="msg"></div>
 </main>
 
@@ -148,7 +148,7 @@
     ]);
     const auth = fa.initializeAuth(initializeApp({
       apiKey: API_KEY,
-      authDomain: 'auth.dashboard.pro.vn',
+      authDomain: 'dashboa-7e20b.firebaseapp.com',
       projectId: 'dashboa-7e20b',
       appId: '1:388853115750:web:33759964955d77a04df6a7',
     }), { persistence: fa.inMemoryPersistence });
@@ -272,14 +272,14 @@
     // Về app NGAY. Nút "Quay lại ứng dụng" để sẵn phòng khi trình duyệt không tự chuyển.
     const retSaved = sessionStorage.getItem(KEY + ':ret');
     sessionStorage.removeItem(KEY + ':ret');
-    let returnUrl = 'https://dashboard.pro.vn/';
+    let returnUrl = 'https://ltsdata1605-glitch.github.io/dashboard-ycx/';
     if (retSaved) {
       try {
         const u = new URL(retSaved);
-        if (u.hostname === 'dashboard.pro.vn' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+        if (u.hostname === 'dashboard.pro.vn' || u.hostname === 'ltsdata1605-glitch.github.io' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
           returnUrl = retSaved;
         }
-      } catch { /* URL không hợp lệ: về https://dashboard.pro.vn/ */ }
+      } catch { /* URL không hợp lệ: về https://ltsdata1605-glitch.github.io/dashboard-ycx/ */ }
     }
     $('back').href = returnUrl;
     show('back', true);
