@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import fs from 'fs';
 import crypto from 'crypto';
 import postcss from 'postcss';
+import { APP_BASE } from './constants/appBase';
 
 
 /**
@@ -64,7 +65,7 @@ function offlineServiceWorker() {
       const dist = path.resolve(__dirname, 'dist');
       if (!fs.existsSync(path.join(dist, 'index.html'))) return;
       const files = walk(dist);
-      const basePath = '/dashboard-ycx/';
+      const basePath = APP_BASE;
       const precache = files
         .filter((f) => (f.startsWith('assets/') && emitted.includes(f)) || f.startsWith('icons/') || f === 'favicon.svg' || f === 'manifest.webmanifest'
           || f === 'prevent-pull-to-refresh.js' || f === 'reload-on-chunk-error.js' || f === 'man-cho-khoi-dong.js' || f === 'fonts/UTM AvoBold.ttf')
@@ -87,7 +88,7 @@ function offlineServiceWorker() {
 
 export default defineConfig(() => {
     return {
-      base: '/dashboard-ycx/',
+      base: APP_BASE,
       server: {
         open: true,
         proxy: {

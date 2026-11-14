@@ -114,7 +114,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ reports, fields, sta
 
                 {filtered.length === 0 ? (
                     <div className="relative group my-2">
-                        <div className="relative bg-slate-50/60 dark:bg-slate-850/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-12 text-center">
+                        <div className="relative bg-slate-50/60 dark:bg-slate-850/60 rounded-popup border border-slate-200/80 dark:border-slate-700/80 px-4 py-12 text-center">
                             <span className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto mb-2">
                                 <AppIcon name="chartBar" size="md" />
                             </span>

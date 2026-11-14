@@ -40,7 +40,7 @@ export const CounterRow: React.FC<CounterRowProps> = ({ icon, label, value, onCh
                     <AppIcon name={resolvedIcon} size="sm" />
                 </span>
                 <span
-                    className={`min-w-0 truncate text-[13px] sm:text-[13.5px] transition-colors ${
+                    className={`min-w-0 truncate text-[13px] transition-colors ${
                         active
                             ? 'font-semibold text-slate-900 dark:text-white'
                             : 'text-slate-700 dark:text-slate-300'
@@ -85,7 +85,7 @@ export const CounterRow: React.FC<CounterRowProps> = ({ icon, label, value, onCh
                     </Button>
 
                     <span
-                        className={`min-w-[20px] px-1 text-center text-[12.5px] sm:text-[13px] tabular-nums font-bold transition-colors ${
+                        className={`min-w-[20px] px-1 text-center text-[12px] sm:text-[13px] tabular-nums font-bold transition-colors ${
                             active
                                 ? 'text-sky-600 dark:text-sky-400 font-extrabold'
                                 : 'text-slate-400 dark:text-slate-500'

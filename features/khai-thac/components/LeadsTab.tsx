@@ -91,12 +91,12 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
                     <div className="grid grid-cols-2 gap-2.5">
                         <div>
                             <label htmlFor="lead-name" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Tên khách</label>
-                            <Input id="lead-name" placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} className="h-9 text-[13px] rounded-lg" />
+                            <Input id="lead-name" placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} className="h-9 text-[13px] rounded-control" />
                         </div>
                         <div>
                             <label htmlFor="lead-phone" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Số điện thoại</label>
                             <Input id="lead-phone" type="tel" inputMode="numeric" placeholder="09xx…" value={phone}
-                                onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} className="h-9 text-[13px] tabular-nums rounded-lg" />
+                                onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} className="h-9 text-[13px] tabular-nums rounded-control" />
                         </div>
                     </div>
                     <div>
@@ -112,11 +112,11 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
                                 );
                             })}
                         </div>
-                        <Input placeholder="Sản phẩm khác…" value={customProduct} onChange={e => setCustomProduct(e.target.value)} className="h-8 text-[13px] mt-2 rounded-lg" aria-label="Sản phẩm khác" />
+                        <Input placeholder="Sản phẩm khác…" value={customProduct} onChange={e => setCustomProduct(e.target.value)} className="h-8 text-[13px] mt-2 rounded-control" aria-label="Sản phẩm khác" />
                     </div>
                     <div>
                         <label htmlFor="lead-notes" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ghi chú</label>
-                        <Input id="lead-notes" placeholder="Ghi chú khách hàng…" value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-[13px] rounded-lg"
+                        <Input id="lead-notes" placeholder="Ghi chú khách hàng…" value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-[13px] rounded-control"
                             onKeyDown={e => { if (e.key === 'Enter') submit(); }} />
                     </div>
                     <Button variant="primary" onClick={submit} disabled={!canAdd} leftIcon={<AppIcon name="add" size="md" />} className="w-full h-10 rounded-full font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/25 active:scale-95 text-[13px]" data-testid="btn-add-lead"
@@ -136,7 +136,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
                             <div className="relative hidden sm:block">
                                 <AppIcon name="search" size="xs" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <Input placeholder="Tìm nhanh…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Tìm khách hàng"
-                                    className="h-7 w-44 pl-7 pr-2 text-[12px] rounded-lg bg-white dark:bg-slate-850" fullWidth={false} />
+                                    className="h-7 w-44 pl-7 pr-2 text-[12px] rounded-control bg-white dark:bg-slate-850" fullWidth={false} />
                             </div>
                             {leads.length > 0 && (
                                 <Button variant="secondary" size="sm" className="ycx-hit h-7 px-2.5 text-[11px] rounded-full" leftIcon={<AppIcon name="share" size="xs" />}
@@ -176,7 +176,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
                                             </a>
                                             <span className="text-[11px] text-slate-400 tabular-nums">({ago(l.createdAt, now)} trước)</span>
                                             {overdue && (
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                                                <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
                                                     Quá 2h
                                                 </span>
                                             )}
@@ -187,7 +187,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
                                             {l.notes && <span className="text-slate-500 italic">· {l.notes}</span>}
                                         </div>
                                         {l.statusDetails && (
-                                            <div className="text-[12px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800 mt-1">
+                                            <div className="text-[12px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-control border border-slate-100 dark:border-slate-800 mt-1">
                                                 <b className="text-slate-700 dark:text-slate-300">{DETAIL_LABEL[l.status] || 'Chi tiết'}:</b> {l.statusDetails}
                                             </div>
                                         )}
@@ -198,16 +198,16 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({ leads, staffName, onAdd, onU
                                                 value={l.status}
                                                 onChange={e => onUpdate({ ...l, status: e.target.value as LeadStatus, updatedAt: Date.now() })}
                                                 options={LEAD_STATUSES.map(s => ({ value: s, label: s }))}
-                                                className="h-8 text-[12px] rounded-lg"
+                                                className="h-8 text-[12px] rounded-control"
                                             />
                                         </div>
                                         <Button
                                             variant="ghost"
-                                            size="icon-xs"
+                                            size="icon"
                                             onClick={() => setPendingDelete(l)}
                                             title="Xoá khách này"
                                             aria-label="Xoá khách"
-                                            className="ycx-hit h-8 w-8 text-slate-400 hover:text-rose-600 rounded-full"
+                                            className="ycx-hit text-slate-400 hover:text-rose-600 rounded-full"
                                         >
                                             <AppIcon name="delete" size="sm" />
                                         </Button>

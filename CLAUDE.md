@@ -39,7 +39,11 @@ một câu báo trước rẻ hơn nhiều so với khôi phục. Mọi việc k
 **Tự push + deploy sau MỖI lần thay đổi (chủ dự án yêu cầu 2026-10-01 — "Luôn ghi nhớ"):** xong một thay đổi/nâng cấp
 và đã kiểm (`npm run check` + test liên quan) thì agent TỰ làm luôn, không chờ được nhắc: commit → push nhánh làm việc →
 fast-forward/merge vào `main` và push → `npm run build` → `./node_modules/.bin/gh-pages -d dist -m "<mô tả>"` → curl
-`https://dashboard.pro.vn` xác nhận `assets/index-*.js` (và `@version` userscript nếu có đổi) đã là bản mới. Bản build còn sinh `dist/sw.js` (service worker offline, 2026-10-08) — kiểm `curl https://dashboard.pro.vn/sw.js` có `ycx-shell-<VERSION>` mới.
+`https://ltsdata1605-glitch.github.io/dashboard-ycx/` xác nhận `assets/index-*.js` (và `@version` userscript nếu có đổi) đã là bản mới. Bản build còn sinh `dist/sw.js` (service worker offline, 2026-10-08) — kiểm `curl https://ltsdata1605-glitch.github.io/dashboard-ycx/sw.js` có `ycx-shell-<VERSION>` mới.
+*(2026-11-14, aaa1d73: app chuyển sang GitHub Pages thư mục con `/dashboard-ycx/`, BỎ tên miền `dashboard.pro.vn` — đã gỡ CNAME, tên miền không còn
+phân giải. Đường dẫn gốc (base) nằm ở MỘT chỗ: `constants/appBase.ts` → `vite.config.ts`, `scripts/kiem-goi-tai-dau.cjs`, `tests/e2e/helpers/appBase.ts`.
+Code app trong trình duyệt dùng `import.meta.env.BASE_URL`; viết cứng `'/frame/…'`, `'/icons/…'`, `'/scripts/…'` là 404 trên bản chạy thật. Spec e2e
+gọi module Vite / trang thử phải qua `appPath('/services/x.ts')` — xem chú thích helper.)*
 🔴 **Chỉ build + deploy khi HEAD = `origin/main`** (2026-10-21): nhiều phiên cùng deploy `gh-pages` — nối các bước bằng `&&` (hoặc
 `git fetch origin main && [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]` ngay trước `gh-pages`). Bước đưa lên `main` hỏng
 (phiên khác vừa đẩy) mà vẫn deploy là ghi đè mất bản sửa của phiên kia — đã xảy ra 21/10 07:09 UTC (mất bản sửa đăng nhập iPhone 4 phút).
@@ -150,7 +154,7 @@ Ngoài 4 khu vực frontend ở mục 1, dự án có 1 khu vực **backend th�
 
 | Thành phần | Vị trí | Vai trò |
 |---|---|---|
-| Cloud Functions | `functions/` (project Node/TypeScript riêng, KHÔNG thuộc build Vite) | App gốc: `resolveSession`, `requestAccess`, `adminUpdateUser`, `listManagedUsers`, `generateWithGemini`, `demoteExpiredUsers`, `pwaHandoffStore`/`pwaHandoffClaim` (đăng nhập app Màn hình chính iPhone qua trang `auth-hosting/pwa-login.html` ở `auth.dashboard.pro.vn` — Firebase Hosting, `firebase deploy --only hosting`; iOS PWA KHÔNG dùng được `signInWithRedirect`). In Sticker: `stickerRegister`, `stickerResolveSession`, `stickerAdminUpdateUser`, `stickerStaffAuth`. Bot LINE: `lineBotWebhook`, `dailyMorningInventoryReport` (6h), `dailyEveningUsageSummary` (22h), `lineBotUserSchedules` (5 phút/lần — tự gửi lịch "Gửi Notify"), `pmhRelayPoll`, `pmhRelayComplete` |
+| Cloud Functions | `functions/` (project Node/TypeScript riêng, KHÔNG thuộc build Vite) | App gốc: `resolveSession`, `requestAccess`, `adminUpdateUser`, `listManagedUsers`, `generateWithGemini`, `demoteExpiredUsers`, `pwaHandoffStore`/`pwaHandoffClaim` (đăng nhập app Màn hình chính iPhone qua trang `auth-hosting/pwa-login.html` ở `https://dashboa-7e20b.firebaseapp.com/pwa-login.html` — Firebase Hosting site `dashboa-7e20b`, `firebase deploy --only hosting`; trang này PHẢI cùng origin với `authDomain` (`services/firebase.ts`, hiện `dashboa-7e20b.firebaseapp.com`) nên `PWA_LOGIN_URL` lấy theo `authDomain` — lệch origin là đăng nhập lặp vòng (be43bb0). Trước 2026-11-14 là `auth.dashboard.pro.vn`, đã bỏ. iOS PWA KHÔNG dùng được `signInWithRedirect`). In Sticker: `stickerRegister`, `stickerResolveSession`, `stickerAdminUpdateUser`, `stickerStaffAuth`. Bot LINE: `lineBotWebhook`, `dailyMorningInventoryReport` (6h), `dailyEveningUsageSummary` (22h), `lineBotUserSchedules` (5 phút/lần — tự gửi lịch "Gửi Notify"), `pmhRelayPoll`, `pmhRelayComplete` |
 | Firestore Rules — database `(default)` | `firestore.rules` (repo root) | Chặn client (kể cả admin) ghi trực tiếp field nhạy cảm vào `users/{uid}` |
 | ~~Firestore Rules — database In Sticker CŨ~~ | ~~`firestore.stickerevent.rules`~~ | **ĐÃ BỎ 2026-10-08** (chủ dự án chốt xoá database cũ `ai-studio-16672ec9-…`): file rules và ánh xạ trong `firebase.json` đã xoá. In Sticker dùng `(default)`, rules trong `firestore.rules`. |
 

@@ -15,7 +15,9 @@ describe('FeatureDisabled404View and menuFeatures mapping', () => {
     });
 
     it('toàn bộ các feature có id hợp lệ và icon hợp lệ', () => {
-        expect(APP_MENU_FEATURES.length).toBeGreaterThanOrEqual(10);
+        // Không khoá số lượng cứng (từng là ≥ 10 — đỏ khi bỏ Phân tích/Report BI ở eb1fa51): chỉ cần danh sách không rỗng, id không trùng.
+        expect(APP_MENU_FEATURES.length).toBeGreaterThan(0);
+        expect(new Set(APP_MENU_FEATURES.map(f => f.id)).size).toBe(APP_MENU_FEATURES.length);
         for (const feat of APP_MENU_FEATURES) {
             expect(feat.id).toBeTruthy();
             expect(feat.label).toBeTruthy();

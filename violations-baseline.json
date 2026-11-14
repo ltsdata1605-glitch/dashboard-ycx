@@ -289,23 +289,6 @@
     "legacyRadius": 0,
     "backdropBlur": 1
   },
-  "components/views/DashboardView.tsx": {
-    "nonSemanticColor": 0,
-    "indigoAlias": 0,
-    "missingMobileToolbar": 0,
-    "iconDirectImport": 0,
-    "iconNumericSize": 0,
-    "iconLegacyCall": 0,
-    "iconRawSvg": 0,
-    "iconEmoji": 0,
-    "rawOverlay": 0,
-    "tinyText": 0,
-    "offScaleRadius": 0,
-    "offScaleText": 0,
-    "legacyRadius": 0,
-    "backdropBlur": 1,
-    "unstyledButton": 0
-  },
   "components/views/FeatureDisabled404View.tsx": {
     "nonSemanticColor": 0,
     "indigoAlias": 20,

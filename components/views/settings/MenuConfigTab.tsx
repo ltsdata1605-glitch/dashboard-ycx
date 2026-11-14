@@ -357,7 +357,7 @@ export const MenuConfigTab: React.FC = () => {
                                                     <div
                                                         key={sub.id}
                                                         className={cn(
-                                                            'flex items-center justify-between p-2 rounded-xl border text-xs transition-colors',
+                                                            'flex items-center justify-between p-2 rounded-popup border text-xs transition-colors',
                                                             isSubEnabled
                                                                 ? 'bg-slate-50/80 dark:bg-slate-850/80 border-slate-200/80 dark:border-slate-700/80'
                                                                 : 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/50 opacity-75'

@@ -9386,3 +9386,31 @@ origin authDomain; pwa-login.html đọc thẳng từ đó (không `getRedirectR
 - Test: `tests/unit/pwa-login-cung-origin.test.ts` (khoá bất biến cùng origin), e2e `dang-nhap-cung-tab-no-popup` kiểm origin
   trang về = origin trang xử lý; các spec đăng nhập đổi `auth.dashboard.pro.vn` → `dashboa-7e20b.firebaseapp.com`.
 - Deploy: app (gh-pages) + `firebase deploy --only hosting` (trang pwa-login.html).
+
+## `npm run check` xanh lại sau khi bỏ Phân tích/Report BI và chuyển sang github.io (2026-11-14)
+
+`eb1fa51` (bỏ module Phân tích YCX + Report BI) và `aaa1d73` (deploy `ltsdata1605-glitch.github.io/dashboard-ycx/`, `base: '/dashboard-ycx/'`)
+làm `main` đỏ ở 4 chỗ, cộng các vi phạm chuẩn thiết kế từ các commit khai-thác/menu 03–09/11 mà ratchet chưa chặn (check:budget đỏ trước
+nên lint:ratchet chưa từng chạy tới).
+
+**Tệp thay đổi & thiết kế:**
+- **Hằng chung `constants/appBase.ts` (`APP_BASE`)** — nguồn duy nhất của đường dẫn gốc. `vite.config.ts` (base + service worker) import;
+  `scripts/kiem-goi-tai-dau.cjs` đọc bằng regex (CommonJS) rồi tìm `<base>assets/…` trong dist/index.html; `tests/e2e/helpers/appBase.ts`
+  có `appPath('/services/x.ts')`. App trong trình duyệt vẫn dùng `import.meta.env.BASE_URL`.
+- **Unit test lỗi thời (sửa phía test):** `menuConfigService.test.ts` (map mặc định gồm cả tab con In Sticker từ 5f82fa4; bỏ `analysis`/
+  `employees`), `FeatureDisabled404View.test.ts` (bỏ ngưỡng cứng ≥ 10 tính năng, thêm kiểm id không trùng).
+- **Code sai (sửa phía code):** `LeadsTab.tsx` nút xoá `size="icon-xs"` + `h-8 w-8` cứng → `size="icon"` (token `--btn-height-icon`).
+- **Lint-ratchet (17 vi phạm):** bo góc `rounded-lg/xl/2xl` → `rounded-control/popup/card` (cùng px); cỡ chữ 13.5/12.5px → 13/12px, 10px →
+  11px; màu nhóm khai thác blue/violet/teal/indigo → sky/rose/emerald/slate (amber giữ); nút "Sao chép ảnh" violet → amber;
+  `ReportEntryTab`: thanh dính đáy iPhone tự vẽ kính → `GlassSurface`, sheet xem trước tự dựng `fixed inset-0` → `Modal position="bottom"`.
+- **E2E:** mọi `import('/…')` / `fetch('/…')` / `page.goto('/<khác gốc>')` trong `tests/e2e` (~70 spec) → qua `appPath()`; closure
+  `page.evaluate` nhận base qua tham số `B`. `goto('/')` và `'/?tab=…'` giữ nguyên (dev server tự chuyển về base).
+- **Tài liệu:** CLAUDE.md (curl kiểm deploy, trang pwa-login ở `dashboa-7e20b.firebaseapp.com`), userscript `@updateURL/@downloadURL`.
+
+**Rủi ro:** đổi màu icon 5 nhóm khai thác + nút "Sao chép ảnh" là đổi giao diện thấy được (theo chuẩn 5 họ màu); `ReportEntryTab` iPhone
+dùng sheet chung (thêm kéo-để-đóng, né bàn phím). Phần còn lại không đổi pixel.
+
+**Chưa sửa — lỗi production cùng nguồn gốc `base`, cần quyết định riêng:** đường dẫn file tĩnh viết cứng trong TS/TSX (`/frame/*.png` nền
+sticker — có giá trị đã lưu trong IndexedDB, `/icons/…`, `/Tuts/Coupon.png`, `/huong-dan-bot-line.html`, `/scripts/*.user.js`,
+`/userscript-probe.html`), `public/manifest.webmanifest` (`id`/`start_url`/`scope` = `/`), `public/huong-dan-bot-line.html` (`/huong-dan.css`),
+`price-scraper-server` chỉ cho origin `https://dashboard.pro.vn`. Đo 2026-11-14: các file đó 404 ở gốc github.io, 200 dưới `/dashboard-ycx/`.

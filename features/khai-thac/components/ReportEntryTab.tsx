@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { AppIcon } from '../../../components/shared/ui/icon/AppIcon';
 import { Button } from '../../../components/shared/ui/Button';
 import { Input } from '../../../components/shared/ui/Input';
+import { GlassSurface } from '../../../components/shared/ui/GlassSurface';
+import { Modal } from '../../../components/shared/ui/Modal';
 import type { ItemGroup, ReportDraft, CustomField } from '../types';
 import { ITEM_GROUPS } from '../types';
 import { fmtTr } from '../utils/reportText';
@@ -59,7 +61,7 @@ const ToggleButton: React.FC<{
         size="sm"
         onClick={onClick}
         aria-pressed={on}
-        className={`ycx-hit h-11 lg:h-9.5 gap-2 rounded-xl transition-all duration-150 active:scale-95 ${
+        className={`ycx-hit h-11 lg:h-9.5 gap-2 rounded-popup transition-all duration-150 active:scale-95 ${
             on
                 ? TONE_ON[tone].btn
                 : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-300'
@@ -197,7 +199,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                                     onKeyDown={e => {
                                         if (e.key === 'Enter') commitRevenue();
                                     }}
-                                    className="h-11 text-[16px] tabular-nums font-bold rounded-xl border-slate-200/90 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 pr-10 shadow-2xs"
+                                    className="h-11 text-[16px] tabular-nums font-bold rounded-popup border-slate-200/90 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 pr-10 shadow-2xs"
                                 />
                                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 pointer-events-none">
                                     Tr
@@ -206,7 +208,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
 
                             {isExpression && (
                                 <span
-                                    className={`shrink-0 inline-flex items-center h-11 px-3 rounded-xl text-[15px] font-black tabular-nums border ${
+                                    className={`shrink-0 inline-flex items-center h-11 px-3 rounded-popup text-[15px] font-black tabular-nums border ${
                                         evaluated !== null
                                             ? 'bg-sky-50 dark:bg-sky-950/50 border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-300 shadow-2xs'
                                             : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
@@ -274,7 +276,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                             value={draft.notes}
                             onChange={e => onPatch({ notes: e.target.value })}
                             aria-label="Ghi chú"
-                            className="w-full resize-none rounded-xl border border-slate-200/90 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 p-2.5 text-[13px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                            className="w-full resize-none rounded-popup border border-slate-200/90 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 p-2.5 text-[13px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                         />
                     </div>
                 </section>
@@ -293,7 +295,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                         />
                         <div className="p-3">
                             <pre
-                                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200"
+                                className="p-3 rounded-popup bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200"
                                 data-testid="preview-mobile"
                             >
                                 {previewText}
@@ -319,7 +321,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                         />
                         <div className="p-3.5">
                             <pre
-                                className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200 min-h-[140px]"
+                                className="p-3.5 rounded-popup bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200 min-h-[140px]"
                                 data-testid="preview"
                             >
                                 {previewText}
@@ -329,7 +331,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
 
                     {renderActions('desktop')}
 
-                    <div className="rounded-xl p-3 bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-900/40 text-[12px] text-slate-600 dark:text-slate-300 leading-snug flex items-start gap-2">
+                    <div className="rounded-popup p-3 bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-900/40 text-[12px] text-slate-600 dark:text-slate-300 leading-snug flex items-start gap-2">
                         <span className="text-sky-600 dark:text-sky-400 mt-0.5 shrink-0">
                             <AppIcon name="help" size="sm" />
                         </span>
@@ -340,8 +342,14 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                 </div>
             </aside>
 
-            {/* ── MOBILE SAFARI LIQUID GLASS STICKY BAR (DÀNH CHO IPHONE) ── */}
-            <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-3.5 py-2 pb-[calc(10px+env(safe-area-inset-bottom,0px))] shadow-xl flex items-center justify-between gap-2.5">
+            {/* ── THANH THAO TÁC DÍNH ĐÁY (iPhone) — kính dùng chung GlassSurface (token --glass-*, có đường lùi giảm trong suốt),
+                 KHÔNG tự viết lớp làm mờ nền rời của Tailwind (khối tiết kiệm pin tắt nó trên điện thoại — DESIGN_SYSTEM.md mục 8). Tràn mép nên bỏ bo góc
+                 và viền 3 cạnh, chỉ giữ viền trên. ── */}
+            <GlassSurface
+                shape="panel"
+                tone="strong"
+                className="lg:hidden fixed bottom-0 inset-x-0 z-40 rounded-none border-x-0 border-b-0 px-3.5 py-2 pb-[calc(10px+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-2.5"
+            >
                 {/* Tóm tắt nhanh & xem trước drawer toggle */}
                 <div
                     role="button"
@@ -359,7 +367,7 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                             {evaluatedRevenue > 0 ? `${fmtTr(evaluatedRevenue)} Tr` : '0 Tr'}
                             <span className="text-[11px] font-normal text-slate-500 ml-1">({totalItemCount} món)</span>
                         </div>
-                        <div className="text-[10px] text-sky-600 dark:text-sky-400 font-medium leading-none">
+                        <div className="text-[11px] text-sky-600 dark:text-sky-400 font-medium leading-none">
                             {showMobilePreview ? 'Đóng xem trước' : 'Chạm để xem trước'}
                         </div>
                     </div>
@@ -387,61 +395,42 @@ export const ReportEntryTab: React.FC<ReportEntryTabProps> = ({
                         Báo cáo
                     </Button>
                 </div>
-            </div>
+            </GlassSurface>
 
-            {/* Quick Preview Bottom Sheet for iPhone */}
-            {showMobilePreview && (
-                <div
-                    className="lg:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-200"
-                    onClick={() => setShowMobilePreview(false)}
-                >
-                    <div
-                        className="bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200/80 dark:border-slate-800 p-4 max-h-[80vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-3 shrink-0" />
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[13px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                                Xem trước văn bản Zalo/Line
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="xs"
-                                onClick={() => setShowMobilePreview(false)}
-                                className="rounded-full"
-                            >
-                                <AppIcon name="close" size="sm" />
-                            </Button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto mb-4">
-                            <pre className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-100 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200">
-                                {previewText}
-                            </pre>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2.5">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setShowMobilePreview(false)}
-                                className="h-10 rounded-full font-bold"
-                            >
-                                Đóng
-                            </Button>
-                            <Button
-                                variant="primary"
-                                onClick={() => {
-                                    setShowMobilePreview(false);
-                                    onSubmit();
-                                }}
-                                isLoading={isSaving}
-                                leftIcon={<AppIcon name="copy" size="sm" />}
-                                className="h-10 rounded-full font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/25"
-                            >
-                                Báo cáo ngay
-                            </Button>
-                        </div>
+            {/* Xem trước nhanh trên iPhone — sheet dùng chung (Modal position="bottom": kéo để đóng, né bàn phím, chừa thanh Home). */}
+            <Modal
+                isOpen={showMobilePreview}
+                onClose={() => setShowMobilePreview(false)}
+                title="Xem trước văn bản Zalo/Line"
+                position="bottom"
+                footer={
+                    <div className="grid grid-cols-2 gap-2.5">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowMobilePreview(false)}
+                            className="h-10 rounded-full font-bold"
+                        >
+                            Đóng
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => {
+                                setShowMobilePreview(false);
+                                onSubmit();
+                            }}
+                            isLoading={isSaving}
+                            leftIcon={<AppIcon name="copy" size="sm" />}
+                            className="h-10 rounded-full font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/25"
+                        >
+                            Báo cáo ngay
+                        </Button>
                     </div>
-                </div>
-            )}
+                }
+            >
+                <pre className="p-3 rounded-popup bg-slate-50 dark:bg-slate-950/80 border border-slate-100 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200">
+                    {previewText}
+                </pre>
+            </Modal>
         </div>
     );
 };

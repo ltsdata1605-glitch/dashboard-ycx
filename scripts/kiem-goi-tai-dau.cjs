@@ -23,14 +23,23 @@ if (!fs.existsSync(htmlPath)) {
   console.error('[gói tải đầu] Chưa có dist/index.html — chạy `npm run build` trước.');
   process.exit(1);
 }
+// Đường dẫn gốc của app (vd "/dashboard-ycx/" — GitHub Pages, 2026-11-14): dist/index.html ghi `<base>assets/…`, không phải
+// `/assets/…`. Đọc từ constants/appBase.ts (nguồn duy nhất, vite.config.ts cũng dùng) — script CommonJS nên đọc bằng regex.
+const appBaseSrc = fs.readFileSync(path.resolve(__dirname, '..', 'constants', 'appBase.ts'), 'utf8');
+const APP_BASE = appBaseSrc.match(/export const APP_BASE\s*=\s*['"]([^'"]+)['"]/)?.[1];
+if (!APP_BASE || !APP_BASE.startsWith('/') || !APP_BASE.endsWith('/')) {
+  console.error('[gói tải đầu] Không đọc được APP_BASE (bắt đầu và kết thúc bằng "/") trong constants/appBase.ts — sửa regex ở script này.');
+  process.exit(1);
+}
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const refs = [...new Set([...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]))];
+const refs = [...new Set([...html.matchAll(new RegExp(`(?:src|href)="(${escRe(APP_BASE)}assets/[^"]+\\.(?:js|css))"`, 'g'))].map((m) => m[1]))];
 if (refs.length === 0) {
-  console.error('[gói tải đầu] Không tìm thấy script/stylesheet nào trong dist/index.html — cấu trúc build đổi? Sửa script này.');
+  console.error(`[gói tải đầu] Không tìm thấy script/stylesheet "${APP_BASE}assets/…" nào trong dist/index.html — base trong vite.config.ts lệch constants/appBase.ts, hoặc cấu trúc build đổi? Sửa script này.`);
   process.exit(1);
 }
 const dong = refs.map((r) => {
-  const buf = fs.readFileSync(path.join(dist, r));
+  const buf = fs.readFileSync(path.join(dist, r.slice(APP_BASE.length)));
   return { file: r, kb: zlib.gzipSync(buf, { level: 9 }).length / 1024 };
 }).sort((a, b) => b.kb - a.kb);
 const tong = dong.reduce((s, d) => s + d.kb, 0);

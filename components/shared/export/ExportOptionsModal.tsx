@@ -100,10 +100,10 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({ isOpen, onClose
                         <Button
                             variant="row" size="none"
                             onClick={onCopy}
-                            className="justify-between p-3 rounded-popup bg-slate-50 dark:bg-slate-800/80 hover:bg-violet-50 dark:hover:bg-violet-900/20 active:scale-[0.98] transition-all group"
+                            className="justify-between p-3 rounded-popup bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-[0.98] transition-all group"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-control bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <div className="w-10 h-10 rounded-control bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                                     <AppIcon name="copyImage" size="lg" />
                                 </div>
                                 <div className="text-left">
@@ -111,8 +111,8 @@ const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({ isOpen, onClose
                                     <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Dán trực tiếp vào chat, tài liệu</p>
                                 </div>
                             </div>
-                            <div className="w-6 h-6 rounded-full bg-slate-200/50 dark:bg-slate-700 group-hover:bg-violet-100 dark:group-hover:bg-violet-900/40 flex items-center justify-center transition-colors">
-                                <AppIcon name="chevronRight" size="xs" className="text-slate-400 group-hover:text-violet-700" />
+                            <div className="w-6 h-6 rounded-full bg-slate-200/50 dark:bg-slate-700 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40 flex items-center justify-center transition-colors">
+                                <AppIcon name="chevronRight" size="xs" className="text-slate-400 group-hover:text-amber-700" />
                             </div>
                         </Button>
                     )}

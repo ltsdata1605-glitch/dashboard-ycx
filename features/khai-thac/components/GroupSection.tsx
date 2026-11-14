@@ -22,13 +22,16 @@ const blockNonNumericKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
 };
 
-/** Palette màu Apple pastel cho từng phân nhóm */
+/**
+ * Màu icon từng phân nhóm — 5 nhóm = đúng 5 họ semantic (CLAUDE.md mục 2: sky · amber · rose · emerald · slate; chưa tới 6 hạng mục
+ * nên chưa cần indigo). Trước 2026-11-14 dùng blue/violet/teal/indigo ngoài bảng màu → lint-ratchet đỏ.
+ */
 const GROUP_THEMES: Record<ItemGroup, { iconBg: string; iconColor: string }> = {
-    products: { iconBg: 'bg-blue-100 dark:bg-blue-900/50', iconColor: 'text-blue-700 dark:text-blue-300' },
+    products: { iconBg: 'bg-sky-100 dark:bg-sky-900/50', iconColor: 'text-sky-700 dark:text-sky-300' },
     insurance: { iconBg: 'bg-amber-100 dark:bg-amber-900/50', iconColor: 'text-amber-700 dark:text-amber-300' },
-    accessories: { iconBg: 'bg-violet-100 dark:bg-violet-900/50', iconColor: 'text-violet-700 dark:text-violet-300' },
-    household: { iconBg: 'bg-teal-100 dark:bg-teal-900/50', iconColor: 'text-teal-700 dark:text-teal-300' },
-    services: { iconBg: 'bg-indigo-100 dark:bg-indigo-900/50', iconColor: 'text-indigo-700 dark:text-indigo-300' },
+    accessories: { iconBg: 'bg-rose-100 dark:bg-rose-900/50', iconColor: 'text-rose-700 dark:text-rose-300' },
+    household: { iconBg: 'bg-emerald-100 dark:bg-emerald-900/50', iconColor: 'text-emerald-700 dark:text-emerald-300' },
+    services: { iconBg: 'bg-slate-200 dark:bg-slate-800', iconColor: 'text-slate-700 dark:text-slate-300' },
 };
 
 /**
@@ -100,7 +103,7 @@ const AmountRow: React.FC<{
                     <AppIcon name={resolvedIcon} size="sm" />
                 </span>
                 <span
-                    className={`min-w-0 truncate text-[13px] sm:text-[13.5px] transition-colors ${
+                    className={`min-w-0 truncate text-[13px] transition-colors ${
                         active ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
                     }`}
                     title={label}
@@ -135,7 +138,7 @@ const AmountRow: React.FC<{
                         value={value}
                         onChange={e => onChange(e.target.value)}
                         onKeyDown={blockNonNumericKeys}
-                        className={`h-8 lg:h-7 w-20 sm:w-24 px-2 pr-6 text-right font-bold text-[13px] tabular-nums rounded-lg transition-all ${
+                        className={`h-8 lg:h-7 w-20 sm:w-24 px-2 pr-6 text-right font-bold text-[13px] tabular-nums rounded-control transition-all ${
                             active
                                 ? 'bg-white dark:bg-slate-850 border-emerald-400 text-emerald-700 dark:text-emerald-300 shadow-2xs ring-1 ring-emerald-200 dark:ring-emerald-900/40'
                                 : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
@@ -247,7 +250,7 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
                         value={other.name}
                         aria-label={meta.otherPlaceholder}
                         onChange={e => onOther(group, { name: e.target.value })}
-                        className="h-7.5 lg:h-7 px-2.5 text-[13px] bg-white dark:bg-slate-900 rounded-lg border-slate-200 dark:border-slate-700"
+                        className="h-7.5 lg:h-7 px-2.5 text-[13px] bg-white dark:bg-slate-900 rounded-control border-slate-200 dark:border-slate-700"
                     />
 
                     {/* Apple Stepper for Other */}
@@ -270,7 +273,7 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
                         </Button>
 
                         <span
-                            className={`min-w-[20px] px-1 text-center text-[12.5px] sm:text-[13px] tabular-nums font-bold transition-colors ${
+                            className={`min-w-[20px] px-1 text-center text-[12px] sm:text-[13px] tabular-nums font-bold transition-colors ${
                                 other.count > 0
                                     ? 'text-sky-600 dark:text-sky-400 font-extrabold'
                                     : 'text-slate-400 dark:text-slate-500'

@@ -73,7 +73,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ reports, fields, onEdit,
                                 onChange={e => setDateFilter(e.target.value)}
                                 aria-label="Lọc theo ngày"
                                 fullWidth={false}
-                                className="h-7 px-2 text-[12px] w-[130px] rounded-lg bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700"
+                                className="h-7 px-2 text-[12px] w-[130px] rounded-control bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700"
                             />
                             <Input
                                 placeholder="Tìm NV, doanh thu, ghi chú…"
@@ -81,7 +81,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ reports, fields, onEdit,
                                 onChange={e => setSearch(e.target.value)}
                                 aria-label="Tìm trong nhật ký"
                                 fullWidth={false}
-                                className="h-7 px-2 text-[12px] w-48 sm:w-56 hidden sm:block rounded-lg bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700"
+                                className="h-7 px-2 text-[12px] w-48 sm:w-56 hidden sm:block rounded-control bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700"
                             />
                             {(dateFilter || search) && (
                                 <Button
@@ -99,7 +99,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ reports, fields, onEdit,
 
                 {reports.length === 0 ? (
                     <div className="relative group m-3">
-                        <div className="relative bg-slate-50/60 dark:bg-slate-850/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-12 text-center">
+                        <div className="relative bg-slate-50/60 dark:bg-slate-850/60 rounded-popup border border-slate-200/80 dark:border-slate-700/80 px-4 py-12 text-center">
                             <span className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto mb-2">
                                 <AppIcon name="history" size="md" />
                             </span>
@@ -182,7 +182,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ reports, fields, onEdit,
                                                 {open && (
                                                     <tr className="bg-slate-50/60 dark:bg-slate-850/50">
                                                         <td colSpan={12} className="px-4 py-3">
-                                                            <pre className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200" data-testid="history-text">
+                                                            <pre className="p-3 rounded-popup bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[13px] leading-relaxed whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200" data-testid="history-text">
                                                                 {buildReportText(r, fields)}
                                                             </pre>
                                                         </td>
