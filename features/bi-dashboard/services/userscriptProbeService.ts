@@ -39,7 +39,7 @@ function ensureProbeIframe(): HTMLIFrameElement | null {
         iframe.style.opacity = '0.01';
         iframe.style.pointerEvents = 'none';
         iframe.style.zIndex = '-9999';
-        iframe.src = '/userscript-probe.html?t=' + Date.now();
+        iframe.src = `${import.meta.env.BASE_URL}userscript-probe.html?t=${Date.now()}`; // theo vite `base` (/dashboard-ycx/)
         if (document.body) {
             document.body.appendChild(iframe);
         }

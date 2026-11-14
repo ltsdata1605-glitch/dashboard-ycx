@@ -166,7 +166,7 @@ export default function CouponConverterView() {
                     {showGuide && (
                         <div className="mt-6 max-w-4xl mx-auto rounded-popup overflow-hidden border border-slate-200 dark:border-slate-700 shadow-md animate-in fade-in slide-in-from-top-4 duration-300">
                             <img 
-                                src="/Tuts/Coupon.png" 
+                                src={`${import.meta.env.BASE_URL}Tuts/Coupon.png`} 
                                 alt="Hướng dẫn sử dụng" 
                                 className="w-full h-auto object-contain bg-slate-100 dark:bg-slate-800 block" 
                             />

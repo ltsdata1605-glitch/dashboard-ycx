@@ -319,7 +319,7 @@ export default function LineBotView() {
                 {/* Hướng dẫn sử dụng Bot LINE — trang tĩnh trong public/, mở tab mới */}
                 <div className="flex justify-end">
                     <a
-                        href="/huong-dan-bot-line.html"
+                        href={`${import.meta.env.BASE_URL}huong-dan-bot-line.html`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 dark:text-sky-400 hover:underline"

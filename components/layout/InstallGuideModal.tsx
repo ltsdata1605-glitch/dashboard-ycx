@@ -41,7 +41,7 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
         >
             <div className="space-y-4 py-1">
                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-sky-50/70 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/50">
-                    <img src="/icons/apple-touch-icon-120.png" alt="App Icon" className="w-12 h-12 rounded-xl shrink-0 shadow-sm" />
+                    <img src={`${import.meta.env.BASE_URL}icons/apple-touch-icon-120.png`} alt="App Icon" className="w-12 h-12 rounded-xl shrink-0 shadow-sm" />
                     <div>
                         <div className="text-[15px] font-bold text-slate-900 dark:text-slate-100">
                             Dashboard YCX

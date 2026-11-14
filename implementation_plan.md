@@ -9386,3 +9386,21 @@ origin authDomain; pwa-login.html đọc thẳng từ đó (không `getRedirectR
 - Test: `tests/unit/pwa-login-cung-origin.test.ts` (khoá bất biến cùng origin), e2e `dang-nhap-cung-tab-no-popup` kiểm origin
   trang về = origin trang xử lý; các spec đăng nhập đổi `auth.dashboard.pro.vn` → `dashboa-7e20b.firebaseapp.com`.
 - Deploy: app (gh-pages) + `firebase deploy --only hosting` (trang pwa-login.html).
+
+## Sửa "Cài đặt Script ngay" 404 sau khi chuyển sang /dashboard-ycx/ (2026-11-14)
+
+**Triệu chứng (ảnh chủ dự án):** nút "Cài đặt Script ngay" mở `ltsdata1605-glitch.github.io/scripts/mwg-…user.js` → 404 GitHub Pages.
+
+**Nguyên nhân:** app chạy dưới đường dẫn con `/dashboard-ycx/` (vite `base`). Vite tự thêm tiền tố cho `url()` trong CSS và
+index.html, nhưng chuỗi viết trong JS/TSX (`'/scripts/…'`, `src="/icons/…"`) thì không. Thêm nữa userscript chỉ `@match
+dashboard.pro.vn` → cài xong cũng không chạy trên Dashboard mới; `@updateURL` trỏ tên miền đã bỏ.
+
+**Sửa:**
+- Đường dẫn userscript (`TampermonkeyInstallGuideContent`, `AutoClickGuideModal`, `biAutoSyncService.USERSCRIPT_URL`,
+  `ycxAutoSyncService.YCX_USERSCRIPT_URL`), khung dò "Kiểm tra kết nối" (`userscriptProbeService`), icon gợi ý cài app,
+  ảnh hướng dẫn Coupon, link hướng dẫn Bot LINE → `${import.meta.env.BASE_URL}…`.
+- Userscript MWG 7.35: thêm `@match https://ltsdata1605-glitch.github.io/dashboard-ycx/*`, `@updateURL/@downloadURL` về github.io.
+  TNB PMH 1.8: `@updateURL/@downloadURL` về github.io.
+- Test `tests/unit/duong-dan-goc-app.test.ts` quét code app: chuỗi trỏ file trong `public/` theo "/" là đỏ.
+- **CHỜ SỬA (DA_BIET trong test):** nền phiếu In Sticker `'/frame/…'` — vừa là mã định danh (so sánh, lưu lịch sử in) vừa là URL
+  ảnh → đổi ở chỗ vẽ `url(...)`, không đổi hằng.
