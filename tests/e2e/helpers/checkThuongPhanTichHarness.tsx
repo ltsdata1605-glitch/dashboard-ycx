@@ -3,6 +3,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { CheckThuongSearchView } from '../../../features/check-thuong/components/CheckThuongSearchView';
+import { AppToaster } from '../../../components/shared/ui/toast';
 
 const ST = ['910 - ĐML Hùng Vương', '911 - ĐML Lê Lợi', '912 - ĐML Trần Phú'];
 const dong = (st: string, ng: string, pct: number, cutoff: number, hang: number, thuong: number) =>
@@ -26,5 +27,5 @@ export function mount() {
     const el = document.createElement('div');
     document.body.innerHTML = '';
     document.body.appendChild(el);
-    createRoot(el).render(<CheckThuongSearchView competitionData={data} code1="910" code2="" formattedUploadTime="08:58 14/11/2026" onFileLoaded={() => {}} />);
+    createRoot(el).render(<><CheckThuongSearchView competitionData={data} code1="910" code2="" formattedUploadTime="08:58 14/11/2026" onFileLoaded={() => {}} /><AppToaster /></>);
 }

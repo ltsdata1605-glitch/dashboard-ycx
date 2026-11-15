@@ -15,5 +15,5 @@ export * from './components/CheckThuongCategoryCards';
 export * from './components/CheckThuongAnalysisCard';
 export * from './components/CheckThuongComparisonView';
 export * from './components/CheckThuongRankingModal';
-export * from './components/CheckThuongNhanXetDuKien';
+export * from './components/CheckThuongCopyNhanXet';
 export * from './components/CheckThuongSearchView';

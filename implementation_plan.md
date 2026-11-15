@@ -9487,3 +9487,15 @@ thưởng / < 100%…): TB % dự kiến (chỉ môn > 0%), số môn ≥ 100%, 
 `CheckThuongNhanXetDuKien.tsx` vẽ một dòng (`type-footnote`, màu sky/emerald/rose), rê chuột xem đủ danh sách sát mốc;
 `CheckThuongStatusSummary` nhận prop `nhanXet` đặt giữa dải chip lọc và cụm "Dạng bảng" (laptop: cùng hàng nút "Dạng bảng";
 iPhone: dòng riêng). Ẩn khi xuất ảnh (thanh lọc có `hide-on-export`). Test: `tests/e2e/check-thuong-nhan-xet-du-kien.spec.ts`.
+
+### Đổi thành nút "Copy nhận xét" (2026-11-15, cùng ngày)
+
+**Yêu cầu (ảnh chủ dự án):** dòng nhận xét trên màn thật bị ép 3 dòng, đẩy "Dạng bảng" xuống hàng → "CHUYỂN THÀNH 1 NÚT COPY NHẬN XÉT —
+khi bấm sẽ copy nhận xét đánh giá các tiêu chí > 80% sắp đạt 100% cần tập trung bao nhiêu, các nhóm hiệu quả kém".
+
+**Làm:** bỏ `CheckThuongNhanXetDuKien.tsx` (dòng chữ). `CheckThuongCopyNhanXet.tsx` = nút tinted cùng kiểu "Dạng bảng", đứng đầu cụm nút
+(`ml-auto`: thiếu chỗ thì cả cụm xuống hàng, canh phải). Bấm → `saoChep()` dùng chung (dự phòng execCommand + toast lỗi).
+`nhanXetDuKien.ts → taoVanBanNhanXet()` tính trên TOÀN BỘ môn của siêu thị (không theo thẻ lọc): tiêu đề + giờ cập nhật, đạt ≥ 100% x/N,
+TB % dự kiến; SẮP ĐẠT 80–99% (gần 100% nhất trước, "còn x%", D.K vượt, "không quỹ"); CẦN ĐẨY THÊM 70–79%; HIỆU QUẢ KÉM < 70% (kém nhất
+trước); CHƯA PHÁT SINH 0%. Không emoji. Mốc là hằng `MOC_SAP_DAT`/`MOC_KEM`. Test đơn vị 11 bài; e2e đọc clipboard thật + vị trí nút ở
+1440/1280/1024 + iPhone 390.

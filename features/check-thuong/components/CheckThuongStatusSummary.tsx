@@ -13,8 +13,8 @@ interface CheckThuongStatusSummaryProps {
     onToggleViewMode: () => void;
     onExportFiltered?: () => void;
     onExportAll?: () => void;
-    /** Dòng nhận xét theo % D.KIẾN của nhóm đang lọc — đặt giữa dải lọc và cụm "Dạng bảng" (2026-11-15). */
-    nhanXet?: React.ReactNode;
+    /** Nút "Copy nhận xét" theo % D.KIẾN — đứng đầu cụm nút cạnh "Dạng bảng" (2026-11-15). */
+    nutCopyNhanXet?: React.ReactNode;
     children?: React.ReactNode;
 }
 
@@ -36,7 +36,7 @@ export const CheckThuongStatusSummary: React.FC<CheckThuongStatusSummaryProps> =
     onToggleViewMode,
     onExportFiltered,
     onExportAll,
-    nhanXet,
+    nutCopyNhanXet,
     children
 }) => {
     return (
@@ -98,10 +98,9 @@ export const CheckThuongStatusSummary: React.FC<CheckThuongStatusSummaryProps> =
                     ]}
                 />
 
-                {nhanXet}
-
-                {/* View Mode & Export Tools */}
-                <div className="flex items-center gap-1.5 shrink-0 no-print hide-on-export">
+                {/* View Mode & Export Tools — ml-auto: thiếu chỗ xuống hàng thì vẫn nằm bên phải */}
+                <div className="ml-auto flex items-center gap-1.5 shrink-0 no-print hide-on-export">
+                    {nutCopyNhanXet}
                     <Button
                         variant="tinted"
                         size="none"
