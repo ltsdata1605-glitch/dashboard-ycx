@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Dự phòng khi khoá Gemini chung hết hạn mức: màn Tính Thuế phải hiện đúng lý do VÀ nút mở
@@ -31,7 +32,7 @@ test('hết hạn mức AI: hiện lý do + nút mở hộp thoại API Key riê
         route.fulfill({ status: 200, contentType: 'application/javascript', body: OCR_STUB }));
 
     await page.goto('/?tab=tools-tax');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     // Chờ panel nhập liệu thật sự render (tiêu đề "Tính Thuế" có bản ẩn ở sidebar)
     await expect(page.getByRole('button', { name: /Tải ảnh/i }).first()).toBeVisible({ timeout: 30_000 });
 

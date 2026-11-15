@@ -1,15 +1,13 @@
 import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
 import type { Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.skip(!hasRealDataProfile(), 'Cần profile dữ liệu thật .e2e-chrome-profile');
 
 async function navigateAndEnsureApp(page: Page, url: string) {
     await page.goto(url);
     // Nếu có modal chào hỏi / kích hoạt dùng thử thì click bypass
-    const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await trialBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await trialBtn.click();
-    }
+    await vaoLoiKiemThu(page);
     // Chờ aside (desktop) hoặc nav (mobile) hoặc thẻ KPI sẵn sàng
     await page.locator('aside:visible, nav:visible, .kpi-overview-card:visible').first().waitFor({ state: 'visible', timeout: 30_000 });
 }

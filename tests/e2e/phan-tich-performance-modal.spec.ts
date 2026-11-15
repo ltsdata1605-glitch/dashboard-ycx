@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture, TEST_EMPLOYEE } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /** Phân Tích > Nhân Viên > modal "Phân Tích Hiệu Quả Cá Nhân" — kiểm chứng thay đổi 2026-09-05. */
 test.describe('Phân Tích — modal hiệu quả cá nhân', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
         await seedProductConfigFixture(page);
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Đếm số lần app THẬT gọi Cloud Function `listManagedUsers` — bản sửa hạn mức Firestore
@@ -34,11 +35,8 @@ test('chế độ Dùng Thử không gọi listManagedUsers, và không có lỗ
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(4000);
 
-    const demoBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demoBtn.isVisible().catch(() => false)) {
-        await demoBtn.click();
-        await page.waitForTimeout(5000);
-    }
+    await vaoLoiKiemThu(page);
+    await page.waitForTimeout(5000);
 
     // Ngồi im 150s — dài hơn 1 chu kỳ poll mới (120s) và hơn 3 chu kỳ cũ (45s).
     const startedAt = Date.now();

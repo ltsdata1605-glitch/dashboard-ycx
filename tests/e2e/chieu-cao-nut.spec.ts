@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Chiều cao nút THẬT so với token (2026-10-28, việc 3 audit V6). Trước đó `--btn-height-md/lg` ghi 40/48px nhưng không ai đọc — nút
@@ -13,11 +14,9 @@ const CO: Record<string, string> = { 'h-[var(--btn-height-xs)]': 'xs', 'h-[var(-
 
 async function vaoDungThu(page: Page, tab: string) {
     await page.goto(`/?tab=${tab}`);
-    const nut = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
     const app = page.locator('[data-app-chrome]:visible').first();
     // Lần đầu hiện màn đăng nhập; các lần sau (phiên Dùng Thử còn) vào thẳng app — chờ cái nào tới trước.
-    await expect(nut.or(app)).toBeVisible({ timeout: 30_000 });
-    if (await nut.isVisible()) await nut.click();
+    await vaoLoiKiemThu(page);
     await expect(app).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(1500);
 }

@@ -5,7 +5,7 @@ test.skip(process.env.AUDIT_ISOLATED_SERVER !== '1', 'Audit-only server contract
 
 test('audit server rejects LINE proxy requests before forwarding and renders the app', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i })).toBeVisible();
+    await expect(page.getByTestId('login-view')).toBeVisible(); // màn đăng nhập (nút Dùng Thử đã xoá 2026-11-15)
     const denied = await page.evaluate(async () => {
         const result = await fetch('/api-line-proxy/__audit_noop__');
         return { status: result.status, body: await result.text() };

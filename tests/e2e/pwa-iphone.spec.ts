@@ -60,7 +60,7 @@ test.describe('PWA iPhone', () => {
         // vh/dvh chỉ thấy trên Safari thật — phần đó phải kiểm trên iPhone.
         test('màn đăng nhập không tràn khung nhìn + nút bấm có touch-action: manipulation', async ({ page }) => {
             await page.goto('/');
-            await expect(page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first()).toBeVisible();
+            await expect(page.getByTestId('login-view')).toBeVisible(); // màn đăng nhập (nút Dùng Thử đã xoá 2026-11-15)
             const { scrollH, innerH } = await page.evaluate(() => ({ scrollH: document.documentElement.scrollHeight, innerH: innerHeight }));
             expect(scrollH).toBeLessThanOrEqual(innerH + 1);
             const ta = await page.evaluate(() => getComputedStyle(document.querySelector('button')!).touchAction);

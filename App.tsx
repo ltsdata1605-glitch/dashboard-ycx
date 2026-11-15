@@ -113,10 +113,10 @@ const ManChoKhoiDong = () => (
 
 const TabContent = React.memo(() => {
     const { activeTab, setActiveTab } = useActiveTab();
-    const { userRole, isDemoMode } = useAuth();
+    const { userRole } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
     const [mountedTabs, setMountedTabs] = React.useState<Set<string>>(() => new Set([activeTab]));
-    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const canAccessLineBot = userRole === 'admin' || userRole === 'manager';
     const laTabLuonBat = (id: string) => (TAB_LUON_BAT as readonly string[]).includes(id);
 
     // Route / Tab Guard: tính năng đã bị Quản trị hệ thống tắt thì đường dẫn tới nó coi như CHƯA TỪNG TỒN TẠI (2026-10-30, chủ dự án):
@@ -250,7 +250,7 @@ function AppContent() {
     const { activeTab, setActiveTab } = useActiveTab();
     const { user, userRole, isDemoMode, isLoading, departmentId, status, hasCachedSession } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
-    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const canAccessLineBot = userRole === 'admin' || userRole === 'manager';
     const titleData = TAB_TITLES[activeTab] || { main: 'Hub', highlight: '2.0' };
     // Các "mini-app" toàn màn hình (In Sticker có sẵn BottomNavigation nội bộ: Trang chủ/Công
     // cụ/Quét mã/Lưu DS/Lọc; Phân ca là lịch/bảng cần tối đa không gian màn hình; Báo cáo Khai thác có Liquid Glass Dock riêng) — hiện thêm
@@ -345,7 +345,7 @@ function AppContent() {
          return <ManChoKhoiDong />;
     }
 
-    // Nếu chưa đăng nhập và cũng chưa bật chế độ Demo -> Bắt buộc ở màn Login.
+    // Chưa đăng nhập -> bắt buộc ở màn Login (isDemoMode = lối vào kiểm thử, chỉ có trên dev server).
     // Bỏ qua khi hasCachedSession=true: Ultra-Fast Boot đã xác nhận qua cache là phiên hợp lệ,
     // chỉ đang chờ Firebase SDK xác nhận lại `user` (thường vài chục ms) — không hiện nhầm màn
     // Login trong lúc chờ (xem chú thích chi tiết ở AuthContext.tsx).
@@ -358,7 +358,7 @@ function AppContent() {
         return <Suspense fallback={<ManChoKhoiDong />}><PendingApprovalView /></Suspense>;
     }
 
-    // Bắt buộc nhập mã kho cho tất cả user đã approved (trừ admin/demo)
+    // Bắt buộc nhập mã kho cho tất cả user đã approved (trừ admin / lối vào kiểm thử trên dev server)
     if (user && !isDemoMode && userRole !== 'admin' && (!departmentId || departmentId.trim() === '')) {
         return <Suspense fallback={<ManChoKhoiDong />}><PendingApprovalView forceDeptUpdate /></Suspense>;
     }

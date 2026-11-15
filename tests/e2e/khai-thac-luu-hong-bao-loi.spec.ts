@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { moMucCongCu } from './helpers/dock';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Audit D11 (2026-10-08): Báo cáo khai thác lưu DUY NHẤT trong IndexedDB trên máy. Trước đây thêm khách
@@ -17,7 +18,7 @@ test('thêm khách lúc bộ nhớ đầy: báo lỗi, không báo "Đã thêm",
         };
     });
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await moMucCongCu(page, 'Báo cáo'); // Báo cáo nằm trong menu "Công cụ" của dock (19b5dbf1)
     await page.getByRole('button', { name: /^Khách hàng/ }).click();
 

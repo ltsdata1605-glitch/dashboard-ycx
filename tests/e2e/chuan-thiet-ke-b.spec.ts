@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Chuẩn thiết kế (B) — chủ dự án chốt 2026-10-07 (DESIGN_SYSTEM.md mục 3): đo KIỂU TÍNH TOÁN THẬT trên
@@ -10,7 +11,7 @@ test('bo góc theo thang chuẩn: nút 8px, thẻ KPI 16px, modal 16px', async (
     test.setTimeout(150_000);
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 20_000 });
+    await vaoLoiKiemThu(page);
     // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
     await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());

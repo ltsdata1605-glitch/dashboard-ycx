@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openReportBi, seedCompetitionData, openCompetitionTable, seedAnalysisEmployees } from './helpers/seed';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Deep link Report BI (?view= &mode= &sub=, commit 19a5336) — 2026-10-02 bản đầu làm Report BI SẬP trên trang thật:
@@ -45,7 +46,7 @@ test('Nhân viên: bấm lần lượt 4 tab con → tab đổi thật, URL ?sub
 
 test('deep link: mở thẳng ?tab=employees&view=employee&sub=bonus → đúng mục Nhân viên, tab Thưởng', async ({ page }) => {
     await page.goto('/?tab=employees&view=employee&sub=bonus');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.locator('[data-bi-view]')).toHaveAttribute('data-bi-view', 'employee', { timeout: 20_000 });
     await expect(page).toHaveURL(/sub=bonus/);
     await page.waitForTimeout(1500);
@@ -55,7 +56,7 @@ test('deep link: mở thẳng ?tab=employees&view=employee&sub=bonus → đúng 
 
 test('deep link: ?tab=employees&view=dashboard&mode=cumulative&sub=competition → Siêu thị, Luỹ kế, Thi đua', async ({ page }) => {
     await page.goto('/?tab=employees&view=dashboard&mode=cumulative&sub=competition');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.locator('[data-bi-view]')).toHaveAttribute('data-bi-view', 'dashboard', { timeout: 20_000 });
     await page.waitForTimeout(2000);
     await expect(page).toHaveURL(/mode=cumulative/);

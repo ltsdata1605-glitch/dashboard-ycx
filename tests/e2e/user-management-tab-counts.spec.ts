@@ -1,4 +1,5 @@
 import { test, expect } from './helpers/realDataContext';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('Xác thực thực tế: 3 tab Chờ duyệt / Hoạt động / Hết hạn hiển thị số lượng badge', async ({ page }) => {
     test.setTimeout(45000);
@@ -7,10 +8,7 @@ test('Xác thực thực tế: 3 tab Chờ duyệt / Hoạt động / Hết hạ
     await page.goto('/');
     
     // Nếu có popup dùng thử
-    const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await trialBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await trialBtn.click();
-    }
+    await vaoLoiKiemThu(page);
 
     // 2. Chuyển sang màn Phân quyền & Duyệt yêu cầu
     const dockBtn = page.getByTitle('Cài đặt & Phân quyền').first();

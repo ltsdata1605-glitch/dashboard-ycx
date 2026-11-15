@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * 2026-10-30 (chủ dự án): tính năng đã tắt → đường dẫn tới nó coi như chưa từng tồn tại: tự chuyển sang Báo cáo Khai thác
@@ -8,7 +9,7 @@ const KHONG_404 = /Tính năng đã đi nằm chỗ|Tính năng tạm đóng/;
 
 async function tatTinhNang(page: Page, features: Record<string, boolean>) {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.evaluate(f => localStorage.setItem('ycx_system_menu_config_v1', JSON.stringify({ features: f, updatedAt: new Date().toISOString() })), features);
 }
 

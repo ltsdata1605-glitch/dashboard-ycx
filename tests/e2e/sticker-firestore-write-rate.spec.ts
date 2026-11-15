@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Kiểm chứng RUNTIME cho bản sửa hạn mức Firestore 2026-09-17 (In Sticker):
@@ -54,11 +55,8 @@ test('In Sticker mount được và không ghi Firestore dồn dập khi thao t�
     // BƯỚC 1: qua cổng đăng nhập của APP GỐC. Không dùng tài khoản Google thật — bật Chế độ Dùng
     // Thử, đủ để `TabContent` mount `<StickerPrinterView />` (module sticker có màn đăng nhập
     // RIÊNG, dùng Firebase app riêng tên 'stickerevent').
-    const demoBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demoBtn.isVisible().catch(() => false)) {
-        await demoBtn.click();
-        await page.waitForTimeout(5000);
-    }
+    await vaoLoiKiemThu(page);
+    await page.waitForTimeout(5000);
     await page.goto(STICKER_URL, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(8000); // chờ lazy chunk StickerEventApp + Firebase init
 

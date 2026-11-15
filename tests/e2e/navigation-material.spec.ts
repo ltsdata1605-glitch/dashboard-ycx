@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { moCheckThuong, napFileThuong, taoFileThuong } from './helpers/checkThuongNative';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 async function openLocalData(page: Page) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click();
+    await vaoLoiKiemThu(page);
     await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
@@ -57,7 +58,7 @@ test.describe('system group', () => {
     test('keyboard focus ring is not clipped by the system group', async ({ page }, testInfo) => {
         if (process.env.AUDIT_FOCUS_EMPTY === '1') {
             await page.goto('/?tab=analysis');
-            await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click();
+            await vaoLoiKiemThu(page);
         } else await openLocalData(page);
         const font = page.locator('#global-header-actions button').filter({ has: page.locator('svg[data-icon="font"]') }).first();
         await expect(font).toBeVisible();

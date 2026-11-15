@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /** 6 module chủ dự án yêu cầu rà soát (2026-09-26) + 7 màn còn lại của đợt tối ưu iPhone toàn
  *  dự án (2026-09-27) — tên file giữ nguyên để không phá lịch sử/đường dẫn đã dẫn chiếu. */
@@ -20,8 +21,7 @@ const MODULE: { ten: string; tab: string; cho?: RegExp }[] = [
 async function batDemo(page: Page) {
     await page.goto('/?tab=analysis');
     await page.waitForTimeout(1500);
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demo.isVisible().catch(() => false)) { await demo.click(); await page.waitForTimeout(2500); }
+    await vaoLoiKiemThu(page); await page.waitForTimeout(2500);
 }
 
 /** Đo trong MỘT khung (trang chính hoặc iframe) */

@@ -32,7 +32,7 @@ type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'keywords' | 'admins' |
 
 export default function LineBotView() {
     const { user, userRole, isDemoMode, setDemoMode, loginWithGoogle } = useAuth();
-    const isManagerOrAdmin = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
 
     const [activeSubTab, setActiveSubTab] = useState<LineBotTab>('coupons');
     const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
@@ -70,7 +70,7 @@ export default function LineBotView() {
     };
 
     // iPhone (GĐ7): "Hướng dẫn tạo Bot" + "Đổi tài khoản" lên thanh trên của khung app (thẻ đầu trang chỉ còn tên + trạng thái);
-    // laptop giữ 2 nút trong thẻ. Đăng nhập (dùng thử / chưa đăng nhập) là dải Banner riêng ngay dưới thẻ trên iPhone.
+    // laptop giữ 2 nút trong thẻ. Đăng nhập (chưa đăng nhập) là dải Banner riêng ngay dưới thẻ trên iPhone.
     const daDangNhap = !!user && !isDemoMode;
     usePageActions(activeTab === 'tools-line-bot' && isManagerOrAdmin ? {
         scope: 'mobile',
@@ -270,7 +270,7 @@ export default function LineBotView() {
                                     </p>
                                 ) : isDemoMode || !user ? (
                                     <p className="font-medium text-slate-600 dark:text-slate-300 sm:truncate">
-                                        Đang ở chế độ xem thử Kho <strong>{currentDept}</strong>. Đăng nhập Google để tự động kiểm tra và thừa kế Bot của kho.
+                                        Chưa đăng nhập — Kho <strong>{currentDept}</strong>. Đăng nhập Google để tự động kiểm tra và thừa kế Bot của kho.
                                     </p>
                                 ) : (
                                     <p className="font-medium text-slate-500 dark:text-slate-400 sm:truncate">

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
 import { appPath } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * GĐ10 bước 1 (2026-10-15) — 2 luật cứng của CLAUDE.md mục 2:
@@ -170,7 +171,7 @@ test.describe('laptop', () => {
         };
         const nut = (title: string) => page.locator(`button[title="${title}"]`);
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+        await vaoLoiKiemThu(page);
         // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
         await seedProductConfigFixture(page);
 

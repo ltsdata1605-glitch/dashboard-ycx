@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
 import { appPath } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * GĐ2 tăng tốc (KE_HOACH_GIAO_DIEN_APPLE.md mục 4.3, 2026-10-11) — khoá HÀNH VI của các thay đổi về tải, để lần sau không ai
@@ -18,7 +19,7 @@ test.use({ viewport: { width: 1366, height: 900 } });
 
 async function napDuLieuMau(page: Page) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
     await expect(page.getByText(/chi tiết theo kho/i).first()).toBeVisible({ timeout: 90_000 });
@@ -60,7 +61,7 @@ test('Phông Google: lúc mở chỉ nạp Roboto Condensed (không chặn), m�
 
 test('Dock Auto Sync trên laptop vẫn xuất hiện (gói riêng, gắn sau lần rảnh đầu)', async ({ page }) => {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await expect(page.getByTestId('ycx-auto-dock')).toBeVisible({ timeout: 15_000 });
 });
 
@@ -68,7 +69,7 @@ test('Rảnh thì tải trước 2 tab chính còn lại (chuyển tab nhanh), k
     const urls: string[] = [];
     page.on('request', r => urls.push(r.url()));
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     // Dev server: URL module là đường dẫn nguồn → thấy đúng chunk nào được tải trước.
     await expect.poll(() => urls.some(u => u.includes('/components/views/CheckThuongView.tsx')), { timeout: 20_000 }).toBe(true);
     await expect.poll(() => urls.some(u => u.includes('/features/bi-dashboard/components/BiWrapper.tsx')), { timeout: 20_000 }).toBe(true);

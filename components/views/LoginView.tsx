@@ -1,4 +1,3 @@
-import { demoModeChoPhep } from '../../utils/demoMode';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppIcon } from '../shared/ui/icon/AppIcon';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +13,7 @@ import {
 } from '../../services/firebase';
 
 const LoginView: React.FC = () => {
-    const { loginWithGoogle, setDemoMode, isLoading } = useAuth();
+    const { loginWithGoogle, isLoading } = useAuth();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const isLoggingInRef = useRef(false);
     const [error, setError] = useState<string | null>(() =>
@@ -462,7 +461,8 @@ const LoginView: React.FC = () => {
 
     // Màn đăng nhập TỐI GIẢN (2026-10-22, chủ dự án: "giao diện phức tạp khó dùng"): 1 nút chính duy nhất. Bỏ hộp "Màn hình chính
     // (PWA) · Mở Safari", dòng "tối ưu riêng cho iPhone", vạch "HOẶC", đoạn mô tả dài và nút Dùng Thử to ngang nút chính. Đã nhớ tài
-    // khoản thì nút ghi luôn email (Google chọn sẵn). Dòng "Dùng thử" ở đáy chỉ hiện trên máy chủ phát triển/test (utils/demoMode.ts).
+    // khoản thì nút ghi luôn email (Google chọn sẵn). Dòng "Dùng thử" ở đáy ĐÃ XOÁ (2026-11-15, chủ dự án xoá Chế độ Dùng Thử) — bộ test
+    // vào app qua lối vào kiểm thử không nút (contexts/AuthContext.tsx, chỉ dev server).
     // Đăng nhập chuyển hướng (máy tính) chỉ còn trong hộp lỗi khi popup hỏng.
     return (
         <div data-testid="login-view" className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-sky-50/40 flex flex-col items-center justify-center px-6 select-none"
@@ -573,18 +573,6 @@ const LoginView: React.FC = () => {
                 )}
             </div>
 
-            {demoModeChoPhep() && !waitingHandoff && (
-                <Button
-                    type="button"
-                    variant="link"
-                    size="none"
-                    aria-label="Kích hoạt Chế độ Dùng Thử"
-                    onClick={() => setDemoMode(true)}
-                    className="ycx-hit mt-10 type-subhead text-slate-400 hover:text-slate-600 hover:underline cursor-pointer transition-colors"
-                >
-                    Dùng thử không cần đăng nhập
-                </Button>
-            )}
         </div>
     );
 };

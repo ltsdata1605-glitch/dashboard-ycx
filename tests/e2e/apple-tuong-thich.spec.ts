@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * TƯƠNG THÍCH iPhone + laptop — lưới an toàn của kế hoạch giao diện chuẩn Apple (KE_HOACH_GIAO_DIEN_APPLE.md, GĐ0).
@@ -104,7 +105,7 @@ const DO_KHUNG = (camUng: boolean) => {
 
 async function napDuLieuMau(page: Page) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Đợt A — kế hoạch iPhone. App cài lên màn hình chính bị iOS giải phóng khỏi RAM khi ở nền; mở lại
@@ -12,7 +13,7 @@ test.describe('mở lại app đúng chỗ cũ', () => {
 
     test('Report BI: mở lại vẫn ở mục Nhân viên', async ({ page }) => {
         await page.goto('/?tab=employees');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.getByRole('button', { name: /^Nhân viên$/ }).first().click();
         await page.waitForTimeout(800);
 
@@ -25,7 +26,7 @@ test.describe('mở lại app đúng chỗ cũ', () => {
 
     test('In Sticker: mở lại vẫn ở tab con lần trước', async ({ page }) => {
         await page.goto('/?tab=tools-print-sticker');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.waitForTimeout(1500);
         await page.evaluate(() => localStorage.setItem('sticker_last_sub', 'gio-vang'));
         await page.goto('/');
@@ -36,7 +37,7 @@ test.describe('mở lại app đúng chỗ cũ', () => {
 
     test('URL ghi rõ tab con thì theo URL, không theo lần trước', async ({ page }) => {
         await page.goto('/?tab=tools-print-sticker');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.evaluate(() => localStorage.setItem('sticker_last_sub', 'gio-vang'));
         await page.goto('/?tab=tools-print-sticker&sub=gia-soc');
         await page.waitForTimeout(1500);
@@ -49,7 +50,7 @@ test.describe('thẻ nhắc cài app (Safari iPhone)', () => {
 
     test('hiện sau vài giây, "Để sau" thì tắt và không hiện lại khi mở lại', async ({ page }) => {
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         const hint = page.getByTestId('install-app-hint');
         await expect(hint).toBeVisible({ timeout: 10_000 });
         await page.screenshot({ path: 'test-results/the-nhac-cai-app.png' });
@@ -65,7 +66,7 @@ test.describe('thẻ nhắc cài app (Safari iPhone)', () => {
     test('đã cài (standalone) thì không hiện', async ({ page }) => {
         await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true }));
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.waitForTimeout(6000);
         await expect(page.getByTestId('install-app-hint')).toBeHidden();
     });

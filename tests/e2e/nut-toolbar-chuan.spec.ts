@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Biến thể Button `toolbar` (2026-10-28) — "Card Header Action Buttons Standard": 32 nút icon bật/tắt ở đầu thẻ/bảng trước tự chép 2
@@ -9,7 +10,7 @@ import { createSalesXlsx } from './helpers/salesFixture';
 test.use({ viewport: { width: 1366, height: 900 } });
 test('nút toolbar: màu bật/tắt đúng chuẩn, cỡ 36 laptop, bấm đổi trạng thái', async ({ page }) => {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
     await expect(page.getByText(/chi tiết theo kho/i).first()).toBeVisible({ timeout: 90_000 });

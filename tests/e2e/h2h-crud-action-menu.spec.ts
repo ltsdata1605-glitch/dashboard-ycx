@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('Verify 3-dots ActionMenu replaces CRUD buttons in 7 Ngày tab', async ({ page }) => {
     test.setTimeout(60_000);
@@ -8,8 +9,8 @@ test('Verify 3-dots ActionMenu replaces CRUD buttons in 7 Ngày tab', async ({ p
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/?tab=analysis');
 
-    // Kích hoạt Chế độ Dùng Thử
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 20_000 });
+    // Vào app qua lối vào kiểm thử (dev server — nút Dùng Thử đã xoá 2026-11-15)
+    await vaoLoiKiemThu(page);
 
     // Nạp file sales mẫu
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());

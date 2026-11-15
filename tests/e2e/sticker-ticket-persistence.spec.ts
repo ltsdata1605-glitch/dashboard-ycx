@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('sticker: chỉnh sửa phiếu rút thăm, khởi động lại không bị mất và lịch sử khôi phục đầy đủ', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 800 });
@@ -6,11 +7,8 @@ test('sticker: chỉnh sửa phiếu rút thăm, khởi động lại không b�
     await page.waitForTimeout(2000);
 
     // Kích hoạt dùng thử nếu gặp màn đăng nhập
-    const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await trialBtn.isVisible()) {
-        await trialBtn.click();
-        await page.waitForTimeout(2000);
-    }
+    await vaoLoiKiemThu(page);
+    await page.waitForTimeout(2000);
 
     // Xác nhận đã vào màn hình In Sticker chế độ Phiếu
     const drawMode = page.locator('button:has-text("Phiếu")');

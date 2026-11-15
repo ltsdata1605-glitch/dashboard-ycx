@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { auditIcons, type IconAuditResult } from './helpers/iconAudit';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * CHUẨN HOÁ ICON — Giai đoạn 4: audit icon Report BI (Siêu thị, 4 tab Nhân viên, Cập nhật) ở điện thoại và
@@ -22,7 +23,7 @@ const LUYKE = [
 
 async function moBI(page: Page) {
     await page.goto('/?tab=employees');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
     await page.evaluate(async ({ analysis, luyke }) => {
         const db = await new Promise<IDBDatabase>((res, rej) => {

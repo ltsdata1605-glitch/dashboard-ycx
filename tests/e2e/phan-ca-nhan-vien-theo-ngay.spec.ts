@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fileNhanVien } from './helpers/phanCaFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * 2026-10-30 (chủ dự án): Phân ca trên điện thoại — xem ca từng nhân viên theo từng ngày và xuất ảnh.
@@ -7,7 +8,7 @@ import { fileNhanVien } from './helpers/phanCaFixture';
  */
 async function taoLich(page: Page) {
     await page.goto('/?tab=tools-phanca');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await expect(page.getByRole('button', { name: 'Tạo lịch' })).toBeVisible({ timeout: 30_000 });
     await page.locator('input[type="file"]').first().setInputFiles(fileNhanVien());
     const modal = page.getByRole('dialog', { name: /Cấu Hình Nhập Nhân Viên/i });

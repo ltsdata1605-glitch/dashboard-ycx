@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Phân tích khi KHÔNG tải được cấu hình ngành hàng (2026-09-27). Hay gặp trên iPhone: Safari iOS tự
@@ -18,7 +19,7 @@ test('mất mạng khi tải cấu hình: báo lỗi rõ ràng, không treo ở 
     test.setTimeout(120_000);
     await page.route('**://firestore.googleapis.com/**', r => r.abort('internetdisconnected'));
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().tap({ timeout: 20_000 });
+    await vaoLoiKiemThu(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     await page.locator('.fixed.inset-0').getByText('Tệp Realtime (Xem nhanh)').first().tap();
 

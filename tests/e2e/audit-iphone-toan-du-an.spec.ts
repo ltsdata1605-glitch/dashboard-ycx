@@ -1,6 +1,7 @@
 import { test, devices, type Page } from '@playwright/test';
 import * as fs from 'fs';
 import { SUMMARY_REALTIME, SUMMARY_LUYKE, COMPETITION_LUYKE } from './helpers/seed';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * BỘ KHẢO SÁT iPhone (không phải test hồi quy — test hồi quy là mobile-iphone-6-module.spec.ts):
@@ -181,8 +182,7 @@ const DO = () => {
 async function batDemo(page: Page) {
     await page.goto('/?tab=analysis');
     await page.waitForTimeout(1500);
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demo.isVisible().catch(() => false)) { await demo.click(); await page.waitForTimeout(2500); }
+    await vaoLoiKiemThu(page); await page.waitForTimeout(2500);
 }
 
 async function doKhung(page: Page) {

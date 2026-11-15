@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { chanGhiCloud } from './helpers/customTokenLogin';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Audit 2026-10-07 (GĐ3): máy quét In Sticker DÙNG LẠI 1 AudioContext cho cả phiên quét.
@@ -29,12 +30,9 @@ async function moInSticker(page: Page) {
         r.fulfill({ status: 200, contentType: 'application/javascript', body: AUTH_HOOK_STUB }));
     await page.goto('/?tab=tools-print-sticker&sub=event');
     await page.waitForTimeout(1200);
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demo.isVisible().catch(() => false)) {
-        await demo.click();
-        await page.waitForTimeout(2200);
-        await page.goto('/?tab=tools-print-sticker&sub=event');
-    }
+    await vaoLoiKiemThu(page);
+    await page.waitForTimeout(2200);
+    await page.goto('/?tab=tools-print-sticker&sub=event');
     await page.waitForTimeout(2500);
 }
 

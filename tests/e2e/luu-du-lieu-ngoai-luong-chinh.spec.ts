@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as XLSX from 'xlsx';
 import { seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -60,7 +61,7 @@ async function chuanBi(page: Page, chanWorkerGhi = false) {
 
 async function napTep(page: Page, cheDo: 'Tệp Realtime (Xem nhanh)' | 'Lũy kế / Quá khứ') {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
     await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(taoFileBanHang());
@@ -117,8 +118,7 @@ test('Realtime: Worker ghi IndexedDB, đúng định dạng cũ, tải lại tra
     expect(JSON.stringify(parsed)).toBe(chuoi);
 
     await page.reload();
-    const nutDungThu = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await nutDungThu.isVisible({ timeout: 5_000 }).catch(() => false)) await nutDungThu.click();
+    await vaoLoiKiemThu(page);
     await expect(page.locator('#business-overview')).toContainText('66 Tr', { timeout: 60_000 });
 });
 

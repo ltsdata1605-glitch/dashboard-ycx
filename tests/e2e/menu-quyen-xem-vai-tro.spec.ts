@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * 2026-10-30: quyền XEM chức năng theo vai trò. Chế độ Dùng Thử đăng nhập vai trò quản lý; "Phân tích" chỉ cho quản trị hệ thống
@@ -7,7 +8,7 @@ import { expect, test } from '@playwright/test';
 test.use({ viewport: { width: 1366, height: 900 } });
 test('chức năng chỉ cho quản trị: vai trò quản lý bị chuyển sang Báo cáo Khai thác', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.evaluate(() => localStorage.setItem('ycx_system_menu_config_v1', JSON.stringify({
         features: {}, featureRoles: { analysis: [] }, updatedAt: new Date().toISOString(),
     })));

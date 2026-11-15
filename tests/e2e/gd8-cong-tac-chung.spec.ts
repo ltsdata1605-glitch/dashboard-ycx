@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 /**
  * GĐ8 (2026-10-13): 17 công tắc tự vẽ → `Switch` dùng chung. Hai cách gắn cần khoá hành vi:
  *  1. Công tắc NẰM TRONG <label> (popover "Hiển thị màn hình thi đua"): bấm vào chữ hay bấm thẳng công tắc đều đổi ĐÚNG MỘT lần
@@ -10,7 +11,7 @@ test.use({ viewport: { width: 1366, height: 900 } });
 test('công tắc dùng chung trong 2 popover Phân tích', async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto('/?tab=analysis');
-  await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+  await vaoLoiKiemThu(page);
   // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
   await seedProductConfigFixture(page);
   await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());

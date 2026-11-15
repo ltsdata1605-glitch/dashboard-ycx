@@ -4,6 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as XLSX from 'xlsx';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -46,7 +47,7 @@ const vungCham = (nut: ReturnType<Page['locator']>) => nut.evaluate((el) => {
 
 async function moDungThu(page: Page, url: string) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(1200);
     await page.goto(url);
 }

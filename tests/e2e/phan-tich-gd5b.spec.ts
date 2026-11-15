@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * GĐ5 loạt B — Phân tích YCX (KE_HOACH_GIAO_DIEN_APPLE.md mục 1). Khoá các lỗi sếp thấy trong video:
@@ -11,7 +12,7 @@ import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixtur
 
 async function napDuLieu(page: Page, chuaXuat: string[] = []) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
     await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx({ chuaXuat }));
@@ -41,7 +42,7 @@ test.describe('iPhone SE 375×812 (cảm ứng)', () => {
 
     test('#25 màn chào: không còn chữ tiếng Anh, có dòng cam kết tiếng Việt', async ({ page }) => {
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+        await vaoLoiKiemThu(page);
         await expect(page.getByText('Xử lý trên máy')).toBeVisible();
         await expect(page.getByText('Tức thì', { exact: true })).toBeVisible();
         for (const en of ['Local Processing', 'Instant Speed', 'Smart UI']) await expect(page.getByText(en)).toHaveCount(0);

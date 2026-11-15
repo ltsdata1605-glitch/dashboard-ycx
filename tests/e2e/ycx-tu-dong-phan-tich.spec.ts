@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as XLSX from 'xlsx';
 import { seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -65,7 +66,7 @@ async function moPhanTichCoUserscript(page: Page, homNay?: string) {
         };
     });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
     await seedProductConfigFixture(page);
     await page.addScriptTag({ content: USERSCRIPT });
@@ -140,7 +141,7 @@ test('Phân tích: tab MWG báo lỗi → khung hiện lỗi + nút Chạy lại
 test('Phân tích: chưa cài userscript → bấm khung hiện hướng dẫn cài, KHÔNG mở tab MWG', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1000 });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     const dock = page.getByTestId('ycx-auto-dock');
     await expect(dock).toHaveAttribute('data-userscript', 'none', { timeout: 5000 });
     let moPopup = false;
@@ -154,7 +155,7 @@ test('Phân tích: chưa cài userscript → bấm khung hiện hướng dẫn c
 test('Phân tích: màn 1366px → khung thu gọn thành cột icon, mở tạm được', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     const dock = page.getByTestId('ycx-auto-dock');
     await expect(dock).toBeVisible();
     const box = await dock.boundingBox();

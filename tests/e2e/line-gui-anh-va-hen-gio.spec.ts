@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as XLSX from 'xlsx';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -66,7 +67,7 @@ async function chuanBi(page: Page, opts: { homNay?: string; hd?: boolean; url?: 
         };
     }, { nhom: NHOM, hd: Boolean(opts.hd) });
     await page.goto(opts.url || '/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.addScriptTag({ content: USERSCRIPT });
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
 }

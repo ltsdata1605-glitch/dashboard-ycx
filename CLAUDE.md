@@ -94,6 +94,11 @@ là mọi thứ agent đẩy lên `main` sẽ tự về máy chủ dự án — 
      chạy bằng `node`/`npx tsx` với dữ liệu mẫu, đối chiếu kết quả trước/sau.
    - Với tính năng cần dữ liệu thật: dùng dữ liệu giả đã có sẵn cách dựng (xem memory
      `reference_bi_dashboard_seed_data_testing`, `reference_sticker_event_test_accounts`).
+   - **Vào app không đăng nhập trong test** (2026-11-15): Chế độ Dùng Thử ĐÃ XOÁ (chủ dự án) — không nút, không chữ nào trên bản
+     người dùng; bản build không có đường nào vào app mà không đăng nhập. Test dùng `vaoLoiKiemThu(page)` / `choLoiKiemThu(page)`
+     (`tests/e2e/helpers/loiKiemThu.ts` → `window.__ycxVaoLoiKiemThu`, CHỈ dev server — `contexts/AuthContext.tsx`). Code mới có nhánh
+     riêng cho lối này (dữ liệu giả, toast) phải viết `import.meta.env.DEV && isDemoMode` để bản build tự bỏ; cấm thêm chữ "dùng thử"
+     — khoá bởi `tests/unit/khong-che-do-dung-thu.test.ts`.
    - **Đăng nhập tài khoản thật trên cloud** (2026-10-10): environment có `FIREBASE_TEST_UID` +
      `FIREBASE_TEST_SA_B64` → `tests/e2e/helpers/customTokenLogin.ts` tự ký custom token, spec dùng
      `dangNhapBangToken()` + `chanGhiCloud()` (chặn mọi lượt ghi). Mẫu: `tests/e2e/ios-du-lieu-that.spec.ts`.
@@ -220,8 +225,8 @@ chứ không thuộc **tài khoản**: ai đăng nhập sau trên cùng máy cũ
 thấy dữ liệu của người trước (chủ dự án gặp thật 2026-09-23 ở Report BI).
 
 **Quy tắc hiện tại:**
-- 🔴 Tên database là **hàm thuần của uid**: `BI_HUB_DATABASE_V2__<uid>`. Chưa đăng nhập (kể cả Chế
-  độ Dùng Thử) thì dùng tên cũ `BI_HUB_DATABASE_V2` — lúc đó không có dữ liệu riêng tư của ai.
+- 🔴 Tên database là **hàm thuần của uid**: `BI_HUB_DATABASE_V2__<uid>`. Chưa đăng nhập (kể cả lối vào
+  kiểm thử của dev server) thì dùng tên cũ `BI_HUB_DATABASE_V2` — lúc đó không có dữ liệu riêng tư của ai.
 - 🔴 **Mọi nơi mở database này phải lấy tên từ `utils/localDbScope.ts → biHubDbName()`** và `await
   ensureBiHubDbReady(name)` trước khi mở. CẤM viết lại hằng `'BI_HUB_DATABASE_V2'` trong code mới.
   Hiện có đúng 4 nơi mở: `services/dbService/core.ts`, `features/bi-dashboard/services/dbService.ts`,

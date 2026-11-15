@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * CHUẨN HOÁ ICON — Giai đoạn 1: điều hướng (2026-10-02, chủ dự án duyệt thang size 16/18 và mốc lg).
@@ -11,7 +12,7 @@ import { test, expect, type Page } from '@playwright/test';
  */
 async function vaoDungThu(page: Page) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
 }
 

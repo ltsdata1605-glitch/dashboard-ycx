@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * 2026-10-30: trang Giới thiệu — bỏ mục "Dữ liệu và quyền riêng tư" và đoạn mô tả đầu trang; phân hệ đã TẮT trong Quản lý Bật/Tắt
@@ -6,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
  */
 async function moGioiThieu(page: Page, features: Record<string, boolean>) {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.evaluate(f => localStorage.setItem('ycx_system_menu_config_v1', JSON.stringify({ features: f, updatedAt: new Date().toISOString() })), features);
     await page.goto('/?tab=help');
     await expect(page.getByText('Phân hệ', { exact: true })).toBeVisible({ timeout: 30_000 });

@@ -1,4 +1,5 @@
 import { test, expect, devices } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.describe('LoginView Apple Design System V2 & Google Button Verification', () => {
     test.beforeEach(async ({ page }) => {
@@ -330,10 +331,10 @@ test.describe('LoginView Apple Design System V2 & Google Button Verification', (
             });
             expect(hasHorizontalOverflow).toBe(false);
 
-            // Kiểm tra vào app bằng Dùng Thử
-            const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-            await expect(trialBtn).toBeVisible();
-            await trialBtn.click();
+            // Chế độ Dùng Thử đã XOÁ (2026-11-15): màn đăng nhập không còn nút/chữ "dùng thử". Bộ test vào app qua lối vào kiểm thử
+            // không nút (chỉ dev server — tests/e2e/helpers/loiKiemThu.ts).
+            await expect(page.getByText(/dùng thử/i)).toHaveCount(0);
+            await vaoLoiKiemThu(page);
             await page.locator('[data-app-chrome="header"]:visible, [data-app-chrome="topbar"]:visible').first().waitFor({ state: 'visible', timeout: 15_000 });
         } finally {
             await context.close();

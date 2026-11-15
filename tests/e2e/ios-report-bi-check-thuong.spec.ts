@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { SUMMARY_REALTIME, SUMMARY_LUYKE, COMPETITION_LUYKE } from './helpers/seed';
 import { moCheckThuong, napFileThuong, taoFileThuong } from './helpers/checkThuongNative';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Report BI và Check thưởng chạy trên khung iPhone CẢM ỨNG (UA iOS, isMobile, hasTouch) với dữ liệu
@@ -57,7 +58,7 @@ const soLanShare = (page: Page) => page.evaluate(() => (window as unknown as { _
 
 async function batDemo(page: Page) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().tap({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
 }
 

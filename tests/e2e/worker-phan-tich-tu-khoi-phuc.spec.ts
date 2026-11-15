@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Audit 2026-10-07 (D17): Worker phân tích SẬP thì app phải tự dựng lại Worker và gửi lại dữ liệu.
@@ -20,7 +21,7 @@ test('Worker phân tích sập → tự dựng lại, dashboard vẫn có số l
         } as typeof Worker;
     });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 20_000 });
+    await vaoLoiKiemThu(page);
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
     await page.locator('.fixed.inset-0').getByText('Tệp Realtime (Xem nhanh)').first().click();
     await expect(page.getByText(/CHI TIẾT THEO KHO/i).first()).toBeVisible({ timeout: 60_000 });

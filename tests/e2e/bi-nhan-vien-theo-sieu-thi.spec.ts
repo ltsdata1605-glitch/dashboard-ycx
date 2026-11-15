@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Số nhân viên của từng siêu thị ở Report BI (Cập nhật › Cấu hình siêu thị & nhân viên › Target Doanh thu).
@@ -35,7 +36,7 @@ const LUYKE_B = [
 
 test('số nhân viên theo danh sách Phân Tích, luỹ kế không lọc; nhân viên ẩn tính riêng từng siêu thị', async ({ page }) => {
     await page.goto('/?tab=employees');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
 
     await page.evaluate(async ({ analysis, luyKeA, luyKeB }) => {

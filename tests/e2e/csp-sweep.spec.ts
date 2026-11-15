@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Lưới an toàn CHO CHÍNH CSP — sinh ra vì CSP trong index.html đã chặn nhầm thứ đang dùng
@@ -34,8 +35,7 @@ test('mở mọi tab: không có vi phạm CSP nào', async ({ page }) => {
     });
 
     await page.goto('/');
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await demo.isVisible().catch(() => false)) await demo.click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(1500);
 
     const all: string[] = [];

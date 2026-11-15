@@ -75,8 +75,8 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const setFeatureRoles = useCallback(
         async (featureId: string, roles: MenuRole[] | null): Promise<boolean> => {
-            if (isDemoMode) {
-                toast.success('(Demo) Đã đổi quyền xem chức năng!');
+            if (import.meta.env.DEV && isDemoMode) {
+                toast.success('(Kiểm thử) Đã đổi quyền xem chức năng!');
                 return true;
             }
             const truoc = config.featureRoles;
@@ -119,8 +119,8 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 updatedByName: employeeName || user?.displayName || 'Quản trị hệ thống',
             }));
 
-            if (isDemoMode) {
-                toast.success(`(Demo) Đã ${enabled ? 'MỞ' : 'TẮT'} tính năng thành công!`);
+            if (import.meta.env.DEV && isDemoMode) {
+                toast.success(`(Kiểm thử) Đã ${enabled ? 'MỞ' : 'TẮT'} tính năng thành công!`);
                 return true;
             }
 
@@ -160,8 +160,8 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 updatedByName: employeeName || user?.displayName || 'Quản trị hệ thống',
             }));
 
-            if (isDemoMode) {
-                toast.success(`(Demo) Đã ${enabled ? 'BẬT' : 'TẮT'} tất cả tính năng!`);
+            if (import.meta.env.DEV && isDemoMode) {
+                toast.success(`(Kiểm thử) Đã ${enabled ? 'BẬT' : 'TẮT'} tất cả tính năng!`);
                 return true;
             }
 
@@ -189,8 +189,8 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             updatedByName: employeeName || user?.displayName || 'Quản trị hệ thống',
         });
 
-        if (isDemoMode) {
-            toast.success('(Demo) Đã khôi phục cài đặt mặc định!');
+        if (import.meta.env.DEV && isDemoMode) {
+            toast.success('(Kiểm thử) Đã khôi phục cài đặt mặc định!');
             return true;
         }
 

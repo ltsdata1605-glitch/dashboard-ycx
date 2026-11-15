@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Tính thuế trên iPhone SE (375px) với dữ liệu HRM thật mẫu (2026-09-27): không chữ nào bị cắt "…".
@@ -12,7 +13,7 @@ test('375px, đủ 2 đợt: tên khoản thưởng và tiêu đề thẻ hiện
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?tab=tools-tax');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.getByTestId('paste-day5')).toBeVisible({ timeout: 30_000 });
 
     for (const [id, file, ok] of [

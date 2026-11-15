@@ -1,4 +1,5 @@
 import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.skip(!hasRealDataProfile(), 'Cần profile dữ liệu thật .e2e-chrome-profile');
 
@@ -11,11 +12,8 @@ test('Verify So sánh thi đua columns fit snugly to content and competition nam
     await page.waitForTimeout(2000);
 
     // Nếu có modal chào hỏi / kích hoạt dùng thử thì click bypass
-    const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await trialBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await trialBtn.click();
-        await page.waitForTimeout(1000);
-    }
+    await vaoLoiKiemThu(page);
+    await page.waitForTimeout(1000);
 
     // Chuyển sang phân hệ Nhân viên trong Report BI
     const nhanVienTab = page.getByRole('button', { name: /^Nhân viên$/i }).first();

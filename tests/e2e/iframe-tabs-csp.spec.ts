@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { appPath } from './helpers/appBase';
+import { choLoiKiemThu, vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Test hồi quy cho các tab chạy bằng <iframe> — sinh ra sau một sự cố THẬT:
@@ -19,9 +20,8 @@ import { appPath } from './helpers/appBase';
  * với thông điệp chẳng liên quan. Ở đây chờ nút hiện ra rồi mới quyết định.
  */
 async function activateDemoMode(page: import('@playwright/test').Page) {
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    await demo.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => { /* đã ở chế độ dùng thử */ });
-    if (await demo.isVisible().catch(() => false)) await demo.click();
+    await choLoiKiemThu(page, 20_000);
+    await vaoLoiKiemThu(page);
 }
 
 

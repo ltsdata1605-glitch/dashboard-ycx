@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { demoModeChoPhep } from '../utils/demoMode';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import type { Functions } from 'firebase/functions';
 import type { Firestore } from 'firebase/firestore';
@@ -89,18 +88,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
     
     const [isLoading, setIsLoading] = useState(true);
-    // Chế độ Dùng Thử: chỉ cho máy chủ phát triển/test (utils/demoMode.ts). Bản build cho người dùng luôn tắt và xoá cờ cũ.
-    const choPhepDemo = demoModeChoPhep();
-    const [isDemoMode, setDemoModeRaw] = useState(() => {
-        if (!choPhepDemo) return false;
-        if (typeof window !== 'undefined') {
-            return sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true';
-        }
-        return false;
+    // LỐI VÀO KIỂM THỬ — thay "Chế độ Dùng Thử" (chủ dự án XOÁ 2026-11-15: không nút, không chữ nào cho người dùng). CHỈ có trên dev
+    // server (`import.meta.env.DEV`; bản build Vite thay bằng `false` nên cả khối này biến mất) để bộ test e2e vào app không cần đăng
+    // nhập: `window.__ycxVaoLoiKiemThu()` (tests/e2e/helpers/loiKiemThu.ts) hoặc cờ 'ycx_demo_mode' đặt TRƯỚC khi trang tải.
+    // Tên biến `isDemoMode` giữ nguyên trong code để khỏi đổi tên khắp nơi — nghĩa là "đang ở lối vào kiểm thử".
+    const [isDemoModeRaw, setDemoModeRaw] = useState(() => {
+        if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+        return sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true';
     });
+    const isDemoMode = import.meta.env.DEV && isDemoModeRaw;
 
     const setDemoMode = (val: boolean) => {
-        if (!choPhepDemo) return;
+        if (!import.meta.env.DEV) return;
         setDemoModeRaw(val);
         if (typeof window !== 'undefined') {
             if (val) {
@@ -113,18 +112,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
     useEffect(() => {
-        if (choPhepDemo) return;
+        if (!import.meta.env.DEV) return;
+        // Cờ chỉ có tác dụng cho LẦN TẢI vừa đọc (giữ nguyên cách cũ): tải lại lần nữa là về màn đăng nhập.
         try {
             sessionStorage.removeItem('ycx_demo_mode');
             localStorage.removeItem('ycx_demo_mode');
         } catch { /* trình duyệt chặn bộ nhớ: không có gì để xoá */ }
-    }, [choPhepDemo]);
-
-    useEffect(() => {
-        try {
-            sessionStorage.removeItem('ycx_demo_mode');
-            localStorage.removeItem('ycx_demo_mode');
-        } catch { /* trình duyệt chặn bộ nhớ: không có gì để xoá */ }
+        const w = window as unknown as { __ycxVaoLoiKiemThu?: () => void };
+        w.__ycxVaoLoiKiemThu = () => setDemoMode(true);
+        return () => { delete w.__ycxVaoLoiKiemThu; };
     }, []);
 
     useEffect(() => {
@@ -160,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             hasAcceptedUserRef.current = Boolean(currentUser);
             setUser(currentUser);
             if (currentUser) {
-                // Tự động tắt demo mode nếu user đã đăng nhập tài khoản thật
+                // Đăng nhập tài khoản thật thì thoát lối vào kiểm thử (chỉ dev server)
                 setDemoMode(false);
                 // Dữ liệu cục bộ thuộc về TRÌNH DUYỆT chứ không theo tài khoản: tài khoản khác
                 // đăng nhập trên cùng máy sẽ thấy dữ liệu của người trước (chủ dự án gặp thật
@@ -356,7 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const logout = async () => {
         await logoutProvider();
-        setDemoMode(false); // Xóa trạng thái demo khi dăng xuất
+        setDemoMode(false); // thoát lối vào kiểm thử (chỉ dev server)
         // Dọn dữ liệu cục bộ để người đăng nhập tiếp theo trên máy này không thấy dữ liệu của
         // tài khoản vừa đăng xuất. Dữ liệu thật vẫn nằm trên cloud theo từng tài khoản.
         try {

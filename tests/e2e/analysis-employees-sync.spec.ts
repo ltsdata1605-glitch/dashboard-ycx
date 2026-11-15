@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Nhập danh sách nhân viên ở Phân Tích (modal "Quản lý danh sách nhân viên", KHÔNG cần file YCX)
@@ -14,7 +15,7 @@ const DEPT_MAP = {
 
 test('cập nhật danh sách nhân viên (không có file YCX) → Report BI nhận đủ', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
 
     await page.evaluate(async (map) => {

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Liquid Glass (Apple Design System V2, 2026-10-28) — số đo THẬT trên khung app (Chromium; WebKit chạy ở CI job e2e-webkit):
@@ -12,7 +13,7 @@ import { createSalesXlsx } from './helpers/salesFixture';
  */
 async function vaoDungThu(page: Page, tab = 'analysis') {
     await page.goto(`/?tab=${tab}`);
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
 }
 
 for (const w of [320, 375, 393, 440]) {

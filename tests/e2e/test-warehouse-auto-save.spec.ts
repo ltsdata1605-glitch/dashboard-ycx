@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('WarehouseSettingsModal tự động lưu trạng thái ẩn/hiện cột vào IndexedDB và phát sự kiện đồng bộ khi thao tác', async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto('/?tab=analysis');
 
-    // Kích hoạt Chế độ Dùng Thử
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 20_000 });
+    // Vào app qua lối vào kiểm thử (dev server — nút Dùng Thử đã xoá 2026-11-15)
+    await vaoLoiKiemThu(page);
 
     // Nạp file sales mẫu
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());

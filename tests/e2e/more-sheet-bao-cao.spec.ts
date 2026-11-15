@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.use({
     viewport: { width: 390, height: 844 },
@@ -10,8 +11,7 @@ test('Chuyển chức năng Báo cáo lên nhóm Công cụ trong sheet Thêm mo
     await page.goto('/?tab=analysis');
     
     // Kích hoạt chế độ dùng thử nếu ở màn Login
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    await demo.click({ timeout: 15000 });
+    await vaoLoiKiemThu(page);
 
     // Nút "Khác" trên thanh tab dưới
     const moreBtn = page.getByRole('button', { name: 'Khác' });

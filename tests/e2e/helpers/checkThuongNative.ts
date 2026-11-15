@@ -4,6 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as XLSX from 'xlsx';
+import { vaoLoiKiemThu } from './loiKiemThu';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -24,10 +25,8 @@ export const taoFileThuong = (sieuThi: string[] = ['910 - ĐML Hùng Vương'], 
 /** Mở tab Check thưởng (bật Chế độ Dùng Thử nếu đang ở màn đăng nhập) — đứng ở màn "Tải file thưởng thi đua". */
 export async function moCheckThuong(page: Page) {
     await page.goto('/?tab=check-thuong');
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
     const manTai = page.getByRole('heading', { name: 'Tải file thưởng thi đua' });
-    await expect(demo.or(manTai)).toBeVisible({ timeout: 30_000 });
-    if (await demo.isVisible()) await demo.click();
+    await vaoLoiKiemThu(page);
     await expect(manTai).toBeVisible({ timeout: 30_000 });
 }
 

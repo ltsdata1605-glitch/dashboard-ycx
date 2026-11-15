@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Nhập liệu bằng CÁCH DÁN TEXT từ HRM (chủ dự án yêu cầu 2026-09-23): bấm vào ô là tự dán,
@@ -14,7 +15,7 @@ const day20MultiCkText = readFileSync('tests/fixtures/hrm-thuong-ngay20-nhieu-do
 
 const openTax = async (page: import('@playwright/test').Page) => {
     await page.goto('/?tab=tools-tax');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.getByTestId('paste-day5')).toBeVisible({ timeout: 30_000 });
 };
 

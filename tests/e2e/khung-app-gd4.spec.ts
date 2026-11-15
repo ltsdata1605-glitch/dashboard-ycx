@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * GĐ4 — Khung ứng dụng (KE_HOACH_GIAO_DIEN_APPLE.md mục 3.2–3.5, 2026-10-12). Kiểm HÀNH VI + số đo thật của khung app mới:
@@ -14,7 +15,7 @@ import { createSalesXlsx, seedProductConfigFixture } from './helpers/salesFixtur
 
 async function vaoDungThu(page: Page, tab = 'analysis') {
     await page.goto(`/?tab=${tab}`);
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
 }
 
 async function napDuLieuMau(page: Page) {
@@ -233,7 +234,7 @@ test.describe('laptop 1366×800', () => {
         await expect(dock).toHaveCount(0);
         expect(await page.evaluate(() => localStorage.getItem('ycx_desktop_menu_open'))).toBe('false');
         await page.reload();
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 }).catch(() => undefined);
+        await vaoLoiKiemThu(page);
         await expect(page.getByRole('button', { name: /Trang chủ/ })).toBeVisible();
         await expect(dock).toHaveCount(0);
         await page.getByRole('button', { name: /Trang chủ/ }).click();

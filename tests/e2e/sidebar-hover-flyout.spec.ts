@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('laptop: hover vào menu Công cụ và rê chuột sang submenu không bị mất', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
 
     // Tìm icon/nút Công cụ ở thanh dock trái
@@ -43,7 +44,7 @@ test('laptop: hover vào menu Công cụ và rê chuột sang submenu không b�
 test('laptop: hover vào User Profile avatar và rê chuột sang flyout card không bị mất', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
 
     // Tìm nút Profile ở dưới cùng dock
@@ -72,7 +73,7 @@ test('laptop: hover vào User Profile avatar và rê chuột sang flyout card kh
 test('laptop: bấm vào nút Công cụ chỉ mở menu phụ, không chuyển sang trang trống', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
 
     // Xác nhận đang ở trang Phân tích

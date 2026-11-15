@@ -25,9 +25,9 @@ const MobileMoreSheet: React.FC<{
     systemTabs: NavTabItem[];
 }> = ({ isOpen, onClose, onTabClick, mainTabs, toolTabs, systemTabs }) => {
     const { activeTab } = useActiveTab();
-    const { user, userRole, employeeName, departmentId, isDemoMode, logout } = useAuth();
+    const { user, userRole, employeeName, departmentId, logout } = useAuth();
     const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
-    const tenHienThi = employeeName || formatCleanDisplayName(user?.displayName, isDemoMode ? 'Tài khoản Thử nghiệm' : 'Khách');
+    const tenHienThi = employeeName || formatCleanDisplayName(user?.displayName, 'Khách');
     const vaiTro = userRole === 'admin' ? 'Admin' : userRole === 'manager' ? 'Quản lý' : userRole ? 'Nhân viên' : null;
 
     return (
@@ -68,7 +68,7 @@ const MobileMoreSheet: React.FC<{
                                     style={{ display: user?.photoURL ? 'none' : 'flex' }}
                                     className="font-semibold text-[17px] text-sky-700 items-center justify-center w-full h-full"
                                 >
-                                    {user?.email ? user.email.charAt(0).toUpperCase() : (isDemoMode ? 'T' : 'U')}
+                                    {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
                                 </span>
                             </span>
                             <span className="min-w-0 flex-1">

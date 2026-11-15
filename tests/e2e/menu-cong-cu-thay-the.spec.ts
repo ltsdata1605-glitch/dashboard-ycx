@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * 2026-10-30 (chủ dự án): tắt ô menu chính (Phân tích, Report BI, Check thưởng) thì công cụ đang bật được đưa lên thay —
@@ -8,7 +9,7 @@ const TAT_CHINH = { analysis: false, employees: false, 'check-thuong': false };
 
 async function moApp(page: Page) {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.evaluate(f => localStorage.setItem('ycx_system_menu_config_v1', JSON.stringify({ features: f, updatedAt: new Date().toISOString() })), TAT_CHINH);
     await page.reload();
 }

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import * as XLSX from 'xlsx';
 import { seedProductConfigFixture } from './helpers/salesFixture';
 import { APP_BASE } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 if (typeof (XLSX as { set_fs?: unknown }).set_fs === 'function') XLSX.set_fs(fs);
 
@@ -60,7 +61,7 @@ test('xuất hàng loạt NV trên iPhone: một nút, một lượt chia sẻ �
         });
     });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     // Dùng Thử không đọc được cấu hình ngành hàng trên Firestore (rules 2026-10-30: shared_configs chỉ cho người đã đăng nhập).
     await seedProductConfigFixture(page);
     await page.locator('input[type="file"]').first().setInputFiles(taoFileBanHang());

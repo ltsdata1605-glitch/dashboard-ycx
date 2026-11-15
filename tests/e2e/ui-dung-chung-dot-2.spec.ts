@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { moMucCongCu } from './helpers/dock';
 import { APP_BASE } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Đợt 2 audit (2026-09-29) — component dùng chung, KHÔNG đổi nhận diện:
@@ -95,7 +96,7 @@ test('A15: menu trong Modal — mũi tên chọn mục, Escape đóng menu nhưn
 
 test('A25: tab đang ẩn (vẫn giữ mount) không nhận focus bằng phím/trình đọc màn hình', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await moMucCongCu(page, 'Báo cáo'); // Báo cáo nằm trong menu "Công cụ" của dock (19b5dbf1)
     await expect(page.getByTestId('khai-thac-view')).toBeVisible({ timeout: 30_000 });
     // Sang tab khác: Báo cáo vẫn mount nhưng bị đẩy ra ngoài màn hình

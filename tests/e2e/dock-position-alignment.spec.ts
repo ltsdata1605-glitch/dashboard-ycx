@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('Verify right auto dock is aligned at top-[72px] with left sidebar menu', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
     
     // Đăng nhập chế độ dùng thử
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
 
     const leftSidebar = page.locator('[data-testid="desktop-nav-menu"]');

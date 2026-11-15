@@ -75,9 +75,9 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
         }
 
         const newValue = !settings.autoApproveManagers;
-        if (isDemoMode) {
+        if (import.meta.env.DEV && isDemoMode) {
             setSettings(prev => ({ ...prev, autoApproveManagers: newValue }));
-            toast.success(`(Demo) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Quản lý!`);
+            toast.success(`(Kiểm thử) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Quản lý!`);
             return;
         }
 
@@ -107,9 +107,9 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
         }
 
         const newValue = !settings.autoApproveEmployees;
-        if (isDemoMode) {
+        if (import.meta.env.DEV && isDemoMode) {
             setSettings(prev => ({ ...prev, autoApproveEmployees: newValue }));
-            toast.success(`(Demo) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Nhân viên toàn cục!`);
+            toast.success(`(Kiểm thử) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Nhân viên toàn cục!`);
             return;
         }
 
@@ -142,7 +142,7 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
 
         const newValue = !currentVal;
 
-        if (isDemoMode) {
+        if (import.meta.env.DEV && isDemoMode) {
             setSettings(prev => ({
                 ...prev,
                 autoApproveEmployeesByDept: {
@@ -150,7 +150,7 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
                     [targetKho]: newValue
                 }
             }));
-            toast.success(`(Demo) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Nhân viên cho Kho ${targetKho}!`);
+            toast.success(`(Kiểm thử) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Nhân viên cho Kho ${targetKho}!`);
             return;
         }
 

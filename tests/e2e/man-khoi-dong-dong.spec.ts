@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Màn khởi động động (2026-10-22): index.html #ycx-splash + public/man-cho-khoi-dong.js.
@@ -46,7 +47,7 @@ test('app vẽ xong màn đăng nhập → màn chờ mờ dần và được g�
     await page.goto('/');
     await expect(page.getByTestId('login-google')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('#ycx-splash')).toHaveCount(0, { timeout: 2_000 });
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click({ timeout: 3_000 });
+    await vaoLoiKiemThu(page);
 });
 
 test('app Màn hình chính (thanh trạng thái "default"): đẩy cụm logo lên nửa chiều cao thanh trạng thái cho khớp ảnh tĩnh', async ({ page }) => {

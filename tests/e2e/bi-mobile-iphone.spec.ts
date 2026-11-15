@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * REPORT BI TRÊN IPHONE — chủ dự án yêu cầu 2026-09-26: "tối ưu giao diện mobile dùng trên iPhone",
@@ -32,7 +33,7 @@ test.use({ isMobile: true, hasTouch: true });
 
 async function moBI(page: Page) {
     await page.goto('/?tab=employees');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
     await page.evaluate(async ({ analysis, luyke }) => {
         const db = await new Promise<IDBDatabase>((res, rej) => {

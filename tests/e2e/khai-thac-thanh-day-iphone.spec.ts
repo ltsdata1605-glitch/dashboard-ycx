@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Báo cáo khai thác trên iPhone (2026-11-14): thanh thao tác dính đáy dùng kính chung `GlassSurface` (trước: tự viết lớp làm mờ nền
@@ -10,7 +11,7 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 
 test('iPhone: thanh đáy là kính dùng chung, chạm mở sheet xem trước dùng chung', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.goto('/?tab=reports');
     await expect(page.getByTestId('khai-thac-view')).toBeVisible({ timeout: 30_000 });
 

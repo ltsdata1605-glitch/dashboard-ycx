@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { fileNhanVien } from './helpers/phanCaFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Phân Ca — 2 hành trình trước chỉ có unit test (user-journey-matrix, 2026-10-30): xuất Google Sheet và gợi ý ca xoay bằng AI.
@@ -10,7 +11,7 @@ import { fileNhanVien } from './helpers/phanCaFixture';
 async function vaoPhanCaCoNhanVien(page: Page, loi: string[]) {
     page.on('pageerror', e => loi.push(e.message));
     await page.goto('/?tab=tools-phanca');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await expect(page.getByRole('button', { name: 'Tạo lịch' })).toBeVisible({ timeout: 30_000 });
     await page.locator('input[type="file"]').first().setInputFiles(fileNhanVien());
     const modal = page.getByRole('dialog', { name: /Cấu Hình Nhập Nhân Viên/i });

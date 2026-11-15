@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test('Verify reduced compact spacing between SummaryTable, AppFooter, and MobileBottomNav', async ({ page }) => {
     test.setTimeout(60_000);
@@ -9,7 +10,7 @@ test('Verify reduced compact spacing between SummaryTable, AppFooter, and Mobile
     await page.goto('/?tab=analysis');
 
     // Kích hoạt Dùng thử
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 20_000 });
+    await vaoLoiKiemThu(page);
 
     // Nạp file sales mẫu
     await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());

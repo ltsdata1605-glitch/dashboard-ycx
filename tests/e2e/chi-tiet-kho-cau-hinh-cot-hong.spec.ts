@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createSalesXlsx } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Chủ dự án báo 2026-10-07: "Chi tiết theo kho" treo mãi ở "Đang tải cấu hình cột…". Nguyên nhân:
@@ -10,7 +11,7 @@ for (const [ten, hong] of [['object', { a: 1 }], ['phan-tu-rong', [null, { id: '
     test(`cấu hình cột hỏng (${ten}) vẫn hiện bảng Chi tiết theo kho`, async ({ page }) => {
         test.setTimeout(150_000);
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 20_000 });
+        await vaoLoiKiemThu(page);
         await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
         await page.locator('.fixed.inset-0').getByText('Tệp Realtime (Xem nhanh)').first().click();
         await expect(page.getByText(/CHI TIẾT THEO KHO/i).first()).toBeVisible({ timeout: 60_000 });

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as XLSX from 'xlsx';
 import { appPath } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 function fileBanHang(): Buffer {
@@ -80,7 +81,7 @@ test('nạp tệp Lũy kế lúc bộ nhớ đầy: hiện lỗi (không tung ho
         };
     });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
     await page.evaluate(() => { (window as unknown as { __dayBoNho: boolean }).__dayBoNho = true; });
 

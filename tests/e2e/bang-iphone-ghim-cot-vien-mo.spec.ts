@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Đợt C — kế hoạch iPhone (bảng LUÔN là bảng — chủ dự án chốt 2026-10-02).
@@ -24,7 +25,7 @@ const LUYKE = [
 
 async function moBI(page: Page) {
     await page.goto('/?tab=employees');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
     await page.evaluate(async ({ analysis, luyke }) => {
         const db = await new Promise<IDBDatabase>((res, rej) => {

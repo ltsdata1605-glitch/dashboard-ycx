@@ -198,14 +198,14 @@ const NavItem = React.memo(({
 
 export default function Sidebar() {
     const { isDesktopMenuOpen, activeTab, setActiveTab } = useLayout();
-    const { user, userRole, isDemoMode } = useAuth();
+    const { user, userRole } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
 
     // Toàn bộ danh sách tính năng trên laptop (đưa tất cả công cụ ra ngoài menu, không giấu trong popup)
     const menuItems: NavMenuItem[] = [
         { id: 'check-thuong', label: 'Check thưởng', icon: NAV_TAB_ICONS['check-thuong'], path: '/' },
         { id: 'thuong', label: 'Thưởng', icon: NAV_TAB_ICONS['thuong'], path: '/thuong' },
-        ...(isDemoMode || userRole === 'admin' || userRole === 'manager' ? [
+        ...(userRole === 'admin' || userRole === 'manager' ? [
             { id: 'tools-line-bot', label: 'Bot LINE PMH', icon: NAV_TAB_ICONS['tools-line-bot'], path: '/line-bot' }
         ] : []),
         { id: 'reports', label: 'Báo cáo khai thác', icon: NAV_TAB_ICONS['reports'], path: '/reports' },
@@ -283,7 +283,7 @@ export default function Sidebar() {
                                     <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 ) : (
                                     <span className="font-bold text-xs text-sky-700 dark:text-sky-400">
-                                        {user?.email ? user.email.charAt(0).toUpperCase() : (isDemoMode ? "T" : "U")}
+                                        {user?.email ? user.email.charAt(0).toUpperCase() : "U"}
                                     </span>
                                 )}
                             </div>

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { CHECK_THUONG_COLS } from '../../features/check-thuong/services/checkThuongCalc';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Tính năng "Top thưởng" của Check Thưởng (tab con `leaderboard`).
@@ -52,7 +53,7 @@ function tepDuLieu(): { name: string; mimeType: string; buffer: Buffer } {
 
 async function openTopThuong(page: import('@playwright/test').Page) {
     await page.goto('/?tab=check-thuong');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
 
     const oNapFile = page.locator('input[type="file"][accept*=".xlsx"]').first();
     await oNapFile.waitFor({ state: 'attached', timeout: 30_000 });
@@ -95,7 +96,7 @@ test.describe('Check Thưởng — Top thưởng (component React)', () => {
 
     test('không còn kênh postMessage: tin "CHECK_THUONG_FILE_LOADED" từ trang khác không nạp được dữ liệu — audit S11', async ({ page }) => {
         await page.goto('/?tab=check-thuong');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.locator('input[type="file"][accept*=".xlsx"]').first().waitFor({ state: 'attached', timeout: 30_000 });
         await page.evaluate((data) => {
             for (const origin of [window.location.origin, 'https://trang-la.example']) {
@@ -129,7 +130,7 @@ test.describe('Check Thưởng — Top thưởng (component React)', () => {
 
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('/?tab=check-thuong');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         const oNapFile = page.locator('input[type="file"][accept*=".xlsx"]').first();
         await oNapFile.waitFor({ state: 'attached', timeout: 30_000 });
         await oNapFile.setInputFiles(tepDuLieuTy());

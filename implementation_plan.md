@@ -9507,3 +9507,24 @@ trước); CHƯA PHÁT SINH 0%. Không emoji. Mốc là hằng `MOC_SAP_DAT`/`MO
 "Nhóm " đầu). Đoạn copy có dòng "Nhóm: <tên> (N môn)"; lọc một nhóm thì kể cả mục "ĐÃ ĐẠT ≥ 100%" (vd nhóm Đạt thưởng), "Tất cả" chỉ
 đếm; bỏ dòng "SẮP ĐẠT … không có môn nào" khi nhóm không còn môn chưa đạt; nhóm rỗng ghi rõ. Toast "Đã copy nhận xét nhóm <tên>".
 E2E đọc clipboard thật lần lượt ở Tất cả / < 100% / Đạt thưởng.
+
+## Xoá Chế độ Dùng Thử (2026-11-15)
+
+**Yêu cầu chủ dự án:** "Xoá bỏ chế độ dùng thử" — chọn phương án "xoá sạch khỏi app, giữ lối vào nội bộ cho bộ test (không có trong bản
+build, không nút ở màn đăng nhập)". Trước đó (30/10) nút đã ẩn trên bản build, nhưng bản build VẪN lộ chữ: băng "Đang ở chế độ dùng thử" +
+nút "Thoát chế độ dùng thử" ở Cài đặt (khi mở app bằng phiên đã lưu mà chưa nhận lại tài khoản — `!user`), tên "Tài khoản Thử nghiệm"
+ở sheet Khác, toast "(Demo)…" ở Phân quyền / Cài đặt duyệt / Menu.
+
+**Làm:**
+- `contexts/AuthContext.tsx`: `isDemoMode = import.meta.env.DEV && isDemoModeRaw`; `setDemoMode` no-op ngoài DEV; DEV gắn
+  `window.__ycxVaoLoiKiemThu` (lối vào kiểm thử). Bản build: Vite thay DEV = false → cả khối biến mất. Bỏ `utils/demoMode.ts`.
+- `LoginView`: bỏ nút "Dùng thử không cần đăng nhập". `SettingsAccountTab`: băng → "Chưa đăng nhập", nút luôn "Đăng xuất".
+  `MobileMoreSheet`/`Sidebar`: bỏ "Tài khoản Thử nghiệm"/"T". `LineBotView`: "Chưa đăng nhập — Kho …". Bỏ `isDemoMode ||` thừa ở kiểm vai
+  trò (lối kiểm thử mang vai trò manager). `UserManagementView`/`MenuConfigContext`/`ApprovalSettingsTab`: `if (import.meta.env.DEV &&
+  isDemoMode)` + chữ "(Kiểm thử)". `syncService.isDemoModeActive` kèm DEV.
+- Test: helper `tests/e2e/helpers/loiKiemThu.ts` (`vaoLoiKiemThu`/`choLoiKiemThu`) thay cú bấm nút ở ~100 spec (codemod 2 lượt + sửa tay
+  6 spec dùng nút làm dấu "màn đăng nhập đã hiện" → `getByTestId('login-view')`). `login-view-redesign` khẳng định màn đăng nhập không còn
+  chữ "dùng thử". Khoá: `tests/unit/khong-che-do-dung-thu.test.ts` (đỏ 4/4 với code cũ).
+- Đo: bản build (vite preview) đặt cờ cũ `ycx_demo_mode` vẫn chỉ thấy màn đăng nhập, không có `__ycxVaoLoiKiemThu`; grep bản build 0 chữ
+  "dùng thử"/"(Demo)"/"ycx_demo_mode". E2E 2 lượt (30 bài) đối chứng với `main` chưa sửa: cùng danh sách đỏ sẵn (Phân tích đã gỡ, menu
+  "Công cụ", icon PWA theo base…), không bài nào đỏ do việc đổi.

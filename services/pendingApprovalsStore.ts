@@ -20,7 +20,7 @@ import { listManagedUsers, ManagedUserDoc, MANAGED_USERS_CHANGED_EVENT } from '.
  *   - Không còn subscriber nào thì dừng hẳn vòng poll.
  *
  * Module này CỐ Ý không biết gì về auth: nơi gọi tự quyết có subscribe hay không (chỉ admin/
- * manager, không ở chế độ Dùng Thử), nên không subscribe thì store nằm im, không tốn gì.
+ * manager, không ở lối vào kiểm thử của dev server), nên không subscribe thì store nằm im, không tốn gì.
  */
 
 export const PENDING_APPROVALS_POLL_INTERVAL_MS = 120_000;

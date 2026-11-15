@@ -1,14 +1,12 @@
 import { test, expect, hasRealDataProfile } from './helpers/realDataContext';
 import type { Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.skip(!hasRealDataProfile(), 'Cần profile dữ liệu thật .e2e-chrome-profile');
 
 async function navigateAndEnsureApp(page: Page, tab: string) {
     await page.goto(`/?tab=${tab}`);
-    const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await trialBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await trialBtn.click();
-    }
+    await vaoLoiKiemThu(page);
     await page.locator('[data-app-chrome="header"]:visible, [data-app-chrome="topbar"]:visible').first().waitFor({ state: 'visible', timeout: 30_000 });
 }
 

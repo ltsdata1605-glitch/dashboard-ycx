@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Audit 2026-10-07 (GĐ4):
@@ -35,7 +36,7 @@ const doNutSmMd = (page: import('@playwright/test').Page) => page.evaluate(() =>
 test('mở Phân ca không làm đổi hiệu ứng .animate-fade-in của cả app', async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(1500);
     const before = await probeFadeIn(page);
     await page.goto('/?tab=tools-phanca');
@@ -50,7 +51,7 @@ test.describe('vùng chạm theo thiết bị cảm ứng', () => {
     test.use({ viewport: { width: 1024, height: 768 }, hasTouch: true, isMobile: true });
     test('iPad ngang (cảm ứng, 1024px): nút dùng chung ≥ 44px', async ({ page }) => {
         await page.goto('/');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.waitForTimeout(1500);
         await page.goto('/?tab=tools-phanca');
         await page.locator('.phanca-root').first().waitFor({ timeout: 30_000 });
@@ -67,7 +68,7 @@ test.describe('vùng chạm theo thiết bị cảm ứng', () => {
 test('laptop dùng chuột (1366px): nút dùng chung giữ cỡ gọn < 44px', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(1500);
     await page.goto('/?tab=tools-phanca');
     await page.locator('.phanca-root').first().waitFor({ timeout: 30_000 });

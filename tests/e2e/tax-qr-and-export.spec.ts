@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Yêu cầu chủ dự án 2026-09-23 cho màn Tính Thuế:
@@ -71,7 +72,7 @@ const openTaxWithBothSlips = async (page: import('@playwright/test').Page) => {
     }));
 
     await page.goto('/?tab=tools-tax');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.getByRole('button', { name: /Tải ảnh/i }).first()).toBeVisible({ timeout: 30_000 });
 
     const png = makePng();
@@ -247,7 +248,7 @@ test('xuất ảnh xong: tự lưu vào lịch sử và lịch sử gom nhóm th
 
 test('menu không còn mục "Kiểm quỹ"', async ({ page }) => {
     await page.goto('/?tab=tools-tax');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.getByRole('button', { name: /Xuất ảnh/i })).toBeVisible({ timeout: 30_000 });
 
     // Dock điều hướng (chủ dự án 2026-10-12): "Công cụ" là nút icon, rê chuột vào thì bung danh sách công cụ con bên phải.

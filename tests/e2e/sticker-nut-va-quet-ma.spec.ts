@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { E2E_LAUNCH } from '../../playwright.config';
 import { chanGhiCloud } from './helpers/customTokenLogin';
+import { choLoiKiemThu, vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * In Sticker — hệ thống nút + tiện ích quét mã vạch (chủ dự án yêu cầu 2026-09-25).
@@ -42,8 +43,7 @@ async function moInSticker(page: Page) {
 
     await page.goto('/?tab=tools-print-sticker&sub=event');
     // Dev server mở lần đầu có thể mất nhiều giây: chờ màn đăng nhập hiện hẳn, không đoán bằng thời gian.
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    await demo.waitFor({ state: 'visible', timeout: 60_000 });
+    await choLoiKiemThu(page, 60_000);
 
     // Gieo TRƯỚC khi bấm Dùng Thử: AuthContext xoá cờ Dùng Thử sau mỗi lần nạp trang, nên tải lại trang
     // sau khi đã vào app là quay về màn đăng nhập.
@@ -62,7 +62,7 @@ async function moInSticker(page: Page) {
         db.close();
     }, PRODUCTS);
 
-    await demo.click();
+    await vaoLoiKiemThu(page);
     // Danh sách hiện ra nghĩa là app đã đọc xong IndexedDB, có sản phẩm để tra mã.
     await expect(page.getByText(PRODUCTS[0].sanPham, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }

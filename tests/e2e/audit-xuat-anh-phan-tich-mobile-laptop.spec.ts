@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { appPath } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.skip(!hasRealDataProfile(), 'Cần profile dữ liệu thật .e2e-chrome-profile');
 
@@ -186,10 +187,7 @@ async function auditElementExport(
 async function prepareApp(page: Page, url: string, viewport: { width: number; height: number }, isMobile: boolean) {
     await page.setViewportSize(viewport);
     await page.goto(url);
-    const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-    if (await trialBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await trialBtn.click();
-    }
+    await vaoLoiKiemThu(page);
     // Chờ giao diện chính (chọn phần tử hiển thị trên cả mobile và desktop)
     await page.locator('#employee-analysis-section, .kpi-overview-card, [data-modal-overlay], main, #root').first().waitFor({ state: 'attached', timeout: 30_000 });
     await page.waitForTimeout(1000);

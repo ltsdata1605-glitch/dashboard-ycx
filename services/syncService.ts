@@ -4,14 +4,11 @@ import { getSettingsMatching } from './dbService/core';
 import { isHeavySyncKey } from './firestoreService';
 import { isLightSyncKey, isLocalOnlyKey } from '../utils/localDbScope';
 
-// Đọc thẳng sessionStorage (không qua React Context) — module thuần, không phải hook. Đây là
-// nguồn chân lý duy nhất cho Demo Mode (xem contexts/AuthContext.tsx isDemoMode/setDemoMode).
-// BUG FIX: initSyncListeners() trước đây không hề kiểm tra Demo Mode (khác hooks/useCloudSync.ts
-// đã gate rõ ràng `!user || isDemoMode`) — auth.currentUser vẫn là tài khoản THẬT khi bật Demo
-// Mode (chỉ userRole/status bị che), nên sửa setting lúc xem Demo Mode vẫn bị đẩy lên Firestore
-// tài khoản thật.
+// Lối vào kiểm thử (thay "Chế độ Dùng Thử" đã xoá 2026-11-15 — CHỈ dev server, xem contexts/AuthContext.tsx): đọc thẳng cờ
+// 'ycx_demo_mode' (module thuần, không phải hook) để không đẩy cài đặt lên Firestore khi đang ở lối vào kiểm thử. Bản build: luôn
+// false (Vite thay import.meta.env.DEV = false) — người dùng không còn cờ này.
 const isDemoModeActive = (): boolean =>
-    typeof window !== 'undefined' && (sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true');
+    import.meta.env.DEV && typeof window !== 'undefined' && (sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true');
 
 // Keys that are too large or unnecessary for cloud sync
 const EXCLUDED_SYNC_KEYS = new Set([

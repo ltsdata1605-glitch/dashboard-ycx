@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Hẹn giờ (2026-10-02, chủ dự án báo "tính năng hẹn giờ chưa hoạt động"): (1) BI Realtime đến giờ → mở tab MWG nhờ
@@ -26,7 +27,7 @@ async function chuanBi(page: Page) {
         w.GM_xmlhttpRequest = () => {};
     });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.addScriptTag({ content: USERSCRIPT });
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await page.getByTestId('sched-bi-realtime').click();

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { APP_BASE } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Đợt D — kế hoạch iPhone: ô nhập số bật bàn phím số, nút "Chụp" (phiếu lương) mở thẳng camera,
@@ -25,11 +26,11 @@ test('Tabs: chọn mục khuất bên phải → dải tự cuộn đưa mục v
     expect(await page.evaluate(() => window.scrollY)).toBe(y0);
 });
 
-test.describe('iPhone SE', () => { test.use({ viewport: { width: 375, height: 667 } }); test('Tính thuế 375px: nút Chụp không tràn chữ', async ({ page }) => { await page.goto('/?tab=tools-tax'); await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click(); const l = page.locator('label[for="capture-slot-day5"]'); await expect(l).toBeVisible({ timeout: 20_000 }); expect(await l.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true); await l.scrollIntoViewIfNeeded(); await page.screenshot({ path: 'test-results/thue-se.png' }); }); });
+test.describe('iPhone SE', () => { test.use({ viewport: { width: 375, height: 667 } }); test('Tính thuế 375px: nút Chụp không tràn chữ', async ({ page }) => { await page.goto('/?tab=tools-tax'); await vaoLoiKiemThu(page); const l = page.locator('label[for="capture-slot-day5"]'); await expect(l).toBeVisible({ timeout: 20_000 }); expect(await l.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true); await l.scrollIntoViewIfNeeded(); await page.screenshot({ path: 'test-results/thue-se.png' }); }); });
 
 test('Tính thuế: ô nhập số có bàn phím số; có nút "Chụp" mở camera', async ({ page }) => {
     await page.goto('/?tab=tools-tax');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await expect(page.locator('#capture-slot-day5')).toHaveCount(1, { timeout: 20_000 });
     for (const slot of ['day5', 'day20']) {
         const cam = page.locator(`#capture-slot-${slot}`);

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { pasteIntoTile, TILE, SUMMARY_REALTIME, SUMMARY_LUYKE, COMPETITION_LUYKE } from './helpers/seed';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * GĐ6 — Report BI trên iPhone (KE_HOACH_GIAO_DIEN_APPLE.md mục 1). Khoá các lỗi sếp thấy trong video:
@@ -21,7 +22,7 @@ const THI_DUA_NV = ['Thi đua nhân viên theo chương trình', 'Bảo hiểm t
 
 async function moBI(page: Page, coDuLieu: boolean) {
     await page.goto('/?tab=employees');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
     if (!coDuLieu) return;
     await page.evaluate(async ({ ds, nv, td }) => {

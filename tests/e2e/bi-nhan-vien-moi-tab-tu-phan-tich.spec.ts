@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Report BI › Nhân viên: danh sách nhân viên ở CẢ 4 tab (Doanh thu, Trả chậm, Thi đua, Thưởng) phải lấy từ Phân Tích
@@ -31,7 +32,7 @@ const vungDangMo = (page: Page) => page.locator('[data-bi-view] div.block').last
 
 test('4 tab Nhân viên chỉ hiện nhân viên của Phân Tích', async ({ page }) => {
     await page.goto('/?tab=employees');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2500);
     await page.evaluate(async ({ a, ds, td, tc }) => {
         const db = await new Promise<IDBDatabase>((res, rej) => { const r = indexedDB.open('BI_HUB_DATABASE_V2'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });

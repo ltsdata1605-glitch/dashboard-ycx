@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { APP_BASE } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * 2026-11-14: app chạy dưới đường dẫn con `/dashboard-ycx/` (vite `base`). Nền phiếu In Sticker từng gọi '/frame/…' thẳng trong
@@ -23,10 +24,8 @@ const duongDanNen = (bg: string) => {
 
 async function moInSticker(page: Page, sub: string) {
     await page.goto(`${BASE}?tab=tools-print-sticker&sub=${sub}`);
-    const thu = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
     const phieu = page.locator('#print-section .sticker-container').first();
-    await expect(thu.or(phieu).first()).toBeVisible({ timeout: 60_000 }); // màn đăng nhập hiện sau khi app khởi động xong
-    if (await thu.isVisible()) await thu.click();
+    await vaoLoiKiemThu(page);
     await expect(phieu).toBeVisible({ timeout: 30_000 });
 }
 

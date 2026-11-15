@@ -26,7 +26,7 @@ import { ApprovalSettingsTab } from './settings/ApprovalSettingsTab';
 import { MenuConfigTab } from './settings/MenuConfigTab';
 import { AutoSyncRolesTab } from './settings/AutoSyncRolesTab';
 
-// Chỉ dùng .toMillis()/.toDate() — khớp cả Firestore Timestamp thật lẫn mock data (toMillis-only) trong isDemoMode
+// Chỉ dùng .toMillis()/.toDate() — khớp cả Firestore Timestamp thật lẫn mock data (toMillis-only) của lối vào kiểm thử (chỉ dev server)
 interface TimestampLike {
     toMillis?: () => number;
     toDate?: () => Date;
@@ -111,7 +111,7 @@ interface AccessRequest {
     createdAt: TimestampLike;
     requestDate: TimestampLike;
     loginCount?: number;
-    /** Chuỗi ISO (từ Cloud Function) HOẶC object có `.toDate()` (dữ liệu giả ở chế độ Dùng Thử).
+    /** Chuỗi ISO (từ Cloud Function) HOẶC object có `.toDate()` (dữ liệu giả của lối vào kiểm thử (dev server)).
      *  `isUserExpired()` bên dưới đã xử lý được cả hai dạng. */
     expiresAt?: { toDate: () => Date } | string | null;
 }
@@ -216,9 +216,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
         const key = `${requestId}_${field}`;
         if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
 
-        if (isDemoMode) {
+        if (import.meta.env.DEV && isDemoMode) {
             debounceTimers.current[key] = setTimeout(() => {
-                toast.success('Đã tự động lưu (Demo Mode)!', { duration: 1500, id: `autosave-${requestId}` });
+                toast.success('Đã tự động lưu (kiểm thử)!', { duration: 1500, id: `autosave-${requestId}` });
             }, 800);
             return;
         }
@@ -317,7 +317,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
         }
 
         try {
-            if (isDemoMode) {
+            if (import.meta.env.DEV && isDemoMode) {
                 // Mock data for demo mode to prevent Firestore permission-denied errors
                 const mockRequests: AccessRequest[] = [
                     {
@@ -601,7 +601,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
 
     // Đồng bộ số lượng chờ duyệt từ pendingStore (chuông / background store)
     useEffect(() => {
-        if (isDemoMode) return;
+        if (import.meta.env.DEV && isDemoMode) return;
         if (userRole === 'admin') {
             if (tabCounts.pending === undefined && pendingStoreUsers.length > 0) {
                 const pCount = pendingStoreUsers.filter(u => !isUserExpired(u.status, u.expiresAt) && (u.status === 'pending' || u.status === 'new' || u.role === 'pending')).length;
@@ -615,10 +615,10 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
     }, [pendingStoreUsers, userRole, departmentId, isDemoMode, tabCounts.pending]);
 
     const handleApproval = async (requestId: string, isApproved: boolean, customExpiresAt?: string | null) => {
-        if (isDemoMode) {
+        if (import.meta.env.DEV && isDemoMode) {
             toast.success(isApproved 
-                ? (listMode === 'pending' ? `Đã CẤP QUYỀN thành công (Demo Mode)!` : listMode === 'expired' ? `Đã GIA HẠN thành công (Demo Mode)!` : `Đã CẬP NHẬT QUYỀN thành công (Demo Mode)!`)
-                : (listMode === 'pending' ? 'Đã TỪ CHỐI yêu cầu (Demo Mode)!' : 'Đã THU HỒI quyền truy cập (Demo Mode)!')
+                ? (listMode === 'pending' ? `Đã CẤP QUYỀN thành công (kiểm thử)!` : listMode === 'expired' ? `Đã GIA HẠN thành công (kiểm thử)!` : `Đã CẬP NHẬT QUYỀN thành công (kiểm thử)!`)
+                : (listMode === 'pending' ? 'Đã TỪ CHỐI yêu cầu (kiểm thử)!' : 'Đã THU HỒI quyền truy cập (kiểm thử)!')
             );
             setRequests(prev => prev.filter(req => req.id !== requestId));
             setTabCounts(prev => {

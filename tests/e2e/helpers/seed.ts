@@ -1,5 +1,6 @@
 import { formatEmployeeName } from '../../../features/bi-dashboard/utils/nhanVienHelpers';
 import type { Page } from '@playwright/test';
+import { vaoLoiKiemThu } from './loiKiemThu';
 
 /** Siêu thị dùng trong dữ liệu giả — phải bắt đầu bằng "ĐM" và chứa " - " để parser nhận diện. */
 export const TEST_SUPERMARKET = 'ĐML_STR_STR - 99 Hùng Vương';
@@ -45,7 +46,7 @@ export const COMPETITION_LUYKE = [
  *  được — click theo thứ tự icon rất dễ vỡ khi menu đổi. */
 export async function openReportBi(page: Page) {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
 
     // Sidebar thu gọn: nhãn chữ bị ẩn (`display:none`) nên không tìm theo tên được, và hover cũng
     // không bung ra trong môi trường test. Nhận diện bằng icon lucide của từng mục — ổn định hơn

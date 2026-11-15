@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Audit 2026-10-07 (GĐ5, IOS-04): menu "Khác" ở thanh dưới trên iPhone XOAY NGANG. Trước đây khung không có
@@ -9,7 +10,7 @@ for (const [w, h] of [[844, 390], [667, 375]] as const) {
         test.setTimeout(90000);
         await page.setViewportSize({ width: w, height: h });
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.waitForTimeout(2500);
 
         await page.getByRole('button', { name: 'Khác', exact: true }).click();

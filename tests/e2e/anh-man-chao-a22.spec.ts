@@ -1,5 +1,6 @@
 import { test } from '@playwright/test';
 import * as fs from 'node:fs';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 /** Chụp màn đăng nhập + màn chào Phân tích (A22), đo CPU khi để yên. Chạy tay: A22_OUT=<thư mục> */
 for (const [ten, vp] of [['laptop', { width: 1366, height: 768 }], ['iphone', { width: 390, height: 844 }]] as const) {
     test(`chụp ${ten}`, async ({ page }) => {
@@ -7,10 +8,10 @@ for (const [ten, vp] of [['laptop', { width: 1366, height: 768 }], ['iphone', { 
         const out = process.env.A22_OUT!; fs.mkdirSync(out, { recursive: true });
         await page.setViewportSize(vp);
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).waitFor();
+        await page.getByTestId('login-view').waitFor(); // màn đăng nhập (nút Dùng Thử đã xoá 2026-11-15)
         await page.waitForTimeout(1500);
         await page.screenshot({ path: `${out}/dang-nhap-${ten}.png` });
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.getByText('Phân tích siêu tốc').waitFor();
         await page.waitForTimeout(2500);
         await page.screenshot({ path: `${out}/man-chao-${ten}.png` });

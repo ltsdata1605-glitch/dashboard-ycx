@@ -22,8 +22,8 @@ export const SettingsAccountTab: React.FC = () => {
         setMounted(true);
     }, []);
 
-    // Chế độ Dùng Thử: "đăng xuất" thực chất là THOÁT chế độ dùng thử (AuthContext.logout tắt demo) — gọi đúng tên.
-    const nhanDangXuat = !user || isDemoMode ? 'Thoát chế độ dùng thử' : 'Đăng xuất';
+    // (2026-11-15) Bỏ nhãn "Thoát chế độ dùng thử": Chế độ Dùng Thử đã xoá — bản người dùng chỉ còn "Đăng xuất".
+    const nhanDangXuat = 'Đăng xuất';
     // iPhone: nút đăng xuất trên thanh trên qua khung app (GĐ7 — vùng chạm 44px, cùng chỗ với nút của các màn khác).
     // Laptop giữ nút có chữ ở thanh tiêu đề của chủ dự án (portal bên dưới).
     usePageActions(activeTab === 'settings'
@@ -47,7 +47,7 @@ export const SettingsAccountTab: React.FC = () => {
     const [autoApproveEmployeesEnabled, setAutoApproveEmployeesEnabled] = useState(true);
 
     useEffect(() => {
-        // Chưa đăng nhập / Dùng thử: hàm máy chủ chỉ trả lỗi "cần đăng nhập" (log đầy cảnh báo) — dùng mặc định.
+        // Chưa đăng nhập (hoặc lối vào kiểm thử trên dev server): hàm máy chủ chỉ trả lỗi "cần đăng nhập" — dùng mặc định.
         if (!user || isDemoMode) return;
         getApprovalSettings(departmentId).then(cfg => {
             setAutoApproveManagersEnabled(Boolean(cfg.autoApproveManagers));
@@ -166,13 +166,15 @@ export const SettingsAccountTab: React.FC = () => {
             <div>
                 <h3 className="type-headline font-semibold text-slate-900 mb-3 sm:mb-4 px-1 sm:px-0">Hồ sơ định danh</h3>
 
+                {/* Mở app bằng phiên đã lưu nhưng chưa nhận lại được tài khoản: nói đúng là CHƯA ĐĂNG NHẬP (trước 2026-11-15 băng này
+                    ghi nhầm tên chế độ đã xoá). */}
                 {(!user || isDemoMode) && (
                     <Banner
                         tone="warning"
-                        title="Đang ở chế độ dùng thử"
+                        title="Chưa đăng nhập"
                         action={{ label: 'Đăng nhập Google', onClick: loginWithGoogle }}
                         className="mb-4"
-                        data-testid="banner-dung-thu"
+                        data-testid="banner-chua-dang-nhap"
                     >
                         Đăng nhập để tự đồng bộ dữ liệu giữa laptop và điện thoại.
                     </Banner>

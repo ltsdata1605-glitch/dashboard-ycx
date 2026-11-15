@@ -1,4 +1,5 @@
 import { test, expect } from './helpers/realDataContext';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 test.describe('Report BI Manual Cloud Sync Button', () => {
     test('clicking topbar subtitle does not trigger bi-auto-sync and triggers manual cloud sync', async ({ page }) => {
@@ -11,10 +12,7 @@ test.describe('Report BI Manual Cloud Sync Button', () => {
         await page.goto('/?tab=employees&view=dashboard&mode=realtime&sub=revenue');
 
         // Bỏ qua modal dùng thử nếu có
-        const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-        if (await trialBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await trialBtn.click();
-        }
+        await vaoLoiKiemThu(page);
 
         // Tìm nút cập nhật đang hiển thị trên header (desktop hoặc mobile)
         const btn = page.locator('#desktop-header-subtitle button, #mobile-topbar-subtitle button').locator('visible=true');
@@ -42,10 +40,7 @@ test.describe('Report BI Manual Cloud Sync Button', () => {
         await page.goto('/?tab=analysis');
 
         // Bỏ qua modal dùng thử nếu có
-        const trialBtn = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i });
-        if (await trialBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await trialBtn.click();
-        }
+        await vaoLoiKiemThu(page);
 
         const btn = page.locator('#desktop-header-subtitle button, #mobile-topbar-subtitle button').locator('visible=true');
         if (await btn.isVisible({ timeout: 10000 }).catch(() => false)) {

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { moMucCongCu } from './helpers/dock';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * "Báo cáo khai thác" (features/khai-thac) — thay link ngoài Bao-Cao-Khai-Thac.
@@ -20,7 +21,7 @@ async function openKhaiThac(page: Page) {
         });
     });
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await clickSidebarBaoCao(page);
 }
 
@@ -165,7 +166,7 @@ test.describe('Báo cáo khai thác', () => {
             Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } });
         });
         await page.goto('/');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         // Mobile: mục Báo cáo nằm trong menu "Thêm" của thanh dưới.
         await page.getByRole('button', { name: /Thêm|Khác|More/i }).last().click();
         await page.getByRole('button', { name: /^Báo cáo$/ }).first().click();

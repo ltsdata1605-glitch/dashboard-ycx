@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test, type Download, type Page } from '@playwright/test';
 import { chanGhiCloud } from './helpers/customTokenLogin';
 import { APP_BASE } from './helpers/appBase';
+import { choLoiKiemThu, vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Stub đăng nhập + gieo dữ liệu thẳng vào IndexedDB: cùng cách với `sticker-nut-va-quet-ma.spec.ts`
@@ -42,8 +43,7 @@ async function moInStickerCoSanPham(page: Page) {
 
     await page.goto('/?tab=tools-print-sticker&sub=event');
     // Dev server mở lần đầu có thể mất nhiều giây: chờ màn đăng nhập hiện hẳn, không đoán bằng thời gian.
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    await demo.waitFor({ state: 'visible', timeout: 60_000 });
+    await choLoiKiemThu(page, 60_000);
 
     // Gieo TRƯỚC khi bấm Dùng Thử: AuthContext xoá cờ Dùng Thử sau mỗi lần nạp trang, nên tải lại trang
     // sau khi đã vào app là quay về màn đăng nhập.
@@ -63,7 +63,7 @@ async function moInStickerCoSanPham(page: Page) {
         db.close();
     }, PRODUCTS_55);
 
-    await demo.click();
+    await vaoLoiKiemThu(page);
     await page.getByRole('button', { name: 'Xuất ảnh' }).first().waitFor({ state: 'visible', timeout: 60_000 });
     await expect(page.getByText('Sản phẩm mẫu thứ 2', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 }

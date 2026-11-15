@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 /**
  * ĐO HIỆU NĂNG (tuỳ chọn, mặc định BỎ QUA): nạp file doanh số lớn vào Phân tích và in ra thời gian,
  * heap, số lần khựng luồng chính, top hàm tốn CPU. Chủ dự án (2026-09-29): dữ liệu lớn nhất
@@ -19,7 +20,7 @@ test('đo nạp dữ liệu lớn vào Phân tích', async ({ page }) => {
         new PerformanceObserver(l => l.getEntries().forEach(e => wl.__longTs.push([e.startTime, e.duration]))).observe({ type: 'longtask', buffered: true });
     });
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Profiler.enable');
     await cdp.send('Profiler.setSamplingInterval', { interval: 1000 });

@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { APP_BASE } from './helpers/appBase';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * TOAST THỐNG NHẤT (KE_HOACH_GIAO_DIEN_APPLE.md GĐ1): một API + một giao diện, vị trí TRÊN GIỮA, không bao giờ đè thanh tab
@@ -44,7 +45,7 @@ const choVaoHan = (t: Locator) => expect.poll(() => t.evaluate(el => {
 
 async function moApp(page: Page) {
     await page.goto('/?tab=analysis');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(1200);
 }
 

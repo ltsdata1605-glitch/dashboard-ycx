@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { chanGhiCloud } from './helpers/customTokenLogin';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Audit 2026-10-07 (GĐ5, IOS-02): đóng máy quét khi camera ĐANG khởi động (iPhone: đang chờ bấm "Cho phép")
@@ -45,12 +46,9 @@ test('đóng máy quét lúc camera đang khởi động: không còn luồng ca
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/?tab=tools-print-sticker&sub=event');
     await page.waitForTimeout(1200);
-    const demo = page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first();
-    if (await demo.isVisible().catch(() => false)) {
-        await demo.click();
-        await page.waitForTimeout(2200);
-        await page.goto('/?tab=tools-print-sticker&sub=event');
-    }
+    await vaoLoiKiemThu(page);
+    await page.waitForTimeout(2200);
+    await page.goto('/?tab=tools-print-sticker&sub=event');
     await page.waitForTimeout(2500);
 
     await page.getByRole('button', { name: /Quét mã/i }).first().click();

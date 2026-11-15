@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { khamPhaModal, doLopMoBang, type KetQuaModal } from './helpers/modalExplorer';
 import { createSalesXlsx, TEST_EMPLOYEE } from './helpers/salesFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * CHUẨN HOÁ ICON — audit icon BÊN TRONG MODAL (2026-10-07).
@@ -61,7 +62,7 @@ for (const [label, width] of MAN) {
         chanTacDungPhu(page);
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/?tab=analysis');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.waitForTimeout(2500);
         const ketQua: KetQuaModal = {};
         for (const tab of TABS) {
@@ -78,7 +79,7 @@ for (const [label, width] of MAN) {
         chanTacDungPhu(page);
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.locator('input[type="file"]').first().setInputFiles(createSalesXlsx());
         await page.locator('[data-modal-overlay]').getByText('Tệp Realtime (Xem nhanh)').click();
         await expect(page.getByText(/Doanh Thu/i).first()).toBeVisible({ timeout: 45_000 });
@@ -112,7 +113,7 @@ for (const [label, width] of MAN) {
         chanTacDungPhu(page);
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/?tab=employees');
-        await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+        await vaoLoiKiemThu(page);
         await page.waitForTimeout(2500);
         await page.evaluate(async () => {
             const nv = {

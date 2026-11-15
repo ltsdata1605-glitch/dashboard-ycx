@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fileNhanVien } from './helpers/phanCaFixture';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Hành trình Phân ca qua GIAO DIỆN (2026-10-28, audit V6 việc 4 — trước đó user-journey-matrix ghi NOT_COVERED: logic có unit test
@@ -11,7 +12,7 @@ async function hanhTrinh(page: Page) {
     const loi: string[] = [];
     page.on('pageerror', e => loi.push(e.message));
     await page.goto('/?tab=tools-phanca');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).first().click({ timeout: 30_000 });
+    await vaoLoiKiemThu(page);
     await expect(page.getByRole('button', { name: 'Tạo lịch' })).toBeVisible({ timeout: 30_000 });
 
     await page.locator('input[type="file"]').first().setInputFiles(fileNhanVien());

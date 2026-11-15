@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
  * Chủ dự án chốt 2026-09-23: danh sách nhân viên nạp vào Phân Tích / Report BI CHỈ lấy bộ phận
@@ -26,7 +27,7 @@ const readIdb = (page: import('@playwright/test').Page, key: string) =>
 
 test('nạp danh sách nhân viên: chỉ giữ BP All In One, báo rõ số bị bỏ qua', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /Kích hoạt Chế độ Dùng Thử/i }).click();
+    await vaoLoiKiemThu(page);
     await page.waitForTimeout(2000);
 
     page.on('console', m => { const t = m.text(); if (/phân ca|All In One|Lỗi/i.test(t)) console.log('[APP]', t.slice(0, 200)); });
