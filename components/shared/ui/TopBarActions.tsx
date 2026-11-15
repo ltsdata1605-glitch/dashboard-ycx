@@ -194,6 +194,8 @@ export interface TopBarActionsProps {
     showSystemGroup?: boolean;
     /** Phần tử tuỳ biến nhúng vào giữa [ T ] và [ 🔔 ] trong cụm hệ thống (ví dụ: nút toggle filter) */
     systemChildren?: React.ReactNode;
+    /** Phần tử tuỳ biến đặt ở phía trước [ T ] trong cùng một cụm hệ thống (ví dụ: nút upload file) */
+    systemPrepend?: React.ReactNode;
     /** Bật/tắt toàn bộ thanh bar (Mặc định: true) */
     enabled?: boolean;
     /** ID phần tử HTML đích để tự động portal (Mặc định: 'global-header-actions', truyền false nếu muốn render tại chỗ) */
@@ -210,13 +212,14 @@ export interface TopBarActionsProps {
  * Chuẩn thiết kế:
  *  - Khung ngoài: Liquid Glass dùng chung `.ycx-glass` (token --glass-*, DESIGN_SYSTEM.md mục 8) — ảnh mẫu Apple "thanh công cụ kính".
  *  - Tự động Portal vào `#global-header-actions` trên Desktop, kiểm tra mounted an toàn tránh hydration mismatch.
- *  - Tự động tích hợp cụm hệ thống chuẩn [ T (Font) | 🔔 (Thông báo) ] ở cuối thanh.
+ *  - Tự động tích hợp cụm hệ thống chuẩn [ T (Font) | 🔔 (Thông báo) ] ở cuối thanh (hỗ trợ systemPrepend gộp chung nút).
  *  - Hỗ trợ Compound Component: <TopBarActions.Group>, <TopBarActions.Button>, <TopBarActions.Link>, <TopBarActions.Divider>.
  */
 export const TopBarActionsComponent: React.FC<TopBarActionsProps> = ({
     children,
     showSystemGroup = true,
     systemChildren,
+    systemPrepend,
     enabled = true,
     portalTargetId = 'global-header-actions',
     className,
@@ -249,7 +252,7 @@ export const TopBarActionsComponent: React.FC<TopBarActionsProps> = ({
             {children}
 
             {showSystemGroup && (
-                <HeaderSystemGroup>
+                <HeaderSystemGroup prepend={systemPrepend}>
                     {systemChildren}
                 </HeaderSystemGroup>
             )}

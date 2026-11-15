@@ -297,7 +297,21 @@ export const CheckThuongView: React.FC = () => {
     } : null);
 
     const renderDesktopBar = () => (
-        <TopBarActions enabled={activeTab === 'check-thuong' && hasData}>
+        <TopBarActions
+            enabled={activeTab === 'check-thuong' && hasData}
+            systemPrepend={
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputHiddenRef.current?.click()}
+                    className="w-9 h-9 flex items-center justify-center text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                    title="Tải file khác"
+                    aria-label="Tải file khác"
+                >
+                    <AppIcon name="upload" size="md" />
+                </Button>
+            }
+        >
             {/* CỤM VIÊN NHỘNG CHUẨN 100% THEO HÌNH 2 (REPORT BI): TRA CỨU / TOP THƯỞNG / MÃ KHO */}
             <TopBarActions.Group>
                 <Button
@@ -369,53 +383,6 @@ export const CheckThuongView: React.FC = () => {
                     </>
                 )}
             </TopBarActions.Group>
-
-            {/* CỤM NÚT THAO TÁC FILE & ĐỒNG BỘ CLOUD (ĐỒNG BỘ ĐỘ CAO 40PX CHUẨN) */}
-            {activeSubTab === 'search' && (
-                <TopBarActions.Group>
-                    <TopBarActions.Button
-                        onClick={() => fileInputHiddenRef.current?.click()}
-                        icon="upload"
-                        iconSize="md"
-                        className="w-10 h-10 flex items-center justify-center"
-                        title="Tải file khác"
-                    />
-                    <TopBarActions.Button
-                        onClick={handleManualCloudSync}
-                        disabled={isSyncingCloud}
-                        icon={isSyncingCloud ? 'refresh' : 'cloudDownload'}
-                        iconSize="md"
-                        spin={isSyncingCloud}
-                        borderLeft
-                        className="w-10 h-10 flex items-center justify-center"
-                        title="Đồng bộ dữ liệu từ Đám Mây (từ điện thoại / máy khác)"
-                    />
-                </TopBarActions.Group>
-            )}
-
-            {/* KHI Ở TAB TOP THƯỞNG TRÊN LAPTOP */}
-            {activeSubTab === 'leaderboard' && (
-                <TopBarActions.Group>
-                    <TopBarActions.Button
-                        onClick={() => fileInputHiddenRef.current?.click()}
-                        icon="upload"
-                        iconSize="md"
-                        label="Đổi file"
-                        title="Tải file khác"
-                    />
-                    <TopBarActions.Button
-                        onClick={handleManualCloudSync}
-                        disabled={isSyncingCloud}
-                        icon={isSyncingCloud ? 'refresh' : 'cloudDownload'}
-                        iconSize="md"
-                        spin={isSyncingCloud}
-                        label="Đồng bộ Cloud"
-                        borderLeft
-                        variant="sky"
-                        title="Đồng bộ dữ liệu từ Đám Mây (từ điện thoại / máy khác)"
-                    />
-                </TopBarActions.Group>
-            )}
         </TopBarActions>
     );
 
