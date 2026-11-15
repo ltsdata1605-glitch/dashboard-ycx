@@ -9528,3 +9528,16 @@ nút "Thoát chế độ dùng thử" ở Cài đặt (khi mở app bằng phiê
 - Đo: bản build (vite preview) đặt cờ cũ `ycx_demo_mode` vẫn chỉ thấy màn đăng nhập, không có `__ycxVaoLoiKiemThu`; grep bản build 0 chữ
   "dùng thử"/"(Demo)"/"ycx_demo_mode". E2E 2 lượt (30 bài) đối chứng với `main` chưa sửa: cùng danh sách đỏ sẵn (Phân tích đã gỡ, menu
   "Công cụ", icon PWA theo base…), không bài nào đỏ do việc đổi.
+
+## Xoá hẳn "So sánh giá" (2026-11-15)
+
+**Yêu cầu (ảnh chủ dự án — màn "SO SÁNH GIÁ / So sánh giá đối thủ"):** "Xoá hẳn chức năng so sánh giá". Màn + `price-scraper-server/`
+đã gỡ ở `cef189e` (chủ dự án, 14/11) và bản đang chạy (gh-pages `9e3bc6c`) KHÔNG còn: tải đủ 51 file JS của bản thật, không chữ nào.
+Ảnh là tab mở từ trước bản đó (chưa tải lại). Màn cũ chỉ gọi máy chủ so giá trên máy (`localhost:3456`) — không có dữ liệu Firestore /
+IndexedDB nào phải dọn.
+
+**Dọn phần còn sót:**
+- `contexts/LayoutContext.tsx`: `TAB_DA_XOA` (`analysis`, `employees`, `tools-price-compare`) — link cũ / tab nhớ lần trước về Check thưởng
+  (trước: `tools-price-compare` rơi vào trang "Tính năng đang được phát triển — Vui lòng quay lại sau"). Test `tab-chuc-nang-da-xoa.spec.ts`.
+- CI `check.yml`: bỏ bước WebKit chạy `so-gia-dien-thoai-va-huy.spec.ts` (file đã xoá → bước đỏ).
+- Bỏ icon `navPriceCompare`, dòng `.gitignore`/`knip.json` của `price-scraper-server`, chú thích trong `icon-audit-man-goc`.

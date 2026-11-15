@@ -3,7 +3,7 @@ import { auditIcons } from './helpers/iconAudit';
 
 /**
  * CHUẨN HOÁ ICON — Giai đoạn 3: audit icon trên các màn khu vực gốc (Phân tích, Check thưởng, Báo cáo,
- * Phân quyền, Thuế, Coupon, So sánh giá, Giới thiệu) ở điện thoại và laptop.
+ * Phân quyền, Thuế, Coupon, Giới thiệu) ở điện thoại và laptop. (So sánh giá đã xoá 2026-11-14.)
  *
  * Đo trên trình duyệt thật, mỗi màn:
  *   - `legacy`: svg icon KHÔNG đi qua AppIcon (không có lớp .ycx-icon) — phải về 0;

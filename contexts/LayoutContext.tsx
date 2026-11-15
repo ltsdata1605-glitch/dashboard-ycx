@@ -25,6 +25,10 @@ interface LayoutContextType {
 const TabContext = createContext<TabContextType | undefined>(undefined);
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
+/** Tab của chức năng đã xoá — mở bằng link cũ hoặc tab nhớ lần trước thì về Check thưởng. `analysis`/`employees`: Phân tích YCX & Report
+ *  BI (eb1fa51); `tools-price-compare`: So sánh giá (cef189e, chủ dự án "xoá hẳn" 2026-11-15). */
+const TAB_DA_XOA: ReadonlySet<string> = new Set(['analysis', 'employees', 'tools-price-compare']);
+
 export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [activeTab, setActiveTabRaw] = useState('check-thuong');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -47,7 +51,8 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const urlParams = new URLSearchParams(window.location.search);
             const urlTab = urlParams.get('tab');
             let initialTab = urlTab || savedTab || 'check-thuong';
-            if (initialTab === 'analysis' || initialTab === 'employees') {
+            // Tab của chức năng ĐÃ XOÁ (link cũ / tab nhớ lần trước) → về Check thưởng, không rơi vào trang "đang phát triển".
+            if (TAB_DA_XOA.has(initialTab)) {
                 initialTab = 'check-thuong';
             }
             const resolvedInitialTab = initialTab === 'tools' ? 'tools-print-sticker' : initialTab;
@@ -59,7 +64,7 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (urlTab && urlTab !== savedTab) saveSetting('active_tab', resolvedInitialTab).catch(() => {});
 
             // Sync URL with initial tab if not present
-            if (!urlTab || urlTab === 'tools' || urlTab === 'analysis' || urlTab === 'employees') {
+            if (!urlTab || urlTab === 'tools' || TAB_DA_XOA.has(urlTab)) {
                 const newUrl = new URL(window.location.href);
                 newUrl.searchParams.set('tab', resolvedInitialTab);
                 window.history.replaceState(null, '', newUrl.toString());

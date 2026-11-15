@@ -48,8 +48,6 @@ backup_dashboard.zip
 # Profile Chrome riêng cho test E2E trên dữ liệu thật — chứa phiên đăng nhập, TUYỆT ĐỐI không commit
 /.e2e-chrome-profile/
 
-# Price scraper server
-price-scraper-server/node_modules/
 .ui-baseline/
 
 # Ảnh chụp/snapshot của plugin Playwright (MCP)

@@ -56,7 +56,6 @@ export const ICON_REGISTRY = {
   navLineBot: Bot,                   // Bot LINE
   navCoupon: Ticket,                 // Rút gọn Coupon
   navTax: Calculator,                // Tính thuế
-  navPriceCompare: ArrowUpDown,      // So sánh giá ĐT
   navPermissions: Settings,          // Phân quyền
   navHelp: CircleHelp,               // Giới thiệu / Trợ giúp
   home: House,
