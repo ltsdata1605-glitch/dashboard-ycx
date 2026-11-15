@@ -1,4 +1,4 @@
-/** Harness cho check-thuong-phan-tich-mo-bxh.spec.ts — gắn CheckThuongSearchView THẬT với dữ liệu giả có mục "Cơ hội vàng"
+/** Harness cho check-thuong-phan-tich-mo-bxh.spec.ts + check-thuong-nhan-xet-du-kien.spec.ts — gắn CheckThuongSearchView THẬT với dữ liệu giả có mục "Cơ hội vàng"
  *  (không cần đăng nhập / tải file). */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -18,6 +18,11 @@ export function mount() {
     data.push(dong(ST[1], 'T11 - CAMERA', 1.3, 10, 1, 400_000));
     data.push(dong(ST[0], 'T11 - QUẠT GIÓ', 1.56, 10, 2, 200_000));
     data.push(dong(ST[1], 'T11 - QUẠT GIÓ', 1.1, 10, 5, 100_000));
+    // Nhóm "< 100%" giống ảnh chủ dự án 15/11 (cột % D.KIẾN) — không có mốc top nên không lọt "Cơ hội vàng"
+    data.push(dong(ST[0], 'T11 - TAI NGHE', 0.993, NaN, 9, 0));
+    data.push(dong(ST[0], 'T11 - BẢO HIỂM TỔNG', 0.985, NaN, 9, 0));
+    data.push(dong(ST[0], 'T11 - CÁP SẠC', 0.895, NaN, 39, 0));
+    data.push(dong(ST[0], 'T11 - ĐIỆN THOẠI VIVO', 0.797, NaN, 63, 0));
     const el = document.createElement('div');
     document.body.innerHTML = '';
     document.body.appendChild(el);

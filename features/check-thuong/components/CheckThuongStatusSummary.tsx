@@ -13,6 +13,8 @@ interface CheckThuongStatusSummaryProps {
     onToggleViewMode: () => void;
     onExportFiltered?: () => void;
     onExportAll?: () => void;
+    /** Dòng nhận xét theo % D.KIẾN của nhóm đang lọc — đặt giữa dải lọc và cụm "Dạng bảng" (2026-11-15). */
+    nhanXet?: React.ReactNode;
     children?: React.ReactNode;
 }
 
@@ -34,6 +36,7 @@ export const CheckThuongStatusSummary: React.FC<CheckThuongStatusSummaryProps> =
     onToggleViewMode,
     onExportFiltered,
     onExportAll,
+    nhanXet,
     children
 }) => {
     return (
@@ -94,6 +97,8 @@ export const CheckThuongStatusSummary: React.FC<CheckThuongStatusSummaryProps> =
                         ...groups.map(group => ({ id: group.key, label: group.shortTitle, badge: group.data.length })),
                     ]}
                 />
+
+                {nhanXet}
 
                 {/* View Mode & Export Tools */}
                 <div className="flex items-center gap-1.5 shrink-0 no-print hide-on-export">

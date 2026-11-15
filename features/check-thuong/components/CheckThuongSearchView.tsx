@@ -7,6 +7,7 @@ import { CheckThuongCategoryCards } from './CheckThuongCategoryCards';
 import { CheckThuongAnalysisCard } from './CheckThuongAnalysisCard';
 import { CheckThuongComparisonView } from './CheckThuongComparisonView';
 import { CheckThuongRankingModal } from './CheckThuongRankingModal';
+import { CheckThuongNhanXetDuKien } from './CheckThuongNhanXetDuKien';
 import {
     filterStoreData,
     preProcessCompetitionData,
@@ -232,6 +233,7 @@ export const CheckThuongSearchView: React.FC<CheckThuongSearchViewProps> = ({
                         setActiveFilter(filterKey);
                     }}
                     viewMode={viewMode}
+                    nhanXet={<CheckThuongNhanXetDuKien rows={activeFilter === 'all' ? store1Data : (groupDefs.find(g => g.key === activeFilter)?.data ?? [])} />}
                     onToggleViewMode={() => setViewMode(prev => prev === 'list' ? 'card' : 'list')}
                     onExportFiltered={() => {
                         if (mainViewRef.current) {

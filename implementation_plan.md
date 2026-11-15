@@ -9477,3 +9477,13 @@ dùng sheet chung (thêm kéo-để-đóng, né bàn phím). Phần còn lại k
 nền phiếu In Sticker):** `public/manifest.webmanifest` (`id`/`start_url`/`scope` = `/` → app Màn hình chính mở `github.io/` = 404; đổi `id`
 làm iOS/Chrome coi là app MỚI — cần chủ dự án chốt), `public/huong-dan-bot-line.html` (`href="/huong-dan.css"` — file trong public/ không
 được Vite viết lại). Đo 2026-11-14: các file đó 404 ở gốc github.io, 200 dưới `/dashboard-ycx/`.
+
+## Check thưởng: nhận xét theo cột % D.KIẾN trên thanh lọc (2026-11-15)
+
+**Yêu cầu (ảnh chủ dự án, khoanh chỗ trống cạnh "Dạng bảng"):** "thêm nhận xét dựa vào cột %D.kiến".
+
+**Làm:** `features/check-thuong/services/nhanXetDuKien.ts` (logic thuần + test cạnh file) tính trên nhóm ĐANG LỌC (Tất cả / Đạt
+thưởng / < 100%…): TB % dự kiến (chỉ môn > 0%), số môn ≥ 100%, sát mốc 90–99% (kèm môn gần 100% nhất), dưới 70%, 0%.
+`CheckThuongNhanXetDuKien.tsx` vẽ một dòng (`type-footnote`, màu sky/emerald/rose), rê chuột xem đủ danh sách sát mốc;
+`CheckThuongStatusSummary` nhận prop `nhanXet` đặt giữa dải chip lọc và cụm "Dạng bảng" (laptop: cùng hàng nút "Dạng bảng";
+iPhone: dòng riêng). Ẩn khi xuất ảnh (thanh lọc có `hide-on-export`). Test: `tests/e2e/check-thuong-nhan-xet-du-kien.spec.ts`.
