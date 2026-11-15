@@ -9,7 +9,7 @@ import { Button } from '../shared/ui/Button';
 import { TopBarActions } from '../shared/ui/TopBarActions';
 import { usePageActions } from '../shared/ui/PageActions';
 import { getUnifiedCheckThuongData } from '../../services/checkThuongIframeService';
-import { CheckThuongLeaderboardView, CheckThuongSearchView, parseCheckThuongFile } from '../../features/check-thuong';
+import { CheckThuongLeaderboardView, CheckThuongGroupLeaderboardView, CheckThuongSearchView, parseCheckThuongFile } from '../../features/check-thuong';
 import { db } from '../../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { assembleChunkedHeavyValue, restoreNestedArraysFromFirestore } from '../../services/firestoreService';
@@ -20,7 +20,7 @@ export const CheckThuongView: React.FC = () => {
     const [mounted, setMounted] = useState(false);
     const [hasData, setHasData] = useState(false);
     const [codes, setCodes] = useState({ code1: '910', code2: '' });
-    const [activeSubTab, setActiveSubTab] = useState<'search' | 'leaderboard'>('search');
+    const [activeSubTab, setActiveSubTab] = useState<'search' | 'leaderboard' | 'group-leaderboard'>('search');
     const [competitionData, setCompetitionData] = useState<any[][]>([]);
     const [fileName, setFileName] = useState<string>('');
     const [uploadTime, setUploadTime] = useState<string>('');
@@ -346,6 +346,22 @@ export const CheckThuongView: React.FC = () => {
                     <span>Top thưởng</span>
                 </Button>
 
+                <Button
+                    variant="tab"
+                    size="none"
+                    onClick={() => setActiveSubTab('group-leaderboard')}
+                    className={`flex items-center justify-center gap-2 px-4 py-2 text-base font-medium shrink-0 focus:outline-none border-l border-slate-100 dark:border-slate-700 ${
+                        activeSubTab === 'group-leaderboard'
+                            ? 'bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 font-semibold'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'
+                    }`}
+                    title="Xem Top Thưởng Theo Nhóm Thi Đua Theo Kênh"
+                    aria-label="Top nhóm"
+                >
+                    <AppIcon name="layers" size="md" />
+                    <span>Top nhóm</span>
+                </Button>
+
                 {/* CỤM Ô NHẬP MÃ KHO (KHI Ở TAB TRA CỨU) — Nối liền trong cùng 1 viên thuốc chuẩn */}
                 {activeSubTab === 'search' && (
                     <>
@@ -420,7 +436,23 @@ export const CheckThuongView: React.FC = () => {
                 >
                     <AppIcon name="trophy" size="sm" />
                     <span>Top</span>
-                    <span className="hidden min-[520px]:inline"> thưởng</span>
+                    <span className="hidden min-[600px]:inline"> thưởng</span>
+                </Button>
+
+                <Button
+                    variant="tab"
+                    size="none"
+                    onClick={() => setActiveSubTab('group-leaderboard')}
+                    className={`flex items-center justify-center gap-1 h-8 px-2 text-xs ycx-hit rounded-full font-bold transition-all ${
+                        activeSubTab === 'group-leaderboard'
+                            ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 text-slate-950 shadow-xs font-black'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                    }`}
+                    title="Xem Top Thưởng Theo Nhóm Thi Đua Theo Kênh"
+                    aria-label="Top nhóm"
+                >
+                    <AppIcon name="layers" size="sm" />
+                    <span>Nhóm</span>
                 </Button>
             </div>
 
@@ -597,6 +629,21 @@ export const CheckThuongView: React.FC = () => {
                         uploadTime={uploadTime}
                         fileName={fileName}
                         onSelectStore={handleSelectStoreFromLeaderboard}
+                        onSwitchToSearch={() => setActiveSubTab('search')}
+                        onSwitchToGroupLeaderboard={() => setActiveSubTab('group-leaderboard')}
+                    />
+                </div>
+            )}
+
+            {/* TAB 3: GIAO DIỆN TOP THƯỞNG THEO NHÓM THI ĐUA THEO KÊNH */}
+            {activeSubTab === 'group-leaderboard' && (
+                <div className="w-full flex-grow">
+                    <CheckThuongGroupLeaderboardView
+                        competitionData={competitionData}
+                        uploadTime={uploadTime}
+                        fileName={fileName}
+                        onSelectStore={handleSelectStoreFromLeaderboard}
+                        onSwitchToStoreLeaderboard={() => setActiveSubTab('leaderboard')}
                         onSwitchToSearch={() => setActiveSubTab('search')}
                     />
                 </div>

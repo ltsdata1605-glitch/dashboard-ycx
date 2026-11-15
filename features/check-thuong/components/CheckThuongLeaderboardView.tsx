@@ -22,6 +22,7 @@ interface CheckThuongLeaderboardViewProps {
     fileName?: string;
     onSelectStore: (storeCode: string) => void;
     onSwitchToSearch: () => void;
+    onSwitchToGroupLeaderboard?: () => void;
 }
 
 export const CheckThuongLeaderboardView: React.FC<CheckThuongLeaderboardViewProps> = ({
@@ -29,7 +30,8 @@ export const CheckThuongLeaderboardView: React.FC<CheckThuongLeaderboardViewProp
     uploadTime,
     fileName,
     onSelectStore,
-    onSwitchToSearch
+    onSwitchToSearch,
+    onSwitchToGroupLeaderboard
 }) => {
     const [filters, setFilters] = useState<LeaderboardFilterState>({
         channel: 'ALL',
@@ -208,7 +210,7 @@ export const CheckThuongLeaderboardView: React.FC<CheckThuongLeaderboardViewProp
                                     Bảng Xếp Hạng TOP Siêu Thị Thưởng Cao
                                 </h2>
                                 <span className="px-1.5 py-0.2 text-[11px] font-black uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
-                                    Realtime
+                                    Kho
                                 </span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -216,6 +218,31 @@ export const CheckThuongLeaderboardView: React.FC<CheckThuongLeaderboardViewProp
                             </p>
                         </div>
                     </div>
+
+                    {/* NÚT CHUYỂN ĐỔI NHANH GIỮA 2 CHẾ ĐỘ: THEO SIÊU THỊ / THEO NHÓM */}
+                    {onSwitchToGroupLeaderboard && (
+                        <div className="flex items-center p-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300/70 dark:border-slate-700/70 shadow-2xs shrink-0 self-stretch sm:self-auto justify-center">
+                            <Button
+                                variant="ghost"
+                                size="none"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-xs transition-all"
+                                title="Đang xem Bảng xếp hạng theo siêu thị"
+                            >
+                                <AppIcon name="trophy" size="xs" />
+                                <span>Theo Siêu Thị</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="none"
+                                onClick={onSwitchToGroupLeaderboard}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all"
+                                title="Chuyển sang Bảng xếp hạng top theo nhóm thi đua theo kênh"
+                            >
+                                <AppIcon name="layers" size="xs" />
+                                <span>Theo Nhóm Thi Đua</span>
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* THẺ TỔNG HỢP KPI */}
