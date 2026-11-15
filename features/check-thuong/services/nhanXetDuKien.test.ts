@@ -48,9 +48,12 @@ describe('taoVanBanNhanXet — chữ copy ra Zalo/LINE', () => {
     const vb = taoVanBanNhanXet({ rows, noFundGroups: new Set(['DML|T11 - LAPTOP']), storeName: 'ĐML Hùng Vương', formattedUploadTime: '09:35 15/11/2026' });
     const dongs = vb.split('\n');
 
-    it('đầu đoạn: tên siêu thị, giờ cập nhật, tổng quan', () => {
+    it('đầu đoạn: tên siêu thị, giờ cập nhật, nhóm "Tất cả", tổng quan', () => {
         expect(dongs[0]).toBe('NHẬN XÉT % DỰ KIẾN — ĐML Hùng Vương (cập nhật 09:35 15/11/2026)');
-        expect(dongs[1]).toMatch(/^Đạt ≥ 100%: 1\/10 môn · TB % dự kiến: \d+(\.\d)?%$/);
+        expect(dongs[1]).toBe('Nhóm: Tất cả (10 môn)');
+        expect(dongs[2]).toMatch(/^Đạt ≥ 100%: 1\/10 môn · TB % dự kiến: \d+(\.\d)?%$/);
+        // "Tất cả": môn đã đạt chỉ đếm, không kể tên (trọng tâm là môn chưa đạt)
+        expect(vb).not.toContain('ĐÃ ĐẠT ≥ 100% —');
     });
 
     it('sắp đạt: còn thiếu bao nhiêu % + D.K vượt + không quỹ', () => {
@@ -70,9 +73,9 @@ describe('taoVanBanNhanXet — chữ copy ra Zalo/LINE', () => {
         expect(vb).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
     });
 
-    it('siêu thị đạt hết', () => {
+    it('siêu thị đạt hết: không in dòng "không có môn nào" vô nghĩa', () => {
         const t = taoVanBanNhanXet({ rows: [dong('A', 1.2), dong('B', 1.0)] });
-        expect(t).toContain('SẮP ĐẠT 100% (80–99%): không có môn nào.');
+        expect(t).not.toContain('không có môn nào');
         expect(t).toContain('Tất cả 2 môn đã đạt ≥ 100%.');
     });
 
@@ -80,5 +83,35 @@ describe('taoVanBanNhanXet — chữ copy ra Zalo/LINE', () => {
         expect(tenMonGon('T11 - TAI NGHE')).toBe('TAI NGHE');
         expect(tenMonGon('T9-CAMERA')).toBe('CAMERA');
         expect(tenMonGon('PHỤ KIỆN')).toBe('PHỤ KIỆN');
+    });
+});
+
+describe('taoVanBanNhanXet — theo NHÓM ĐANG LỌC (chủ dự án 15/11: "không nhận xét all khi chỉ chọn 1 tiêu chí")', () => {
+    it('nhóm "< 100%": chỉ các môn trong nhóm, ghi tên nhóm', () => {
+        const nhom = rows.filter((r) => Number(r[6]) < 1);
+        const t = taoVanBanNhanXet({ rows: nhom, tenNhom: 'Chưa Đạt < 100%' });
+        expect(t.split('\n')[1]).toBe('Nhóm: Chưa Đạt < 100% (9 môn)');
+        expect(t).toContain('Đạt ≥ 100%: 0/9 môn');
+        expect(t).not.toContain('QUẠT GIÓ');
+        expect(t).toContain('SẮP ĐẠT 100% (80–99%) — 5 môn, cần tập trung:');
+    });
+
+    it('nhóm "Đạt thưởng" toàn môn đã đạt: kể tên các môn đã đạt, không có mục chưa đạt', () => {
+        const t = taoVanBanNhanXet({ rows: [dong('T11 - QUẠT GIÓ', 1.564), dong('T11 - TỦ LẠNH', 1.408)], tenNhom: 'Đạt thưởng' });
+        expect(t).toContain('Nhóm: Đạt thưởng (2 môn)');
+        expect(t).toContain('ĐÃ ĐẠT ≥ 100% — 2 môn:\n1. QUẠT GIÓ: 156.4%\n2. TỦ LẠNH: 140.8%');
+        expect(t).toContain('Cả nhóm đã đạt ≥ 100%.');
+        expect(t).not.toContain('SẮP ĐẠT');
+        expect(t).not.toContain('HIỆU QUẢ KÉM');
+    });
+
+    it('nhóm có cả đạt lẫn chưa đạt (vd "Đạt thưởng" nhờ xếp hạng dù < 100%)', () => {
+        const t = taoVanBanNhanXet({ rows: [dong('T11 - QUẠT GIÓ', 1.2), dong('T11 - CAMERA', 0.95, -1)], tenNhom: 'Đạt thưởng' });
+        expect(t).toContain('ĐÃ ĐẠT ≥ 100% — 1 môn:\n1. QUẠT GIÓ: 120%');
+        expect(t).toContain('SẮP ĐẠT 100% (80–99%) — 1 môn, cần tập trung:\n1. CAMERA: 95% (còn 5%, D.K vượt -1)');
+    });
+
+    it('nhóm rỗng', () => {
+        expect(taoVanBanNhanXet({ rows: [], tenNhom: 'No Sale' })).toContain('Nhóm: No Sale (0 môn)\n\nNhóm này không có môn nào.');
     });
 });

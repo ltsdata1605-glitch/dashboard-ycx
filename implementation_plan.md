@@ -9499,3 +9499,11 @@ khi bấm sẽ copy nhận xét đánh giá các tiêu chí > 80% sắp đạt 1
 TB % dự kiến; SẮP ĐẠT 80–99% (gần 100% nhất trước, "còn x%", D.K vượt, "không quỹ"); CẦN ĐẨY THÊM 70–79%; HIỆU QUẢ KÉM < 70% (kém nhất
 trước); CHƯA PHÁT SINH 0%. Không emoji. Mốc là hằng `MOC_SAP_DAT`/`MOC_KEM`. Test đơn vị 11 bài; e2e đọc clipboard thật + vị trí nút ở
 1440/1280/1024 + iPhone 390.
+
+### Nhận xét theo NHÓM ĐANG LỌC (2026-11-15, cùng ngày)
+
+**Yêu cầu (ảnh chủ dự án, khoanh "Đạt thưởng", "< 100%" và nút):** "Nhận xét sẽ áp dụng theo nhóm lọc, không nhận xét all khi chỉ chọn
+1 tiêu chí". **Làm:** `CheckThuongSearchView` truyền `rows` = môn của thẻ đang chọn (thẻ "Tất cả" → toàn bộ) + `tenNhom` (title bỏ chữ
+"Nhóm " đầu). Đoạn copy có dòng "Nhóm: <tên> (N môn)"; lọc một nhóm thì kể cả mục "ĐÃ ĐẠT ≥ 100%" (vd nhóm Đạt thưởng), "Tất cả" chỉ
+đếm; bỏ dòng "SẮP ĐẠT … không có môn nào" khi nhóm không còn môn chưa đạt; nhóm rỗng ghi rõ. Toast "Đã copy nhận xét nhóm <tên>".
+E2E đọc clipboard thật lần lượt ở Tất cả / < 100% / Đạt thưởng.

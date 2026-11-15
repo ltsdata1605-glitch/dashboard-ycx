@@ -233,7 +233,19 @@ export const CheckThuongSearchView: React.FC<CheckThuongSearchViewProps> = ({
                         setActiveFilter(filterKey);
                     }}
                     viewMode={viewMode}
-                    nutCopyNhanXet={<CheckThuongCopyNhanXet rows={store1Data} noFundGroups={preprocessed.noFundGroups} storeName={storeName} formattedUploadTime={formattedUploadTime} />}
+                    nutCopyNhanXet={(() => {
+                        // Nhận xét theo NHÓM ĐANG LỌC (chủ dự án 15/11); thẻ "Tất cả" → toàn bộ môn của siêu thị.
+                        const nhom = activeFilter === 'all' ? undefined : groupDefs.find(g => g.key === activeFilter);
+                        return (
+                            <CheckThuongCopyNhanXet
+                                rows={nhom ? nhom.data : store1Data}
+                                tenNhom={nhom?.title.replace(/^Nhóm\s+/i, '')}
+                                noFundGroups={preprocessed.noFundGroups}
+                                storeName={storeName}
+                                formattedUploadTime={formattedUploadTime}
+                            />
+                        );
+                    })()}
                     onToggleViewMode={() => setViewMode(prev => prev === 'list' ? 'card' : 'list')}
                     onExportFiltered={() => {
                         if (mainViewRef.current) {

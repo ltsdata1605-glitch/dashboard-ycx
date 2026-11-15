@@ -6,7 +6,8 @@ import { khoaNhomThuong } from './checkThuongSearch';
  * 2026-11-15 (chủ dự án): bản đầu là một dòng chữ trên thanh lọc; cùng ngày đổi thành NÚT COPY: "copy nhận xét đánh giá các tiêu chí
  * > 80% sắp đạt 100% cần tập trung bao nhiêu, các nhóm hiệu quả kém".
  *
- * Tính trên TOÀN BỘ môn của siêu thị (không theo thẻ đang lọc) — là bản đánh giá của siêu thị. Giá trị cột là PHÂN SỐ (1 = 100%).
+ * Tính trên NHÓM ĐANG LỌC (2026-11-15, chủ dự án: "nhận xét áp dụng theo nhóm lọc, không nhận xét all khi chỉ chọn 1 tiêu chí") —
+ * thẻ "Tất cả" thì toàn bộ môn của siêu thị. Giá trị cột là PHÂN SỐ (1 = 100%).
  * Mốc: ≥ 100% đạt · 80–<100% SẮP ĐẠT (cần tập trung) · 70–<80% cần đẩy thêm · > 0 và < 70% HIỆU QUẢ KÉM · 0% chưa phát sinh.
  */
 export const MOC_SAP_DAT = 0.8;
@@ -25,6 +26,8 @@ export interface PhanLoaiDuKien {
     /** TB % dự kiến của các môn đã phát sinh (> 0%); null khi chưa môn nào phát sinh. */
     trungBinh: number | null;
     dat100: number;
+    /** p ≥ 100% — cao trước. */
+    daDat: MonDuKien[];
     /** 80% ≤ p < 100% — gần 100% nhất trước. */
     sapDat: MonDuKien[];
     /** 70% ≤ p < 80% — cao trước. */
@@ -42,10 +45,12 @@ export const phanLoaiDuKien = (rows: unknown[][], noFundGroups: Set<string> = ne
         khongQuy: noFundGroups.has(khoaNhomThuong(r)),
     }));
     const coPhatSinh = mon.filter((m) => m.pct > 0);
+    const daDat = mon.filter((m) => m.pct >= 1).sort((a, b) => b.pct - a.pct);
     return {
         soMon: mon.length,
         trungBinh: coPhatSinh.length ? coPhatSinh.reduce((s, m) => s + m.pct, 0) / coPhatSinh.length : null,
-        dat100: mon.filter((m) => m.pct >= 1).length,
+        dat100: daDat.length,
+        daDat,
         sapDat: mon.filter((m) => m.pct >= MOC_SAP_DAT && m.pct < 1).sort((a, b) => b.pct - a.pct),
         canDayThem: mon.filter((m) => m.pct >= MOC_KEM && m.pct < MOC_SAP_DAT).sort((a, b) => b.pct - a.pct),
         kem: mon.filter((m) => m.pct > 0 && m.pct < MOC_KEM).sort((a, b) => a.pct - b.pct),
@@ -64,33 +69,44 @@ export const conThieu = (pct: number): string => {
 };
 
 const dongMon = (m: MonDuKien, i: number, kemDuKienVuot: boolean): string => {
-    const phu: string[] = [`còn ${conThieu(m.pct)}`];
+    const phu: string[] = m.pct >= 1 ? [] : [`còn ${conThieu(m.pct)}`];
     if (kemDuKienVuot && m.duKienVuot !== 0) phu.push(`D.K vượt ${formatNumber(m.duKienVuot)}`);
     if (m.khongQuy) phu.push('không quỹ');
-    return `${i + 1}. ${tenMonGon(m.ten)}: ${formatPercent(m.pct)} (${phu.join(', ')})`;
+    return `${i + 1}. ${tenMonGon(m.ten)}: ${formatPercent(m.pct)}${phu.length ? ` (${phu.join(', ')})` : ''}`;
 };
 
 export interface ThongTinNhanXet {
+    /** Các môn của NHÓM ĐANG LỌC (thẻ "Tất cả" → toàn bộ môn của siêu thị). */
     rows: unknown[][];
+    /** Tên nhóm đang lọc (vd "Đạt thưởng", "Chưa Đạt < 100%"); bỏ trống = "Tất cả". */
+    tenNhom?: string;
     noFundGroups?: Set<string>;
     storeName?: string;
     formattedUploadTime?: string;
 }
 
 /** Văn bản nhận xét để dán vào Zalo/LINE — chữ thường, không emoji, mỗi môn một dòng. */
-export const taoVanBanNhanXet = ({ rows, noFundGroups, storeName, formattedUploadTime }: ThongTinNhanXet): string => {
+export const taoVanBanNhanXet = ({ rows, tenNhom, noFundGroups, storeName, formattedUploadTime }: ThongTinNhanXet): string => {
     const pl = phanLoaiDuKien(rows, noFundGroups);
     const dong: string[] = [];
     const dau = ['NHẬN XÉT % DỰ KIẾN', storeName].filter(Boolean).join(' — ');
     dong.push(formattedUploadTime ? `${dau} (cập nhật ${formattedUploadTime})` : dau);
+    dong.push(`Nhóm: ${tenNhom || 'Tất cả'} (${pl.soMon} môn)`);
+    if (pl.soMon === 0) return dong.concat('', 'Nhóm này không có môn nào.').join('\n');
     const tong = [`Đạt ≥ 100%: ${pl.dat100}/${pl.soMon} môn`];
     if (pl.trungBinh !== null) tong.push(`TB % dự kiến: ${formatPercent(pl.trungBinh)}`);
     dong.push(tong.join(' · '));
 
+    const conChuaDat = pl.soMon - pl.dat100;
+    // Lọc 1 nhóm cụ thể thì kể cả các môn đã đạt (vd nhóm "Đạt thưởng"); "Tất cả" thì chỉ đếm — trọng tâm là môn chưa đạt.
+    if (tenNhom && pl.daDat.length) {
+        dong.push('', `ĐÃ ĐẠT ≥ 100% — ${pl.daDat.length} môn:`);
+        pl.daDat.forEach((m, i) => dong.push(dongMon(m, i, false)));
+    }
     if (pl.sapDat.length) {
         dong.push('', `SẮP ĐẠT 100% (80–99%) — ${pl.sapDat.length} môn, cần tập trung:`);
         pl.sapDat.forEach((m, i) => dong.push(dongMon(m, i, true)));
-    } else {
+    } else if (conChuaDat > 0) {
         dong.push('', 'SẮP ĐẠT 100% (80–99%): không có môn nào.');
     }
     if (pl.canDayThem.length) {
@@ -105,7 +121,7 @@ export const taoVanBanNhanXet = ({ rows, noFundGroups, storeName, formattedUploa
         dong.push('', `CHƯA PHÁT SINH DOANH SỐ (0%) — ${pl.chuaPhatSinh.length} môn: ${pl.chuaPhatSinh.map((m) => tenMonGon(m.ten)).join(', ')}`);
     }
     if (!pl.sapDat.length && !pl.canDayThem.length && !pl.kem.length && !pl.chuaPhatSinh.length && pl.soMon > 0) {
-        dong.push('', `Tất cả ${pl.soMon} môn đã đạt ≥ 100%.`);
+        dong.push('', tenNhom ? 'Cả nhóm đã đạt ≥ 100%.' : `Tất cả ${pl.soMon} môn đã đạt ≥ 100%.`);
     }
     return dong.join('\n');
 };
