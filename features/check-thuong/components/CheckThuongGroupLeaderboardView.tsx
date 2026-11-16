@@ -289,9 +289,12 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             const bonusShort = formatBonusMoney(chTotalBonus).full;
 
                             return (
-                                <button
+                                <Button
+                                    variant="cell"
+                                    size="none"
                                     key={ch}
                                     type="button"
+                                    aria-pressed={isSelected}
                                     onClick={() => setFilters(prev => ({ ...prev, channel: ch }))}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-all active:scale-95 ${
                                         isSelected
@@ -305,13 +308,16 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                     }`}>
                                         {bonusShort}
                                     </span>
-                                </button>
+                                </Button>
                             );
                         })}
 
                         {/* Nút Xem tất cả kênh */}
-                        <button
+                        <Button
+                            variant="cell"
+                            size="none"
                             type="button"
+                            aria-pressed={filters.channel === 'ALL'}
                             onClick={() => setFilters(prev => ({ ...prev, channel: 'ALL' }))}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all active:scale-95 ${
                                 filters.channel === 'ALL'
@@ -320,7 +326,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             }`}
                         >
                             <span>Tất cả kênh</span>
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -400,13 +406,16 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             <AppIcon name="search" size="xs" />
                         </div>
                         {filters.searchQuery && (
-                            <button
+                            <Button
+                                variant="cell"
+                                size="none"
                                 type="button"
+                                aria-label="Xoá ô tìm kiếm"
                                 onClick={() => setFilters(prev => ({ ...prev, searchQuery: '' }))}
                                 className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
                             >
                                 <AppIcon name="close" size="xs" />
-                            </button>
+                            </Button>
                         )}
                     </div>
 
