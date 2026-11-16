@@ -12,10 +12,21 @@
  *  - /assets/*, phông, ảnh khung: ƯU TIÊN BẢN LƯU (tên có mã băm nên không bao giờ cũ); thiếu thì tải rồi lưu.
  *  - Yêu cầu khác origin (Firebase, LINE, Google…) KHÔNG đụng tới — SDK tự xử lý offline.
  */
-const VERSION = 'bef88c10e858';
+const VERSION = '816698744723';
 const CACHE = 'ycx-shell-' + VERSION;
-const PRECACHE = ["/report/assets/AboutView-Bn31Fer-.js","/report/assets/Badge-CmOFmTao.js","/report/assets/Banner-C4OH1-7y.js","/report/assets/BiWrapper-BTe0skjF.js","/report/assets/BiWrapper-DHw20h5K.css","/report/assets/CheckThuongView-zTERNYPW.js","/report/assets/Checkbox-BmFBWgb3.js","/report/assets/ConfirmDialog-CXIF2bma.js","/report/assets/CouponConverterView-WPR1-c_k.js","/report/assets/EmptyState-3GbtneZ7.js","/report/assets/ExternalToolView-Dfk9RCBH.js","/report/assets/GlobalAutoSyncDock-CVS7jpY4.js","/report/assets/InstallAppHint-CBiG6Ywf.js","/report/assets/InstallGuideModal-DDo6qiIB.js","/report/assets/KhaiThacView-CWQTuuaD.js","/report/assets/KpiCard-BH1wCeAP.js","/report/assets/LineBotView-BknAABqP.js","/report/assets/ListGroup-BhQTrcgV.js","/report/assets/LoginView-BZshBw2i.js","/report/assets/MobileMoreSheet-BV9SrsI9.js","/report/assets/Modal-Wojx1Dl7.js","/report/assets/MultiSelectDropdown-bQVnu_5F.js","/report/assets/NhanVien-BysWdGxN.js","/report/assets/NotificationDropdown-Bnus6Yuc.js","/report/assets/PendingApprovalView-BU1KZ6LX.js","/report/assets/PhanCaView-B14Rh2k2.css","/report/assets/PhanCaView-DCfM_I0G.js","/report/assets/SectionCard-z3PlJ3c3.js","/report/assets/SettingsView-D8UoHJVf.js","/report/assets/StickerPrinterView-BG-gz8jc.js","/report/assets/Switch-Bno6T3eU.js","/report/assets/Tabs-Cg4UX-BI.js","/report/assets/TaxCalculatorView-D_bpdAi5.js","/report/assets/Textarea-DfPQ_Kr7.js","/report/assets/TopBarActions-D6hgxlBM.js","/report/assets/TouchTitleHint-CtYm7-KI.js","/report/assets/UserManagementView-CGt2-OLN.js","/report/assets/analytics.worker-CQkEjqrb.js","/report/assets/autoNavigationService-ymfFl8b6.js","/report/assets/autoReportExportService-BB5GWDXd.js","/report/assets/autoSyncCards-D2dIBbfz.js","/report/assets/bonusHistory-BQDs1An6.js","/report/assets/captureEngine-DEyzj45Z.js","/report/assets/checkThuongIframeService-CIcfOYjq.js","/report/assets/configStore-jfv_oEyo.js","/report/assets/dataUtils-CZFZS1Uq.js","/report/assets/dbService-gTM5yZyA.js","/report/assets/googleSheetsService-D0LTBUzq.js","/report/assets/index-BLdJe3je.js","/report/assets/index-C2shMVW7.css","/report/assets/index-CgJtiJsK.js","/report/assets/index-Cn_j4uxA.js","/report/assets/khaiThacDb-CX_lDk43.js","/report/assets/khoDataService-BOTdRV4b.js","/report/assets/lineBot.types-CsTQV04F.js","/report/assets/presetBi-CJzYsp9_.js","/report/assets/salesJsonWriter.worker-BvXL3ac6.js","/report/assets/salesJsonWriter.worker-iky0iAuj.js","/report/assets/scheduleHeartbeat.worker-DY9MOOqR.js","/report/assets/shared-utils-B7TlnBwz.js","/report/assets/vendor-excel-BGhuli8m.js","/report/assets/vendor-firebase-BDIogyZH.js","/report/assets/vendor-firebase-analytics-XfruttpD.js","/report/assets/vendor-icons-8Z2_M0K_.js","/report/assets/vendor-react-Birxz-Xg.js","/report/assets/ycxAutoSyncService-Dxdd6pVC.js","/report/favicon.svg","/report/fonts/UTM AvoBold.ttf","/report/icons/apple-touch-icon-120.png","/report/icons/apple-touch-icon-152.png","/report/icons/apple-touch-icon-167.png","/report/icons/apple-touch-icon-180.png","/report/icons/icon-192.png","/report/icons/icon-512.png","/report/icons/icon-maskable-512.png","/report/man-cho-khoi-dong.js","/report/manifest.webmanifest","/report/prevent-pull-to-refresh.js","/report/reload-on-chunk-error.js"];
-const CORE = ["/report/favicon.svg","/report/manifest.webmanifest","/report/icons/apple-touch-icon-180.png","/report/icons/apple-touch-icon-167.png","/report/icons/apple-touch-icon-152.png","/report/icons/apple-touch-icon-120.png","/report/fonts/UTM AvoBold.ttf","/report/assets/index-Cn_j4uxA.js","/report/assets/vendor-react-Birxz-Xg.js","/report/assets/shared-utils-B7TlnBwz.js","/report/assets/vendor-icons-8Z2_M0K_.js","/report/assets/vendor-firebase-BDIogyZH.js","/report/assets/index-C2shMVW7.css","/report/reload-on-chunk-error.js","/report/man-cho-khoi-dong.js","/report/prevent-pull-to-refresh.js","/report/prevent-pull-to-refresh.js","/report/reload-on-chunk-error.js","/report/man-cho-khoi-dong.js","/report/fonts/UTM AvoBold.ttf","/report/favicon.svg","/report/manifest.webmanifest"];
+const PRECACHE = ["/report/assets/AboutView-CeipwKPD.js","/report/assets/Badge-CmOFmTao.js","/report/assets/Banner-DwKDGCFc.js","/report/assets/BiWrapper-DHw20h5K.css","/report/assets/BiWrapper-DZc1g0V-.js","/report/assets/CheckThuongView-nwL4_4Mt.js","/report/assets/Checkbox-BmFBWgb3.js","/report/assets/ConfirmDialog-D8tYZ22q.js","/report/assets/CouponConverterView-RdeXarn4.js","/report/assets/EmptyState-DKFZKJW0.js","/report/assets/ExternalToolView-Dfk9RCBH.js","/report/assets/GlobalAutoSyncDock-CXuRf0MP.js","/report/assets/InstallAppHint-sqm4Gvjy.js","/report/assets/InstallGuideModal-Dp1X0vV1.js","/report/assets/KhaiThacView-CG_juRAu.js","/report/assets/KpiCard-Chm3inPk.js","/report/assets/LineBotView-C7nN0AJ_.js","/report/assets/ListGroup-BO5QIYaW.js","/report/assets/LoginView-DotF0Dq4.js","/report/assets/MobileMoreSheet-c7fIDGh6.js","/report/assets/Modal-rsCUXrnw.js","/report/assets/MultiSelectDropdown-DCpyyKL3.js","/report/assets/NhanVien-7shKWPCO.js","/report/assets/NotificationDropdown-V26e7X-W.js","/report/assets/PendingApprovalView-DnbEQxzg.js","/report/assets/PhanCaView-B14Rh2k2.css","/report/assets/PhanCaView-WPvNgauL.js","/report/assets/SectionCard-z3PlJ3c3.js","/report/assets/SettingsView-D-nS_tjo.js","/report/assets/StickerPrinterView-C5WTcmoV.js","/report/assets/Switch-DGPRLaIS.js","/report/assets/Tabs-DUUzghrn.js","/report/assets/TaxCalculatorView-BPEMZFbk.js","/report/assets/Textarea-DfPQ_Kr7.js","/report/assets/TopBarActions-Z3k3a5rX.js","/report/assets/TouchTitleHint-CtYm7-KI.js","/report/assets/UserManagementView-CBDFYJP1.js","/report/assets/analytics.worker-CQkEjqrb.js","/report/assets/autoNavigationService-ymfFl8b6.js","/report/assets/autoReportExportService-CHsZY41M.js","/report/assets/autoSyncCards-D2dIBbfz.js","/report/assets/bonusHistory-CWoOdL3M.js","/report/assets/captureEngine-CflDIJky.js","/report/assets/checkThuongIframeService-BDfaLDV2.js","/report/assets/configStore-jfv_oEyo.js","/report/assets/dataUtils-CZFZS1Uq.js","/report/assets/dbService-DfX4jpZ1.js","/report/assets/googleSheetsService-D0LTBUzq.js","/report/assets/index-BLdJe3je.js","/report/assets/index-BkytYQfj.js","/report/assets/index-C2shMVW7.css","/report/assets/index-CgJtiJsK.js","/report/assets/khaiThacDb-Bs7iayWt.js","/report/assets/khoDataService-Dk5ABjub.js","/report/assets/lineBot.types-DAaVkWV1.js","/report/assets/presetBi-pGTJa9JV.js","/report/assets/salesJsonWriter.worker-BvXL3ac6.js","/report/assets/salesJsonWriter.worker-iky0iAuj.js","/report/assets/scheduleHeartbeat.worker-DY9MOOqR.js","/report/assets/shared-utils-B7TlnBwz.js","/report/assets/vendor-excel-BGhuli8m.js","/report/assets/vendor-firebase-BDIogyZH.js","/report/assets/vendor-firebase-analytics-XfruttpD.js","/report/assets/vendor-icons-8Z2_M0K_.js","/report/assets/vendor-react-Birxz-Xg.js","/report/assets/ycxAutoSyncService-Dxdd6pVC.js","/report/favicon.svg","/report/fonts/UTM AvoBold.ttf","/report/icons/apple-touch-icon-120.png","/report/icons/apple-touch-icon-152.png","/report/icons/apple-touch-icon-167.png","/report/icons/apple-touch-icon-180.png","/report/icons/icon-192.png","/report/icons/icon-512.png","/report/icons/icon-maskable-512.png","/report/man-cho-khoi-dong.js","/report/manifest.webmanifest","/report/prevent-pull-to-refresh.js","/report/reload-on-chunk-error.js"];
+const CORE = ["/report/favicon.svg","/report/manifest.webmanifest","/report/icons/apple-touch-icon-180.png","/report/icons/apple-touch-icon-167.png","/report/icons/apple-touch-icon-152.png","/report/icons/apple-touch-icon-120.png","/report/fonts/UTM AvoBold.ttf","/report/assets/index-BkytYQfj.js","/report/assets/vendor-react-Birxz-Xg.js","/report/assets/shared-utils-B7TlnBwz.js","/report/assets/vendor-icons-8Z2_M0K_.js","/report/assets/vendor-firebase-BDIogyZH.js","/report/assets/index-C2shMVW7.css","/report/reload-on-chunk-error.js","/report/man-cho-khoi-dong.js","/report/prevent-pull-to-refresh.js","/report/prevent-pull-to-refresh.js","/report/reload-on-chunk-error.js","/report/man-cho-khoi-dong.js","/report/fonts/UTM AvoBold.ttf","/report/favicon.svg","/report/manifest.webmanifest"];
+
+/** Mọi lượt tra cache BỎ QUA header Vary (2026-11-16). Chromium (Chrome/Edge/Android) gửi kèm `Origin` cho yêu cầu
+ *  `crossorigin` kể cả cùng origin (Vite gắn `crossorigin` vào MỌI script module / CSS / modulepreload; phông cũng vậy) — còn
+ *  bản lưu do service worker tự tải (`cache.add(url)`) không có header nào. Máy chủ trả `Vary: Origin` là `cache.match` coi 2
+ *  yêu cầu KHÁC NHAU → trượt cache 100% → mất mạng chỉ còn màn chờ (đo: script nhận `origin: http://127.0.0.1:4179`, bản lưu
+ *  `[]`). Đo 16/11: `vite preview` trả `Vary: Origin` (bài tests/e2e/offline-app-shell.spec.ts đỏ); GitHub Pages hiện trả
+ *  `Vary: Accept-Encoding` (header trình duyệt không đưa vào yêu cầu → vẫn khớp) nên bản chạy thật CHƯA dính; WebKit không
+ *  gửi `Origin` cùng origin nên Safari không dính. Sửa để offline không phụ thuộc máy chủ/CDN đang host. File ở đây hoặc có
+ *  mã băm trong tên, hoặc là app shell dùng chung — không có biến thể theo header nào, nên bỏ qua Vary là đúng chứ không phải
+ *  chữa cháy. Test: tests/unit/sw-khop-bo-qua-vary.test.ts. */
+const KHOP = { ignoreVary: true };
 
 /** File /assets/ có mã băm trong tên: bản ở HTTP cache / cache của bản cũ luôn đúng → không cần ép tải lại. */
 const requestFor = (u) => new Request(u, { cache: u.includes('/assets/') ? 'default' : 'reload' });
@@ -27,10 +38,10 @@ self.addEventListener('install', (event) => {
     await cache.add(new Request(self.registration.scope, { cache: 'reload' }));
     // Chép file /assets/ không đổi từ cache của bản trước (cache cũ chỉ bị dọn ở 'activate') — không tốn mạng.
     await Promise.allSettled(PRECACHE.filter((u) => u.includes('/assets/')).map(async (u) => {
-      const old = await caches.match(u);
+      const old = await caches.match(u, KHOP);
       if (old) await cache.put(u, old);
     }));
-    await Promise.allSettled(CORE.map(async (u) => { if (!(await cache.match(u))) await cache.add(requestFor(u)); }));
+    await Promise.allSettled(CORE.map(async (u) => { if (!(await cache.match(u, KHOP))) await cache.add(requestFor(u)); }));
     await self.skipWaiting();
   })());
 });
@@ -42,7 +53,7 @@ function precacheRest() {
     restRun = (async () => {
       const cache = await caches.open(CACHE);
       const todo = [];
-      for (const u of PRECACHE) if (!(await cache.match(u))) todo.push(u);
+      for (const u of PRECACHE) if (!(await cache.match(u, KHOP))) todo.push(u);
       let i = 0;
       const lane = async () => {
         while (i < todo.length) {
@@ -92,7 +103,7 @@ async function networkFirstNavigation(event) {
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
     ]);
   } catch (e) {
-    const cached = (isShell ? await cache.match(self.registration.scope) : await cache.match(request));
+    const cached = (isShell ? await cache.match(self.registration.scope, KHOP) : await cache.match(request, KHOP));
     if (cached) return cached;
     return network; // không có bản lưu: chờ mạng tới cùng (thay vì báo lỗi sau 4 giây)
   }
@@ -100,7 +111,7 @@ async function networkFirstNavigation(event) {
 
 async function cacheFirst(request) {
   const cache = await caches.open(CACHE);
-  const hit = await cache.match(request);
+  const hit = await cache.match(request, KHOP);
   if (hit) return hit;
   const res = await fetch(request);
   if (res && res.ok) cache.put(request, res.clone());
