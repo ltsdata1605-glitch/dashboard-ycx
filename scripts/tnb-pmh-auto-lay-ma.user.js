@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TNB PMH - Tự động lấy mã hàng loạt
 // @namespace    dashboard-ycx
-// @version      1.8
+// @version      1.9
 // @description  Dán danh sách form PMH → tự gộp theo giới hạn 3000 ký tự của ô chat và gửi lần lượt vào phòng admintnb, tự gom mã trả về thành bảng copy nhanh; hỗ trợ tự động điền mã bảo mật & tra cứu TNB Data trên admintnb.com/data. Chạy trong phiên đăng nhập của CHÍNH BẠN, không gửi dữ liệu ra máy chủ nào khác.
 // @author       Dashboard
 // @match        https://admintnb.com/room-pmh*
@@ -13,12 +13,14 @@
 // @grant        GM_getValue
 // @grant        GM_xmlhttpRequest
 // @connect      asia-southeast1-dashboa-7e20b.cloudfunctions.net
-// @updateURL    https://ltsdata1605-glitch.github.io/dashboard-ycx/scripts/tnb-pmh-auto-lay-ma.user.js
-// @downloadURL  https://ltsdata1605-glitch.github.io/dashboard-ycx/scripts/tnb-pmh-auto-lay-ma.user.js
+// @updateURL    https://ltsdata1605-glitch.github.io/report/scripts/tnb-pmh-auto-lay-ma.user.js
+// @downloadURL  https://ltsdata1605-glitch.github.io/report/scripts/tnb-pmh-auto-lay-ma.user.js
 // ==/UserScript==
 
 /*
  * CHANGELOG:
+ * - v1.9 (2026-11-15):
+ *   + @updateURL/@downloadURL theo ltsdata1605-glitch.github.io/report (repo đổi tên dashboard-ycx → report).
  * - v1.8 (2026-11-14):
  *   + @updateURL/@downloadURL trỏ về ltsdata1605-glitch.github.io/dashboard-ycx (dashboard.pro.vn không còn phục vụ).
  * - v1.7 (2026-10-16):
