@@ -13,7 +13,7 @@ export const DRAW_TGDD_DEFAULT_BG = '/frame/bg_phieutgd.png';
 
 /**
  * Mã nền → URL ảnh để VẼ (2026-11-14). Các hằng ở trên là MÃ ĐỊNH DANH (so sánh, lưu trong lịch sử in) — giữ nguyên giá trị.
- * App chạy dưới đường dẫn con (vite `base` = '/dashboard-ycx/'), Vite không thêm tiền tố cho chuỗi trong JS → '/frame/x.png'
+ * App chạy dưới đường dẫn con (vite `base` = '/report/'), Vite không thêm tiền tố cho chuỗi trong JS → '/frame/x.png'
  * trỏ ra ngoài app (404). Chỉ dùng hàm này ở chỗ vẽ `url(...)`; so sánh/lưu vẫn dùng mã gốc.
  * Chuỗi bắt đầu bằng '/' (không phải '//') và chưa có tiền tố `base` → nối `base`; data:/http(s):/blob:/rỗng giữ nguyên.
  */

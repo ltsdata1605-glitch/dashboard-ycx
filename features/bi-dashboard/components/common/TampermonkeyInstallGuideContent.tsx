@@ -6,7 +6,7 @@ import { detectUserscript } from '../../utils/bonusBridge';
 
 const TAMPERMONKEY_STORE_URL = 'https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo';
 const TAMPERMONKEY_SETTINGS_URL = 'chrome://extensions/?id=dhdgffkkebhmkfjojejmpbldmpobfkfo';
-// Theo đường dẫn gốc của app (vite `base`, nay /dashboard-ycx/ trên github.io) — viết '/scripts/…' là 404 (2026-11-14).
+// Theo đường dẫn gốc của app (vite `base`, nay /report/ trên github.io) — viết '/scripts/…' là 404 (2026-11-14).
 const SCRIPT_PATH = `${import.meta.env.BASE_URL}scripts/mwg-auto-thu-thap-diem-thuong.user.js`;
 
 export function getScriptUrl(): string {

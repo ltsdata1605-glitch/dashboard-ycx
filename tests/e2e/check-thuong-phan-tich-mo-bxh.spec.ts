@@ -4,7 +4,7 @@ import { appPath } from './helpers/appBase';
 /**
  * 2026-11-14 (ảnh chủ dự án): bấm dòng trong "Phân Tích & Đề Xuất" (vd "T11 - ĐÈN NĂNG LƯỢNG MẶT TRỜI: cần cải thiện 16 hạng")
  * không hiện Bảng Xếp Hạng — trước đây chỉ lọc bảng rồi cuộn xuống. Nay mở Bảng Xếp Hạng của đúng môn, như bấm dòng trong bảng.
- * Dev server ở /dashboard-ycx/ (vite `base`) nên module test nạp theo đường dẫn đó.
+ * Dev server ở /report/ (vite `base`) nên module test nạp theo đường dẫn đó.
  */
 test('bấm dòng "Cơ hội vàng" trong Phân Tích & Đề Xuất → mở Bảng Xếp Hạng của đúng môn đó', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

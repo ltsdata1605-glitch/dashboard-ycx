@@ -84,7 +84,7 @@ export const dangNhapBangToken = async (page: Page) => {
     await page.evaluate(async ({ t, duongDanApp }) => {
         // Lấy đúng URL deps đã tối ưu mà services/firebase.ts đang import, để dùng chung bản module
         // (khác `?v=` là ra bản `firebase/auth` thứ hai, không nhận instance auth của app).
-        // duongDanApp có tiền tố base (`/dashboard-ycx/services/firebase.ts`) — `/services/…` trần là 404 từ aaa1d73.
+        // duongDanApp có tiền tố base (`/report/services/firebase.ts`) — `/services/…` trần là 404 từ aaa1d73.
         const src = await (await fetch(duongDanApp)).text();
         const depUrl = src.match(/from\s+["']([^"']*firebase_auth[^"']*)["']/)?.[1];
         if (!depUrl) throw new Error(`Không tìm thấy import firebase/auth trong ${duongDanApp}`);

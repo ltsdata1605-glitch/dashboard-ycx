@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { APP_BASE } from '../../constants/appBase';
 
 /**
  * 2026-11-14 (ảnh chủ dự án: "Cài đặt Script ngay" mở ltsdata1605-glitch.github.io/scripts/…user.js → 404).
- * App nay chạy dưới đường dẫn con `/dashboard-ycx/` (vite `base`). Vite tự thêm tiền tố cho url() trong CSS và cho index.html,
+ * App nay chạy dưới đường dẫn con APP_BASE (vite `base`, constants/appBase.ts — hiện `/report/`). Vite tự thêm tiền tố cho url() trong CSS và cho index.html,
  * nhưng chuỗi viết trong code JS/TSX ('/scripts/…', src="/icons/…") thì KHÔNG → 404 trên github.io.
  * File trong public/ phải gọi qua `${import.meta.env.BASE_URL}<đường dẫn>`.
  */
@@ -85,7 +86,7 @@ describe('userscript chạy được trên Dashboard ở github.io và tự cậ
         const src = readFileSync(join('public/scripts', ten), 'utf8');
         const dau = src.slice(0, src.indexOf('// ==/UserScript=='));
         it(ten, () => {
-            const url = `https://ltsdata1605-glitch.github.io/dashboard-ycx/scripts/${ten}`;
+            const url = `https://ltsdata1605-glitch.github.io${APP_BASE}scripts/${ten}`;
             expect(dau).toContain(`// @updateURL    ${url}`);
             expect(dau).toContain(`// @downloadURL  ${url}`);
             expect(dau).not.toMatch(/@(update|download)URL\s+https:\/\/dashboard\.pro\.vn/);
@@ -93,6 +94,6 @@ describe('userscript chạy được trên Dashboard ở github.io và tự cậ
     }
     it('script lấy điểm thưởng nạp trên trang Dashboard github.io (thiếu là Dashboard báo "chưa cài")', () => {
         const src = readFileSync('public/scripts/mwg-auto-thu-thap-diem-thuong.user.js', 'utf8');
-        expect(src).toContain('// @match        https://ltsdata1605-glitch.github.io/dashboard-ycx/*');
+        expect(src).toContain(`// @match        https://ltsdata1605-glitch.github.io${APP_BASE}*`);
     });
 });

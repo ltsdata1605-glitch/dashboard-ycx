@@ -23,7 +23,7 @@ if (!fs.existsSync(htmlPath)) {
   console.error('[gói tải đầu] Chưa có dist/index.html — chạy `npm run build` trước.');
   process.exit(1);
 }
-// Đường dẫn gốc của app (vd "/dashboard-ycx/" — GitHub Pages, 2026-11-14): dist/index.html ghi `<base>assets/…`, không phải
+// Đường dẫn gốc của app (vd "/report/" — GitHub Pages, 2026-11-14): dist/index.html ghi `<base>assets/…`, không phải
 // `/assets/…`. Đọc từ constants/appBase.ts (nguồn duy nhất, vite.config.ts cũng dùng) — script CommonJS nên đọc bằng regex.
 const appBaseSrc = fs.readFileSync(path.resolve(__dirname, '..', 'constants', 'appBase.ts'), 'utf8');
 const APP_BASE = appBaseSrc.match(/export const APP_BASE\s*=\s*['"]([^'"]+)['"]/)?.[1];

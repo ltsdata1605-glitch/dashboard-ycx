@@ -9,7 +9,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 const firebaseConfig = {
     apiKey: "AIzaSyAloEjmYgge4qMEcC5nSEpCKKujXNKCUn4",
     // authDomain (2026-11-14): về lại tên miền mặc định của Firebase Hosting site dashboa-7e20b khi app chuyển sang
-    // ltsdata1605-glitch.github.io/dashboard-ycx (bỏ dashboard.pro.vn; trước đó dùng auth.dashboard.pro.vn từ 2026-09-22).
+    // ltsdata1605-glitch.github.io/report (bỏ dashboard.pro.vn; trước đó dùng auth.dashboard.pro.vn từ 2026-09-22).
     // Trang đăng nhập phụ pwa-login.html được lấy THEO giá trị này (PWA_LOGIN_URL bên dưới) — phải cùng origin.
     authDomain: "dashboa-7e20b.firebaseapp.com",
     projectId: "dashboa-7e20b",

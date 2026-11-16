@@ -16,7 +16,7 @@ function napServiceWorker() {
         .replace("'__VERSION__'", "'test'").replace('__PRECACHE__', '[]').replace('__CORE__', '[]');
     const self = {
         location: { origin: 'https://ltsdata1605-glitch.github.io' },
-        registration: { scope: 'https://ltsdata1605-glitch.github.io/dashboard-ycx/' },
+        registration: { scope: 'https://ltsdata1605-glitch.github.io/report/' },
         addEventListener: (ten: string, fn: (e: unknown) => void) => { nghe[ten] = fn; },
     };
     const treo = () => new Promise(() => {}); // không cần kết quả — chỉ đo có respondWith hay không
@@ -30,7 +30,7 @@ function napServiceWorker() {
 
 describe('service worker không trả lời file userscript', () => {
     const goi = napServiceWorker();
-    const GOC = 'https://ltsdata1605-glitch.github.io/dashboard-ycx/';
+    const GOC = 'https://ltsdata1605-glitch.github.io/report/';
 
     it('mở tab .user.js (nút "Cài đặt Script ngay") → để trình duyệt/Tampermonkey tự xử lý', () => {
         expect(goi(GOC + 'scripts/mwg-auto-thu-thap-diem-thuong.user.js', 'navigate')).toBe(false);

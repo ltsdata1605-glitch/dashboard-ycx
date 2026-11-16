@@ -59,7 +59,7 @@
     Tiếp tục với Google
   </button>
 
-  <a id="back" class="btn primary" href="https://ltsdata1605-glitch.github.io/dashboard-ycx/" hidden>Quay lại ứng dụng</a>
+  <a id="back" class="btn primary" href="https://ltsdata1605-glitch.github.io/report/" hidden>Quay lại ứng dụng</a>
   <div id="msg" class="msg"></div>
 </main>
 
@@ -282,14 +282,14 @@
     // Về app NGAY. Nút "Quay lại ứng dụng" để sẵn phòng khi trình duyệt không tự chuyển.
     const retSaved = sessionStorage.getItem(KEY + ':ret');
     sessionStorage.removeItem(KEY + ':ret');
-    let returnUrl = 'https://ltsdata1605-glitch.github.io/dashboard-ycx/';
+    let returnUrl = 'https://ltsdata1605-glitch.github.io/report/';
     if (retSaved) {
       try {
         const u = new URL(retSaved);
         if (u.hostname === 'dashboard.pro.vn' || u.hostname === 'ltsdata1605-glitch.github.io' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
           returnUrl = retSaved;
         }
-      } catch { /* URL không hợp lệ: về https://ltsdata1605-glitch.github.io/dashboard-ycx/ */ }
+      } catch { /* URL không hợp lệ: về https://ltsdata1605-glitch.github.io/report/ */ }
     }
     $('back').href = returnUrl;
     show('back', true);

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE } from './helpers/appBase';
 
 /**
  * PWA cho iPhone (KE_HOACH_NANG_CAP_MOBILE_APP_IPHONE.md Giai đoạn 1).
@@ -28,7 +29,11 @@ test.describe('PWA iPhone', () => {
         expect(res.ok()).toBe(true);
         const manifest = await res.json();
         expect(manifest.display).toBe('standalone');
-        expect(manifest.start_url).toBe('/');
+        // start_url/scope/icon TƯƠNG ĐỐI theo vị trí manifest (2026-11-15): app ở thư mục con APP_BASE (= tên repo, vd /report/) —
+        // "/" là gốc tên miền github.io (404) → app cài trên Màn hình chính mở ra trang 404.
+        const manifestUrl = new URL(meta.manifest!, page.url()).href;
+        expect(new URL(manifest.start_url, manifestUrl).pathname).toBe(APP_BASE);
+        expect(new URL(manifest.scope, manifestUrl).pathname).toBe(APP_BASE);
 
         const sizeOf = (src: string) => page.evaluate((s) => new Promise<[number, number]>((ok, fail) => {
             const img = new Image();
@@ -38,7 +43,7 @@ test.describe('PWA iPhone', () => {
         }), src);
 
         for (const icon of manifest.icons as { src: string; sizes: string }[]) {
-            expect((await sizeOf(icon.src)).join('x'), icon.src).toBe(icon.sizes);
+            expect((await sizeOf(new URL(icon.src, manifestUrl).href)).join('x'), icon.src).toBe(icon.sizes);
         }
         for (const icon of meta.icons) {
             const [w, h] = await sizeOf(icon.href);

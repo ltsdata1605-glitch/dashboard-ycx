@@ -115,7 +115,7 @@ test('về từ Google thành công: gửi phiên kèm Bearer rồi về app', a
     await context.route('https://ltsdata1605-glitch.github.io/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: '<p>app</p>' }));
 
     await sangGoogleRoiHuy(page);
-    await page.waitForURL('https://ltsdata1605-glitch.github.io/dashboard-ycx/', { timeout: 15_000 });
+    await page.waitForURL('https://ltsdata1605-glitch.github.io/report/', { timeout: 15_000 });
 
     expect(String(idpBody!.requestUri)).toContain('/__/auth/handler?state=');
     expect(idpBody!.sessionId).toBeTruthy();
@@ -161,7 +161,7 @@ test('bản app cũ đưa về web.app: tự chuyển sang origin authDomain, nh
     const diQua: string[] = [];
     page.on('framenavigated', f => { if (f === page.mainFrame()) diQua.push(new URL(f.url()).host); });
 
-    const ret = 'https://ltsdata1605-glitch.github.io/dashboard-ycx/?tab=check-thuong';
+    const ret = 'https://ltsdata1605-glitch.github.io/report/?tab=check-thuong';
     await sangGoogleRoiHuy(page, '', urlDiThang({ c: CODE, ret }, undefined, 'https://dashboa-7e20b.web.app/pwa-login.html'));
     await page.waitForURL(ret, { timeout: 15_000 });
 

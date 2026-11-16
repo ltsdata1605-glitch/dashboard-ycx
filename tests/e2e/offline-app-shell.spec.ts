@@ -9,8 +9,8 @@ import { APP_BASE } from './helpers/appBase';
  * (chạy: npm run build && npx playwright test tests/e2e/offline-app-shell.spec.ts).
  */
 const PORT = 4179;
-// App + service worker ở đường dẫn con /dashboard-ycx/ (vite `base`, 2026-11-14) — phạm vi SW không phủ gốc '/'.
-const BASE = `http://127.0.0.1:${PORT}/dashboard-ycx/`;
+// App + service worker ở đường dẫn con APP_BASE (vite `base`, constants/appBase.ts) — phạm vi SW không phủ gốc '/'.
+const BASE = `http://127.0.0.1:${PORT}${APP_BASE}`;
 let server: ChildProcess | null = null;
 
 test.skip(!fs.existsSync('dist/sw.js'), 'Chưa build: thiếu dist/sw.js');
@@ -70,7 +70,7 @@ test('mạng chậm quá 4 giây: dùng bản lưu nhưng bản mới về trễ
   const loai: Record<string, string> = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.json': 'application/json',
     '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
   const sv = http.createServer((req, res) => {
-    const p = decodeURIComponent((req.url || '/').split('?')[0]).replace(/^\/dashboard-ycx(?=\/|$)/, '');
+    const p = decodeURIComponent((req.url || '/').split('?')[0]).replace(new RegExp(`^${APP_BASE.replace(/\/$/, '')}(?=/|$)`), '');
     let f = path.join('dist', p);
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join('dist', 'index.html');
     const gui = () => {
@@ -83,7 +83,7 @@ test('mạng chậm quá 4 giây: dùng bản lưu nhưng bản mới về trễ
   });
   await new Promise<void>((r) => sv.listen(4180, '127.0.0.1', () => r()));
   try {
-    const goc = 'http://127.0.0.1:4180/dashboard-ycx/';
+    const goc = `http://127.0.0.1:4180${APP_BASE}`;
     await page.goto(goc);
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
     await page.reload();

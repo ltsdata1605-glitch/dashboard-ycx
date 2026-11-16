@@ -9541,3 +9541,17 @@ IndexedDB nào phải dọn.
   (trước: `tools-price-compare` rơi vào trang "Tính năng đang được phát triển — Vui lòng quay lại sau"). Test `tab-chuc-nang-da-xoa.spec.ts`.
 - CI `check.yml`: bỏ bước WebKit chạy `so-gia-dien-thoai-va-huy.spec.ts` (file đã xoá → bước đỏ).
 - Bỏ icon `navPriceCompare`, dòng `.gitignore`/`knip.json` của `price-scraper-server`, chú thích trong `icon-audit-man-goc`.
+
+## Repo đổi tên `dashboard-ycx` → `report`: app chuyển sang `/report/` (2026-11-15)
+
+**Sự cố:** chủ dự án đổi tên repo; GitHub Pages chỉ còn phục vụ `https://ltsdata1605-glitch.github.io/report/` (`/dashboard-ycx/` → 404).
+Bản đang chạy build với base `/dashboard-ycx/` → `index.html` ở `/report/` đòi `/dashboard-ycx/assets/index-*.js` (404) → TRANG TRẮNG.
+
+**Sửa:** `constants/appBase.ts` `APP_BASE = '/report/'` (nguồn duy nhất: vite base, SW, budget, e2e). `public/manifest.webmanifest`:
+`id/start_url/scope = "./"`, icon tương đối (trước "/" = gốc github.io → app cài Màn hình chính mở 404; icon 404 — `pwa-iphone` đỏ sẵn).
+`firebase.json` redirect + `auth-hosting/pwa-login.html` (nút về app / returnUrl mặc định) → `/report/` (deploy hosting). Userscript MWG
+7.36 (`@match`/`@updateURL` `/report/`), TNB 1.9 — giữ `@namespace` (đổi là Tampermonkey coi như script khác). Test lấy theo `APP_BASE`.
+
+**Lỗi có sẵn tìm thấy khi kiểm (chưa sửa, tách việc):** `offline-app-shell` "mất mạng" đỏ từ `df45939` (đổi tiêu đề) — bài cũ dò chữ
+"Dashboard" của MÀN CHỜ TĨNH nên luôn qua; thực tế mở app khi mất mạng kẹt ở màn chờ (React `ManChoKhoiDong`), chưa ra màn đăng nhập.
+Bisect: `fa4042f` qua (nhờ chữ màn chờ), `aa2cd7e` (merge df45939) đỏ.

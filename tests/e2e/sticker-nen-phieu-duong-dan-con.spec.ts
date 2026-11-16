@@ -3,7 +3,7 @@ import { APP_BASE } from './helpers/appBase';
 import { vaoLoiKiemThu } from './helpers/loiKiemThu';
 
 /**
- * 2026-11-14: app chạy dưới đường dẫn con `/dashboard-ycx/` (vite `base`). Nền phiếu In Sticker từng gọi '/frame/…' thẳng trong
+ * 2026-11-14: app chạy dưới đường dẫn con `/report/` (vite `base`). Nền phiếu In Sticker từng gọi '/frame/…' thẳng trong
  * url(...) → github.io/frame/bg_phieu.png 404, xem trước và bản in mất nền. Mã nền '/frame/…' giữ nguyên (lịch sử in so khớp theo
  * nó), chỗ vẽ đi qua `bgImageUrl()`. Bài này mở đúng đường dẫn con, kiểm ảnh nền ở xem trước VÀ trong trang in đều trả 200.
  */
@@ -39,7 +39,7 @@ async function anhTaiDuoc(page: Page, duongDan: string) {
     }, duongDan);
 }
 
-test.describe('nền phiếu In Sticker dưới đường dẫn con /dashboard-ycx/', () => {
+test.describe('nền phiếu In Sticker dưới đường dẫn con /report/', () => {
     test.use({ viewport: { width: 1366, height: 900 } });
 
     for (const { sub, nen } of CAC_LOAI) {

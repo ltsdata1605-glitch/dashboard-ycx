@@ -39,8 +39,10 @@ một câu báo trước rẻ hơn nhiều so với khôi phục. Mọi việc k
 **Tự push + deploy sau MỖI lần thay đổi (chủ dự án yêu cầu 2026-10-01 — "Luôn ghi nhớ"):** xong một thay đổi/nâng cấp
 và đã kiểm (`npm run check` + test liên quan) thì agent TỰ làm luôn, không chờ được nhắc: commit → push nhánh làm việc →
 fast-forward/merge vào `main` và push → `npm run build` → `./node_modules/.bin/gh-pages -d dist -m "<mô tả>"` → curl
-`https://ltsdata1605-glitch.github.io/dashboard-ycx/` xác nhận `assets/index-*.js` (và `@version` userscript nếu có đổi) đã là bản mới. Bản build còn sinh `dist/sw.js` (service worker offline, 2026-10-08) — kiểm `curl https://ltsdata1605-glitch.github.io/dashboard-ycx/sw.js` có `ycx-shell-<VERSION>` mới.
-*(2026-11-14, aaa1d73: app chuyển sang GitHub Pages thư mục con `/dashboard-ycx/`, BỎ tên miền `dashboard.pro.vn` — đã gỡ CNAME, tên miền không còn
+`https://ltsdata1605-glitch.github.io/report/` xác nhận `assets/index-*.js` (và `@version` userscript nếu có đổi) đã là bản mới. Bản build còn sinh `dist/sw.js` (service worker offline, 2026-10-08) — kiểm `curl https://ltsdata1605-glitch.github.io/report/sw.js` có `ycx-shell-<VERSION>` mới.
+*(2026-11-15: chủ dự án ĐỔI TÊN REPO `dashboard-ycx` → `report` → app ở `https://ltsdata1605-glitch.github.io/report/`, `/dashboard-ycx/` là 404;
+thư mục con = tên repo, đổi tên repo là phải đổi `constants/appBase.ts` + build/deploy lại, không thì trang trắng. Git remote cũ vẫn chạy nhờ GitHub chuyển hướng.)*
+*(2026-11-14, aaa1d73: app chuyển sang GitHub Pages thư mục con (lúc đó `/dashboard-ycx/`), BỎ tên miền `dashboard.pro.vn` — đã gỡ CNAME, tên miền không còn
 phân giải. Đường dẫn gốc (base) nằm ở MỘT chỗ: `constants/appBase.ts` → `vite.config.ts`, `scripts/kiem-goi-tai-dau.cjs`, `tests/e2e/helpers/appBase.ts`.
 Code app trong trình duyệt dùng `import.meta.env.BASE_URL`; viết cứng `'/frame/…'`, `'/icons/…'`, `'/scripts/…'` là 404 trên bản chạy thật. Spec e2e
 gọi module Vite / trang thử phải qua `appPath('/services/x.ts')` — xem chú thích helper.)*
