@@ -9555,3 +9555,41 @@ Bản đang chạy build với base `/dashboard-ycx/` → `index.html` ở `/rep
 **Lỗi có sẵn tìm thấy khi kiểm (chưa sửa, tách việc):** `offline-app-shell` "mất mạng" đỏ từ `df45939` (đổi tiêu đề) — bài cũ dò chữ
 "Dashboard" của MÀN CHỜ TĨNH nên luôn qua; thực tế mở app khi mất mạng kẹt ở màn chờ (React `ManChoKhoiDong`), chưa ra màn đăng nhập.
 Bisect: `fa4042f` qua (nhờ chữ màn chờ), `aa2cd7e` (merge df45939) đỏ.
+
+## Offline: mất mạng tải lại trang kẹt màn chờ trên Chromium khi máy chủ gửi `Vary: Origin` (2026-11-16)
+
+**Triệu chứng:** `tests/e2e/offline-app-shell.spec.ts` bài "mất mạng…" đỏ trên `main` từ `aa2cd7e` (đổi tiêu đề "Dashboard" →
+"Báo Cáo"): tải lại lúc offline chỉ còn màn chờ suốt 30 s. Bài từng qua chỉ vì chờ `/dashboard/i` — chữ có sẵn trong màn chờ TĨNH
+`#ycx-splash` của `index.html`, nên chưa bao giờ đo được app có dựng xong hay không.
+
+**Nguyên nhân (đo bằng trace + service worker gắn log):** KHÔNG phải kẹt đăng nhập. Mọi file `/assets/*` (CSS, `vendor-react`,
+`vendor-firebase`…) báo `net::ERR_FAILED` dù cache có đủ ~80 file. Chromium gửi `origin: <trang>` cho mọi yêu cầu `crossorigin`
+(Vite gắn `crossorigin` cho mọi script module/CSS; phông cũng vậy), bản lưu do service worker tự tải (`cache.add(url)`) không có
+header nào, `vite preview` trả `Vary: Origin` → `cache.match` coi là khác nhau → trượt 100% → offline hỏng. `ignoreVary: true` thì trúng.
+- Bản đang chạy trên GitHub Pages: trả `Vary: Accept-Encoding` → vẫn khớp; đo thật (Chromium, offline) ra màn đăng nhập sau ~1 s
+  → người dùng hiện tại CHƯA dính. WebKit không gửi `origin` cùng origin → Safari không dính (bài mới qua cả trước bản sửa).
+- Đăng nhập: offline không phiên → màn đăng nhập sau ~0,8 s; có phiên đã lưu → vào thẳng app (~0,15 s). `initializeAuth` với
+  `browserPopupRedirectResolver` trên máy tính KHÔNG tải khung gapi lúc khởi động (`_shouldInitProactively` chỉ đúng trên
+  mobile/Safari, và chỉ đọc cờ chờ redirect trong sessionStorage) → không cần sửa `services/firebase.ts`/`AuthContext.tsx`.
+
+**Sửa:**
+- `scripts/sw-template.js`: hằng `KHOP = { ignoreVary: true }` cho MỌI lượt tra cache (cacheFirst, dự phòng điều hướng, chép
+  file từ bản cũ lúc cài, tải ngầm phần còn lại). File đều có mã băm trong tên hoặc là app shell — không có biến thể theo header.
+- `tests/e2e/offline-app-shell.spec.ts`: chờ `getByTestId('login-view')` (chỉ có khi React đã dựng) thay cho dò chữ; thêm bài "có
+  phiên đã lưu → offline vào thẳng app" (tài khoản test qua REST + đặt phiên vào IndexedDB của Firebase — bản build không import
+  được module; chỉ đọc, `chanGhiCloud`), bài "máy chủ không tới được + `Vary: Origin`" (chạy được cả WebKit). 2 bài dùng
+  `setOffline` bỏ qua trên WebKit: Playwright WebKit chặn cả phản hồi lấy từ cache của service worker ("internal error").
+- `tests/e2e/helpers/customTokenLogin.ts`: `dangNhapRest()` (dùng chung với `docKhoaCaiDatCloud`).
+- `tests/unit/sw-khop-bo-qua-vary.test.ts`: chạy thật hàm `fetch` của template với Cache giả làm đúng luật Vary — đỏ trên bản
+  cũ. Đây là chốt chặn trên CI: spec e2e offline cần `dist/sw.js` nên CI (cả `check.yml` lẫn `e2e-toan-bo.yml` chạy dev server)
+  hiện KHÔNG chạy nó.
+
+**Kiểm:** Chromium 5/5 bài offline qua; WebKit 3 qua + 2 bỏ qua có lý do; bỏ bản sửa thì 2 bài offline Chromium + bài máy chủ tắt
+(Chromium) + test đơn vị đều đỏ.
+
+**Kèm theo — `npm run check` đỏ `lint-ratchet` trên `main` từ `0b38df4` (bảng "Top nhóm" Check thưởng của chủ dự án):** sửa đúng
+theo luật CLAUDE.md, giao diện gần như không đổi — chữ 9/10px → 11px (luật "nhỏ nhất 11px"; đo laptop: 21 → 0 chữ < 11px, không
+tràn ngang), `text-lg` 18px → `text-[17px] leading-7` (bậc headline, giữ chiều cao dòng 28px; ≥ 640px vẫn `sm:text-xl`),
+`rounded-lg` → `rounded-control` (cùng 8px). Màu `indigo` (tím thật từ Đợt 6) GIỮ NGUYÊN — lựa chọn màu của chủ dự án, CLAUDE.md
+cho phép khi có chủ ý — ghi vào `violations-baseline.json` (CheckThuongView 8, CheckThuongGroupLeaderboardView 21). Muốn bỏ tím
+thì đổi `indigo-*` → `sky-*` rồi hạ baseline.

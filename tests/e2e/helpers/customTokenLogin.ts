@@ -94,18 +94,26 @@ export const dangNhapBangToken = async (page: Page) => {
     }, { t: token, duongDanApp: appPath('/services/firebase.ts') });
 };
 
-/** Tên các khoá trong `users/{FIREBASE_TEST_UID}.settings` trên cloud — đọc bằng CHÍNH tài khoản test (rules cho chủ hồ sơ đọc),
- *  REST chỉ đọc. Để bài test kiểm điều kiện đầu vào thật thay vì giả định (AUD-015, 2026-10-30: hồ sơ đã sạch khoá Kho cũ nên bài
- *  "app tự dọn" chờ mãi một dòng log không bao giờ có). null = không đọc được. */
-export const docKhoaCaiDatCloud = async (): Promise<string[] | null> => {
+/** Phiên Firebase của tài khoản test lấy qua REST (không cần trang/module Vite) — dùng được với BẢN BUILD (`vite preview`), nơi
+ *  `dangNhapBangToken()` không chạy được vì không import được `/services/firebase.ts`. null = máy không có khoá tài khoản test. */
+export const dangNhapRest = async (): Promise<{ apiKey: string; projectId: string; uid: string; idToken: string; refreshToken: string; expiresIn: string } | null> => {
     const token = kyCustomToken();
     if (!token) return null;
     const cfg = JSON.parse(readFileSync('features/sticker-event/firebase-applet-config.json', 'utf8')) as { apiKey: string; projectId: string };
     const dn = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${cfg.apiKey}`, {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token, returnSecureToken: true }),
-    }).then(r => r.json()).catch(() => null) as { idToken?: string } | null;
-    if (!dn?.idToken) return null;
-    const r = await fetch(`https://firestore.googleapis.com/v1/projects/${cfg.projectId}/databases/(default)/documents/users/${process.env.FIREBASE_TEST_UID}?mask.fieldPaths=settings`,
+    }).then(r => r.json()).catch(() => null) as { idToken?: string; refreshToken?: string; expiresIn?: string } | null;
+    if (!dn?.idToken || !dn.refreshToken) return null;
+    return { apiKey: cfg.apiKey, projectId: cfg.projectId, uid: process.env.FIREBASE_TEST_UID || '', idToken: dn.idToken, refreshToken: dn.refreshToken, expiresIn: dn.expiresIn || '3600' };
+};
+
+/** Tên các khoá trong `users/{FIREBASE_TEST_UID}.settings` trên cloud — đọc bằng CHÍNH tài khoản test (rules cho chủ hồ sơ đọc),
+ *  REST chỉ đọc. Để bài test kiểm điều kiện đầu vào thật thay vì giả định (AUD-015, 2026-10-30: hồ sơ đã sạch khoá Kho cũ nên bài
+ *  "app tự dọn" chờ mãi một dòng log không bao giờ có). null = không đọc được. */
+export const docKhoaCaiDatCloud = async (): Promise<string[] | null> => {
+    const dn = await dangNhapRest();
+    if (!dn) return null;
+    const r = await fetch(`https://firestore.googleapis.com/v1/projects/${dn.projectId}/databases/(default)/documents/users/${process.env.FIREBASE_TEST_UID}?mask.fieldPaths=settings`,
         { headers: { authorization: `Bearer ${dn.idToken}` } }).catch(() => null);
     if (!r?.ok) return null;
     const doc = await r.json() as { fields?: { settings?: { mapValue?: { fields?: Record<string, unknown> } } } };
