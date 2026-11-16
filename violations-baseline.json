@@ -289,6 +289,23 @@
     "legacyRadius": 0,
     "backdropBlur": 1
   },
+  "components/views/CheckThuongView.tsx": {
+    "nonSemanticColor": 0,
+    "indigoAlias": 8,
+    "missingMobileToolbar": 0,
+    "iconDirectImport": 0,
+    "iconNumericSize": 0,
+    "iconLegacyCall": 0,
+    "iconRawSvg": 0,
+    "iconEmoji": 0,
+    "rawOverlay": 0,
+    "tinyText": 0,
+    "offScaleRadius": 0,
+    "offScaleText": 0,
+    "legacyRadius": 0,
+    "backdropBlur": 0,
+    "unstyledButton": 0
+  },
   "components/views/FeatureDisabled404View.tsx": {
     "nonSemanticColor": 0,
     "indigoAlias": 20,
@@ -462,6 +479,23 @@
     "offScaleRadius": 0,
     "offScaleText": 0,
     "legacyRadius": 0,
+    "unstyledButton": 0
+  },
+  "features/check-thuong/components/CheckThuongGroupLeaderboardView.tsx": {
+    "nonSemanticColor": 0,
+    "indigoAlias": 21,
+    "missingMobileToolbar": 0,
+    "iconDirectImport": 0,
+    "iconNumericSize": 0,
+    "iconLegacyCall": 0,
+    "iconRawSvg": 0,
+    "iconEmoji": 0,
+    "rawOverlay": 0,
+    "tinyText": 0,
+    "offScaleRadius": 0,
+    "offScaleText": 0,
+    "legacyRadius": 0,
+    "backdropBlur": 0,
     "unstyledButton": 0
   },
   "features/check-thuong/components/CheckThuongHeroBanner.tsx": {
