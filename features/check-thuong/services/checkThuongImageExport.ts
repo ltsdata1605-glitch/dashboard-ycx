@@ -1,10 +1,19 @@
-import { CheckThuongStoreSummary } from '../types';
+import { CheckThuongStoreSummary, CheckThuongGroupSummary } from '../types';
 import { formatBonusMoney } from './checkThuongCalc';
 import { deliverImage, type DeliveryResult } from '../../../components/shared/ui/imageDelivery';
 import { exportElementAsImage, startExportJob, exportFooterText } from '../../../components/shared/export';
 
 export interface ExportImageOptions {
     stores: CheckThuongStoreSummary[];
+    limit?: number;
+    channel?: string;
+    customTitle?: string;
+    fileName?: string;
+    fontName?: string;
+}
+
+export interface ExportGroupImageOptions {
+    groups: CheckThuongGroupSummary[];
     limit?: number;
     channel?: string;
     customTitle?: string;
@@ -168,6 +177,154 @@ export async function exportLeaderboardToImage({
         return ketQua;
     } finally {
         job.result(`Top ${listToExport.length}`, ok ? 'ok' : 'failed');
+        job.finish();
+        if (wrapper.parentNode) {
+            wrapper.parentNode.removeChild(wrapper);
+        }
+    }
+}
+
+export async function exportGroupLeaderboardToImage({
+    groups,
+    limit,
+    channel = 'ALL',
+    customTitle,
+    fileName,
+    fontName = 'UTM Avo'
+}: ExportGroupImageOptions): Promise<DeliveryResult> {
+    const listToExport = limit ? groups.slice(0, limit) : groups;
+    if (listToExport.length === 0) {
+        throw new Error('Không có dữ liệu nhóm thi đua để xuất ảnh!');
+    }
+
+    const TARGET_WIDTH = 500;
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'check-thuong-group-export-wrapper';
+    wrapper.style.position = 'fixed';
+    wrapper.style.top = '0';
+    wrapper.style.left = '0';
+    wrapper.style.zIndex = '-99999';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.overflow = 'hidden';
+    wrapper.style.width = `${TARGET_WIDTH}px`;
+
+    const captureTarget = document.createElement('div');
+    captureTarget.id = 'check-thuong-group-capture-target';
+    captureTarget.style.width = `${TARGET_WIDTH}px`;
+    captureTarget.style.backgroundColor = '#ffffff';
+    captureTarget.style.color = '#0f172a';
+    captureTarget.style.fontFamily = `'${fontName}', 'UTM Avo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    captureTarget.style.padding = '12px 14px';
+    captureTarget.style.boxSizing = 'border-box';
+    captureTarget.style.display = 'block';
+    captureTarget.style.border = '1.5px solid #cbd5e1';
+    captureTarget.style.borderRadius = '12px';
+    captureTarget.style.overflow = 'hidden';
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    const dateFileStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const totalBonusAll = listToExport.reduce((sum, g) => sum + g.totalBonus, 0);
+    const totalBonusMil = Math.round(totalBonusAll / 1000000);
+
+    const channelText = channel === 'ALL' ? 'Tất Cả Kênh' : `Kênh: ${channel}`;
+    const displayTitle = customTitle || (channel !== 'ALL' ? `TOP THƯỞNG NHÓM THI ĐUA • KÊNH ${channel}` : `TOP THƯỞNG CÁC NHÓM THI ĐUA`);
+
+    let rowsHtml = '';
+    listToExport.forEach((group, index) => {
+        const bonusFmt = formatBonusMoney(group.totalBonus).full;
+        const rankColor = index === 0 ? '#d97706' : index === 1 ? '#475569' : index === 2 ? '#b45309' : '#64748b';
+        const rankBg = index === 0 ? '#fef3c7' : index === 1 ? '#f1f5f9' : index === 2 ? '#ffedd5' : 'transparent';
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+        rowsHtml += `
+            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 10.5px; background-color: ${bgColor}; line-height: 1.35;">
+                <td style="padding: 6px 2px; text-align: center; font-weight: 800; color: ${rankColor}; background-color: ${rankBg}; border-radius: 4px; width: 34px;">
+                    #${group.rank}
+                </td>
+                <td style="padding: 6px 6px; font-weight: 700; color: #0f172a; text-align: left; width: 150px;">
+                    <div style="font-size: 11px;">${escapeHtml(group.groupName)}</div>
+                    ${channel === 'ALL' ? `<span style="font-size: 8.5px; padding: 1px 4px; border-radius: 4px; background: #e0f2fe; color: #0369a1; font-weight: 600;">${escapeHtml(group.channel)}</span>` : ''}
+                </td>
+                <td style="padding: 6px 4px; text-align: right; font-weight: 800; color: #0284c7; width: 68px;">
+                    ${bonusFmt}
+                </td>
+                <td style="padding: 6px 3px; text-align: center; color: #475569; font-size: 9.5px; width: 70px;">
+                    ${group.storesWithBonusCount}/${group.storeCount} kho<br>
+                    <span style="color: #059669; font-weight: 700;">${group.storesWithBonusPercent}%</span>
+                </td>
+                <td style="padding: 6px 3px; text-align: center; color: #475569; font-size: 9.5px; width: 60px;">
+                    ${group.achieved100Count} kho<br>
+                    <span style="color: #64748b;">(${group.achieved100Percent}%)</span>
+                </td>
+                <td style="padding: 6px 4px; text-align: left; font-size: 9px; color: #334155; width: 118px;">
+                    ${group.topStore ? `
+                        <div style="font-weight: 700; color: #b45309; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 115px;" title="${escapeHtml(group.topStore.rawStore)}">
+                            ${escapeHtml(group.topStore.storeCode)} - ${escapeHtml(group.topStore.storeName)}
+                        </div>
+                        <div style="color: #0284c7; font-weight: 700; font-size: 9px;">${formatBonusMoney(group.topStore.bonus).full}</div>
+                    ` : '<span style="color: #94a3b8;">-</span>'}
+                </td>
+            </tr>
+        `;
+    });
+
+    captureTarget.innerHTML = `
+        <div style="margin-bottom: 10px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <h3 style="margin: 0; font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: -0.01em; font-family: inherit;">
+                    ${escapeHtml(displayTitle)}
+                </h3>
+                <span style="font-size: 11px; font-weight: 800; color: #0284c7; font-family: inherit;">
+                    ${totalBonusMil.toLocaleString('vi-VN')} Tr
+                </span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 3px; font-size: 9px; color: #64748b; font-family: inherit;">
+                <span style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(channelText)}${fileName ? ` • ${escapeHtml(fileName)}` : ''} • ${listToExport.length} nhóm</span>
+                <span style="color: #94a3b8;">${timeStr}</span>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; font-family: inherit;">
+            <thead>
+                <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #cbd5e1; font-size: 9.5px; text-transform: uppercase; color: #475569; letter-spacing: 0.03em; font-weight: 800; line-height: 1.2;">
+                    <th style="padding: 5px 2px; text-align: center; width: 34px;">Hạng</th>
+                    <th style="padding: 5px 6px; text-align: left; width: 150px;">Nhóm Thi Đua</th>
+                    <th style="padding: 5px 4px; text-align: right; width: 68px;">Thưởng</th>
+                    <th style="padding: 5px 3px; text-align: center; width: 70px;">Có Thưởng</th>
+                    <th style="padding: 5px 3px; text-align: center; width: 60px;">Đạt 100%</th>
+                    <th style="padding: 5px 4px; text-align: left; width: 118px;">Kho Cao Nhất</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+        </table>
+    `;
+
+    wrapper.appendChild(captureTarget);
+    document.body.appendChild(wrapper);
+
+    const job = startExportJob({ title: `Xuất ảnh Top nhóm thi đua${channel && channel !== 'ALL' ? ` kênh ${channel}` : ''}` });
+    let ok = false;
+    try {
+        const blob = await exportElementAsImage(captureTarget, 'check-thuong-nhom.png', {
+            preset: 'raw', mode: 'blob-only',
+            footer: `Top ${listToExport.length} nhóm thi đua · ${exportFooterText()}`,
+        });
+        if (!blob || blob.size < 500) {
+            throw new Error('Không thể tạo dữ liệu ảnh (kết quả rỗng)');
+        }
+
+        const channelSlug = (channel && channel !== 'ALL') ? `Kenh_${channel.replace(/[^a-zA-Z0-9]/g, '_')}_` : '';
+        job.stage('Đang lưu ảnh…');
+        const ketQua = await deliverImage(blob, `Top_${listToExport.length}_Nhom_${channelSlug}Thuong_Cao_${dateFileStr}.png`);
+        ok = true;
+        return ketQua;
+    } finally {
+        job.result(`Top ${listToExport.length} nhóm`, ok ? 'ok' : 'failed');
         job.finish();
         if (wrapper.parentNode) {
             wrapper.parentNode.removeChild(wrapper);

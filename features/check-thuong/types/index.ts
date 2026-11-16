@@ -81,3 +81,47 @@ export interface CheckThuongComparisonItem {
 
 export type CheckThuongViewMode = 'list' | 'card';
 
+export interface CheckThuongGroupStoreItem {
+    storeCode: string;
+    storeName: string;
+    rawStore: string;
+    channel: string;
+    bonus: number;
+    percent: number;
+    thuongVuot: number;
+    thuongTop: number;
+    hangVuot: number;
+    hangTarget: number;
+}
+
+export interface CheckThuongGroupSummary {
+    rank: number;
+    channel: string;
+    groupName: string;
+    totalBonus: number;
+    thuongVuot: number;
+    thuongTop: number;
+    storeCount: number;
+    storesWithBonusCount: number;
+    storesWithBonusPercent: number;
+    achieved100Count: number;
+    achieved100Percent: number;
+    avgPercent: number;
+    topStore: {
+        storeCode: string;
+        storeName: string;
+        rawStore: string;
+        bonus: number;
+    } | null;
+    stores: CheckThuongGroupStoreItem[];
+}
+
+export type GroupLeaderboardSortField = 'rank' | 'groupName' | 'channel' | 'totalBonus' | 'storesWithBonusCount' | 'achieved100Count' | 'avgPercent';
+
+export interface GroupLeaderboardFilterState {
+    channel: string; // 'ALL' or specific channel like 'ĐML', 'ĐMM', 'TGDD'
+    searchQuery: string;
+    sortBy: GroupLeaderboardSortField;
+    sortOrder: SortDirection;
+}
+
