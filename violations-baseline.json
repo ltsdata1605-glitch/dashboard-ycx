@@ -331,11 +331,11 @@
     "iconNumericSize": 0,
     "iconLegacyCall": 0,
     "iconRawSvg": 1,
-    "iconEmoji": 0,
+    "iconEmoji": 13,
     "rawOverlay": 0,
     "tinyText": 0,
     "offScaleRadius": 0,
-    "offScaleText": 0,
+    "offScaleText": 3,
     "legacyRadius": 0,
     "unstyledButton": 0
   },

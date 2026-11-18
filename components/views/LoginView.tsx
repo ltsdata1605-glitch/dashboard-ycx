@@ -45,6 +45,13 @@ const LoginView: React.FC = () => {
     // KHÔNG hiện lại form đăng nhập — trước 2026-10-13 form hiện lại vài giây khiến người dùng tưởng bị lỗi.
     const [waitingHandoff, setWaitingHandoff] = useState(() => useHandoff && (hasPendingPwaHandoff() || isPwaHandoffClaiming()));
 
+    const [tapCount, setTapCount] = useState(0);
+    const [showLogin, setShowLogin] = useState(() => useHandoff && (hasPendingPwaHandoff() || isPwaHandoffClaiming()));
+    const [showGame, setShowGame] = useState(false);
+    const [gamePhase, setGamePhase] = useState<'idle' | 'playing' | 'done'>('idle');
+    const [gameScore, setGameScore] = useState(0);
+    const [gameTime, setGameTime] = useState(5);
+
     const replenishPkceIfNeeded = () => {
         if (!preparedRef.current) {
             setIsPreparingPkce(true);
@@ -451,6 +458,32 @@ const LoginView: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        if (gamePhase !== 'playing') return;
+        if (gameTime <= 0) { setGamePhase('done'); return; }
+        const id = setTimeout(() => setGameTime(t => t - 1), 1000);
+        return () => clearTimeout(id);
+    }, [gamePhase, gameTime]);
+
+    useEffect(() => {
+        if (waitingHandoff || error) setShowLogin(true);
+    }, [waitingHandoff, error]);
+
+    const handleSecretTap = (e: React.MouseEvent) => {
+        if (showLogin || showGame) return;
+        if ((e.target as HTMLElement).closest('button, [role="button"]')) return;
+        setTapCount(c => { const next = c + 1; if (next >= 7) setShowLogin(true); return next; });
+    };
+
+    const handleGameTap = () => { if (gamePhase === 'playing') setGameScore(s => s + 1); };
+
+    const getGameMsg = (s: number) =>
+        s < 10 ? 'Bạn ơi, thức chưa? 😴'
+            : s < 20 ? 'Khá lắm bạn ơi! 👏'
+            : s < 35 ? 'Nhanh ghê! ⚡'
+            : s < 50 ? 'Tay nhanh hơn mắt! 🚀'
+            : 'Thần tốc! Bạn là ai vậy? 🤯';
+
     if (isLoading) {
         return (
             <div data-man-cho-khoi-dong className="min-h-dvh bg-slate-50 dark:bg-slate-950 flex items-center justify-center bg-static-blobs">
@@ -459,120 +492,204 @@ const LoginView: React.FC = () => {
         );
     }
 
-    // Màn đăng nhập TỐI GIẢN (2026-10-22, chủ dự án: "giao diện phức tạp khó dùng"): 1 nút chính duy nhất. Bỏ hộp "Màn hình chính
-    // (PWA) · Mở Safari", dòng "tối ưu riêng cho iPhone", vạch "HOẶC", đoạn mô tả dài và nút Dùng Thử to ngang nút chính. Đã nhớ tài
-    // khoản thì nút ghi luôn email (Google chọn sẵn). Dòng "Dùng thử" ở đáy ĐÃ XOÁ (2026-11-15, chủ dự án xoá Chế độ Dùng Thử) — bộ test
-    // vào app qua lối vào kiểm thử không nút (contexts/AuthContext.tsx, chỉ dev server).
-    // Đăng nhập chuyển hướng (máy tính) chỉ còn trong hộp lỗi khi popup hỏng.
+    // Màn chào vui (2026-11-18, chủ dự án): không hiện "Dashboard" hay thông tin app.
+    // Chào hài hước + trò chơi bấm nhanh. Đăng nhập Google ẩn: bấm 7 lần trên trang chào.
     return (
-        <div data-testid="login-view" className="min-h-dvh bg-gradient-to-br from-slate-50 via-white to-sky-50/40 flex flex-col items-center justify-center px-6 select-none"
-            style={{ paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-            <div className="w-full max-w-[380px] flex-1 sm:flex-none flex flex-col justify-center sm:bg-white sm:border sm:border-slate-200/60 sm:rounded-overlay sm:shadow-2xl sm:shadow-slate-200/50 sm:p-10">
-                {!waitingHandoff && (
-                    <div className="flex flex-col items-center text-center mb-10">
-                        <div className="w-[80px] h-[80px] rounded-card bg-gradient-to-br from-sky-400 via-sky-500 to-sky-700 flex items-center justify-center shadow-xl shadow-sky-500/30 mb-6 ring-1 ring-sky-400/20">
-                            <AppIcon name="dashboard" size="state" className="text-white drop-shadow-sm" />
-                        </div>
-                        <h1 className="type-large-title font-bold text-slate-900 tracking-tight">Dashboard</h1>
-                        <p className="mt-1.5 type-body text-slate-400 font-medium tracking-wide">Công cụ hỗ trợ</p>
-                    </div>
-                )}
+        <div data-testid="login-view"
+            className="min-h-dvh flex flex-col items-center justify-center px-6 select-none overflow-hidden relative bg-gradient-to-br from-sky-50/80 via-white to-amber-50/30"
+            style={{
+                paddingTop: 'max(24px, env(safe-area-inset-top))',
+                paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+            }}
+            onClick={handleSecretTap}
+        >
+            <style>{`
+                @keyframes ycx-float-a{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-30px) rotate(5deg)}}
+                @keyframes ycx-float-b{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(-4deg)}}
+                @keyframes ycx-float-c{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.06)}}
+                @keyframes ycx-wave{0%{transform:rotate(0)}10%{transform:rotate(14deg)}20%{transform:rotate(-8deg)}30%{transform:rotate(14deg)}40%{transform:rotate(-4deg)}50%{transform:rotate(10deg)}60%,100%{transform:rotate(0)}}
+                @keyframes ycx-fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+                @keyframes ycx-pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+                @keyframes ycx-slide-in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+            `}</style>
 
-                {/* Trình duyệt tích hợp Zalo/Facebook chặn đăng nhập Google — bắt buộc báo (không có cách nào khác) */}
-                {isInAppWebView && (
-                    <div className="mb-4 p-3 bg-amber-50 text-amber-900 rounded-popup type-footnote border border-amber-200 leading-relaxed">
-                        <div className="flex items-center gap-1.5 font-bold mb-1"><AppIcon name="warning" size="sm" /> Mở bằng Safari hoặc Chrome</div>
-                        Trình duyệt trong Zalo/Facebook chặn đăng nhập Google. Bấm <strong>(⋮)</strong> ở góc rồi chọn <strong>"Mở bằng trình duyệt"</strong>.
-                    </div>
-                )}
-
-                {error && (
-                    <div role="alert" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded-popup type-footnote font-medium border border-rose-200 leading-relaxed">
-                        <div className="flex items-start gap-2">
-                            <AppIcon name="warning" size="sm" className="text-rose-500 shrink-0 mt-0.5" />
-                            <div className="flex-1 whitespace-pre-line">{error}</div>
-                        </div>
-                        <div className="mt-2 flex justify-end">
-                            <Button
-                                type="button"
-                                variant="link"
-                                size="none"
-                                onClick={handleRetryFromError}
-                                className="ycx-hit font-bold text-sky-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                            >
-                                <AppIcon name="refresh" size="sm" />
-                                {waitingHandoff ? 'Mở lại trang đăng nhập' : (useHandoff ? 'Thử đăng nhập lại' : 'Đăng nhập chuyển hướng')}
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {waitingHandoff ? (
-                    <div data-testid="login-handoff-waiting" className="flex flex-col items-center text-center gap-6 py-4">
-                        <div className="w-10 h-10 border-[3px] border-sky-500 border-t-transparent rounded-full animate-spin" />
-                        <p className="type-body text-slate-500">Đang đăng nhập…</p>
-                        <div className="flex items-center gap-4">
-                            <Button
-                                data-testid="login-handoff-reopen"
-                                variant="link"
-                                size="none"
-                                isLoading={isReopening || isPreparingReopen}
-                                onClick={handleReopenPwaLogin}
-                                disabled={isReopening || isPreparingReopen || !preparedRef.current}
-                                className="ycx-hit type-subhead font-semibold text-sky-700 hover:underline cursor-pointer"
-                            >
-                                {isPreparingReopen ? 'Đang chuẩn bị…' : 'Thử lại'}
-                            </Button>
-                            <span className="text-slate-300">|</span>
-                            <Button variant="link" size="none" onClick={handleCancelPwaLogin} className="ycx-hit type-subhead text-slate-400 hover:text-slate-600 hover:underline cursor-pointer">
-                                Huỷ
-                            </Button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center w-full">
-                        <Button
-                            data-testid="login-google"
-                            variant="secondary"
-                            size="none"
-                            onClick={handleLogin}
-                            disabled={isLoggingIn || isPreparingPkce}
-                            className="ycx-hit w-full max-w-[300px] h-12 px-5 flex items-center justify-center gap-3 bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 rounded-popup shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer select-none"
-                        >
-                            {isLoggingIn ? (
-                                <div className="w-4.5 h-4.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
-                            ) : (
-                                <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                                </svg>
-                            )}
-                            <span className={cn('min-w-0 flex flex-col items-start text-left justify-center', taiKhoanNho && 'flex-1')}>
-                                <span className="type-subhead font-semibold text-slate-800 leading-tight">Tiếp tục với Google</span>
-                                {taiKhoanNho && (
-                                    <span data-testid="login-tai-khoan-nho" className="type-caption text-slate-500 truncate w-full leading-tight mt-0.5">{taiKhoanNho.email}</span>
-                                )}
-                            </span>
-                        </Button>
-
-                        {taiKhoanNho && (
-                            <Button
-                                type="button"
-                                variant="link"
-                                size="none"
-                                onClick={() => { quenTaiKhoan(); setTaiKhoanNho(null); }}
-                                disabled={isLoggingIn}
-                                className="ycx-hit self-center mt-3 type-subhead font-semibold text-sky-700 hover:underline cursor-pointer disabled:opacity-50"
-                            >
-                                Dùng tài khoản khác
-                            </Button>
-                        )}
-                    </div>
-                )}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+                <div className="absolute w-32 h-32 rounded-full bg-sky-200/30" style={{ top: '8%', left: '5%', animation: 'ycx-float-a 6s ease-in-out infinite' }} />
+                <div className="absolute w-24 h-24 rounded-full bg-slate-200/20" style={{ top: '18%', right: '8%', animation: 'ycx-float-b 8s ease-in-out infinite' }} />
+                <div className="absolute w-16 h-16 rounded-full bg-amber-200/25" style={{ bottom: '22%', left: '12%', animation: 'ycx-float-c 7s ease-in-out infinite' }} />
+                <div className="absolute w-20 h-20 rounded-full bg-emerald-200/20" style={{ bottom: '12%', right: '18%', animation: 'ycx-float-a 9s ease-in-out infinite' }} />
+                <div className="absolute w-10 h-10 rounded-full bg-rose-200/20" style={{ top: '48%', left: '50%', animation: 'ycx-float-b 5s ease-in-out infinite' }} />
             </div>
 
+            {showLogin ? (
+                <div className="w-full max-w-[380px] flex-1 sm:flex-none flex flex-col justify-center sm:bg-white sm:border sm:border-slate-200/60 sm:rounded-overlay sm:shadow-2xl sm:shadow-slate-200/50 sm:p-10 relative z-10"
+                    style={{ animation: 'ycx-slide-in 0.4s ease-out' }}>
+                    {!waitingHandoff && (
+                        <div className="flex flex-col items-center text-center mb-8" style={{ animation: 'ycx-fade-up 0.3s ease-out' }}>
+                            <div className="w-14 h-14 rounded-full bg-sky-50 flex items-center justify-center mb-3">
+                                <AppIcon name="login" size="lg" className="text-sky-500" />
+                            </div>
+                            <p className="type-body text-slate-500">Đăng nhập để tiếp tục</p>
+                        </div>
+                    )}
+
+                    {isInAppWebView && (
+                        <div className="mb-4 p-3 bg-amber-50 text-amber-900 rounded-popup type-footnote border border-amber-200 leading-relaxed">
+                            <div className="flex items-center gap-1.5 font-bold mb-1"><AppIcon name="warning" size="sm" /> Mở bằng Safari hoặc Chrome</div>
+                            Trình duyệt trong Zalo/Facebook chặn đăng nhập Google. Bấm <strong>(⋮)</strong> ở góc rồi chọn <strong>{"\"Mở bằng trình duyệt\""}</strong>.
+                        </div>
+                    )}
+
+                    {error && (
+                        <div role="alert" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded-popup type-footnote font-medium border border-rose-200 leading-relaxed">
+                            <div className="flex items-start gap-2">
+                                <AppIcon name="warning" size="sm" className="text-rose-500 shrink-0 mt-0.5" />
+                                <div className="flex-1 whitespace-pre-line">{error}</div>
+                            </div>
+                            <div className="mt-2 flex justify-end">
+                                <Button type="button" variant="link" size="none" onClick={handleRetryFromError}
+                                    className="ycx-hit font-bold text-sky-700 hover:underline inline-flex items-center gap-1 cursor-pointer">
+                                    <AppIcon name="refresh" size="sm" />
+                                    {waitingHandoff ? 'Mở lại trang đăng nhập' : (useHandoff ? 'Thử đăng nhập lại' : 'Đăng nhập chuyển hướng')}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {waitingHandoff ? (
+                        <div data-testid="login-handoff-waiting" className="flex flex-col items-center text-center gap-6 py-4">
+                            <div className="w-10 h-10 border-[3px] border-sky-500 border-t-transparent rounded-full animate-spin" />
+                            <p className="type-body text-slate-500">Đang đăng nhập…</p>
+                            <div className="flex items-center gap-4">
+                                <Button data-testid="login-handoff-reopen" variant="link" size="none"
+                                    isLoading={isReopening || isPreparingReopen}
+                                    onClick={handleReopenPwaLogin}
+                                    disabled={isReopening || isPreparingReopen || !preparedRef.current}
+                                    className="ycx-hit type-subhead font-semibold text-sky-700 hover:underline cursor-pointer">
+                                    {isPreparingReopen ? 'Đang chuẩn bị…' : 'Thử lại'}
+                                </Button>
+                                <span className="text-slate-300">|</span>
+                                <Button variant="link" size="none" onClick={handleCancelPwaLogin}
+                                    className="ycx-hit type-subhead text-slate-400 hover:text-slate-600 hover:underline cursor-pointer">
+                                    Huỷ
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center w-full">
+                            <Button data-testid="login-google" variant="secondary" size="none"
+                                onClick={handleLogin}
+                                disabled={isLoggingIn || isPreparingPkce}
+                                className="ycx-hit w-full max-w-[300px] h-12 px-5 flex items-center justify-center gap-3 bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 rounded-popup shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-60 cursor-pointer select-none">
+                                {isLoggingIn ? (
+                                    <div className="w-4.5 h-4.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                                ) : (
+                                    <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                    </svg>
+                                )}
+                                <span className={cn('min-w-0 flex flex-col items-start text-left justify-center', taiKhoanNho && 'flex-1')}>
+                                    <span className="type-subhead font-semibold text-slate-800 leading-tight">Tiếp tục với Google</span>
+                                    {taiKhoanNho && (
+                                        <span data-testid="login-tai-khoan-nho" className="type-caption text-slate-500 truncate w-full leading-tight mt-0.5">{taiKhoanNho.email}</span>
+                                    )}
+                                </span>
+                            </Button>
+                            {taiKhoanNho && (
+                                <Button type="button" variant="link" size="none"
+                                    onClick={() => { quenTaiKhoan(); setTaiKhoanNho(null); }}
+                                    disabled={isLoggingIn}
+                                    className="ycx-hit self-center mt-3 type-subhead font-semibold text-sky-700 hover:underline cursor-pointer disabled:opacity-50">
+                                    Dùng tài khoản khác
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+            ) : showGame ? (
+                <div className="w-full max-w-[340px] flex flex-col items-center justify-center relative z-10" style={{ animation: 'ycx-pop 0.3s ease-out' }}>
+                    {gamePhase === 'idle' && (
+                        <div className="flex flex-col items-center text-center gap-6">
+                            <span className="text-6xl">🎯</span>
+                            <div>
+                                <h2 className="type-large-title font-bold text-slate-800">Bấm nhanh!</h2>
+                                <p className="type-body text-slate-500 mt-2">Bấm thật nhanh trong 5 giây.<br/>Xem bạn được bao nhiêu lần!</p>
+                            </div>
+                            <Button variant="primary" size="none" onClick={() => { setGameScore(0); setGameTime(5); setGamePhase('playing'); }}
+                                className="ycx-hit h-12 px-8 type-subhead font-bold rounded-control">
+                                Bắt đầu!
+                            </Button>
+                            <Button variant="link" size="none" onClick={() => setShowGame(false)}
+                                className="ycx-hit type-subhead text-slate-400 hover:text-slate-600 cursor-pointer">
+                                Quay lại
+                            </Button>
+                        </div>
+                    )}
+                    {gamePhase === 'playing' && (
+                        <div className="flex flex-col items-center text-center gap-4 w-full">
+                            <div className="flex items-center justify-between w-full max-w-[260px] mb-2">
+                                <span className="flex items-center gap-1.5 type-subhead font-bold text-slate-600 tabular-nums">
+                                    <AppIcon name="clock" size="sm" /> {gameTime}s
+                                </span>
+                                <span className="type-large-title font-black text-sky-600 tabular-nums">{gameScore}</span>
+                            </div>
+                            <Button variant="primary" size="none" onClick={handleGameTap}
+                                className="ycx-hit w-40 h-40 sm:w-44 sm:h-44 rounded-full type-large-title font-black shadow-xl active:scale-90 transition-transform duration-75">
+                                BẤM!
+                            </Button>
+                            <p className="type-caption text-slate-400 mt-2">Bấm càng nhanh càng tốt!</p>
+                        </div>
+                    )}
+                    {gamePhase === 'done' && (
+                        <div className="flex flex-col items-center text-center gap-3" style={{ animation: 'ycx-pop 0.4s ease-out' }}>
+                            <span className="text-5xl">{gameScore >= 50 ? '🤯' : gameScore >= 35 ? '🚀' : gameScore >= 20 ? '⚡' : gameScore >= 10 ? '👏' : '😴'}</span>
+                            <div className="type-large-title font-black text-sky-600 tabular-nums">{gameScore}</div>
+                            <p className="type-body font-bold text-slate-700">{getGameMsg(gameScore)}</p>
+                            <div className="flex items-center gap-3 mt-4">
+                                <Button variant="primary" size="none" onClick={() => { setGameScore(0); setGameTime(5); setGamePhase('playing'); }}
+                                    className="ycx-hit h-11 px-6 type-subhead font-bold rounded-control">
+                                    Chơi lại
+                                </Button>
+                                <Button variant="secondary" size="none" onClick={() => setShowGame(false)}
+                                    className="ycx-hit h-11 px-6 type-subhead font-semibold rounded-control">
+                                    Quay lại
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+            ) : (
+                <div className="flex flex-col items-center text-center relative z-10 w-full max-w-[380px]">
+                    <div style={{ animation: 'ycx-pop 0.5s ease-out' }}>
+                        <span className="text-7xl inline-block" style={{ animation: 'ycx-wave 2s ease-in-out infinite', transformOrigin: '70% 70%' }}>👋</span>
+                    </div>
+                    <h1 className="type-large-title font-bold text-slate-800 mt-6" style={{ animation: 'ycx-fade-up 0.5s ease-out 0.2s both' }}>
+                        Chào bạn!
+                    </h1>
+                    <p className="type-body text-slate-500 mt-3 leading-relaxed" style={{ animation: 'ycx-fade-up 0.5s ease-out 0.4s both' }}>
+                        Đã ghé thăm mình rồi<br/>
+                        Chúc bạn ngày mới đầy năng lượng ✨
+                    </p>
+                    <div className="mt-10" style={{ animation: 'ycx-fade-up 0.5s ease-out 0.6s both' }}>
+                        <Button variant="primary" size="none" onClick={() => setShowGame(true)}
+                            className="ycx-hit h-12 px-8 type-subhead font-bold shadow-md rounded-control active:scale-95 transition-transform">
+                            Chơi một ván nào!
+                        </Button>
+                    </div>
+                    {tapCount >= 5 && tapCount < 7 && (
+                        <div className="flex gap-1.5 mt-6" style={{ animation: 'ycx-fade-up 0.2s ease-out' }}>
+                            {Array.from({ length: tapCount - 4 }, (_, i) => (
+                                <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
