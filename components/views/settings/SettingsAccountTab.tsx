@@ -14,7 +14,7 @@ import { formatCleanDisplayName, parseKhoList } from '../../../utils/dataUtils';
 import { getApprovalSettings } from '../../../services/approvalSettingsService';
 
 export const SettingsAccountTab: React.FC = () => {
-    const { user, userRole, departmentId, employeeName, expiresAt, requestAccess, logout, isDemoMode, loginWithGoogle } = useAuth();
+    const { user, userRole, departmentId, employeeName, expiresAt, requestAccess, logout, loginWithGoogle } = useAuth();
     const { activeTab } = useActiveTab();
 
     const [mounted, setMounted] = useState(false);
@@ -48,12 +48,12 @@ export const SettingsAccountTab: React.FC = () => {
 
     useEffect(() => {
         // Chưa đăng nhập (hoặc lối vào kiểm thử trên dev server): hàm máy chủ chỉ trả lỗi "cần đăng nhập" — dùng mặc định.
-        if (!user || isDemoMode) return;
+        if (!user) return;
         getApprovalSettings(departmentId).then(cfg => {
             setAutoApproveManagersEnabled(Boolean(cfg.autoApproveManagers));
             setAutoApproveEmployeesEnabled(cfg.effectiveAutoApproveForDept !== false);
         }).catch(err => console.warn('Lỗi đọc cấu hình duyệt:', err));
-    }, [departmentId, user, isDemoMode]);
+    }, [departmentId, user]);
     // Hộp xác nhận "xoá toàn bộ dữ liệu" (tự dựng — audit A34): hành vi modal chuẩn; không đóng khi đang xoá.
 
     // "Xoá tất cả dữ liệu" xoá kèm báo cáo Luỹ kế & Thi đua DÙNG CHUNG của Kho — CHỈ khi là quản lý,
@@ -168,7 +168,7 @@ export const SettingsAccountTab: React.FC = () => {
 
                 {/* Mở app bằng phiên đã lưu nhưng chưa nhận lại được tài khoản: nói đúng là CHƯA ĐĂNG NHẬP (trước 2026-11-15 băng này
                     ghi nhầm tên chế độ đã xoá). */}
-                {(!user || isDemoMode) && (
+                {!user && (
                     <Banner
                         tone="warning"
                         title="Chưa đăng nhập"

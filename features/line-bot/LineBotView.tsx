@@ -31,7 +31,7 @@ import { botHasToken } from './types/lineBot.types';
 type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'keywords' | 'admins' | 'approvals' | 'notes' | 'group-features' | 'syntax' | 'settings';
 
 export default function LineBotView() {
-    const { user, userRole, isDemoMode, setDemoMode, loginWithGoogle } = useAuth();
+    const { user, userRole, loginWithGoogle } = useAuth();
     const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
 
     const [activeSubTab, setActiveSubTab] = useState<LineBotTab>('coupons');
@@ -55,7 +55,6 @@ export default function LineBotView() {
         try {
             setIsLoggingIn(true);
             await loginWithGoogle();
-            setDemoMode(false);
             toast.success('Đăng nhập thành công! Đang đồng bộ Bot LINE theo kho...', { id: 'line-bot-auth' });
             botScopeHook.refreshScope();
         } catch (err: unknown) {
@@ -71,7 +70,7 @@ export default function LineBotView() {
 
     // iPhone (GĐ7): "Hướng dẫn tạo Bot" + "Đổi tài khoản" lên thanh trên của khung app (thẻ đầu trang chỉ còn tên + trạng thái);
     // laptop giữ 2 nút trong thẻ. Đăng nhập (chưa đăng nhập) là dải Banner riêng ngay dưới thẻ trên iPhone.
-    const daDangNhap = !!user && !isDemoMode;
+    const daDangNhap = !!user;
     usePageActions(activeTab === 'tools-line-bot' && isManagerOrAdmin ? {
         scope: 'mobile',
         quick: [{ id: 'huong-dan-bot', label: 'Hướng dẫn tạo Bot', icon: 'help', onSelect: () => setIsOnboardingOpen(true) }],
@@ -180,7 +179,7 @@ export default function LineBotView() {
 
                     <div className="hidden sm:flex items-center gap-1.5 shrink-0">
                         {/* Nút Đăng nhập / Chuyển tài khoản Google để thừa kế BOT LINE (iPhone: Banner dưới thẻ + thanh trên) */}
-                        {!user || isDemoMode ? (
+                        {!user ? (
                             <Button
                                 variant="primary"
                                 size="none"
@@ -268,7 +267,7 @@ export default function LineBotView() {
                                     <p className="font-semibold sm:truncate">
                                         Kho <strong>{currentDept}</strong> đã có sẵn Bot LINE "{warehouseBot?.botName}". Bạn có muốn dùng chung cùng các Quản lý khác không?
                                     </p>
-                                ) : isDemoMode || !user ? (
+                                ) : !user ? (
                                     <p className="font-medium text-slate-600 dark:text-slate-300 sm:truncate">
                                         Chưa đăng nhập — Kho <strong>{currentDept}</strong>. Đăng nhập Google để tự động kiểm tra và thừa kế Bot của kho.
                                     </p>

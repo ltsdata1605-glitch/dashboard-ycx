@@ -774,7 +774,6 @@ export function unwrapProductConfigProxies(config: ProductConfig): ProductConfig
 export const EMPTY_UNIQUE_FILTER_OPTIONS = { kho: [] as string[], trangThai: [] as string[], nguoiTao: [] as string[], department: [] as string[], hangSX: [] as string[] };
 
 export interface RbacParams {
-    isDemoMode: boolean;
     userRole: string | null | undefined;
     departmentId: string | null | undefined;
     employeeName: string | null | undefined;
@@ -784,8 +783,8 @@ export interface RbacParams {
 // Port nguyên văn từ `rbacData` useMemo cũ (hooks/useDataManagement.ts).
 export function computeRbacFilteredData(originalData: DataRow[], params: RbacParams): DataRow[] {
     let data = originalData;
-    const { isDemoMode, userRole, departmentId, employeeName, userEmail } = params;
-    if (!isDemoMode && (userRole === 'employee' || userRole === 'manager') && userEmail !== 'nguyendangkhoafit2@gmail.com') {
+    const { userRole, departmentId, employeeName, userEmail } = params;
+    if ((userRole === 'employee' || userRole === 'manager') && userEmail !== 'nguyendangkhoafit2@gmail.com') {
         const allowedKhos = (departmentId || '').split(',').map(k => k.trim()).filter(Boolean);
         data = originalData.filter(row => {
             const kho = String(getRowValue(row, COL.KHO) || '').trim();

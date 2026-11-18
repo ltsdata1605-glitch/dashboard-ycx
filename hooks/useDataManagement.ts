@@ -61,7 +61,7 @@ interface DataManagementProps {
 }
 
 export const useDataManagement = ({ filterState, setStatus, setAppState, appState }: DataManagementProps) => {
-    const { user, userRole, departmentId, employeeName, isDemoMode } = useAuth();
+    const { user, userRole, departmentId, employeeName } = useAuth();
     const [originalData, setOriginalData] = useState<DataRow[]>([]);
     // Đọc được trong effect bất đồng bộ (đồng bộ Kho) mà không phải thêm originalData vào deps.
     const originalDataLengthRef = useRef(0);
@@ -230,7 +230,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                                 await dbService.saveSetting('global_product_config_updated_at', globalEntry.updatedAt || new Date().toISOString());
                                 await dbService.saveProductConfigFromCloud(globalEntry.config, 'cloud://global_product_config', mocBanChung(globalEntry.updatedAt));
                                 setProductConfig(globalEntry.config);
-                            } else if (user && !isDemoMode) {
+                            } else if (user) {
                                 const { fetchProductConfigFromCloud } = await import('../services/firestoreService');
                                 const cloudConfigEntry = await fetchProductConfigFromCloud(user);
                                 const cloudConfig = cloudConfigEntry?.config;
@@ -259,7 +259,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                                 }
                                 await dbService.saveProductConfigFromCloud(globalEntry.config, 'cloud://global_product_config', mocBanChung(globalEntry.updatedAt));
                                 setProductConfig(globalEntry.config);
-                            } else if (user && !isDemoMode) {
+                            } else if (user) {
                                 const { fetchProductConfigFromCloud } = await import('../services/firestoreService');
                                 const cloudConfigEntry = await Promise.race([
                                     fetchProductConfigFromCloud(user),
@@ -367,7 +367,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 }
 
                 // 2. Background Cloud Sync (Settings + Sales Data)
-                if (user && !isDemoMode) {
+                if (user) {
                     // 2a. Settings sync (existing firestoreService)
                     import('../services/firestoreService').then(async ({ fetchFromCloud, fetchHeavySettingsFromCloud, syncHeavySettingToCloudQueued, HEAVY_SYNC_KEYS, isHeavySyncKey }) => {
                         try {
@@ -586,7 +586,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             }
         };
         loadInitialData();
-    }, [setAppState, setStatus, user, isDemoMode]);
+    }, [setAppState, setStatus, user]);
 
     // Kho-shared sales data sync (mục 37 implementation_plan.md) — TÁCH RIÊNG khỏi effect
     // loadInitialData() ở trên (không gộp chung) vì `userRole`/`departmentId` chỉ có giá trị
@@ -605,7 +605,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
     // có dữ liệu nào (vd vừa deploy tính năng, chưa ai từng tải) thì mới giữ nguyên dữ liệu
     // local họ tự tải (không đụng `originalData` trong trường hợp đó).
     useEffect(() => {
-        if (isDemoMode || !user) return;
+        if (!user) return;
         if (userRole !== 'manager' && userRole !== 'employee' && userRole !== 'admin') return;
         if (!departmentId) return;
 
@@ -649,11 +649,11 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
         });
 
         return () => { cancelled = true; };
-    }, [user, userRole, departmentId, isDemoMode, setStatus, setAppState]);
+    }, [user, userRole, departmentId, setStatus, setAppState]);
 
     // Realtime Sales Data Listener — Tự động đồng bộ tức thì khi Firestore có bản ghi mới (không cần bấm thủ công)
     useEffect(() => {
-        if (!user || isDemoMode) return;
+        if (!user) return;
 
         let isMounted = true;
         const metaDocRef = doc(db, 'users', user.uid, 'salesData', 'meta');
@@ -716,13 +716,13 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             window.removeEventListener('ycx-sales-data-uploaded', handleLocalUpload);
             unsub();
         };
-    }, [user, isDemoMode, applyCloudSalesData]);
+    }, [user, applyCloudSalesData]);
 
     const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
     // Kích hoạt đồng bộ đám mây (dùng chung cho cả visibilitychange khi người dùng mở lại điện thoại lẫn nút bấm thủ công)
     const triggerCloudSync = useCallback(async (notifyIfUpToDate = false) => {
-        if (!user || isDemoMode) {
+        if (!user) {
             if (notifyIfUpToDate) {
                 if (typeof window !== 'undefined') {
                     window.dispatchEvent(new CustomEvent('ycx-cloud-sync-result', {
@@ -853,12 +853,12 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             releaseCloudSyncLock();
             setIsSyncingCloud(false);
         }
-    }, [user, isDemoMode, departmentId, applyCloudSalesData, setOriginalData, setAppState]);
+    }, [user, departmentId, applyCloudSalesData, setOriginalData, setAppState]);
     triggerCloudSyncRef.current = triggerCloudSync;
 
     // Realtime Kho Data Listener — Tự động nhận diện và kéo dữ liệu mới nhất tức thì khi Quản lý tải lên Kho
     useEffect(() => {
-        if (!user || isDemoMode || !departmentId) return;
+        if (!user || !departmentId) return;
 
         let isMounted = true;
         const allowedKhos = parseKhoList(departmentId);
@@ -893,7 +893,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             isMounted = false;
             unsubs.forEach(u => u());
         };
-    }, [user, isDemoMode, departmentId, triggerCloudSync]);
+    }, [user, departmentId, triggerCloudSync]);
 
     // Tự động kiểm tra và đồng bộ khi người dùng mở trang, quay lại tab hoặc định kỳ ngầm
     useEffect(() => {
@@ -901,7 +901,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
 
         // 1. Tự động đồng bộ ngay lập tức khi mở trang (50ms thay vì 1200ms)
         const initialTimer = setTimeout(() => {
-            if (user && !isDemoMode) {
+            if (user) {
                 triggerCloudSync(false);
             }
         }, 50);
@@ -910,7 +910,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
         // kiểm tra định kỳ chỉ để phòng listener rớt. Trước 2026-10-14 chạy mỗi 20 giây, mỗi lượt đọc lại cả danh sách file
         // Kho (~4.300 lượt đọc/máy/ngày mở app) mà không nhanh hơn listener. Nay 3 phút.
         const backgroundInterval = setInterval(() => {
-            if (document.visibilityState === 'visible' && user && !isDemoMode && !isCloudSyncingRef.current) {
+            if (document.visibilityState === 'visible' && user && !isCloudSyncingRef.current) {
                 triggerCloudSync(false);
             }
         }, 3 * 60 * 1000);
@@ -943,14 +943,14 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             window.removeEventListener('online', handleWakeAndSync);
             window.removeEventListener('ycx-trigger-cloud-sync', handleManualEvent);
         };
-    }, [user, isDemoMode, triggerCloudSync]);
+    }, [user, triggerCloudSync]);
 
     // Kích hoạt đồng bộ ngay khi departmentId thay đổi / được nạp từ cache
     useEffect(() => {
-        if (departmentId && user && !isDemoMode && !isCloudSyncingRef.current) {
+        if (departmentId && user && !isCloudSyncingRef.current) {
             triggerCloudSync(false);
         }
-    }, [departmentId, user, isDemoMode, triggerCloudSync]);
+    }, [departmentId, user, triggerCloudSync]);
 
     // Lắng nghe sự kiện cập nhật cấu hình tức thì từ Phân Quyền & Duyệt Yêu Cầu (áp dụng trực tiếp không cần reload trang)
     useEffect(() => {
@@ -1091,7 +1091,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 }
                 
                 // Background Cloud Sync
-                if (user && !isDemoMode) {
+                if (user) {
                     const { uploadProcessedData } = await import('../services/cloudDataService');
                     uploadProcessedData(user, srcData, merged.filename, merged.fileLastModified || merged.savedAt.getTime(), merged.savedAt.getTime(), merged.isRealtime).catch(console.error);
                     const { syncDataToKhoIfManager } = await import('../services/khoDataService');
@@ -1103,7 +1103,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 setAppState('upload');
 
                 // Clear cloud data when local data is completely empty
-                if (user && !isDemoMode) {
+                if (user) {
                     void xoaBanCloudKhiMayTrong(user);
                 }
             }
@@ -1114,7 +1114,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
         } finally {
             setIsHardProcessing(false);
         }
-    }, [user, isDemoMode, setAppState, setStatus, appState]);
+    }, [user, setAppState, setStatus, appState]);
 
     const handleRenameFile = useCallback(async (id: string, newFilename: string) => {
         try {
@@ -1138,7 +1138,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             const merged = await dbService.getMergedSalesData();
             if (merged) {
                 setFileInfo({ filename: merged.filename, savedAt: merged.savedAt.toLocaleString('vi-VN') });
-                if (user && !isDemoMode) {
+                if (user) {
                     const { uploadProcessedData } = await import('../services/cloudDataService');
                     uploadProcessedData(user, normalizeSalesData(merged.data), merged.filename, merged.fileLastModified || merged.savedAt.getTime(), merged.savedAt.getTime(), merged.isRealtime).catch(console.error);
                 }
@@ -1147,7 +1147,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             console.error('[Registry] Error renaming file:', error);
             toast.error('Có lỗi xảy ra khi đổi tên tệp!');
         }
-    }, [user, isDemoMode]);
+    }, [user]);
 
     const handleClearRealtimeData = useCallback(async () => {
         try {
@@ -1166,7 +1166,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 setOriginalData(srcData);
                 setAppState('processing');
                 
-                if (user && !isDemoMode) {
+                if (user) {
                     const { uploadProcessedData } = await import('../services/cloudDataService');
                     uploadProcessedData(user, srcData, merged.filename, merged.fileLastModified || merged.savedAt.getTime(), merged.savedAt.getTime(), merged.isRealtime).catch(console.error);
                     const { syncDataToKhoIfManager } = await import('../services/khoDataService');
@@ -1178,7 +1178,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 setAppState('upload');
 
                 // Clear cloud data when local data is completely empty
-                if (user && !isDemoMode) {
+                if (user) {
                     void xoaBanCloudKhiMayTrong(user);
                 }
             }
@@ -1189,7 +1189,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
         } finally {
             setIsHardProcessing(false);
         }
-    }, [user, isDemoMode, setAppState, setStatus, refreshRegistry]);
+    }, [user, setAppState, setStatus, refreshRegistry]);
 
     const handleClearAllData = useCallback(async () => {
         try {
@@ -1198,7 +1198,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             await dbService.clearAllSalesFiles();
             latestActiveSalesMetaRef.current = null;
             
-            if (user && !isDemoMode) {
+            if (user) {
                 const { deleteCloudSalesData } = await import('../services/cloudDataService');
                 await deleteCloudSalesData(user).catch(console.error);
                 if (userRole === 'manager' && departmentId) {
@@ -1228,7 +1228,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
         } finally {
             setIsHardProcessing(false);
         }
-    }, [user, userRole, departmentId, isDemoMode, setAppState, setStatus, refreshRegistry]);
+    }, [user, userRole, departmentId, setAppState, setStatus, refreshRegistry]);
 
     const handleViewReport = useCallback(async () => {
         try {
@@ -1272,7 +1272,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 setAppState('processing');
                 
                 // Background Cloud Sync
-                if (user && !isDemoMode) {
+                if (user) {
                     const { uploadProcessedData } = await import('../services/cloudDataService');
                     uploadProcessedData(user, srcData, merged.filename, merged.fileLastModified || merged.savedAt.getTime(), merged.savedAt.getTime(), merged.isRealtime).catch(console.error);
                     const { syncDataToKhoIfManager } = await import('../services/khoDataService');
@@ -1289,7 +1289,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
         } finally {
             setIsHardProcessing(false);
         }
-    }, [setAppState, setStatus, user, isDemoMode]);
+    }, [setAppState, setStatus, user]);
 
     // Analytics Worker setup
     const workerRef = useRef<Worker | null>(null);
@@ -1453,7 +1453,6 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
                 originalData: chiaKhuc ? undefined : originalData,
                 chunked: chiaKhuc,
                 rbacParams: {
-                    isDemoMode,
                     userRole,
                     departmentId,
                     employeeName,
@@ -1465,7 +1464,7 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
             });
         })();
         return () => { huy = true; };
-    }, [originalData, userRole, departmentId, employeeName, user?.email, isDemoMode, productConfig, departmentMap, workerReady]);
+    }, [originalData, userRole, departmentId, employeeName, user?.email, productConfig, departmentMap, workerReady]);
 
     // Mục 65d: baseFilteredData/warehouseFilteredData/filteredValidSalesData trước đây được WORKER
     // tính rồi gửi cả bản sao ĐẦY ĐỦ (tới 50k dòng/mảng) về qua postMessage — đo được payload tổng
@@ -1481,8 +1480,8 @@ export const useDataManagement = ({ filterState, setStatus, setAppState, appStat
     // nếu không nhân viên/quản lý sẽ thấy dữ liệu ngoài phạm vi Kho/nhân viên được phép (rò rỉ dữ
     // liệu, không phải chi tiết nhỏ).
     const rbacSourceData = useMemo(() => computeRbacFilteredData(originalData, {
-        isDemoMode, userRole, departmentId, employeeName, userEmail: user?.email,
-    }), [originalData, isDemoMode, userRole, departmentId, employeeName, user?.email]);
+        userRole, departmentId, employeeName, userEmail: user?.email,
+    }), [originalData, userRole, departmentId, employeeName, user?.email]);
 
     const { baseFilteredData: computedBaseFilteredData, mainPeriodData } = useMemo(
         () => computeBaseAndPeriodData(rbacSourceData, filterState, departmentMap),

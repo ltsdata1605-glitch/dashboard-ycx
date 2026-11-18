@@ -20,7 +20,7 @@ type SyncState = 'idle' | 'syncing' | 'synced' | 'error';
 // isLocalOnlyKey / isLightSyncKey: utils/localDbScope.ts (dùng chung với nơi đóng dấu thời gian).
 
 export const useCloudSync = () => {
-    const { user, isDemoMode } = useAuth();
+    const { user } = useAuth();
     const [syncState, setSyncState] = useState<SyncState>('idle');
     const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
     const [lastError, setLastError] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export const useCloudSync = () => {
     }, []);
 
     const forceSync = useCallback(async () => {
-        if (!user || isDemoMode || (typeof window !== 'undefined' && (window as any).__ycx_is_resetting_all_data)) return;
+        if (!user || (typeof window !== 'undefined' && (window as any).__ycx_is_resetting_all_data)) return;
         // Máy CHƯA kéo cấu hình nhẹ của tài khoản về lần nào: KHÔNG đẩy lên. Những gì có trên máy lúc này
         // chỉ là giá trị mặc định vừa lưu lúc khởi động — đẩy lên là đè cấu hình thật trên Cloud (đo thật
         // 2026-09-28: sidebar_collapsed, dashboard_global_filters_v2 lưu ở giây 1–3, kéo về ở giây ~6).
@@ -108,10 +108,10 @@ export const useCloudSync = () => {
                 setLastError(null);
             }, 8000);
         }
-    }, [user, isDemoMode, clearSyncTimeout]);
+    }, [user, clearSyncTimeout]);
 
     useEffect(() => {
-        if (!user || isDemoMode) return;
+        if (!user) return;
 
         let unsubConfig: (() => void) | null = null;
         let unsubConfigs: (() => void) | null = null;
@@ -348,7 +348,7 @@ export const useCloudSync = () => {
             window.clearInterval(intervalId);
             clearSyncTimeout(); // Prevent memory leak when component unmounts
         };
-    }, [user, isDemoMode, forceSync, clearSyncTimeout]);
+    }, [user, forceSync, clearSyncTimeout]);
 
     return { syncState, lastSyncTime, forceSync, lastError };
 };

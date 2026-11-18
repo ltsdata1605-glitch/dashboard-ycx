@@ -21,9 +21,9 @@ export interface PendingApprovalsState {
  * vào nguồn dùng chung `services/pendingApprovalsStore.ts`; hook giờ chỉ là lớp đăng ký mỏng.
  */
 export function usePendingApprovals(): PendingApprovalsState {
-    const { user, userRole, departmentId, isDemoMode } = useAuth();
+    const { user, userRole, departmentId } = useAuth();
     const isReviewer = userRole === 'admin' || userRole === 'manager';
-    const enabled = !isDemoMode && isReviewer;
+    const enabled = isReviewer;
 
     const [state, setState] = useState<PendingApprovalsState>(() =>
         enabled

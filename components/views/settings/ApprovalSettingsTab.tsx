@@ -16,7 +16,7 @@ interface ApprovalSettingsTabProps {
 }
 
 export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConfigChange }) => {
-    const { userRole, departmentId, isDemoMode } = useAuth();
+    const { userRole, departmentId } = useAuth();
     const isSuperAdmin = userRole === 'admin' && (departmentId || '').startsWith('ALL (Super Admin)');
     const isAdmin = userRole === 'admin';
     const isManager = userRole === 'manager';
@@ -75,12 +75,6 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
         }
 
         const newValue = !settings.autoApproveManagers;
-        if (import.meta.env.DEV && isDemoMode) {
-            setSettings(prev => ({ ...prev, autoApproveManagers: newValue }));
-            toast.success(`(Kiểm thử) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Quản lý!`);
-            return;
-        }
-
         try {
             setSavingManager(true);
             await updateApprovalSettings({ autoApproveManagers: newValue });
@@ -107,12 +101,6 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
         }
 
         const newValue = !settings.autoApproveEmployees;
-        if (import.meta.env.DEV && isDemoMode) {
-            setSettings(prev => ({ ...prev, autoApproveEmployees: newValue }));
-            toast.success(`(Kiểm thử) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Nhân viên toàn cục!`);
-            return;
-        }
-
         try {
             setSavingEmployee(true);
             await updateApprovalSettings({ autoApproveEmployees: newValue });
@@ -141,18 +129,6 @@ export const ApprovalSettingsTab: React.FC<ApprovalSettingsTabProps> = ({ onConf
             : (settings.autoApproveEmployees !== false); // Mặc định là true (BẬT)
 
         const newValue = !currentVal;
-
-        if (import.meta.env.DEV && isDemoMode) {
-            setSettings(prev => ({
-                ...prev,
-                autoApproveEmployeesByDept: {
-                    ...prev.autoApproveEmployeesByDept,
-                    [targetKho]: newValue
-                }
-            }));
-            toast.success(`(Kiểm thử) Đã ${newValue ? 'BẬT' : 'TẮT'} tự động duyệt Nhân viên cho Kho ${targetKho}!`);
-            return;
-        }
 
         try {
             setSavingDept(targetKho);

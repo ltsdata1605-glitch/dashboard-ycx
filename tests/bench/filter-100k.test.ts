@@ -48,7 +48,7 @@ describe.skipIf(!process.env.BENCH)(`Benchmark ${N.toLocaleString()} dòng`, () 
 
         // 1. RBAC (nhân viên — nhánh lọc nặng nhất)
         let t = performance.now();
-        const rbac = computeRbacFilteredData(rows, { isDemoMode: false, userRole: 'manager', departmentId: 'K01,K02', employeeName: null, userEmail: 'x@y.z' });
+        const rbac = computeRbacFilteredData(rows, { userRole: 'manager', departmentId: 'K01,K02', employeeName: null, userEmail: 'x@y.z' });
         const tRbac = performance.now() - t;
 
         // 2. Lọc chính

@@ -4,12 +4,6 @@ import { getSettingsMatching } from './dbService/core';
 import { isHeavySyncKey } from './firestoreService';
 import { isLightSyncKey, isLocalOnlyKey } from '../utils/localDbScope';
 
-// Lối vào kiểm thử (thay "Chế độ Dùng Thử" đã xoá 2026-11-15 — CHỈ dev server, xem contexts/AuthContext.tsx): đọc thẳng cờ
-// 'ycx_demo_mode' (module thuần, không phải hook) để không đẩy cài đặt lên Firestore khi đang ở lối vào kiểm thử. Bản build: luôn
-// false (Vite thay import.meta.env.DEV = false) — người dùng không còn cờ này.
-const isDemoModeActive = (): boolean =>
-    import.meta.env.DEV && typeof window !== 'undefined' && (sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true');
-
 // Keys that are too large or unnecessary for cloud sync
 const EXCLUDED_SYNC_KEYS = new Set([
     'productConfig',
@@ -87,7 +81,7 @@ const MAX_SYNC_BYTES = 800 * 1024;
 
 export const pushSettingsToFirebase = async () => {
     const user = auth.currentUser;
-    if (!user || isDemoModeActive()) return;
+    if (!user) return;
     try {
         // Lọc chỉ đồng bộ các cấu hình tĩnh, dung lượng nhẹ. KHÔNG ĐỒNG BỘ data lớn.
         // PERF FIX (2026-10-07): lọc theo TÊN khoá trước khi đọc giá trị — bản cũ getAllSettings() nạp và

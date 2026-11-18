@@ -290,12 +290,11 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
 
                             return (
                                 <Button
-                                    variant="cell"
-                                    size="none"
                                     key={ch}
-                                    type="button"
-                                    aria-pressed={isSelected}
+                                    variant="tab"
+                                    size="none"
                                     onClick={() => setFilters(prev => ({ ...prev, channel: ch }))}
+                                    aria-pressed={isSelected}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-all active:scale-95 ${
                                         isSelected
                                             ? 'bg-sky-600 text-white font-bold shadow-xs ring-2 ring-sky-400/40'
@@ -303,7 +302,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                     }`}
                                 >
                                     <span className="font-extrabold">{ch}</span>
-                                    <span className={`text-[11px] px-1.5 py-0.2 rounded-full ${
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                                         isSelected ? 'bg-sky-700/80 text-sky-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-semibold'
                                     }`}>
                                         {bonusShort}
@@ -314,11 +313,10 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
 
                         {/* Nút Xem tất cả kênh */}
                         <Button
-                            variant="cell"
+                            variant="tab"
                             size="none"
-                            type="button"
-                            aria-pressed={filters.channel === 'ALL'}
                             onClick={() => setFilters(prev => ({ ...prev, channel: 'ALL' }))}
+                            aria-pressed={filters.channel === 'ALL'}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all active:scale-95 ${
                                 filters.channel === 'ALL'
                                     ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold shadow-xs'
@@ -338,10 +336,10 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             <span>TỔNG THƯỞNG KÊNH</span>
                             <AppIcon name="coins" size="xs" className="text-sky-500" />
                         </div>
-                        <div className="text-[17px] leading-7 sm:text-xl font-black text-sky-600 dark:text-sky-400 tracking-tight">
+                        <div className="text-lg sm:text-xl font-black text-sky-600 dark:text-sky-400 tracking-tight">
                             {formatBonusMoney(channelStats.totalBonus).full}
                         </div>
-                        <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
                             {filters.channel === 'ALL' ? 'Toàn bộ hệ thống' : `Kênh: ${filters.channel}`}
                         </div>
                     </div>
@@ -350,7 +348,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                     <div className="p-3 sm:p-3.5 rounded-card bg-white dark:bg-slate-800/90 border border-amber-200/80 dark:border-amber-900/60 shadow-2xs">
                         <div className="flex items-center justify-between gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 mb-1">
                             <span>QUÁN QUÂN #1</span>
-                            <span className="px-1 py-0.2 rounded text-[11px] font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                            <span className="px-1 py-0.2 rounded text-[9px] font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
                                 TOP 1
                             </span>
                         </div>
@@ -368,10 +366,10 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             <span>SỐ NHÓM THI ĐUA</span>
                             <AppIcon name="layers" size="xs" className="text-indigo-500" />
                         </div>
-                        <div className="text-[17px] leading-7 sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                        <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                             {channelStats.totalGroups} <span className="text-xs font-normal text-slate-500">nhóm</span>
                         </div>
-                        <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                             Bình quân: {formatBonusMoney(channelStats.avgBonusPerGroup).full}/nhóm
                         </div>
                     </div>
@@ -382,10 +380,10 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             <span>LƯỢT KHO CÓ THƯỞNG</span>
                             <AppIcon name="store" size="xs" className="text-emerald-500" />
                         </div>
-                        <div className="text-[17px] leading-7 sm:text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                        <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
                             {channelStats.totalStoresWithBonus.toLocaleString('vi-VN')}
                         </div>
-                        <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                             Tổng các lượt kho đạt thưởng
                         </div>
                     </div>
@@ -400,7 +398,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             placeholder="Tìm kiếm nhóm thi đua (vd: Tivi, Tủ lạnh, Gia dụng...)"
                             value={filters.searchQuery}
                             onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                            className="w-full h-9 pl-9 pr-8 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-control focus:outline-none focus:border-sky-500 dark:focus:border-sky-400 transition-colors"
+                            className="w-full h-9 pl-9 pr-8 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-sky-500 dark:focus:border-sky-400 transition-colors"
                         />
                         <div className="absolute left-3 top-2.5 text-slate-400">
                             <AppIcon name="search" size="xs" />
@@ -409,10 +407,9 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                             <Button
                                 variant="cell"
                                 size="none"
-                                type="button"
-                                aria-label="Xoá ô tìm kiếm"
                                 onClick={() => setFilters(prev => ({ ...prev, searchQuery: '' }))}
                                 className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                                aria-label="Xoá tìm kiếm"
                             >
                                 <AppIcon name="close" size="xs" />
                             </Button>
@@ -540,7 +537,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                                         <div className="font-extrabold text-slate-900 dark:text-slate-100 text-xs sm:text-[13px]">
                                                             {group.groupName}
                                                         </div>
-                                                        <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                                        <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-0.5">
                                                             <span>Thưởng vượt: {formatBonusMoney(group.thuongVuot).full}</span>
                                                             <span>•</span>
                                                             <span>Thưởng Top: {formatBonusMoney(group.thuongTop).full}</span>
@@ -548,7 +545,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                                     </td>
                                                     {filters.channel === 'ALL' && (
                                                         <td className="py-2.5 px-2 text-center">
-                                                            <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-black border ${getChannelBadge(group.channel)}`}>
+                                                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-black border ${getChannelBadge(group.channel)}`}>
                                                                 {group.channel}
                                                             </span>
                                                         </td>
@@ -560,9 +557,9 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                                     </td>
                                                     <td className="py-2.5 px-2 text-center">
                                                         <div className="font-bold text-slate-800 dark:text-slate-200">
-                                                            {group.storesWithBonusCount} <span className="text-[11px] text-slate-400">/{group.storeCount}</span>
+                                                            {group.storesWithBonusCount} <span className="text-[10px] text-slate-400">/{group.storeCount}</span>
                                                         </div>
-                                                        <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                        <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                                                             {group.storesWithBonusPercent}%
                                                         </div>
                                                     </td>
@@ -570,7 +567,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                                         <div className="font-bold text-slate-800 dark:text-slate-200">
                                                             {group.achieved100Count}
                                                         </div>
-                                                        <div className="text-[11px] text-slate-400 dark:text-slate-500">
+                                                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
                                                             ({group.achieved100Percent}%)
                                                         </div>
                                                     </td>
@@ -586,7 +583,7 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                                                 <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-400 truncate max-w-[170px]">
                                                                     {group.topStore.storeCode} - {group.topStore.storeName}
                                                                 </span>
-                                                                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
                                                                     {formatBonusMoney(group.topStore.bonus).full}
                                                                 </span>
                                                             </Button>
@@ -622,12 +619,12 @@ export const CheckThuongGroupLeaderboardView: React.FC<CheckThuongGroupLeaderboa
                                                                             Danh sách các siêu thị thuộc nhóm: <strong className="text-indigo-600 dark:text-indigo-400">{group.groupName}</strong> ({group.stores.length} kho)
                                                                         </span>
                                                                     </div>
-                                                                    <span className="text-[11px] text-slate-400">
+                                                                    <span className="text-[10px] text-slate-400">
                                                                         Sắp xếp theo tiền thưởng từ cao đến thấp
                                                                     </span>
                                                                 </div>
 
-                                                                <div className="max-h-60 overflow-y-auto rounded-control border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800">
+                                                                <div className="max-h-60 overflow-y-auto rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800">
                                                                     <table className="w-full text-[11px]">
                                                                         <thead>
                                                                             <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 text-slate-500">

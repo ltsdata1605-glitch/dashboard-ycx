@@ -248,7 +248,7 @@ const TAB_NAV_TITLES: Record<string, string> = {
 function AppContent() {
     const { isDarkMode, toggleDarkMode, isDesktopMenuOpen, toggleDesktopMenu } = useLayout();
     const { activeTab, setActiveTab } = useActiveTab();
-    const { user, userRole, isDemoMode, isLoading, departmentId, status, hasCachedSession } = useAuth();
+    const { user, userRole, isLoading, departmentId, status, hasCachedSession } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
     const canAccessLineBot = userRole === 'admin' || userRole === 'manager';
     const titleData = TAB_TITLES[activeTab] || { main: 'Hub', highlight: '2.0' };
@@ -345,11 +345,11 @@ function AppContent() {
          return <ManChoKhoiDong />;
     }
 
-    // Chưa đăng nhập -> bắt buộc ở màn Login (isDemoMode = lối vào kiểm thử, chỉ có trên dev server).
+    // Chưa đăng nhập -> bắt buộc ở màn Login.
     // Bỏ qua khi hasCachedSession=true: Ultra-Fast Boot đã xác nhận qua cache là phiên hợp lệ,
     // chỉ đang chờ Firebase SDK xác nhận lại `user` (thường vài chục ms) — không hiện nhầm màn
     // Login trong lúc chờ (xem chú thích chi tiết ở AuthContext.tsx).
-    if (!user && !isDemoMode && !hasCachedSession) {
+    if (!user && !hasCachedSession) {
         return <Suspense fallback={<ManChoKhoiDong />}><LoginView /></Suspense>;
     }
 
@@ -358,8 +358,8 @@ function AppContent() {
         return <Suspense fallback={<ManChoKhoiDong />}><PendingApprovalView /></Suspense>;
     }
 
-    // Bắt buộc nhập mã kho cho tất cả user đã approved (trừ admin / lối vào kiểm thử trên dev server)
-    if (user && !isDemoMode && userRole !== 'admin' && (!departmentId || departmentId.trim() === '')) {
+    // Bắt buộc nhập mã kho cho tất cả user đã approved (trừ admin)
+    if (user && userRole !== 'admin' && (!departmentId || departmentId.trim() === '')) {
         return <Suspense fallback={<ManChoKhoiDong />}><PendingApprovalView forceDeptUpdate /></Suspense>;
     }
 

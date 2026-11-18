@@ -30,7 +30,7 @@ interface MenuConfigContextType {
 const MenuConfigContext = createContext<MenuConfigContextType | undefined>(undefined);
 
 export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user, employeeName, isDemoMode, userRole } = useAuth();
+    const { user, employeeName, userRole } = useAuth();
     const [config, setConfig] = useState<SystemMenuConfigDoc>(() => getLocalMenuConfig());
     const [isLoading, setIsLoading] = useState(true);
 
@@ -75,10 +75,6 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const setFeatureRoles = useCallback(
         async (featureId: string, roles: MenuRole[] | null): Promise<boolean> => {
-            if (import.meta.env.DEV && isDemoMode) {
-                toast.success('(Kiểm thử) Đã đổi quyền xem chức năng!');
-                return true;
-            }
             const truoc = config.featureRoles;
             const next: Record<string, MenuRole[]> = { ...(truoc || {}) };
             // Quản lý + Nhân viên đều được chọn = không giới hạn (quản trị hệ thống luôn xem được nên không đưa vào nút)
@@ -101,7 +97,7 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 return false;
             }
         },
-        [config.features, config.featureRoles, isDemoMode, user, employeeName]
+        [config.features, config.featureRoles, user, employeeName]
     );
 
     const toggleFeature = useCallback(
@@ -118,11 +114,6 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 updatedAt: new Date().toISOString(),
                 updatedByName: employeeName || user?.displayName || 'Quản trị hệ thống',
             }));
-
-            if (import.meta.env.DEV && isDemoMode) {
-                toast.success(`(Kiểm thử) Đã ${enabled ? 'MỞ' : 'TẮT'} tính năng thành công!`);
-                return true;
-            }
 
             try {
                 await saveSystemMenuConfig(nextFeatures, {
@@ -142,7 +133,7 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 return false;
             }
         },
-        [config.features, isDemoMode, user, employeeName]
+        [config.features, user, employeeName]
     );
 
     const setAllFeatures = useCallback(
@@ -160,11 +151,6 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 updatedByName: employeeName || user?.displayName || 'Quản trị hệ thống',
             }));
 
-            if (import.meta.env.DEV && isDemoMode) {
-                toast.success(`(Kiểm thử) Đã ${enabled ? 'BẬT' : 'TẮT'} tất cả tính năng!`);
-                return true;
-            }
-
             try {
                 await saveSystemMenuConfig(nextFeatures, {
                     email: user?.email || undefined,
@@ -178,7 +164,7 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 return false;
             }
         },
-        [isDemoMode, user, employeeName]
+        [user, employeeName]
     );
 
     const resetToDefault = useCallback(async (): Promise<boolean> => {
@@ -188,11 +174,6 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             updatedAt: new Date().toISOString(),
             updatedByName: employeeName || user?.displayName || 'Quản trị hệ thống',
         });
-
-        if (import.meta.env.DEV && isDemoMode) {
-            toast.success('(Kiểm thử) Đã khôi phục cài đặt mặc định!');
-            return true;
-        }
 
         try {
             await saveSystemMenuConfig(defaults, {
@@ -206,7 +187,7 @@ export const MenuConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             toast.error('Không thể khôi phục mặc định.');
             return false;
         }
-    }, [isDemoMode, user, employeeName]);
+    }, [user, employeeName]);
 
     const value = useMemo(
         () => ({

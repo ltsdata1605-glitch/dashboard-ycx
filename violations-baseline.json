@@ -491,10 +491,10 @@
     "iconRawSvg": 0,
     "iconEmoji": 0,
     "rawOverlay": 0,
-    "tinyText": 0,
+    "tinyText": 12,
     "offScaleRadius": 0,
-    "offScaleText": 0,
-    "legacyRadius": 0,
+    "offScaleText": 3,
+    "legacyRadius": 2,
     "backdropBlur": 0,
     "unstyledButton": 0
   },

@@ -24,7 +24,7 @@ export const CheckThuongView: React.FC = () => {
     const [competitionData, setCompetitionData] = useState<any[][]>([]);
     const [fileName, setFileName] = useState<string>('');
     const [uploadTime, setUploadTime] = useState<string>('');
-    const { user, isDemoMode } = useAuth();
+    const { user } = useAuth();
     const [isSyncingCloud, setIsSyncingCloud] = useState(false);
     const [cloudFeedback, setCloudFeedback] = useState<{
         message: string;
@@ -76,7 +76,7 @@ export const CheckThuongView: React.FC = () => {
     useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
     const handleManualCloudSync = useCallback(async () => {
-        if (!user || isDemoMode) {
+        if (!user) {
             toast.error('Vui lòng đăng nhập tài khoản đám mây (Google) trên cả Điện Thoại và Laptop để đồng bộ dữ liệu!', {
                 id: 'checkthuong-cloud-login-req',
                 duration: 5000,
@@ -158,7 +158,7 @@ export const CheckThuongView: React.FC = () => {
         } finally {
             setIsSyncingCloud(false);
         }
-    }, [user, isDemoMode]);
+    }, [user]);
 
     useEffect(() => {
         return () => {

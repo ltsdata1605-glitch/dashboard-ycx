@@ -17,10 +17,10 @@ export const FeatureDisabled404View: React.FC<FeatureDisabled404ViewProps> = ({
     onGoToAdminConfig,
 }) => {
     const { setActiveTab } = useActiveTab();
-    const { userRole, isDemoMode } = useAuth();
+    const { userRole } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
     const isAdmin = userRole === 'admin';
-    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const canAccessLineBot = userRole === 'admin' || userRole === 'manager';
     const feature = getFeatureById(featureId);
     const featureName = feature ? feature.label : featureId;
 

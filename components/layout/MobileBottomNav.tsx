@@ -35,12 +35,12 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = React.memo(({
     onExternalMoreOpenChange,
 }) => {
     const { activeTab, setActiveTab } = useActiveTab();
-    const { userRole, isDemoMode } = useAuth();
+    const { userRole } = useAuth();
     const { isFeatureEnabled } = useMenuConfig();
     const [internalMoreOpen, setInternalMoreOpen] = useState(false);
     const [daMoKhac, setDaMoKhac] = useState(false);
     const isMoreOpen = internalMoreOpen || externalMoreOpen;
-    const canAccessLineBot = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const canAccessLineBot = userRole === 'admin' || userRole === 'manager';
 
     useEffect(() => {
         if (externalMoreOpen) setDaMoKhac(true);

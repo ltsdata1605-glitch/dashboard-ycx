@@ -20,8 +20,6 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     loginWithGoogleRedirect: () => Promise<void>;
     logout: () => Promise<void>;
-    isDemoMode: boolean;
-    setDemoMode: (val: boolean) => void;
     requestAccess: (requestedRole: 'manager' | 'employee', deptId: string, empName?: string) => Promise<{ autoApproved?: boolean; role?: string; status?: string } | void>;
     functions: Functions;
     db: Firestore;
@@ -88,40 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
     
     const [isLoading, setIsLoading] = useState(true);
-    // LỐI VÀO KIỂM THỬ — thay "Chế độ Dùng Thử" (chủ dự án XOÁ 2026-11-15: không nút, không chữ nào cho người dùng). CHỈ có trên dev
-    // server (`import.meta.env.DEV`; bản build Vite thay bằng `false` nên cả khối này biến mất) để bộ test e2e vào app không cần đăng
-    // nhập: `window.__ycxVaoLoiKiemThu()` (tests/e2e/helpers/loiKiemThu.ts) hoặc cờ 'ycx_demo_mode' đặt TRƯỚC khi trang tải.
-    // Tên biến `isDemoMode` giữ nguyên trong code để khỏi đổi tên khắp nơi — nghĩa là "đang ở lối vào kiểm thử".
-    const [isDemoModeRaw, setDemoModeRaw] = useState(() => {
-        if (!import.meta.env.DEV || typeof window === 'undefined') return false;
-        return sessionStorage.getItem('ycx_demo_mode') === 'true' || localStorage.getItem('ycx_demo_mode') === 'true';
-    });
-    const isDemoMode = import.meta.env.DEV && isDemoModeRaw;
-
-    const setDemoMode = (val: boolean) => {
-        if (!import.meta.env.DEV) return;
-        setDemoModeRaw(val);
-        if (typeof window !== 'undefined') {
-            if (val) {
-                sessionStorage.setItem('ycx_demo_mode', 'true');
-                localStorage.setItem('ycx_demo_mode', 'true');
-            } else {
-                sessionStorage.removeItem('ycx_demo_mode');
-                localStorage.removeItem('ycx_demo_mode');
-            }
-        }
-    };
-    useEffect(() => {
-        if (!import.meta.env.DEV) return;
-        // Cờ chỉ có tác dụng cho LẦN TẢI vừa đọc (giữ nguyên cách cũ): tải lại lần nữa là về màn đăng nhập.
-        try {
-            sessionStorage.removeItem('ycx_demo_mode');
-            localStorage.removeItem('ycx_demo_mode');
-        } catch { /* trình duyệt chặn bộ nhớ: không có gì để xoá */ }
-        const w = window as unknown as { __ycxVaoLoiKiemThu?: () => void };
-        w.__ycxVaoLoiKiemThu = () => setDemoMode(true);
-        return () => { delete w.__ycxVaoLoiKiemThu; };
-    }, []);
 
     useEffect(() => {
 
@@ -156,8 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             hasAcceptedUserRef.current = Boolean(currentUser);
             setUser(currentUser);
             if (currentUser) {
-                // Đăng nhập tài khoản thật thì thoát lối vào kiểm thử (chỉ dev server)
-                setDemoMode(false);
                 // Dữ liệu cục bộ thuộc về TRÌNH DUYỆT chứ không theo tài khoản: tài khoản khác
                 // đăng nhập trên cùng máy sẽ thấy dữ liệu của người trước (chủ dự án gặp thật
                 // 2026-09-23 — tài khoản mới vẫn thấy cụm siêu thị cũ ở Report BI). Dọn trước khi
@@ -352,7 +314,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const logout = async () => {
         await logoutProvider();
-        setDemoMode(false); // thoát lối vào kiểm thử (chỉ dev server)
         // Dọn dữ liệu cục bộ để người đăng nhập tiếp theo trên máy này không thấy dữ liệu của
         // tài khoản vừa đăng xuất. Dữ liệu thật vẫn nằm trên cloud theo từng tài khoản.
         try {
@@ -363,11 +324,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const activeUserRole = isDemoMode ? 'manager' : userRole;
-    const activeStatus = isDemoMode ? 'approved' : status;
-
     return (
-        <AuthContext.Provider value={{ user, userRole: activeUserRole, departmentId, employeeName, expiresAt, status: activeStatus, isLoading, hasCachedSession, loginWithGoogle, loginWithGoogleRedirect, logout, isDemoMode, setDemoMode, requestAccess, functions, db }}>
+        <AuthContext.Provider value={{ user, userRole, departmentId, employeeName, expiresAt, status, isLoading, hasCachedSession, loginWithGoogle, loginWithGoogleRedirect, logout, requestAccess, functions, db }}>
             {children}
         </AuthContext.Provider>
     );
@@ -382,8 +340,6 @@ const SAFE_AUTH_FALLBACK: AuthContextType = {
     loginWithGoogle: async () => { console.warn('[Auth] loginWithGoogle called outside AuthProvider'); },
     loginWithGoogleRedirect: async () => { console.warn('[Auth] loginWithGoogleRedirect called outside AuthProvider'); },
     logout: async () => { console.warn('[Auth] logout called outside AuthProvider'); },
-    isDemoMode: false,
-    setDemoMode: () => {},
     requestAccess: async () => { console.warn('[Auth] requestAccess called outside AuthProvider'); },
     functions,
     db,

@@ -139,7 +139,7 @@ interface CacheEntry {
 }
 
 const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) => {
-    const { user, userRole, departmentId, isDemoMode } = useAuth();
+    const { user, userRole, departmentId } = useAuth();
     const { users: pendingStoreUsers } = usePendingApprovals();
     const [requests, setRequests] = useState<AccessRequest[]>([]);
     const [tabCounts, setTabCounts] = useState<{ pending?: number; active?: number; expired?: number }>({});
@@ -216,13 +216,6 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
         const key = `${requestId}_${field}`;
         if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
 
-        if (import.meta.env.DEV && isDemoMode) {
-            debounceTimers.current[key] = setTimeout(() => {
-                toast.success('Đã tự động lưu (kiểm thử)!', { duration: 1500, id: `autosave-${requestId}` });
-            }, 800);
-            return;
-        }
-
         debounceTimers.current[key] = setTimeout(async () => {
             try {
                 setSavingIds(prev => new Set(prev).add(requestId));
@@ -260,7 +253,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
                 setSavingIds(prev => { const n = new Set(prev); n.delete(requestId); return n; });
             }
         }, 800);
-    }, [isDemoMode]);
+    }, []);
 
     // Tự động chuyển tới tab Bật/tắt chức năng khi được yêu cầu từ màn hình 404
     useEffect(() => {
@@ -317,83 +310,6 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
         }
 
         try {
-            if (import.meta.env.DEV && isDemoMode) {
-                // Mock data for demo mode to prevent Firestore permission-denied errors
-                const mockRequests: AccessRequest[] = [
-                    {
-                        id: 'demo-user-1',
-                        displayName: 'Nguyễn Văn A',
-                        email: 'nguyenvana@gmail.com',
-                        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=A',
-                        requestedRole: 'employee',
-                        role: 'pending',
-                        departmentId: '58614',
-                        employeeName: 'Nguyễn Văn A',
-                        status: 'pending',
-                        createdAt: { toDate: () => new Date(), toMillis: () => Date.now() },
-                        requestDate: { toMillis: () => Date.now() },
-                        loginCount: 3
-                    },
-                    {
-                        id: 'demo-user-2',
-                        displayName: 'Trần Thị B',
-                        email: 'tranthib@gmail.com',
-                        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=B',
-                        requestedRole: 'employee',
-                        role: 'employee',
-                        departmentId: '58614',
-                        employeeName: 'Trần Thị B',
-                        status: 'approved',
-                        createdAt: { toDate: () => new Date(Date.now() - 86400000), toMillis: () => Date.now() - 86400000 },
-                        requestDate: { toMillis: () => Date.now() - 86400000 },
-                        expiresAt: { toDate: () => new Date(Date.now() + 30 * 86400000) },
-                        loginCount: 12
-                    },
-                    {
-                        id: 'demo-user-3',
-                        displayName: 'Lê Văn C',
-                        email: 'levanc@gmail.com',
-                        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=C',
-                        requestedRole: 'employee',
-                        role: 'employee',
-                        departmentId: '58614',
-                        employeeName: 'Lê Văn C',
-                        status: 'expired',
-                        createdAt: { toDate: () => new Date(Date.now() - 172800000), toMillis: () => Date.now() - 172800000 },
-                        requestDate: { toMillis: () => Date.now() - 172800000 },
-                        expiresAt: { toDate: () => new Date(Date.now() - 86400000) },
-                        loginCount: 5
-                    }
-                ];
-                
-                const newExpiry: Record<string, string> = {
-                    'demo-user-2': getLocalDateString(new Date(Date.now() + 30 * 86400000)),
-                    'demo-user-3': getLocalDateString(new Date(Date.now() - 86400000))
-                };
-                const newDept: Record<string, string> = { 'demo-user-1': '58614', 'demo-user-2': '58614', 'demo-user-3': '58614' };
-                const newNames: Record<string, string> = { 'demo-user-1': 'Nguyễn Văn A', 'demo-user-2': 'Trần Thị B', 'demo-user-3': 'Lê Văn C' };
-                const newRoles: Record<string, string> = { 'demo-user-1': 'pending', 'demo-user-2': 'employee', 'demo-user-3': 'employee' };
-
-                setExpiryDates(newExpiry);
-                setEditDepartments(newDept);
-                setEditNames(newNames);
-                setEditRoles(newRoles);
-
-                const filteredData = listMode === 'pending' ? [mockRequests[0]] : listMode === 'expired' ? [mockRequests[2]] : [mockRequests[1]];
-                setRequests(filteredData);
-                setTabCounts({ pending: 1, active: 1, expired: 1 });
-                usersCacheRef.current[listMode] = {
-                    data: filteredData,
-                    expiry: newExpiry,
-                    dept: newDept,
-                    names: newNames,
-                    roles: newRoles,
-                    timestamp: Date.now()
-                };
-                setIsLoading(false);
-                return;
-            }
-
             let rawUsers: ManagedUserDoc[] = [];
 
             /**
@@ -601,7 +517,6 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
 
     // Đồng bộ số lượng chờ duyệt từ pendingStore (chuông / background store)
     useEffect(() => {
-        if (import.meta.env.DEV && isDemoMode) return;
         if (userRole === 'admin') {
             if (tabCounts.pending === undefined && pendingStoreUsers.length > 0) {
                 const pCount = pendingStoreUsers.filter(u => !isUserExpired(u.status, u.expiresAt) && (u.status === 'pending' || u.status === 'new' || u.role === 'pending')).length;
@@ -612,42 +527,9 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ isEmbedded }) =
             const pCount = pendingStoreUsers.filter(u => u.requestedRole === 'employee' && u.status === 'pending' && allowedKhos.includes(u.departmentId || '')).length;
             setTabCounts(prev => ({ ...prev, pending: pCount }));
         }
-    }, [pendingStoreUsers, userRole, departmentId, isDemoMode, tabCounts.pending]);
+    }, [pendingStoreUsers, userRole, departmentId, tabCounts.pending]);
 
     const handleApproval = async (requestId: string, isApproved: boolean, customExpiresAt?: string | null) => {
-        if (import.meta.env.DEV && isDemoMode) {
-            toast.success(isApproved 
-                ? (listMode === 'pending' ? `Đã CẤP QUYỀN thành công (kiểm thử)!` : listMode === 'expired' ? `Đã GIA HẠN thành công (kiểm thử)!` : `Đã CẬP NHẬT QUYỀN thành công (kiểm thử)!`)
-                : (listMode === 'pending' ? 'Đã TỪ CHỐI yêu cầu (kiểm thử)!' : 'Đã THU HỒI quyền truy cập (kiểm thử)!')
-            );
-            setRequests(prev => prev.filter(req => req.id !== requestId));
-            setTabCounts(prev => {
-                if (listMode === 'pending') {
-                    return {
-                        ...prev,
-                        pending: Math.max(0, (prev.pending ?? 1) - 1),
-                        active: isApproved ? (prev.active ?? 1) + 1 : (prev.active ?? 1),
-                    };
-                }
-                if (listMode === 'expired') {
-                    return {
-                        ...prev,
-                        expired: Math.max(0, (prev.expired ?? 1) - 1),
-                        active: isApproved ? (prev.active ?? 1) + 1 : (prev.active ?? 1),
-                    };
-                }
-                if (listMode === 'active' && !isApproved) {
-                    return {
-                        ...prev,
-                        active: Math.max(0, (prev.active ?? 1) - 1),
-                        expired: (prev.expired ?? 1) + 1,
-                    };
-                }
-                return prev;
-            });
-            return;
-        }
-
         try {
             setActionLoadingId(requestId);
             setActionLoadingType(isApproved ? 'approve' : 'reject');

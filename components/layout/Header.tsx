@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({
     isClearingSalesData,
     isSyncingCloud
 }) => {
-    const { user, isDemoMode, userRole } = useAuth();
+    const { user, userRole } = useAuth();
     const context = useDashboardContext();
     const [syncFeedback, setSyncFeedback] = useState<{
         message: string;

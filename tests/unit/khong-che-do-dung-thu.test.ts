@@ -3,11 +3,9 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * 2026-11-15 (chủ dự án): "Xoá bỏ chế độ dùng thử". Bản người dùng không còn nút/chữ "dùng thử" nào; trước đó bản build vẫn lộ băng
- * "Đang ở chế độ dùng thử" + nút "Thoát chế độ dùng thử" ở Cài đặt khi mở app bằng phiên đã lưu mà chưa nhận lại tài khoản, tên
- * "Tài khoản Thử nghiệm" ở sheet Khác, toast "(Demo)". Bộ test vào app qua LỐI VÀO KIỂM THỬ chỉ có trên dev server
- * (`import.meta.env.DEV` — Vite thay bằng false khi build nên nhánh biến mất khỏi bản người dùng).
- * Đã đo trên bản build (vite preview): đặt cờ cũ 'ycx_demo_mode' vẫn chỉ thấy màn đăng nhập, không có `__ycxVaoLoiKiemThu`.
+ * 2026-11-18 (chủ dự án): "Xoá bỏ hoàn toàn chức năng dùng thử và bảo mật tuyệt đối".
+ * isDemoMode, setDemoMode, __ycxVaoLoiKiemThu, 'ycx_demo_mode' — tất cả đã bị XOÁ SẠCH khỏi production code.
+ * Chỉ người được cấp quyền (đăng nhập Firebase Auth + resolveSession) mới vào được app.
  */
 const THU_MUC = ['components', 'features', 'contexts', 'hooks', 'services', 'utils', 'constants'];
 const liet = (dir: string): string[] => readdirSync(dir).flatMap((ten) => {
@@ -18,7 +16,7 @@ const liet = (dir: string): string[] => readdirSync(dir).flatMap((ten) => {
 const FILE = [...THU_MUC.flatMap(liet), 'App.tsx', 'index.tsx'];
 const laChuThich = (d: string) => /^\s*(\/\/|\*|\/\*|\{\/\*)/.test(d);
 
-describe('Chế độ Dùng Thử đã xoá khỏi app', () => {
+describe('Chế độ Dùng Thử đã xoá HOÀN TOÀN khỏi app', () => {
     it('không còn chữ "dùng thử" / "(Demo)" / "Tài khoản Thử nghiệm" trong code app (ngoài chú thích)', () => {
         const vi: string[] = [];
         for (const f of FILE) {
@@ -30,12 +28,29 @@ describe('Chế độ Dùng Thử đã xoá khỏi app', () => {
         expect(vi).toEqual([]);
     });
 
-    it('lối vào kiểm thử chỉ có trên dev server (AuthContext, syncService)', () => {
+    it('không còn isDemoMode / setDemoMode / __ycxVaoLoiKiemThu / ycx_demo_mode trong code app (ngoài chú thích)', () => {
+        const vi: string[] = [];
+        for (const f of FILE) {
+            readFileSync(f, 'utf8').split('\n').forEach((d, i) => {
+                if (laChuThich(d)) return;
+                if (/isDemoMode|setDemoMode|__ycxVaoLoiKiemThu|ycx_demo_mode|isDemoModeRaw|isDemoModeActive/.test(d)) {
+                    vi.push(`${f}:${i + 1}: ${d.trim().slice(0, 120)}`);
+                }
+            });
+        }
+        expect(vi).toEqual([]);
+    });
+
+    it('AuthContext không còn interface isDemoMode/setDemoMode', () => {
         const auth = readFileSync('contexts/AuthContext.tsx', 'utf8');
-        expect(auth).toMatch(/const isDemoMode = import\.meta\.env\.DEV && isDemoModeRaw;/);
-        expect(auth).toMatch(/if \(!import\.meta\.env\.DEV\) return;[\s\S]{0,400}__ycxVaoLoiKiemThu = /);
-        expect(readFileSync('services/syncService.ts', 'utf8')).toMatch(/const isDemoModeActive = \(\): boolean =>\s*import\.meta\.env\.DEV &&/);
-        expect(() => readFileSync('utils/demoMode.ts')).toThrow(); // bỏ hẳn tiện ích cũ
+        expect(auth).not.toMatch(/isDemoMode/);
+        expect(auth).not.toMatch(/setDemoMode/);
+        expect(auth).not.toMatch(/__ycxVaoLoiKiemThu/);
+        expect(auth).not.toMatch(/ycx_demo_mode/);
+    });
+
+    it('utils/demoMode.ts đã bị xoá', () => {
+        expect(() => readFileSync('utils/demoMode.ts')).toThrow();
     });
 
     it('màn đăng nhập không còn nút vào app không đăng nhập', () => {
@@ -43,11 +58,9 @@ describe('Chế độ Dùng Thử đã xoá khỏi app', () => {
         expect(login).not.toMatch(/setDemoMode|aria-label="Kích hoạt/);
     });
 
-    it('nhánh riêng của lối kiểm thử (dữ liệu giả, toast) luôn kèm import.meta.env.DEV — bản build tự bỏ', () => {
-        const vi = FILE.flatMap((f) => readFileSync(f, 'utf8').split('\n')
-            .map((d, i) => ({ d, i }))
-            .filter(({ d }) => /\bif \(isDemoMode\)/.test(d))
-            .map(({ d, i }) => `${f}:${i + 1}: ${d.trim()}`));
-        expect(vi).toEqual([]);
+    it('App.tsx kiểm tra user trước khi hiển thị — không có đường nào bypass auth', () => {
+        const app = readFileSync('App.tsx', 'utf8');
+        expect(app).not.toMatch(/isDemoMode/);
+        expect(app).toMatch(/if \(!user && !hasCachedSession\)/);
     });
 });

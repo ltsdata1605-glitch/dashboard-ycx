@@ -79,8 +79,8 @@ export const NhanVien: React.FC<NhanVienProps> = ({ isActive }) => {
 
     const exportOptions = useExportOptions();
 
-    const { userRole, isDemoMode } = useAuth();
-    const canManageFiles = isDemoMode || userRole === 'admin' || userRole === 'manager';
+    const { userRole } = useAuth();
+    const canManageFiles = userRole === 'admin' || userRole === 'manager';
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [xoaNVConfirm, setXoaNVConfirm] = useState(false);

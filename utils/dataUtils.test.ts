@@ -114,7 +114,7 @@ describe('COL_SHORT_KEY / VARIANT_TO_SHORT_KEY — toàn vẹn bảng ánh xạ 
 });
 
 describe('computeRbacFilteredData — Đợt 4: vẫn lọc đúng dù row dùng khoá ngắn (mới) hay khoá tiếng Việt (cũ)', () => {
-    const baseParams = { isDemoMode: false, userRole: 'employee' as const, departmentId: 'K01', employeeName: '107617', userEmail: 'nv@test.com' };
+    const baseParams = { userRole: 'employee' as const, departmentId: 'K01', employeeName: '107617', userEmail: 'nv@test.com' };
 
     it('row khoá NGẮN (dữ liệu parse mới): nhân viên chỉ thấy đúng Kho + đúng mã số của mình', () => {
         const data = [
