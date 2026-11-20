@@ -28,7 +28,7 @@ import { NotesTab } from './components/NotesTab';
 import { LineBotOnboardingModal } from './components/LineBotOnboardingModal';
 import { botHasToken } from './types/lineBot.types';
 
-type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'keywords' | 'admins' | 'approvals' | 'notes' | 'group-features' | 'syntax' | 'settings';
+type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'settings';
 
 export default function LineBotView() {
     const { user, userRole, loginWithGoogle } = useAuth();
@@ -106,16 +106,10 @@ export default function LineBotView() {
     }
 
     const tabs: Array<{ id: LineBotTab; label: string; icon: IconName }> = [
-        { id: 'coupons', label: 'Coupon Event', icon: 'coupon' },
-        { id: 'filtered', label: 'Coupon lọc', icon: 'filter' },
-        { id: 'schedules', label: 'Gửi Notify', icon: 'schedule' },
-        { id: 'keywords', label: 'Chat BOT', icon: 'sparkles' },
-        { id: 'admins', label: 'Admin', icon: 'securityOk' },
-        { id: 'approvals', label: 'Yêu cầu duyệt', icon: 'checklist' },
-        { id: 'notes', label: 'Ghi nhanh', icon: 'edit' },
-        { id: 'group-features', label: 'Cấu hình nhóm', icon: 'users' },
-        { id: 'syntax', label: 'Cú pháp & Lọc', icon: 'command' },
-        { id: 'settings', label: 'Cấu hình Bot', icon: 'settings' }
+        { id: 'coupons', label: 'Kho PMH', icon: 'coupon' },
+        { id: 'filtered', label: 'Đã phát', icon: 'filter' },
+        { id: 'schedules', label: 'Hẹn giờ', icon: 'schedule' },
+        { id: 'settings', label: 'Cài đặt', icon: 'settings' },
     ];
 
     return (
@@ -305,7 +299,7 @@ export default function LineBotView() {
                     </div>
                 )}
 
-                {/* 8 phân hệ — segmented dùng chung (GĐ7): cuộn ngang trên iPhone, mục đang chọn tự nằm giữa dải (useCenterActiveInStrip) */}
+                {/* 4 phân hệ chính — gom từ 10 tab cũ (useCenterActiveInStrip) */}
                 <Tabs
                     variant="segment"
                     size="sm"
@@ -365,90 +359,76 @@ export default function LineBotView() {
                 )}
 
                 {activeSubTab === 'schedules' && (
-                    <ScheduleManagerTab
-                        schedules={scheduleHook.schedules}
-                        groups={scheduleHook.groups}
-                        isLoading={scheduleHook.isLoading}
-                        isTriggering={scheduleHook.isTriggering}
-                        onSaveSchedule={scheduleHook.saveSchedule}
-                        onDeleteSchedule={scheduleHook.deleteSchedule}
-                        onToggleActive={scheduleHook.toggleActive}
-                        onTriggerNow={scheduleHook.triggerNow}
-                        onRefresh={() => {
-                            scheduleHook.loadSchedules();
-                            scheduleHook.loadGroups();
-                        }}
-                        onAddManualGroup={scheduleHook.addManualGroup}
-                        botId={botConfigHook.config?.userId || undefined}
-                    />
-                )}
-
-                {activeSubTab === 'keywords' && (
-                    <KeywordLibraryTab
-                        keywords={keywordHook.keywords}
-                        isLoading={keywordHook.isLoading}
-                        onSaveKeyword={keywordHook.saveKeyword}
-                        onDeleteKeyword={keywordHook.deleteKeyword}
-                        onToggleActive={keywordHook.toggleActive}
-                        onRefresh={keywordHook.loadKeywords}
-                    />
-                )}
-
-                {activeSubTab === 'admins' && (
-                    <AdminDeclarationTab
-                        admins={adminHook.admins}
-                        isLoading={adminHook.isLoading}
-                        hasBotToken={botHasToken(botConfigHook.config)}
-                        botId={effectiveBotId}
-                        onSaveAdmin={adminHook.saveAdmin}
-                        onDeleteAdmin={adminHook.deleteAdmin}
-                        onToggleActive={adminHook.toggleActive}
-                        onRefresh={adminHook.loadAdmins}
-                        interactedUsers={adminHook.interactedUsers}
-                        isInteractedLoading={adminHook.isInteractedLoading}
-                        onRefreshInteracted={adminHook.loadInteractedUsers}
-                        onAddAdminFromInteracted={adminHook.addAdminFromInteracted}
-                    />
-                )}
-
-                {activeSubTab === 'approvals' && (
-                    <ApprovalRequestsTab botId={effectiveBotId} />
-                )}
-
-                {activeSubTab === 'notes' && (
-                    <NotesTab botId={effectiveBotId} />
-                )}
-
-                {activeSubTab === 'group-features' && (
-                    <GroupFeaturesTab
-                        userId={botConfigHook.config?.userId || ''}
-                        groups={scheduleHook.groups}
-                    />
-                )}
-
-                {activeSubTab === 'syntax' && (
-                    <SyntaxConfigTab
-                        config={botConfigHook.config}
-                        isSaving={botConfigHook.isSaving}
-                        onSaveConfig={botConfigHook.saveConfig}
-                        interactedUsers={adminHook.interactedUsers}
-                        isInteractedLoading={adminHook.isInteractedLoading}
-                        onRefreshInteracted={adminHook.loadInteractedUsers}
-                    />
+                    <div className="space-y-6">
+                        <ScheduleManagerTab
+                            schedules={scheduleHook.schedules}
+                            groups={scheduleHook.groups}
+                            isLoading={scheduleHook.isLoading}
+                            isTriggering={scheduleHook.isTriggering}
+                            onSaveSchedule={scheduleHook.saveSchedule}
+                            onDeleteSchedule={scheduleHook.deleteSchedule}
+                            onToggleActive={scheduleHook.toggleActive}
+                            onTriggerNow={scheduleHook.triggerNow}
+                            onRefresh={() => {
+                                scheduleHook.loadSchedules();
+                                scheduleHook.loadGroups();
+                            }}
+                            onAddManualGroup={scheduleHook.addManualGroup}
+                            botId={botConfigHook.config?.userId || undefined}
+                        />
+                        <NotesTab botId={effectiveBotId} />
+                    </div>
                 )}
 
                 {activeSubTab === 'settings' && (
-                    <LineBotSettingsTab
-                        config={botConfigHook.config}
-                        botInfo={botConfigHook.botInfo}
-                        groups={scheduleHook.groups}
-                        isSaving={botConfigHook.isSaving}
-                        isVerifying={botConfigHook.isVerifying}
-                        personalWebhookUrl={botConfigHook.personalWebhookUrl}
-                        onVerifyToken={botConfigHook.verifyToken}
-                        onSaveConfig={botConfigHook.saveConfig}
-                        onOpenGuide={() => setIsOnboardingOpen(true)}
-                    />
+                    <div className="space-y-6">
+                        <LineBotSettingsTab
+                            config={botConfigHook.config}
+                            botInfo={botConfigHook.botInfo}
+                            groups={scheduleHook.groups}
+                            isSaving={botConfigHook.isSaving}
+                            isVerifying={botConfigHook.isVerifying}
+                            personalWebhookUrl={botConfigHook.personalWebhookUrl}
+                            onVerifyToken={botConfigHook.verifyToken}
+                            onSaveConfig={botConfigHook.saveConfig}
+                            onOpenGuide={() => setIsOnboardingOpen(true)}
+                        />
+                        <AdminDeclarationTab
+                            admins={adminHook.admins}
+                            isLoading={adminHook.isLoading}
+                            hasBotToken={botHasToken(botConfigHook.config)}
+                            botId={effectiveBotId}
+                            onSaveAdmin={adminHook.saveAdmin}
+                            onDeleteAdmin={adminHook.deleteAdmin}
+                            onToggleActive={adminHook.toggleActive}
+                            onRefresh={adminHook.loadAdmins}
+                            interactedUsers={adminHook.interactedUsers}
+                            isInteractedLoading={adminHook.isInteractedLoading}
+                            onRefreshInteracted={adminHook.loadInteractedUsers}
+                            onAddAdminFromInteracted={adminHook.addAdminFromInteracted}
+                        />
+                        <SyntaxConfigTab
+                            config={botConfigHook.config}
+                            isSaving={botConfigHook.isSaving}
+                            onSaveConfig={botConfigHook.saveConfig}
+                            interactedUsers={adminHook.interactedUsers}
+                            isInteractedLoading={adminHook.isInteractedLoading}
+                            onRefreshInteracted={adminHook.loadInteractedUsers}
+                        />
+                        <ApprovalRequestsTab botId={effectiveBotId} />
+                        <GroupFeaturesTab
+                            userId={botConfigHook.config?.userId || ''}
+                            groups={scheduleHook.groups}
+                        />
+                        <KeywordLibraryTab
+                            keywords={keywordHook.keywords}
+                            isLoading={keywordHook.isLoading}
+                            onSaveKeyword={keywordHook.saveKeyword}
+                            onDeleteKeyword={keywordHook.deleteKeyword}
+                            onToggleActive={keywordHook.toggleActive}
+                            onRefresh={keywordHook.loadKeywords}
+                        />
+                    </div>
                 )}
             </div>
 
