@@ -36,7 +36,7 @@ export function parsePmhSheetForm(text: string): { loaiPMH: string; maKho: strin
         const typeMatch = n.match(/(?:loại\s*pmh|cú\s*pháp)\s*[:：]\s*(.+)/i);
         if (typeMatch && !loaiPMH) loaiPMH = typeMatch[1].trim();
 
-        const khoMatch = n.match(/(?:mã\s*kho|kho)\s*[:：]\s*(.+)/i);
+        const khoMatch = n.match(/(?:mã\s*kho(?:\s*áp\s*dụng)?|kho)\s*[:：]\s*(.+)/i);
         if (khoMatch && !maKho) maKho = khoMatch[1].trim();
 
         const mdhMatch = n.match(/(?:mđh|mdh|mã\s*đh|mã\s*đơn\s*hàng|đơn\s*hàng)(?:\s*áp\s*dụng)?\s*[:：]\s*(.+)/i);
@@ -141,10 +141,10 @@ export async function handlePmhSheetCoupon(params: {
                 loaiPMH,
                 maKho,
                 mdh,
-                'Đã gửi',
+                'Đã phát mã',
                 vnTime,
                 couponCode,
-                '',
+                'BOT tự động gửi',
                 params.quoteToken || '',
                 params.groupId,
             ]],
