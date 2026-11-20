@@ -29,12 +29,23 @@ import { LineBotOnboardingModal } from './components/LineBotOnboardingModal';
 import { botHasToken } from './types/lineBot.types';
 
 type LineBotTab = 'coupons' | 'filtered' | 'schedules' | 'settings';
+type SettingsSection = 'bot' | 'admin' | 'syntax' | 'approvals' | 'groups' | 'keywords';
+
+const SETTINGS_SECTIONS: Array<{ id: SettingsSection; title: string; desc: string; icon: IconName }> = [
+    { id: 'bot', title: 'Cấu hình Bot', desc: 'Token, Webhook, Khoá API', icon: 'settings' },
+    { id: 'admin', title: 'Khai báo Admin', desc: 'Phân quyền quản trị bot', icon: 'securityOk' },
+    { id: 'syntax', title: 'Cú pháp PMH', desc: 'Form yêu cầu mã & bộ lọc', icon: 'command' },
+    { id: 'approvals', title: 'Yêu cầu duyệt', desc: 'Duyệt yêu cầu cấp mã', icon: 'checklist' },
+    { id: 'groups', title: 'Cấu hình nhóm', desc: 'Tính năng theo nhóm LINE', icon: 'users' },
+    { id: 'keywords', title: 'Chat BOT tự động', desc: 'Từ khoá trả lời tự động', icon: 'sparkles' },
+];
 
 export default function LineBotView() {
     const { user, userRole, loginWithGoogle } = useAuth();
     const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
 
     const [activeSubTab, setActiveSubTab] = useState<LineBotTab>('coupons');
+    const [openSection, setOpenSection] = useState<SettingsSection | null>('bot');
     const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
     const { activeTab } = useActiveTab();
@@ -381,53 +392,92 @@ export default function LineBotView() {
                 )}
 
                 {activeSubTab === 'settings' && (
-                    <div className="space-y-6">
-                        <LineBotSettingsTab
-                            config={botConfigHook.config}
-                            botInfo={botConfigHook.botInfo}
-                            groups={scheduleHook.groups}
-                            isSaving={botConfigHook.isSaving}
-                            isVerifying={botConfigHook.isVerifying}
-                            personalWebhookUrl={botConfigHook.personalWebhookUrl}
-                            onVerifyToken={botConfigHook.verifyToken}
-                            onSaveConfig={botConfigHook.saveConfig}
-                            onOpenGuide={() => setIsOnboardingOpen(true)}
-                        />
-                        <AdminDeclarationTab
-                            admins={adminHook.admins}
-                            isLoading={adminHook.isLoading}
-                            hasBotToken={botHasToken(botConfigHook.config)}
-                            botId={effectiveBotId}
-                            onSaveAdmin={adminHook.saveAdmin}
-                            onDeleteAdmin={adminHook.deleteAdmin}
-                            onToggleActive={adminHook.toggleActive}
-                            onRefresh={adminHook.loadAdmins}
-                            interactedUsers={adminHook.interactedUsers}
-                            isInteractedLoading={adminHook.isInteractedLoading}
-                            onRefreshInteracted={adminHook.loadInteractedUsers}
-                            onAddAdminFromInteracted={adminHook.addAdminFromInteracted}
-                        />
-                        <SyntaxConfigTab
-                            config={botConfigHook.config}
-                            isSaving={botConfigHook.isSaving}
-                            onSaveConfig={botConfigHook.saveConfig}
-                            interactedUsers={adminHook.interactedUsers}
-                            isInteractedLoading={adminHook.isInteractedLoading}
-                            onRefreshInteracted={adminHook.loadInteractedUsers}
-                        />
-                        <ApprovalRequestsTab botId={effectiveBotId} />
-                        <GroupFeaturesTab
-                            userId={botConfigHook.config?.userId || ''}
-                            groups={scheduleHook.groups}
-                        />
-                        <KeywordLibraryTab
-                            keywords={keywordHook.keywords}
-                            isLoading={keywordHook.isLoading}
-                            onSaveKeyword={keywordHook.saveKeyword}
-                            onDeleteKeyword={keywordHook.deleteKeyword}
-                            onToggleActive={keywordHook.toggleActive}
-                            onRefresh={keywordHook.loadKeywords}
-                        />
+                    <div className="space-y-1.5">
+                        {SETTINGS_SECTIONS.map(s => {
+                            const isOpen = openSection === s.id;
+                            return (
+                                <div key={s.id} className="bg-white rounded-card border border-slate-200/80 overflow-hidden shadow-2xs">
+                                    <Button
+                                        variant="row"
+                                        onClick={() => setOpenSection(isOpen ? null : s.id)}
+                                        className="w-full flex items-center justify-between px-3.5 py-2.5 sm:px-4 sm:py-3"
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className={`p-1.5 rounded-control ${isOpen ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                <AppIcon name={s.icon} size="md" />
+                                            </div>
+                                            <div className="min-w-0 text-left">
+                                                <span className="text-sm font-bold text-slate-800 block truncate">{s.title}</span>
+                                                <span className="text-[11px] text-slate-500 block truncate">{s.desc}</span>
+                                            </div>
+                                        </div>
+                                        <AppIcon name={isOpen ? 'chevronDown' : 'chevronRight'} size="sm" className="text-slate-400 shrink-0" />
+                                    </Button>
+                                    {isOpen && (
+                                        <div className="border-t border-slate-100 px-0">
+                                            {s.id === 'bot' && (
+                                                <LineBotSettingsTab
+                                                    config={botConfigHook.config}
+                                                    botInfo={botConfigHook.botInfo}
+                                                    groups={scheduleHook.groups}
+                                                    isSaving={botConfigHook.isSaving}
+                                                    isVerifying={botConfigHook.isVerifying}
+                                                    personalWebhookUrl={botConfigHook.personalWebhookUrl}
+                                                    onVerifyToken={botConfigHook.verifyToken}
+                                                    onSaveConfig={botConfigHook.saveConfig}
+                                                    onOpenGuide={() => setIsOnboardingOpen(true)}
+                                                />
+                                            )}
+                                            {s.id === 'admin' && (
+                                                <AdminDeclarationTab
+                                                    admins={adminHook.admins}
+                                                    isLoading={adminHook.isLoading}
+                                                    hasBotToken={botHasToken(botConfigHook.config)}
+                                                    botId={effectiveBotId}
+                                                    onSaveAdmin={adminHook.saveAdmin}
+                                                    onDeleteAdmin={adminHook.deleteAdmin}
+                                                    onToggleActive={adminHook.toggleActive}
+                                                    onRefresh={adminHook.loadAdmins}
+                                                    interactedUsers={adminHook.interactedUsers}
+                                                    isInteractedLoading={adminHook.isInteractedLoading}
+                                                    onRefreshInteracted={adminHook.loadInteractedUsers}
+                                                    onAddAdminFromInteracted={adminHook.addAdminFromInteracted}
+                                                />
+                                            )}
+                                            {s.id === 'syntax' && (
+                                                <SyntaxConfigTab
+                                                    config={botConfigHook.config}
+                                                    isSaving={botConfigHook.isSaving}
+                                                    onSaveConfig={botConfigHook.saveConfig}
+                                                    interactedUsers={adminHook.interactedUsers}
+                                                    isInteractedLoading={adminHook.isInteractedLoading}
+                                                    onRefreshInteracted={adminHook.loadInteractedUsers}
+                                                />
+                                            )}
+                                            {s.id === 'approvals' && (
+                                                <ApprovalRequestsTab botId={effectiveBotId} />
+                                            )}
+                                            {s.id === 'groups' && (
+                                                <GroupFeaturesTab
+                                                    userId={botConfigHook.config?.userId || ''}
+                                                    groups={scheduleHook.groups}
+                                                />
+                                            )}
+                                            {s.id === 'keywords' && (
+                                                <KeywordLibraryTab
+                                                    keywords={keywordHook.keywords}
+                                                    isLoading={keywordHook.isLoading}
+                                                    onSaveKeyword={keywordHook.saveKeyword}
+                                                    onDeleteKeyword={keywordHook.deleteKeyword}
+                                                    onToggleActive={keywordHook.toggleActive}
+                                                    onRefresh={keywordHook.loadKeywords}
+                                                />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>
