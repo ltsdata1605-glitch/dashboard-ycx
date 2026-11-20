@@ -57,7 +57,7 @@ export const DEFAULT_DRAW_HISTORY_ENTRY: PrintHistoryEntry = {
     label: 'Phiếu Rút Thăm — Mẫu mặc định',
     pageCount: 1000,
     stickerType: 'draw',
-    bgImage: DRAW_DMX_DEFAULT_BG,
+    bgImage: '/frame/bg_phieu.png',
     headerTextSize: 8,
     subHeaderTextSize: 13,
     percentTextSize: 36.9,
@@ -93,9 +93,9 @@ export const DEFAULT_DRAW_HISTORY_ENTRY: PrintHistoryEntry = {
 export function useStickerPrinterData() {
     const [stickerMode, setStickerMode] = useState<'sticker'>('sticker');
     const [stickerType, setStickerType] = useState<'gia_soc' | 'gio_vang' | 'draw'>('draw');
-    const [bgImage, setBgImage] = useState<string>(DRAW_DMX_DEFAULT_BG);
+    const [bgImage, setBgImage] = useState('/frame/bg_phieu.png');
     const [priceSource, setPriceSource] = useState<'sale' | 'service'>('sale');
-    
+
     // Ticket draw state — khởi tạo từ mẫu mặc định
     const [drawTickets, setDrawTickets] = useState<TicketDrawData[]>([
         { ...DEFAULT_DRAW_TICKET_TEMPLATE, id: '1', code: '1' },
@@ -115,7 +115,7 @@ export function useStickerPrinterData() {
     const [drawTitleSize, setDrawTitleSize] = useState(4.3);
     const [drawCodeSize, setDrawCodeSize] = useState(3.8);
     const [drawFooterSize, setDrawFooterSize] = useState(3.8);
-    
+
     // Dynamic Font Sizes and Active Field Trackers
     const [activeField, setActiveField] = useState<string>('drawContentBottomLeft');
     const [headerTextSize, setHeaderTextSize] = useState(8);
@@ -198,11 +198,11 @@ export function useStickerPrinterData() {
         if (editableContainer) {
             const span = document.createElement('span');
             span.style.fontSize = `${sizeVal.toFixed(1)}cqw`;
-            
+
             try {
                 span.appendChild(range.extractContents());
                 range.insertNode(span);
-                
+
                 const event = new Event('input', { bubbles: true });
                 editableContainer.dispatchEvent(event);
                 return true;
@@ -309,7 +309,7 @@ export function useStickerPrinterData() {
                 } else {
                     newTickets.push({
                         id: (i + 1).toString(),
-                        title: firstTicketData.title, 
+                        title: firstTicketData.title,
                         footer: firstTicketData.footer,
                         contentTop: firstTicketData.contentTop,
                         contentTopRight: firstTicketData.contentTopRight,
@@ -352,7 +352,7 @@ export function useStickerPrinterData() {
         };
         document.addEventListener('draw-font-size-change', handler);
         return () => document.removeEventListener('draw-font-size-change', handler);
-    }, [stickerType, activeField]);  
+    }, [stickerType, activeField]);
 
     useEffect(() => {
         const match = previewName.match(/(?:IMEI|CODE):\s*([A-Za-z0-9]+)/i);
@@ -443,11 +443,11 @@ export function useStickerPrinterData() {
         async function loadAllData() {
             try {
                 const savedState = await getSetting<any>(STICKER_DB_KEY);
-                
+
                 if (savedState && active) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const currentSub = urlParams.get('sub');
-                    
+
                     let effectiveType: StickerType = 'draw';
                     if (!currentSub) {
                         setStickerMode('sticker');
@@ -461,10 +461,13 @@ export function useStickerPrinterData() {
                         setStickerMode('sticker');
                         setStickerType('gio_vang');
                         effectiveType = 'gio_vang';
-                    } else {
+                    } else if (currentSub === 'draw') {
                         setStickerMode('sticker');
                         setStickerType('draw');
                         effectiveType = 'draw';
+                    } else if (currentSub === 'event') {
+                        setStickerMode('event');
+                        setEventEverOpened(true);
                     }
 
                     // STRICT BG IMAGE BINDING: Chỉ khôi phục bgImage nếu nó thuộc đúng loại tem hiện tại
@@ -510,7 +513,7 @@ export function useStickerPrinterData() {
                     if (savedState.showBarcode != null) setShowBarcode(savedState.showBarcode);
                     if (savedState.previewName) setPreviewName(savedState.previewName);
                     if (savedState.previewOldPrice) setPreviewOldPrice(savedState.previewOldPrice);
-                    
+
                     if (savedState.previewNewPrice) {
                         const digits = String(savedState.previewNewPrice).replace(/\D/g, '');
                         if (digits) {
@@ -523,12 +526,12 @@ export function useStickerPrinterData() {
                             setPreviewNewPrice(savedState.previewNewPrice);
                         }
                     }
-                    
+
                     if (savedState.discountDisplayMode) setDiscountDisplayMode(savedState.discountDisplayMode);
                     if (savedState.barcodeImei) setBarcodeImei(savedState.barcodeImei);
                     if (savedState.discountThreshold != null) setDiscountThreshold(savedState.discountThreshold);
                     if (savedState.searchTerm != null) setSearchTerm(savedState.searchTerm);
-                    
+
                     const loadedPages = (savedState.manualPages || []).map((page: StickerPage) => {
                         if (page.newPrice) {
                             const digits = String(page.newPrice).replace(/\D/g, '');
@@ -542,7 +545,7 @@ export function useStickerPrinterData() {
                         }
                         return page;
                     });
-                    
+
                     const loadedItems = (savedState.batchItems || []).map((item: BatchItem) => {
                         if (item.newPrice) {
                             const digits = String(item.newPrice).replace(/\D/g, '');
@@ -556,7 +559,7 @@ export function useStickerPrinterData() {
                         }
                         return item;
                     });
-                    
+
                     if (loadedPages.length === 0 && loadedItems.length === 0) {
                         setActiveSubTab('data');
                     } else if (savedState.activeSubTab) {
@@ -565,7 +568,7 @@ export function useStickerPrinterData() {
                     setManualPages(loadedPages);
                     setBatchItems(loadedItems);
                     if (savedState.priceSource) setPriceSource(savedState.priceSource);
-                    
+
                     if (savedState.headerTextSize != null) setHeaderTextSize(savedState.headerTextSize);
                     if (savedState.subHeaderTextSize != null) setSubHeaderTextSize(savedState.subHeaderTextSize);
                     if (savedState.percentTextSize != null) setPercentTextSize(savedState.percentTextSize);
@@ -577,7 +580,7 @@ export function useStickerPrinterData() {
                     if (savedState.drawTickets && Array.isArray(savedState.drawTickets) && savedState.drawTickets.length > 0) {
                         // Tự động nâng cấp CHỈ KHI dữ liệu cũ là mẫu thử nghiệm 12/9 của bản sơ khai
                         const isOldSample12_9 = savedState.drawTickets[0]?.title?.includes('12/9') ||
-                                                savedState.drawTickets[0]?.contentTop?.includes('420 SUẤT');
+                            savedState.drawTickets[0]?.contentTop?.includes('420 SUẤT');
                         if (isOldSample12_9) {
                             setDrawTickets([
                                 { ...DEFAULT_DRAW_TICKET_TEMPLATE, id: '1', code: '1' },
@@ -730,7 +733,7 @@ export function useStickerPrinterData() {
                 drawFooterSize,
                 updatedAt: new Date().toISOString()
             };
-            
+
             try {
                 await saveSetting(STICKER_DB_KEY, dataToSave);
             } catch (e) {
@@ -849,7 +852,7 @@ export function useStickerPrinterData() {
         setDiscountThreshold(val);
         const cleanInput = val.replace(/[^0-9]/g, '');
         const limit = parseInt(cleanInput, 10);
-        
+
         if (isNaN(limit)) {
             setManualPages(prev => prev.map(p => ({ ...p, selected: true })));
             setBatchItems(prev => prev.map(i => ({ ...i, selected: true })));
@@ -1151,7 +1154,7 @@ export function useStickerPrinterData() {
 
         setSavedLists(prev => {
             const next = [list, ...prev].slice(0, 50);
-            saveSetting(STICKER_SAVED_LISTS_KEY, next).catch(() => {});
+            saveSetting(STICKER_SAVED_LISTS_KEY, next).catch(() => { });
             return next;
         });
 
@@ -1235,14 +1238,14 @@ export function useStickerPrinterData() {
                             storeId: c.storeId || targetStoreId,
                         };
                     }));
-                    
+
                     // Merge Cloud lists với Local lists hiện tại để không làm mất danh sách vừa tạo
                     setSavedLists(prev => {
                         const merged = [...formattedLists, ...prev];
                         const uniqueMap = new Map<string, SavedStickerList>();
                         merged.forEach(item => uniqueMap.set(item.id, item));
                         const result = Array.from(uniqueMap.values()).sort((a, b) => b.timestamp - a.timestamp);
-                        saveSetting(STICKER_SAVED_LISTS_KEY, result).catch(() => {});
+                        saveSetting(STICKER_SAVED_LISTS_KEY, result).catch(() => { });
                         return result;
                     });
                 }
@@ -1277,7 +1280,7 @@ export function useStickerPrinterData() {
         }
         setSavedLists(prev => {
             const next = prev.filter(l => l.id !== list.id);
-            saveSetting(STICKER_SAVED_LISTS_KEY, next).catch(() => {});
+            saveSetting(STICKER_SAVED_LISTS_KEY, next).catch(() => { });
             return next;
         });
     };
@@ -1343,7 +1346,7 @@ export function useStickerPrinterData() {
         if (id === DEFAULT_HISTORY_ID) return;
         setPrintHistory(prev => {
             const next = prev.filter(h => h.id !== id);
-            saveSetting(STICKER_HISTORY_KEY, next).catch(() => {});
+            saveSetting(STICKER_HISTORY_KEY, next).catch(() => { });
             return next;
         });
     };
@@ -1387,7 +1390,7 @@ export function useStickerPrinterData() {
 
             const printHost = document.createElement('div');
             printHost.id = 'print-host';
-            
+
             const effectiveBg = resolveEffectiveBgImage(stickerType, bgImage);
             printHost.innerHTML = `
                 <style>
@@ -1402,16 +1405,16 @@ export function useStickerPrinterData() {
                         outline: none !important;
                     }
                     ${getStickerPreviewStyles({
-                        stickerType,
-                        bgImage: effectiveBg,
-                        headerTextSize,
-                        subHeaderTextSize,
-                        percentTextSize,
-                        oldPriceTextSize,
-                        nameTextSize,
-                        newPriceTextSize,
-                        footerTextSize
-                    })}
+                stickerType,
+                bgImage: effectiveBg,
+                headerTextSize,
+                subHeaderTextSize,
+                percentTextSize,
+                oldPriceTextSize,
+                nameTextSize,
+                newPriceTextSize,
+                footerTextSize
+            })}
                 </style>
             `;
 
@@ -1483,7 +1486,7 @@ export function useStickerPrinterData() {
                     next = [historyEntry, ...prev];
                 }
                 const sliced = next.slice(0, 30);
-                saveSetting(STICKER_HISTORY_KEY, sliced).catch(() => {});
+                saveSetting(STICKER_HISTORY_KEY, sliced).catch(() => { });
                 return sliced;
             });
 
@@ -1530,7 +1533,7 @@ export function useStickerPrinterData() {
                 drawFooterSize,
                 updatedAt: new Date().toISOString()
             };
-            saveSetting(STICKER_DB_KEY, stateToSave).catch(() => {});
+            saveSetting(STICKER_DB_KEY, stateToSave).catch(() => { });
 
             setTimeout(() => {
                 window.print();
@@ -1552,7 +1555,7 @@ export function useStickerPrinterData() {
 
         const printHost = document.createElement('div');
         printHost.id = 'print-host';
-        
+
         printHost.innerHTML = `
             <style>
                 #print-host .header-text { font-size: ${headerTextSize}cqi !important; }
@@ -1662,7 +1665,7 @@ export function useStickerPrinterData() {
                 next = [historyEntry, ...prev];
             }
             const sliced = next.slice(0, 20);
-            saveSetting(STICKER_HISTORY_KEY, sliced).catch(() => {});
+            saveSetting(STICKER_HISTORY_KEY, sliced).catch(() => { });
             return sliced;
         });
 
