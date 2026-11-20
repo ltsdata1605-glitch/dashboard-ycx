@@ -16,6 +16,7 @@ import { extractBareCouponCode, buildCouponStatusReply } from './couponLookup';
 import { getGroupFeatures, type GroupFeatures, type GroupFeatureKey } from './groupFeatureHelper';
 import { allocatePmhSequence, formatPmhLabel, buildCouponUsedText, couponKind } from './pmhSequence';
 import { enqueuePmhRelay } from './pmhRelay';
+import { isPmhSheetGroup, looksLikePmhSheetForm, handlePmhSheetCoupon } from './pmhSheetCoupon';
 import { laIdDocHopLe } from './firestoreDocId';
 import { moTaLoiLine, laHetHanMuc } from './lineErrors';
 import { layHanMuc, uocTinhNotifyCuaBot } from './lineQuota';
@@ -3940,6 +3941,46 @@ export const lineBotWebhook = onRequest(
                     }
                     continue;
                 }
+                // PMH Sheet Coupon: group cố định → tìm mã từ Google Sheet, reply trích dẫn
+                if (isPmhSheetGroup(groupId) && looksLikePmhSheetForm(cleanText)) {
+                    try {
+                        const userProfile = await getLineUserProfile(token, senderUserId, groupId);
+                        const displayName = userProfile?.displayName || 'Bạn';
+                        const result = await handlePmhSheetCoupon({
+                            text: cleanText,
+                            senderUserId,
+                            displayName,
+                            groupId: groupId!,
+                            messageId: event.message?.id || '',
+                            quoteToken: event.message?.quoteToken,
+                        });
+                        if (result) {
+                            await replyLineMessage(token, replyToken, [{
+                                type: 'text',
+                                text: `${displayName}\n➜ PMH ${result.loaiPMH} : ${result.couponCode}`,
+                                quoteToken: event.message?.quoteToken,
+                            }]);
+                            console.info(`[pmhSheetCoupon] Đã reply mã ${result.couponCode} cho ${displayName} trong group ${groupId}`);
+                            continue;
+                        }
+                        // Không tìm được mã → báo hết
+                        await replyLineMessage(token, replyToken, [{
+                            type: 'text',
+                            text: `⚠️ Hiện tại không còn mã PMH khả dụng cho loại này trong kho.\nVui lòng liên hệ Quản lý để nạp thêm mã.`,
+                            quoteToken: event.message?.quoteToken,
+                        }]);
+                        continue;
+                    } catch (err) {
+                        console.error('[pmhSheetCoupon] Lỗi xử lý:', err);
+                        await replyLineMessage(token, replyToken, [{
+                            type: 'text',
+                            text: `❌ Lỗi hệ thống khi lấy mã PMH. Vui lòng thử lại sau.`,
+                            quoteToken: event.message?.quoteToken,
+                        }]);
+                        continue;
+                    }
+                }
+
                 // PMH Relay: nếu nhóm bật pmhRelay, gửi form sang admintnb.com qua userscript
                 const isPmhForm = isStrictPmhRequestForm(cleanText);
                 if (isPmhForm && allow('pmhRelay')) {
