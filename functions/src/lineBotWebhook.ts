@@ -3955,12 +3955,18 @@ export const lineBotWebhook = onRequest(
                             quoteToken: event.message?.quoteToken,
                         });
                         if (result) {
-                            await replyLineMessage(token, replyToken, [{
-                                type: 'text',
-                                text: `${displayName}\n➜ PMH ${result.loaiPMH} : ${result.couponCode}`,
-                                quoteToken: event.message?.quoteToken,
-                            }]);
-                            console.info(`[pmhSheetCoupon] Đã reply mã ${result.couponCode} cho ${displayName} trong group ${groupId}`);
+                            const flexMsg = createCouponFlexMessage({
+                                displayName,
+                                productName: result.loaiPMH,
+                                categoryLabel: result.loaiPMH,
+                                code: result.couponCode,
+                                orderId: result.mdh || undefined,
+                                warehouse: result.maKho || undefined,
+                                liffId: (config as any).liffId,
+                            });
+                            signLiffUris(flexMsg, uid, config.channelSecret);
+                            await replyLineMessage(token, replyToken, [flexMsg]);
+                            console.info(`[pmhSheetCoupon] Đã reply Flex mã ${result.couponCode} cho ${displayName} trong group ${groupId}`);
                             continue;
                         }
                         // Không tìm được mã → báo hết

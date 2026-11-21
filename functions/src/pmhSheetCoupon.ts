@@ -67,7 +67,7 @@ export async function handlePmhSheetCoupon(params: {
     groupId: string;
     messageId: string;
     quoteToken?: string;
-}): Promise<{ couponCode: string; loaiPMH: string } | null> {
+}): Promise<{ couponCode: string; loaiPMH: string; maKho: string; mdh: string } | null> {
     const { loaiPMH, maKho, mdh } = parsePmhSheetForm(params.text);
     if (!loaiPMH) {
         console.warn('[pmhSheetCoupon] Form không có Loại PMH, bỏ qua.');
@@ -152,5 +152,5 @@ export async function handlePmhSheetCoupon(params: {
     });
 
     console.info(`[pmhSheetCoupon] Phát mã "${couponCode}" (${loaiPMH}) cho ${params.displayName}`);
-    return { couponCode, loaiPMH };
+    return { couponCode, loaiPMH, maKho, mdh };
 }
